@@ -1,0 +1,29 @@
+[package]
+name = "ember-core"
+description = "Domain types, settings schema, store contract and shared services for Ember"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+dirs.workspace = true
+nix.workspace = true
+time.workspace = true
+smallvec.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

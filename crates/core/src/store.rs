@@ -1,0 +1,245 @@
+//! The contract every store backend implements.
+//!
+//! A store owns its catalogue, credentials and downloads. The services layer
+//! owns everything cross-cutting: the download queue, game statuses, launching
+//! and process tracking, playtime, shortcuts and settings. Stores never touch
+//! the UI; they report through [`OpContext`] and the [`EventBus`](crate::EventBus).
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use anyhow::{Result, bail};
+use async_trait::async_trait;
+
+use crate::game::{Achievement, ExtraInfo, GameInfo, LaunchOption, UserInfo};
+use crate::install::{
+    ExtraFile, InstallInfo, InstallRequest, Outcome, ProgressSink, RemoveArgs, SyncDirection,
+    UpdateRequest,
+};
+use crate::launch::{LaunchPlan, LaunchRequest};
+use crate::process::CancellationToken;
+use crate::runner::{InstallPlatform, Runner};
+
+/// How a user logs in to a store.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LoginFlow {
+    /// Open `url` in the browser. After signing in, the user copies what the
+    /// page shows (an authorization code, a JSON blob or the final redirect URL)
+    /// and Ember passes it to [`Store::login`]. The UI also watches the
+    /// clipboard and submits a match of `capture` automatically.
+    Browser {
+        url: String,
+        /// Regex with one capture group extracting the secret from pasted text.
+        capture: String,
+        /// What the user should copy, in plain words.
+        instructions: String,
+    },
+    /// The store needs no account.
+    None,
+}
+
+/// Reports from a running operation. Cheap to clone.
+#[derive(Clone)]
+pub struct OpContext {
+    pub progress: ProgressSink,
+    pub cancel: CancellationToken,
+    /// Update the status detail line ("Installing redistributables").
+    pub step: Arc<dyn Fn(&str) + Send + Sync>,
+    /// Tool output for this operation is appended here.
+    pub log_file: Option<PathBuf>,
+    /// Effective settings of the game the operation is for (global defaults
+    /// plus its overrides), when the caller knows the game.
+    pub settings: Option<Arc<crate::settings::GameSettings>>,
+}
+
+impl OpContext {
+    pub fn detached() -> Self {
+        Self {
+            progress: crate::install::ignore_progress(),
+            cancel: CancellationToken::new(),
+            step: Arc::new(|_| {}),
+            log_file: None,
+            settings: None,
+        }
+    }
+}
+
+/// Filters for [`Store::install_info`].
+#[derive(Debug, Clone, Default)]
+pub struct InstallInfoQuery {
+    pub branch: Option<String>,
+    pub build: Option<String>,
+    pub language: Option<String>,
+}
+
+#[async_trait]
+pub trait Store: Send + Sync + 'static {
+    fn runner(&self) -> Runner;
+
+    /// Load cached catalogue and credentials from disk. No network; must be fast
+    /// because it gates the first library render.
+    async fn init(&self) -> Result<()>;
+
+    // ---- account -------------------------------------------------------
+
+    /// Logged-in user, if any.
+    fn user(&self) -> Option<UserInfo>;
+
+    fn is_logged_in(&self) -> bool {
+        self.user().is_some()
+    }
+
+    fn login_flow(&self) -> LoginFlow;
+
+    /// Complete login with what the user pasted (code, JSON or redirect URL).
+    async fn login(&self, input: &str) -> Result<UserInfo>;
+
+    async fn logout(&self) -> Result<()>;
+
+    // ---- catalogue -----------------------------------------------------
+
+    /// Re-fetch the owned games. `full` also refreshes per-game metadata that
+    /// is otherwise cached.
+    async fn refresh(&self, full: bool) -> Result<()>;
+
+    /// All library entries (DLCs included, flagged with `is_dlc`).
+    fn games(&self) -> Vec<Arc<GameInfo>>;
+
+    fn game(&self, app_name: &str) -> Option<Arc<GameInfo>>;
+
+    /// Store page details (description, requirements, changelog).
+    async fn extra_info(&self, app_name: &str) -> Result<ExtraInfo>;
+
+    /// Sizes and options for the install dialog.
+    async fn install_info(
+        &self,
+        app_name: &str,
+        platform: InstallPlatform,
+        query: &InstallInfoQuery,
+    ) -> Result<InstallInfo>;
+
+    /// App names of installed games with an update available.
+    async fn updatable_games(&self) -> Result<Vec<String>>;
+
+    // ---- install lifecycle ---------------------------------------------
+
+    async fn install(
+        &self,
+        app_name: &str,
+        request: &InstallRequest,
+        ctx: OpContext,
+    ) -> Result<Outcome>;
+
+    async fn update(
+        &self,
+        app_name: &str,
+        request: &UpdateRequest,
+        ctx: OpContext,
+    ) -> Result<Outcome>;
+
+    /// Verify files and redownload broken ones.
+    async fn repair(&self, app_name: &str, ctx: OpContext) -> Result<Outcome>;
+
+    async fn uninstall(&self, app_name: &str, args: RemoveArgs) -> Result<()>;
+
+    /// Register an existing installation found at `path`.
+    async fn import(&self, app_name: &str, path: &Path, platform: InstallPlatform) -> Result<()>;
+
+    /// Record that the game's files now live at `path` (the services layer
+    /// moves the files).
+    async fn set_install_path(&self, app_name: &str, path: &Path) -> Result<()>;
+
+    /// Forget an install without touching files (for installs whose files vanished).
+    async fn forget_install(&self, app_name: &str) -> Result<()> {
+        self.uninstall(
+            app_name,
+            RemoveArgs {
+                delete_files: false,
+                ..Default::default()
+            },
+        )
+        .await
+    }
+
+    /// Stop update checks for a pinned build (GOG rollback).
+    async fn set_version_pinned(&self, _app_name: &str, _pinned: bool) -> Result<()> {
+        Ok(())
+    }
+
+    /// Whether the installed files are present (e.g. external drive mounted).
+    async fn is_available(&self, app_name: &str) -> bool {
+        self.game(app_name)
+            .and_then(|g| g.install_path())
+            .is_some_and(|p| p.exists())
+    }
+
+    // ---- cloud saves ---------------------------------------------------
+
+    fn supports_cloud_saves(&self) -> bool {
+        false
+    }
+
+    /// Resolve the default save location (expanding store variables inside the prefix).
+    async fn default_save_path(&self, _app_name: &str, _prefix: Option<&Path>) -> Result<String> {
+        bail!("cloud saves are not supported by this store")
+    }
+
+    async fn sync_saves(
+        &self,
+        _app_name: &str,
+        _direction: SyncDirection,
+        _save_path: &str,
+        _ctx: OpContext,
+    ) -> Result<String> {
+        bail!("cloud saves are not supported by this store")
+    }
+
+    // ---- launching -----------------------------------------------------
+
+    async fn launch_options(&self, _app_name: &str) -> Result<Vec<LaunchOption>> {
+        Ok(Vec::new())
+    }
+
+    /// Build the command that starts the game. May perform store-specific
+    /// preparation (redistributables, overlays, version checks) first.
+    async fn launch(
+        &self,
+        app_name: &str,
+        request: &LaunchRequest,
+        ctx: OpContext,
+    ) -> Result<LaunchPlan>;
+
+    /// Called after the game process exits (playtime upload, presence…).
+    async fn after_exit(&self, _app_name: &str, _played_secs: u64) -> Result<()> {
+        Ok(())
+    }
+
+    async fn achievements(&self, _app_name: &str, _language: &str) -> Result<Vec<Achievement>> {
+        Ok(Vec::new())
+    }
+
+    /// Whole minutes played per app name as the store itself recorded them
+    /// (its own launcher's sessions included). Empty for stores that keep no
+    /// playtime or when syncing it is off.
+    async fn remote_playtime(&self) -> Result<std::collections::HashMap<String, u64>> {
+        Ok(std::collections::HashMap::new())
+    }
+
+    /// Files offered beside the game: offline installers, patches and
+    /// goodies. Empty for stores without any.
+    async fn extras(&self, _app_name: &str) -> Result<Vec<ExtraFile>> {
+        Ok(Vec::new())
+    }
+
+    /// Where to download an extra file from right now (addresses expire),
+    /// and the file name to save it under.
+    async fn extra_url(&self, _app_name: &str, _file: &ExtraFile) -> Result<(String, String)> {
+        anyhow::bail!("this store offers no extra files")
+    }
+}
+
+pub type DynStore = Arc<dyn Store>;
+
+/// Read access to current application settings, handed to stores at
+/// construction (worker counts, speed limits, install paths).
+pub type SettingsFn = Arc<dyn Fn() -> Arc<crate::settings::AppSettings> + Send + Sync>;
