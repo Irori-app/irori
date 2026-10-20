@@ -1,0 +1,101 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+# Vendored WebView, unused for now (store logins use the browser); see its README.
+exclude = ["crates/webview"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+publish = false
+
+[workspace.dependencies]
+ember-core = { path = "crates/core" }
+ember-runtime = { path = "crates/runtime" }
+ember-epic = { path = "crates/store-epic" }
+ember-gog = { path = "crates/store-gog" }
+ember-amazon = { path = "crates/store-amazon" }
+ember-zoom = { path = "crates/store-zoom" }
+ember-sideload = { path = "crates/store-sideload" }
+ember-depot = { path = "crates/depot" }
+ember-amazon-api = { path = "crates/amazon" }
+ember-epic-api = { path = "crates/epic" }
+ember-gog-api = { path = "crates/gog" }
+ember-gog-galaxy = { path = "crates/gog-galaxy" }
+ember-services = { path = "crates/services" }
+ember-extras = { path = "crates/extras" }
+ember-ui = { path = "crates/ui" }
+ember-library = { path = "crates/feature-library" }
+ember-game = { path = "crates/feature-game" }
+ember-settings = { path = "crates/feature-settings" }
+ember-manage = { path = "crates/feature-manage" }
+ember-bigpicture = { path = "crates/feature-bigpicture" }
+
+gpui-kit = "0.8.0"
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "fs", "io-util", "sync", "time", "signal"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "gzip", "brotli", "stream", "cookies"] }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+regex = "1"
+once_cell = "1"
+parking_lot = "0.12"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+dirs = "6"
+url = "2"
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+smallvec = "1"
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+sha3 = "0.10"
+aes = "0.8"
+cbc = "0.1"
+aes-gcm = "0.10"
+rsa = { version = "0.9", default-features = false, features = ["std", "pem", "sha2"] }
+prost = { version = "0.14", default-features = false, features = ["std", "derive"] }
+lzma-rs = "0.3"
+fs4 = "1"
+hex = "0.4"
+nix = { version = "0.31", features = ["signal", "process", "fs", "user"] }
+which = "8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+flate2 = "1"
+tar = "0.4"
+xz2 = "0.1"
+zstd = "0.13"
+bzip2 = "0.6"  # pure-Rust backend by default
+zip = { version = "9", default-features = false, features = ["deflate"] }
+open = "5"
+fuzzy-matcher = "0.3"
+uuid = { version = "1", features = ["v4"] }
+base64 = "0.22"
+md5 = "0.7"
+sysinfo = { version = "0.39", default-features = false, features = ["system", "disk"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+# Release speed with symbols, for `perf`/`heaptrack`.
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = false
+lto = "thin"
+codegen-units = 16
