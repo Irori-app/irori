@@ -1,0 +1,33 @@
+[package]
+name = "ember-epic-api"
+description = "Epic Games Store protocol client: accounts, library, manifests, downloads, cloud saves and launch parameters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-depot.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+url.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+futures.workspace = true
+tokio.workspace = true
+time.workspace = true
+sha1.workspace = true
+hex.workspace = true
+base64.workspace = true
+uuid.workspace = true
+flate2.workspace = true
+aes-gcm.workspace = true
+
+[dev-dependencies]
+ember-depot = { workspace = true, features = ["test-server"] }
+tempfile = "3"
+parking_lot.workspace = true
