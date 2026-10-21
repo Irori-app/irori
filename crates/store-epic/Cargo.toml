@@ -1,0 +1,30 @@
+[package]
+name = "ember-epic"
+description = "Epic Games Store backend for Ember"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-epic-api.workspace = true
+ember-depot.workspace = true
+time.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+ember-depot = { workspace = true, features = ["test-server"] }
+sha1.workspace = true
+hex.workspace = true
