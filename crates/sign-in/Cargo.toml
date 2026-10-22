@@ -1,0 +1,23 @@
+[package]
+name = "ember-sign-in"
+description = "Ember's sign-in window: a store's login page in a window of its own, finished automatically"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "ember-sign-in"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+regex.workspace = true
+serde_json.workspace = true
+tao = "0.34"
+wry = "0.53"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+# The version Wry pins, so pop-ups share its WebKitGTK types.
+webkit2gtk = { version = "=2.0.1", features = ["v2_40"] }
