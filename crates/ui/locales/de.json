@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Wird installiert",
+  "ui.status.importing": "Wird importiert",
+  "ui.status.updating": "Wird aktualisiert",
+  "ui.status.launching": "Wird gestartet",
+  "ui.status.playing": "Läuft",
+  "ui.status.uninstalling": "Wird deinstalliert",
+  "ui.status.repairing": "Wird überprüft",
+  "ui.status.moving": "Wird verschoben",
+  "ui.status.queued": "In der Warteschlange",
+  "ui.status.syncing_saves": "Spielstände werden synchronisiert",
+  "ui.status.redist": "Abhängigkeiten werden installiert",
+  "ui.status.extracting": "Wird entpackt",
+  "ui.status.winetricks": "Winetricks läuft",
+  "ui.status.done": "Fertig",
+  "ui.status.canceled": "Abgebrochen",
+  "ui.status.error": "Fehler",
+  "ui.progress.of": "{done} von {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "noch {time}",
+  "ui.cover.no_art": "Kein Bild"
+}

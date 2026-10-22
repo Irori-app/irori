@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "설치 중",
+  "ui.status.importing": "가져오는 중",
+  "ui.status.updating": "업데이트 중",
+  "ui.status.launching": "실행 중",
+  "ui.status.playing": "플레이 중",
+  "ui.status.uninstalling": "제거 중",
+  "ui.status.repairing": "검사 중",
+  "ui.status.moving": "이동 중",
+  "ui.status.queued": "대기 중",
+  "ui.status.syncing_saves": "저장 파일 동기화 중",
+  "ui.status.redist": "종속성 설치 중",
+  "ui.status.extracting": "압축 해제 중",
+  "ui.status.winetricks": "Winetricks 실행 중",
+  "ui.status.done": "완료",
+  "ui.status.canceled": "취소됨",
+  "ui.status.error": "오류",
+  "ui.progress.of": "{done} / {total}",
+  "ui.progress.speed": "{speed}/초",
+  "ui.progress.left": "{time} 남음",
+  "ui.cover.no_art": "이미지 없음"
+}

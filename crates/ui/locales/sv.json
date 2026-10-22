@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Installerar",
+  "ui.status.importing": "Importerar",
+  "ui.status.updating": "Uppdaterar",
+  "ui.status.launching": "Startar",
+  "ui.status.playing": "Spelar",
+  "ui.status.uninstalling": "Avinstallerar",
+  "ui.status.repairing": "Verifierar",
+  "ui.status.moving": "Flyttar",
+  "ui.status.queued": "I kö",
+  "ui.status.syncing_saves": "Synkroniserar sparfiler",
+  "ui.status.redist": "Installerar beroenden",
+  "ui.status.extracting": "Packar upp",
+  "ui.status.winetricks": "Kör Winetricks",
+  "ui.status.done": "Klart",
+  "ui.status.canceled": "Avbrutet",
+  "ui.status.error": "Fel",
+  "ui.progress.of": "{done} av {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "{time} kvar",
+  "ui.cover.no_art": "Ingen bild"
+}

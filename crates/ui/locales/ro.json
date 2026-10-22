@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Se instalează",
+  "ui.status.importing": "Se importă",
+  "ui.status.updating": "Se actualizează",
+  "ui.status.launching": "Se pornește",
+  "ui.status.playing": "În joc",
+  "ui.status.uninstalling": "Se dezinstalează",
+  "ui.status.repairing": "Se verifică",
+  "ui.status.moving": "Se mută",
+  "ui.status.queued": "În coadă",
+  "ui.status.syncing_saves": "Se sincronizează salvările",
+  "ui.status.redist": "Se instalează dependențele",
+  "ui.status.extracting": "Se extrage",
+  "ui.status.winetricks": "Rulează Winetricks",
+  "ui.status.done": "Gata",
+  "ui.status.canceled": "Anulat",
+  "ui.status.error": "Eroare",
+  "ui.progress.of": "{done} din {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "mai sunt {time}",
+  "ui.cover.no_art": "Fără imagine"
+}

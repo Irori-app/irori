@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "正在安装",
+  "ui.status.importing": "正在导入",
+  "ui.status.updating": "正在更新",
+  "ui.status.launching": "正在启动",
+  "ui.status.playing": "游戏中",
+  "ui.status.uninstalling": "正在卸载",
+  "ui.status.repairing": "正在验证",
+  "ui.status.moving": "正在移动",
+  "ui.status.queued": "排队中",
+  "ui.status.syncing_saves": "正在同步存档",
+  "ui.status.redist": "正在安装依赖项",
+  "ui.status.extracting": "正在解压",
+  "ui.status.winetricks": "正在运行 Winetricks",
+  "ui.status.done": "完成",
+  "ui.status.canceled": "已取消",
+  "ui.status.error": "错误",
+  "ui.progress.of": "{done} / {total}",
+  "ui.progress.speed": "{speed}/秒",
+  "ui.progress.left": "剩余 {time}",
+  "ui.cover.no_art": "无图片"
+}

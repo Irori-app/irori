@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Yükleniyor",
+  "ui.status.importing": "İçe aktarılıyor",
+  "ui.status.updating": "Güncelleniyor",
+  "ui.status.launching": "Başlatılıyor",
+  "ui.status.playing": "Oynanıyor",
+  "ui.status.uninstalling": "Kaldırılıyor",
+  "ui.status.repairing": "Doğrulanıyor",
+  "ui.status.moving": "Taşınıyor",
+  "ui.status.queued": "Sırada",
+  "ui.status.syncing_saves": "Kayıtlar eşitleniyor",
+  "ui.status.redist": "Bağımlılıklar yükleniyor",
+  "ui.status.extracting": "Çıkarılıyor",
+  "ui.status.winetricks": "Winetricks çalışıyor",
+  "ui.status.done": "Tamamlandı",
+  "ui.status.canceled": "İptal edildi",
+  "ui.status.error": "Hata",
+  "ui.progress.of": "{done} / {total}",
+  "ui.progress.speed": "{speed}/sn",
+  "ui.progress.left": "{time} kaldı",
+  "ui.cover.no_art": "Görsel yok"
+}

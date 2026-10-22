@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Installeren",
+  "ui.status.importing": "Importeren",
+  "ui.status.updating": "Bijwerken",
+  "ui.status.launching": "Starten",
+  "ui.status.playing": "Speelt",
+  "ui.status.uninstalling": "Verwijderen",
+  "ui.status.repairing": "Controleren",
+  "ui.status.moving": "Verplaatsen",
+  "ui.status.queued": "In wachtrij",
+  "ui.status.syncing_saves": "Opslagbestanden synchroniseren",
+  "ui.status.redist": "Afhankelijkheden installeren",
+  "ui.status.extracting": "Uitpakken",
+  "ui.status.winetricks": "Winetricks uitvoeren",
+  "ui.status.done": "Klaar",
+  "ui.status.canceled": "Geannuleerd",
+  "ui.status.error": "Fout",
+  "ui.progress.of": "{done} van {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "nog {time}",
+  "ui.cover.no_art": "Geen afbeelding"
+}

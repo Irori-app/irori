@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Встановлення",
+  "ui.status.importing": "Імпорт",
+  "ui.status.updating": "Оновлення",
+  "ui.status.launching": "Запуск",
+  "ui.status.playing": "Гра запущена",
+  "ui.status.uninstalling": "Видалення",
+  "ui.status.repairing": "Перевірка",
+  "ui.status.moving": "Переміщення",
+  "ui.status.queued": "У черзі",
+  "ui.status.syncing_saves": "Синхронізація збережень",
+  "ui.status.redist": "Встановлення залежностей",
+  "ui.status.extracting": "Розпакування",
+  "ui.status.winetricks": "Запуск Winetricks",
+  "ui.status.done": "Готово",
+  "ui.status.canceled": "Скасовано",
+  "ui.status.error": "Помилка",
+  "ui.progress.of": "{done} з {total}",
+  "ui.progress.speed": "{speed}/с",
+  "ui.progress.left": "залишилося {time}",
+  "ui.cover.no_art": "Немає зображення"
+}

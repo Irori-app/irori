@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Installation",
+  "ui.status.importing": "Importation",
+  "ui.status.updating": "Mise à jour",
+  "ui.status.launching": "Lancement",
+  "ui.status.playing": "En cours",
+  "ui.status.uninstalling": "Désinstallation",
+  "ui.status.repairing": "Vérification",
+  "ui.status.moving": "Déplacement",
+  "ui.status.queued": "En file d'attente",
+  "ui.status.syncing_saves": "Synchronisation des sauvegardes",
+  "ui.status.redist": "Installation des dépendances",
+  "ui.status.extracting": "Extraction",
+  "ui.status.winetricks": "Exécution de Winetricks",
+  "ui.status.done": "Terminé",
+  "ui.status.canceled": "Annulé",
+  "ui.status.error": "Erreur",
+  "ui.progress.of": "{done} sur {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "{time} restant",
+  "ui.cover.no_art": "Aucune image"
+}

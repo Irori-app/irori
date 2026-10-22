@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Установка",
+  "ui.status.importing": "Импорт",
+  "ui.status.updating": "Обновление",
+  "ui.status.launching": "Запуск",
+  "ui.status.playing": "Игра запущена",
+  "ui.status.uninstalling": "Удаление",
+  "ui.status.repairing": "Проверка",
+  "ui.status.moving": "Перемещение",
+  "ui.status.queued": "В очереди",
+  "ui.status.syncing_saves": "Синхронизация сохранений",
+  "ui.status.redist": "Установка зависимостей",
+  "ui.status.extracting": "Распаковка",
+  "ui.status.winetricks": "Запуск Winetricks",
+  "ui.status.done": "Готово",
+  "ui.status.canceled": "Отменено",
+  "ui.status.error": "Ошибка",
+  "ui.progress.of": "{done} из {total}",
+  "ui.progress.speed": "{speed}/с",
+  "ui.progress.left": "осталось {time}",
+  "ui.cover.no_art": "Нет изображения"
+}

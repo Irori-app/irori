@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Instalace",
+  "ui.status.importing": "Import",
+  "ui.status.updating": "Aktualizace",
+  "ui.status.launching": "Spouštění",
+  "ui.status.playing": "Hraje se",
+  "ui.status.uninstalling": "Odinstalace",
+  "ui.status.repairing": "Ověřování",
+  "ui.status.moving": "Přesouvání",
+  "ui.status.queued": "Ve frontě",
+  "ui.status.syncing_saves": "Synchronizace uložených pozic",
+  "ui.status.redist": "Instalace závislostí",
+  "ui.status.extracting": "Rozbalování",
+  "ui.status.winetricks": "Spouštění Winetricks",
+  "ui.status.done": "Hotovo",
+  "ui.status.canceled": "Zrušeno",
+  "ui.status.error": "Chyba",
+  "ui.progress.of": "{done} z {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "zbývá {time}",
+  "ui.cover.no_art": "Bez obrázku"
+}

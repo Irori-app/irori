@@ -1,0 +1,25 @@
+[package]
+name = "ember-ui"
+description = "Shared UI layer: backend bridge, observable models, navigation, art pipeline, theme and common components"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-services.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+futures.workspace = true
+parking_lot.workspace = true
+once_cell.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+image.workspace = true
+sha2.workspace = true
+hex.workspace = true
+open.workspace = true
+libc = "0.2"

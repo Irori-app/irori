@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "Instalando",
+  "ui.status.importing": "Importando",
+  "ui.status.updating": "Actualizando",
+  "ui.status.launching": "Iniciando",
+  "ui.status.playing": "Jugando",
+  "ui.status.uninstalling": "Desinstalando",
+  "ui.status.repairing": "Verificando",
+  "ui.status.moving": "Moviendo",
+  "ui.status.queued": "En cola",
+  "ui.status.syncing_saves": "Sincronizando partidas",
+  "ui.status.redist": "Instalando dependencias",
+  "ui.status.extracting": "Extrayendo",
+  "ui.status.winetricks": "Ejecutando Winetricks",
+  "ui.status.done": "Listo",
+  "ui.status.canceled": "Cancelado",
+  "ui.status.error": "Error",
+  "ui.progress.of": "{done} de {total}",
+  "ui.progress.speed": "{speed}/s",
+  "ui.progress.left": "quedan {time}",
+  "ui.cover.no_art": "Sin imagen"
+}

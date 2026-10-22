@@ -1,0 +1,22 @@
+{
+  "ui.status.installing": "インストール中",
+  "ui.status.importing": "インポート中",
+  "ui.status.updating": "更新中",
+  "ui.status.launching": "起動中",
+  "ui.status.playing": "プレイ中",
+  "ui.status.uninstalling": "アンインストール中",
+  "ui.status.repairing": "検証中",
+  "ui.status.moving": "移動中",
+  "ui.status.queued": "待機中",
+  "ui.status.syncing_saves": "セーブデータを同期中",
+  "ui.status.redist": "依存関係をインストール中",
+  "ui.status.extracting": "展開中",
+  "ui.status.winetricks": "Winetricks を実行中",
+  "ui.status.done": "完了",
+  "ui.status.canceled": "キャンセル済み",
+  "ui.status.error": "エラー",
+  "ui.progress.of": "{done} / {total}",
+  "ui.progress.speed": "{speed}/秒",
+  "ui.progress.left": "残り {time}",
+  "ui.cover.no_art": "画像なし"
+}
