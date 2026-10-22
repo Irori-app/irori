@@ -1,0 +1,44 @@
+# Vendored from gpui-webview 0.8.0 (longbridge/gpui-kit @ 1676826d, crates/webview),
+# Apache-2.0. Ember's changes: native Wayland support through offscreen rendering, and
+# keyboard focus fixes. See README.md.
+[package]
+name = "gpui-webview"
+description = "WebView support for GPUI, based on Wry (vendored by Ember)."
+license = "Apache-2.0"
+version = "0.8.0"
+edition.workspace = true
+publish = false
+
+[features]
+# Hosts the native view in GPUI Fast's window composition, so GPUI overlays render above the
+# page on macOS and Linux X11. `gpui-kit/gpui-fast` selects the backend; enable both together, a
+# mismatch fails to compile. Without either, the native view covers GPUI content in its bounds.
+gpui-fast = ["dep:objc2", "dep:objc2-foundation"]
+inspector = ["wry/devtools"]
+
+[lib]
+doctest = false
+
+[dependencies]
+anyhow.workspace = true
+gpui-kit = { workspace = true, default-features = false }
+log = "0.4"
+wry = { version = "0.53.3", package = "lb-wry" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6", optional = true }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSAppearance", "NSView"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSGeometry"], optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+futures.workspace = true
+gtk = "0.18"
+image.workspace = true
+serde_json.workspace = true
+# The version Wry pins, so both share one set of WebKitGTK types.
+webkit2gtk = { version = "=2.0.1", features = ["v2_38"] }
+
+[dev-dependencies]
+gpui-kit.workspace = true
+serde_json.workspace = true
+futures.workspace = true
