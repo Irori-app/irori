@@ -1,0 +1,28 @@
+[package]
+name = "ember-library"
+description = "Library screen: cover grid and list, search, filters, categories, sideloaded apps and per-game metadata"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-runtime.workspace = true
+ember-services.workspace = true
+ember-ui.workspace = true
+ember-sideload.workspace = true
+ember-extras.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+regex.workspace = true
+# `gpui-kit/test-support` cannot be enabled: its weak `gpui-fast?/…` features pull
+# the optional GPUI Fast crates into the lockfile, which conflict with gpui-pre.
+# Enabling GPUI's own test support exposes `TestAppContext` through `gpui_kit::*`.
+gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
