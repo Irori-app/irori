@@ -1,0 +1,27 @@
+[package]
+name = "ember-bigpicture"
+description = "Big Picture: controller input for the whole app and a 10-foot fullscreen library"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-services.workspace = true
+ember-ui.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+parking_lot.workspace = true
+futures.workspace = true
+tracing.workspace = true
+gilrs = "0.11"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+[dev-dependencies]
+regex.workspace = true
+serde_json.workspace = true
+# `gpui-kit/test-support` must not be enabled (it pulls the optional GPUI Fast
+# crates into resolution). GPUI's own test support exposes `TestAppContext` and
+# `#[gpui_kit::test]` through `gpui_kit::*` by feature unification.
+gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
