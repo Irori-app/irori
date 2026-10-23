@@ -1,0 +1,45 @@
+[package]
+name = "ember"
+description = "Ember game launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "ember"
+path = "src/main.rs"
+
+[dependencies]
+ember-core.workspace = true
+ember-services.workspace = true
+ember-ui.workspace = true
+ember-runtime.workspace = true
+ember-extras.workspace = true
+ember-epic.workspace = true
+ember-gog.workspace = true
+ember-amazon.workspace = true
+ember-zoom.workspace = true
+ember-sideload.workspace = true
+ember-manage.workspace = true
+ember-settings.workspace = true
+ember-bigpicture.workspace = true
+ember-library.workspace = true
+ember-game.workspace = true
+once_cell.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+futures.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+nix.workspace = true
+libc = "0.2"
+ksni = { version = "0.3", default-features = false, features = ["tokio"] }
+
+[dev-dependencies]
+regex.workspace = true

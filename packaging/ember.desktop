@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Ember
+GenericName=Game Launcher
+Comment=Play your Epic, GOG, Amazon and ZOOM games on Linux
+Exec=ember %u
+Icon=ember
+Terminal=false
+Categories=Game;
+Keywords=epic;gog;amazon;zoom;launcher;wine;proton;heroic;
+MimeType=x-scheme-handler/ember;
+StartupWMClass=ember
+Actions=BigPicture;
+
+[Desktop Action BigPicture]
+Name=Big Picture
+Exec=ember --big-picture
