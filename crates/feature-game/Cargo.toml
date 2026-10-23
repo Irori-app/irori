@@ -1,0 +1,32 @@
+[package]
+name = "ember-game"
+description = "Game page: hero, play/install state, launch options, info, achievements, compatibility, and the install, import, uninstall, move, modify, cloud-save and log sheets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-services.workspace = true
+ember-ui.workspace = true
+ember-runtime.workspace = true
+ember-extras.workspace = true
+ember-epic.workspace = true
+ember-gog.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+futures.workspace = true
+serde_json.workspace = true
+nix.workspace = true
+open.workspace = true
+time.workspace = true
+
+[dev-dependencies]
+# `gpui-kit/test-support` pulls the optional GPUI Fast crates into the lockfile
+# (see crates/feature-library); enabling GPUI's own test support exposes
+# `TestAppContext`/`VisualTestContext` through `gpui_kit::*`.
+gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
+tempfile = "3"
+regex.workspace = true
