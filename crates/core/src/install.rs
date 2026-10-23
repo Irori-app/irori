@@ -173,6 +173,43 @@ pub struct InstallProgress {
     pub download_speed: Option<u64>,
     /// Bytes per second written to disk.
     pub disk_speed: Option<u64>,
+    /// What holds the download back right now, when it can be told.
+    pub bottleneck: Option<Bottleneck>,
+    /// Work before the download proper, while it lasts.
+    pub preparing: Option<Preparing>,
+}
+
+/// What limits a download's speed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Bottleneck {
+    /// The internet connection is at its limit.
+    Network,
+    /// The download servers send slower than the connection could take.
+    Server,
+    /// Writing to disk is slower than downloading.
+    Disk,
+    /// The download speed limit in the settings.
+    SpeedLimit,
+    /// Requests keep failing; Ember retries until the connection is back.
+    Reconnecting,
+}
+
+/// Progress of the work before a download starts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Preparing {
+    pub stage: PrepareStage,
+    pub done: u64,
+    pub total: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PrepareStage {
+    /// Fetching the file lists of the build.
+    FileLists,
+    /// Checking files already on disk against the build.
+    CheckingFiles,
 }
 
 /// Receives progress reports. Called from background threads; implementations

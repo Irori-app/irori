@@ -27,6 +27,19 @@ pub(crate) fn relative_time(then: u64, now: u64) -> SharedString {
     }
 }
 
+/// What limits a download, or an em dash when nothing can be said.
+pub(crate) fn bottleneck(b: Option<ember_core::Bottleneck>) -> SharedString {
+    use ember_core::Bottleneck;
+    match b {
+        Some(Bottleneck::Network) => t("manage.downloads.limit.network"),
+        Some(Bottleneck::Server) => t("manage.downloads.limit.server"),
+        Some(Bottleneck::Disk) => t("manage.downloads.limit.disk"),
+        Some(Bottleneck::SpeedLimit) => t("manage.downloads.limit.speed_limit"),
+        Some(Bottleneck::Reconnecting) => t("manage.downloads.limit.reconnecting"),
+        None => "—".into(),
+    }
+}
+
 /// A transfer rate, or an em dash when unknown or zero.
 pub(crate) fn rate(bytes_per_sec: Option<u64>) -> String {
     match bytes_per_sec.filter(|b| *b > 0) {

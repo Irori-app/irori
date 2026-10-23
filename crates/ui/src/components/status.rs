@@ -1,5 +1,5 @@
 use ember_core::util::{format_bytes, format_duration};
-use ember_core::{GameStatus, InstallProgress};
+use ember_core::{GameStatus, InstallProgress, PrepareStage};
 
 use crate::i18n::{status_label, t_args};
 use gpui_kit::component::{ActiveTheme as _, h_flex, v_flex};
@@ -7,7 +7,23 @@ use gpui_kit::{App, ElementId, IntoElement, ParentElement, RenderOnce, Styled, W
 
 /// "42% · 1.2 GiB of 4.0 GiB · 18.3 MiB/s · 3m 10s left".
 pub fn progress_text(p: &InstallProgress) -> String {
-    let mut parts = Vec::with_capacity(4);
+    let mut parts = Vec::with_capacity(5);
+    if let Some(prep) = p.preparing {
+        let key = match prep.stage {
+            PrepareStage::FileLists => "ui.progress.file_lists",
+            PrepareStage::CheckingFiles => "ui.progress.checking_files",
+        };
+        parts.push(
+            t_args(
+                key,
+                &[
+                    ("done", &prep.done.to_string()),
+                    ("total", &prep.total.to_string()),
+                ],
+            )
+            .to_string(),
+        );
+    }
     if let Some(pc) = p.percent {
         parts.push(format!("{pc:.0}%"));
     }

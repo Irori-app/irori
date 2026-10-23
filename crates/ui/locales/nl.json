@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} van {total}",
   "ui.progress.speed": "{speed}/s",
   "ui.progress.left": "nog {time}",
+  "ui.progress.file_lists": "Bestandslijsten lezen {done} / {total}",
+  "ui.progress.checking_files": "Bestanden controleren {done} / {total}",
   "ui.cover.no_art": "Geen afbeelding"
 }

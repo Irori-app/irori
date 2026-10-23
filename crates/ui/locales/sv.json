@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} av {total}",
   "ui.progress.speed": "{speed}/s",
   "ui.progress.left": "{time} kvar",
+  "ui.progress.file_lists": "Läser fillistor {done} / {total}",
+  "ui.progress.checking_files": "Kontrollerar filer {done} / {total}",
   "ui.cover.no_art": "Ingen bild"
 }

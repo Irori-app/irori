@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} / {total}",
   "ui.progress.speed": "{speed}/sn",
   "ui.progress.left": "{time} kaldı",
+  "ui.progress.file_lists": "Dosya listeleri okunuyor {done} / {total}",
+  "ui.progress.checking_files": "Dosyalar denetleniyor {done} / {total}",
   "ui.cover.no_art": "Görsel yok"
 }

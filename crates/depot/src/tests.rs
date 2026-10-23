@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use parking_lot::Mutex;
 
 use super::*;
+use crate::download::STALL;
 use crate::test_server::{Resp, TestServer, serve_bytes};
 
 fn sha256(data: &[u8]) -> Digest {
@@ -597,5 +598,198 @@ async fn downloads_ranges_and_deflate_entries() {
             .iter()
             .all(|r| r.header("range").is_some()),
         "every request is ranged"
+    );
+}
+
+/// A file made of two pieces of the object at each of `urls`.
+fn chunked(path: &str, body: &[u8], urls: Vec<String>) -> FileEntry {
+    let half = body.len() as u64 / 2;
+    let piece = |i: usize, start: u64, len: u64| {
+        Part::new(
+            Arc::new(Chunk {
+                key: format!("{path}{i}"),
+                urls: urls.clone(),
+                download_size: len,
+                size: len,
+                hash: None,
+                codec: Codec::Raw,
+                range: Some((start, len)),
+            }),
+            0,
+            len,
+        )
+    };
+    FileEntry {
+        path: path.into(),
+        size: body.len() as u64,
+        hash: Some(sha256(body)),
+        parts: vec![piece(0, 0, half), piece(1, half, body.len() as u64 - half)],
+        executable: false,
+    }
+}
+
+/// A server that answers every request after headers and `sent` bytes
+/// with silence.
+fn stalled_server(body: Vec<u8>, sent: usize) -> TestServer {
+    TestServer::start(move |req| {
+        let mut r = serve_bytes(req, &body, true);
+        r.hang_after = Some(sent);
+        r
+    })
+}
+
+#[tokio::test]
+async fn leaves_stalled_servers_for_working_ones() {
+    let a = data(100_000, 9);
+    let stuck = stalled_server(a.clone(), 20_000);
+    let good = file_server(vec![("a", a.clone()), ("b", a.clone())]);
+    let files = [
+        // Pieces of a build...
+        chunked("a", &a, vec![stuck.url("/f/a"), good.url("/f/a")]),
+        // ...and whole files, which resume where the stalled server stopped.
+        FileEntry::whole(
+            "b".into(),
+            a.len() as u64,
+            Some(sha256(&a)),
+            vec![stuck.url("/f/b"), good.url("/f/b")],
+        ),
+    ];
+    let dir = tempfile::tempdir().unwrap();
+    let started = std::time::Instant::now();
+    run(dir.path(), &files, &[], &opts()).await.unwrap();
+    assert!(started.elapsed() < STALL * 4, "{:?}", started.elapsed());
+    assert_eq!(std::fs::read(dir.path().join("a")).unwrap(), a);
+    assert_eq!(std::fs::read(dir.path().join("b")).unwrap(), a);
+    assert_eq!(stuck.requests().len(), 3);
+    let resumed = good
+        .requests()
+        .into_iter()
+        .find(|r| r.path == "/f/b")
+        .unwrap();
+    assert_eq!(resumed.header("range"), Some("bytes=20000-"));
+}
+
+#[tokio::test]
+async fn keeps_retrying_busy_servers_and_says_so() {
+    let a = data(50_000, 3);
+    let body = a.clone();
+    let hits = Arc::new(AtomicUsize::new(0));
+    let counter = hits.clone();
+    // Busy for the first six requests, then fine: more than `retries`
+    // allows. One piece at a time keeps the count exact.
+    let server = TestServer::start(move |req| match counter.fetch_add(1, Ordering::SeqCst) {
+        0..3 => Resp::status(503),
+        3..6 => Resp::status(429),
+        _ => serve_bytes(req, &body, true),
+    });
+    let dir = tempfile::tempdir().unwrap();
+    let opts = Options {
+        retries: 0,
+        workers: 1,
+        ..Default::default()
+    };
+    let files = [chunked("a", &a, vec![server.url("/a")])];
+    run(dir.path(), &files, &[], &opts).await.unwrap();
+    assert_eq!(std::fs::read(dir.path().join("a")).unwrap(), a);
+    assert_eq!(hits.load(Ordering::SeqCst), 8);
+
+    // A server that never recovers: the download waits (saying why) until
+    // it is cancelled.
+    let down = TestServer::start(|_| Resp::status(503));
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let sink = {
+        let seen = seen.clone();
+        Arc::new(move |p: Progress| seen.lock().push(p.bottleneck)) as ProgressFn
+    };
+    let cancel = CancellationToken::new();
+    let files = [chunked("c", &a, vec![down.url("/c")])];
+    let root = dir.path().to_path_buf();
+    let task = {
+        let cancel = cancel.clone();
+        tokio::spawn(async move {
+            download(
+                &client(),
+                Job {
+                    root: &root,
+                    files: &files,
+                    remove: &[],
+                },
+                &opts,
+                sink,
+                &cancel,
+            )
+            .await
+        })
+    };
+    tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+    cancel.cancel();
+    assert_eq!(task.await.unwrap().unwrap(), Finished::Cancelled);
+    assert!(down.requests().len() > 3);
+    assert!(
+        seen.lock()
+            .contains(&Some(ember_core::Bottleneck::Reconnecting)),
+        "{:?}",
+        seen.lock()
+    );
+}
+
+#[tokio::test]
+async fn races_a_lagging_piece_at_the_end() {
+    let a = data(800_000, 5);
+    let body = a.clone();
+    let hits = Arc::new(AtomicUsize::new(0));
+    let counter = hits.clone();
+    // The first request crawls along (not slowly enough to count as
+    // stalled); a second one is quick.
+    let server = TestServer::start(move |req| {
+        let mut r = serve_bytes(req, &body, true);
+        if counter.fetch_add(1, Ordering::SeqCst) == 0 {
+            r.chunk_delay = Some(std::time::Duration::from_millis(150));
+        }
+        r
+    });
+    let dir = tempfile::tempdir().unwrap();
+    let started = std::time::Instant::now();
+    let files = [chunked("a", &a, vec![server.url("/a")])];
+    run(dir.path(), &files, &[], &opts()).await.unwrap();
+    assert_eq!(std::fs::read(dir.path().join("a")).unwrap(), a);
+    assert_eq!(hits.load(Ordering::SeqCst), 3);
+    // Alone, the slow piece needs 25 × 150 ms.
+    assert!(started.elapsed() < STALL * 3, "{:?}", started.elapsed());
+}
+
+#[tokio::test]
+async fn reports_the_speed_limit_as_the_bottleneck() {
+    let a = data(1_500_000, 2);
+    let server = file_server(vec![("a", a.clone())]);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let sink = {
+        let seen = seen.clone();
+        Arc::new(move |p: Progress| seen.lock().push(p.bottleneck)) as ProgressFn
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let opts = Options {
+        max_bytes_per_sec: 500_000,
+        ..opts()
+    };
+    let files = [whole(&server, "a", &a)];
+    download(
+        &client(),
+        Job {
+            root: dir.path(),
+            files: &files,
+            remove: &[],
+        },
+        &opts,
+        sink,
+        &CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    assert!(
+        seen.lock()
+            .contains(&Some(ember_core::Bottleneck::SpeedLimit)),
+        "{:?}",
+        seen.lock()
     );
 }

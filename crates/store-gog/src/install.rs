@@ -14,8 +14,9 @@ use serde_json::Value;
 
 use ember_core::process::{self, CommandSpec, RunOptions};
 use ember_core::{
-    BuildInfo, DlcInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallRequest,
-    LanguageSize, OpContext, Outcome, RemoveArgs, UpdateRequest, util,
+    BuildInfo, DlcInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallProgress,
+    InstallRequest, LanguageSize, OpContext, Outcome, PrepareStage, Preparing, RemoveArgs,
+    UpdateRequest, util,
 };
 use ember_depot::{Finished, Job, Verified};
 use ember_gog_api::content::{BuildItem, BuildMeta, Builds, Client, Repository, id_string};
@@ -515,6 +516,8 @@ pub(crate) fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
             eta_secs: p.eta_secs,
             download_speed: Some(p.download_speed),
             disk_speed: Some(p.disk_speed),
+            bottleneck: p.bottleneck,
+            preparing: p.preparing,
         })
     })
 }
@@ -873,8 +876,9 @@ impl GogStore {
         client: &Client,
         meta: &BuildMeta,
         sel: &Selection,
+        fetched: &(dyn Fn(usize) + Send + Sync),
     ) -> Result<BuildFiles> {
-        let mut files = gplan::resolve(client, meta, sel).await?;
+        let mut files = gplan::resolve(client, meta, sel, fetched).await?;
         if meta.generation == 2 && !meta.dependencies.is_empty() {
             let repo = client.repository().await?;
             files.items.extend(
@@ -896,6 +900,7 @@ impl GogStore {
         dlcs: &[String],
         branch: Option<&str>,
         build: Option<&str>,
+        ctx: &OpContext,
     ) -> Result<Deployment> {
         let client = self.content().await?;
         let old = self
@@ -938,19 +943,40 @@ impl GogStore {
             dlcs: dlcs.clone(),
             os: platform.to_string(),
         };
-        let new = self.build_files(&client, &meta, &sel).await?;
-        let previous = match (&mode, &old) {
-            (Mode::Update, Some(o)) => match o.parsed_meta() {
-                Some(m) => match self.build_files(&client, &m, &o.selection()).await {
+        // Updates read the file lists of both builds.
+        let old_meta = match (&mode, &old) {
+            (Mode::Update, Some(o)) => o.parsed_meta().map(|m| (m, o.selection())),
+            _ => None,
+        };
+        let new_count = gplan::manifest_count(&meta, &sel);
+        let total = new_count
+            + old_meta
+                .as_ref()
+                .map_or(0, |(m, s)| gplan::manifest_count(m, s));
+        let report = |done: usize| {
+            (ctx.progress)(InstallProgress {
+                preparing: Some(Preparing {
+                    stage: PrepareStage::FileLists,
+                    done: done as u64,
+                    total: total as u64,
+                }),
+                ..Default::default()
+            })
+        };
+        report(0);
+        let new = self.build_files(&client, &meta, &sel, &report).await?;
+        let previous = match old_meta {
+            Some((m, old_sel)) => {
+                let fetched = |n: usize| report(new_count + n);
+                match self.build_files(&client, &m, &old_sel, &fetched).await {
                     Ok(f) => Some(f),
                     Err(e) => {
                         tracing::warn!("file list of the installed build of {app_name}: {e:#}");
                         None
                     }
-                },
-                None => None,
-            },
-            _ => None,
+                }
+            }
+            None => None,
         };
         let support = self.paths.support_dir(app_name);
         let game_dir = dir.to_path_buf();
@@ -1206,6 +1232,7 @@ impl GogStore {
                     dlcs,
                     branch,
                     build,
+                    ctx,
                 )
                 .await?
             };

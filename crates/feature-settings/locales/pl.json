@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Limit prędkości pobierania",
   "settings.field.max_recent_games.label": "Liczba zapamiętanych ostatnich gier",
   "settings.field.max_sharpness.label": "Ostrość FSR",
-  "settings.field.max_workers.help": "Równoległe połączenia pobierania. 0 oznacza wartość domyślną sklepu.",
+  "settings.field.max_workers.help": "Maksymalna liczba jednoczesnych połączeń pobierania. 0 pozwala Ember zmierzyć, co jest najszybsze (do 32); każda inna liczba to maksimum.",
   "settings.field.max_workers.label": "Wątki pobierania",
   "settings.field.minimize_on_launch.help": "Okno wróci po zamknięciu gry.",
   "settings.field.minimize_on_launch.label": "Minimalizuj po uruchomieniu gry",

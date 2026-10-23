@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "下載速度限制",
   "settings.field.max_recent_games.label": "保留的最近遊戲數量",
   "settings.field.max_sharpness.label": "FSR 銳利度",
-  "settings.field.max_workers.help": "平行下載連線數。0 表示使用商店的預設值。",
+  "settings.field.max_workers.help": "同時下載連線數上限。設為 0 時由 Ember 測出最快的數量（最多 32）；其他數字為可使用的上限。",
   "settings.field.max_workers.label": "下載執行緒數",
   "settings.field.minimize_on_launch.help": "遊戲結束後視窗會重新出現。",
   "settings.field.minimize_on_launch.label": "遊戲啟動時最小化",

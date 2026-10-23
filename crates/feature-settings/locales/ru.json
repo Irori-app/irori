@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Ограничение скорости скачивания",
   "settings.field.max_recent_games.label": "Число недавних игр",
   "settings.field.max_sharpness.label": "Резкость FSR",
-  "settings.field.max_workers.help": "Параллельные соединения для скачивания. 0 — значение магазина по умолчанию.",
+  "settings.field.max_workers.help": "Наибольшее число одновременных подключений для загрузки. При 0 Ember сам измеряет, что быстрее (до 32); любое другое число — это максимум.",
   "settings.field.max_workers.label": "Потоки скачивания",
   "settings.field.minimize_on_launch.help": "Окно вернётся после выхода из игры.",
   "settings.field.minimize_on_launch.label": "Сворачивать при запуске игры",

@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} / {total}",
   "ui.progress.speed": "{speed}/秒",
   "ui.progress.left": "剩餘 {time}",
+  "ui.progress.file_lists": "正在讀取檔案清單 {done} / {total}",
+  "ui.progress.checking_files": "正在檢查檔案 {done} / {total}",
   "ui.cover.no_art": "無圖片"
 }

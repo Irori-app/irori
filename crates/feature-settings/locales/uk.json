@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Обмеження швидкості завантаження",
   "settings.field.max_recent_games.label": "Кількість нещодавніх ігор",
   "settings.field.max_sharpness.label": "Різкість FSR",
-  "settings.field.max_workers.help": "Паралельні з’єднання для завантаження. 0 — типове значення крамниці.",
+  "settings.field.max_workers.help": "Найбільша кількість одночасних з'єднань для завантаження. При 0 Ember сам вимірює, що найшвидше (до 32); будь-яке інше число — це максимум.",
   "settings.field.max_workers.label": "Потоки завантаження",
   "settings.field.minimize_on_launch.help": "Вікно повернеться після виходу з гри.",
   "settings.field.minimize_on_launch.label": "Згортати під час запуску гри",

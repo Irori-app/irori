@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Limita vitezei de descărcare",
   "settings.field.max_recent_games.label": "Jocuri recente păstrate",
   "settings.field.max_sharpness.label": "Claritate FSR",
-  "settings.field.max_workers.help": "Conexiuni de descărcare paralele. 0 folosește valoarea implicită a magazinului.",
+  "settings.field.max_workers.help": "Numărul maxim de conexiuni de descărcare simultane. 0 lasă Ember să măsoare ce e mai rapid (până la 32); orice alt număr este maximul folosit.",
   "settings.field.max_workers.label": "Procese de descărcare",
   "settings.field.minimize_on_launch.help": "Fereastra revine după ce jocul se închide.",
   "settings.field.minimize_on_launch.label": "Minimizează la pornirea unui joc",

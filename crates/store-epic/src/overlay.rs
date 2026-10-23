@@ -166,6 +166,8 @@ impl EpicStore {
                     eta_secs: p.eta_secs,
                     download_speed: Some(p.download_speed),
                     disk_speed: Some(p.disk_speed),
+                    bottleneck: p.bottleneck,
+                    preparing: p.preparing,
                 })
             }),
             &ctx.cancel,

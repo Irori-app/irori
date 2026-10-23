@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Límite de velocidad de descarga",
   "settings.field.max_recent_games.label": "Juegos recientes que conservar",
   "settings.field.max_sharpness.label": "Nitidez de FSR",
-  "settings.field.max_workers.help": "Conexiones de descarga en paralelo. 0 usa el valor predeterminado de la tienda.",
+  "settings.field.max_workers.help": "Máximo de conexiones de descarga a la vez. Con 0, Ember mide qué es lo más rápido (hasta 32); cualquier otro número es el máximo que usará.",
   "settings.field.max_workers.label": "Procesos de descarga",
   "settings.field.minimize_on_launch.help": "La ventana vuelve cuando el juego se cierra.",
   "settings.field.minimize_on_launch.label": "Minimizar al iniciar un juego",

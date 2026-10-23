@@ -124,6 +124,8 @@ pub fn progress(p: ember_depot::Progress) -> InstallProgress {
         eta_secs: p.eta_secs,
         download_speed: Some(p.download_speed),
         disk_speed: Some(p.disk_speed),
+        bottleneck: p.bottleneck,
+        preparing: p.preparing,
     }
 }
 
@@ -207,6 +209,8 @@ mod tests {
             eta_secs: Some(3),
             download_speed: 7,
             disk_speed: 8,
+            bottleneck: Some(ember_core::Bottleneck::Disk),
+            preparing: None,
         });
         assert_eq!(p.percent, Some(50.0));
         assert_eq!((p.bytes_done, p.bytes_total), (Some(5), Some(10)));
@@ -214,5 +218,6 @@ mod tests {
             (p.download_speed, p.disk_speed, p.eta_secs),
             (Some(7), Some(8), Some(3))
         );
+        assert_eq!(p.bottleneck, Some(ember_core::Bottleneck::Disk));
     }
 }

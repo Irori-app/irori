@@ -39,15 +39,30 @@ pub struct BuildFiles {
     pub v1_dirs: Vec<String>,
 }
 
-/// Fetch the depot manifests of `meta` for `sel`.
-pub async fn resolve(client: &Client, meta: &BuildMeta, sel: &Selection) -> Result<BuildFiles> {
+/// The depots of `meta` that `sel` needs.
+fn depots(meta: &BuildMeta, sel: &Selection) -> Vec<crate::content::DepotRef> {
     let mut products = vec![meta.base_product.clone()];
     products.extend(sel.dlcs.iter().cloned());
-    let depots: Vec<_> = meta
-        .depots_for(&products, &sel.language)
+    meta.depots_for(&products, &sel.language)
         .into_iter()
         .cloned()
-        .collect();
+        .collect()
+}
+
+/// How many depot manifests [`resolve`] fetches.
+pub fn manifest_count(meta: &BuildMeta, sel: &Selection) -> usize {
+    depots(meta, sel).len()
+}
+
+/// Fetch the depot manifests of `meta` for `sel`. `fetched` hears how many
+/// have arrived after each one.
+pub async fn resolve(
+    client: &Client,
+    meta: &BuildMeta,
+    sel: &Selection,
+    fetched: &(dyn Fn(usize) + Send + Sync),
+) -> Result<BuildFiles> {
+    let depots = depots(meta, sel);
     let mut out = BuildFiles {
         generation: meta.generation,
         ..Default::default()
@@ -70,6 +85,11 @@ pub async fn resolve(client: &Client, meta: &BuildMeta, sel: &Selection) -> Resu
             }
         })
         .buffered(8)
+        .enumerate()
+        .map(|(i, v)| {
+            fetched(i + 1);
+            v
+        })
         .collect()
         .await;
     let mut seen_v1 = HashSet::new();

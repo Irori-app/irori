@@ -34,6 +34,8 @@ pub struct Resp {
     pub cut_after: Option<usize>,
     /// Pause between 16 KiB body chunks.
     pub chunk_delay: Option<Duration>,
+    /// Send this many body bytes, then nothing more (a stalled server).
+    pub hang_after: Option<usize>,
 }
 
 impl Resp {
@@ -137,7 +139,7 @@ async fn serve(
     }
     head.push_str("Connection: close\r\n\r\n");
     stream.write_all(head.as_bytes()).await?;
-    let body = match resp.cut_after {
+    let body = match resp.cut_after.or(resp.hang_after) {
         Some(n) => &resp.body[..n.min(resp.body.len())],
         None => &resp.body[..],
     };
@@ -149,6 +151,9 @@ async fn serve(
         }
     }
     stream.flush().await?;
+    if resp.hang_after.is_some() {
+        tokio::time::sleep(Duration::from_secs(3600)).await;
+    }
     stream.shutdown().await?;
     Ok(())
 }

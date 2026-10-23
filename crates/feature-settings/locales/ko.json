@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "다운로드 속도 제한",
   "settings.field.max_recent_games.label": "유지할 최근 게임 수",
   "settings.field.max_sharpness.label": "FSR 선명도",
-  "settings.field.max_workers.help": "병렬 다운로드 연결 수입니다. 0이면 스토어 기본값을 사용합니다.",
+  "settings.field.max_workers.help": "동시 다운로드 연결의 최대 수. 0이면 Ember가 가장 빠른 수를 측정합니다(최대 32). 다른 숫자는 사용할 최대값입니다.",
   "settings.field.max_workers.label": "다운로드 작업자 수",
   "settings.field.minimize_on_launch.help": "게임이 종료되면 창이 다시 나타납니다.",
   "settings.field.minimize_on_launch.label": "게임 시작 시 최소화",

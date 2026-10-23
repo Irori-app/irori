@@ -201,7 +201,7 @@ pub fn transfer_progress(done: u64, total: Option<u64>, elapsed: Duration) -> In
             .filter(|_| speed > 0)
             .map(|t| t.saturating_sub(done) / speed),
         download_speed: Some(speed),
-        disk_speed: None,
+        ..Default::default()
     }
 }
 

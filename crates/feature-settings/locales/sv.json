@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Gräns för nedladdningshastighet",
   "settings.field.max_recent_games.label": "Antal senaste spel att spara",
   "settings.field.max_sharpness.label": "FSR-skärpa",
-  "settings.field.max_workers.help": "Parallella nedladdningsanslutningar. 0 använder butikens standardvärde.",
+  "settings.field.max_workers.help": "Högsta antal samtidiga nedladdningsanslutningar. Med 0 mäter Ember vad som går snabbast (upp till 32); andra tal är det högsta som används.",
   "settings.field.max_workers.label": "Nedladdningstrådar",
   "settings.field.minimize_on_launch.help": "Fönstret kommer tillbaka när spelet avslutas.",
   "settings.field.minimize_on_launch.label": "Minimera när ett spel startar",

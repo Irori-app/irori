@@ -11,6 +11,7 @@
 
 #![forbid(unsafe_code)]
 
+mod adapt;
 mod download;
 pub mod hash;
 pub mod path;

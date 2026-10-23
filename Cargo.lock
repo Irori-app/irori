@@ -2176,6 +2176,7 @@ name = "ember-depot"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "ember-core",
  "flate2",
  "fs4",
  "futures",

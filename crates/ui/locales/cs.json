@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} z {total}",
   "ui.progress.speed": "{speed}/s",
   "ui.progress.left": "zbývá {time}",
+  "ui.progress.file_lists": "Načítání seznamů souborů {done} / {total}",
+  "ui.progress.checking_files": "Kontrola souborů {done} / {total}",
   "ui.cover.no_art": "Bez obrázku"
 }

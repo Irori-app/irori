@@ -18,5 +18,7 @@
   "ui.progress.of": "{done} de {total}",
   "ui.progress.speed": "{speed}/s",
   "ui.progress.left": "quedan {time}",
+  "ui.progress.file_lists": "Leyendo listas de archivos {done} / {total}",
+  "ui.progress.checking_files": "Comprobando archivos {done} / {total}",
   "ui.cover.no_art": "Sin imagen"
 }

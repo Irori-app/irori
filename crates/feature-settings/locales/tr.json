@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "İndirme hızı sınırı",
   "settings.field.max_recent_games.label": "Tutulacak son oyun sayısı",
   "settings.field.max_sharpness.label": "FSR keskinliği",
-  "settings.field.max_workers.help": "Paralel indirme bağlantıları. 0 girilirse mağazanın varsayılanı kullanılır.",
+  "settings.field.max_workers.help": "Aynı anda en fazla indirme bağlantısı. 0 olursa Ember en hızlısını ölçer (en fazla 32); başka bir sayı kullanılacak en yüksek değerdir.",
   "settings.field.max_workers.label": "İndirme iş parçacıkları",
   "settings.field.minimize_on_launch.help": "Oyundan çıkıldığında pencere geri gelir.",
   "settings.field.minimize_on_launch.label": "Oyun başlayınca simge durumuna küçült",

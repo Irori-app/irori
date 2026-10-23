@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Download speed limit",
   "settings.field.max_recent_games.label": "Recent games to keep",
   "settings.field.max_sharpness.label": "FSR sharpness",
-  "settings.field.max_workers.help": "Parallel download connections. 0 uses the store's default.",
+  "settings.field.max_workers.help": "Most download connections at once. 0 lets Ember measure what is fastest (up to 32); any other number is the most it will use.",
   "settings.field.max_workers.label": "Download workers",
   "settings.field.minimize_on_launch.help": "The window comes back when the game exits.",
   "settings.field.minimize_on_launch.label": "Minimize when a game starts",

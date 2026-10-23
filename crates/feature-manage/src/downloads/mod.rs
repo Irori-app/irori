@@ -461,7 +461,8 @@ impl DownloadsView {
             .into_any_element()
     }
 
-    /// Rate sparkline plus the current download/disk rates and time left.
+    /// Rate sparkline plus the current download/disk rates, time left and
+    /// what limits the speed.
     fn render_rates(
         &self,
         progress: Option<ember_core::InstallProgress>,
@@ -531,6 +532,10 @@ impl DownloadsView {
             .child(stat(
                 t("manage.downloads.stat.time_left"),
                 format::eta(progress.eta_secs),
+            ))
+            .child(stat(
+                t("manage.downloads.stat.limit"),
+                format::bottleneck(progress.bottleneck).to_string(),
             ))
     }
 

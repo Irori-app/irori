@@ -205,7 +205,7 @@
   "settings.field.max_download_speed.label": "Limit rychlosti stahování",
   "settings.field.max_recent_games.label": "Počet uchovaných nedávných her",
   "settings.field.max_sharpness.label": "Ostrost FSR",
-  "settings.field.max_workers.help": "Paralelní spojení pro stahování. 0 použije výchozí hodnotu obchodu.",
+  "settings.field.max_workers.help": "Nejvyšší počet současných připojení pro stahování. 0 nechá Ember změřit, co je nejrychlejší (až 32); jiné číslo je maximum, které použije.",
   "settings.field.max_workers.label": "Vlákna pro stahování",
   "settings.field.minimize_on_launch.help": "Okno se vrátí po ukončení hry.",
   "settings.field.minimize_on_launch.label": "Minimalizovat při spuštění hry",

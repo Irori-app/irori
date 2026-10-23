@@ -11,9 +11,10 @@ use futures::future::BoxFuture;
 use futures::{StreamExt as _, TryStreamExt as _};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt as _;
-use tokio::sync::{OnceCell, Semaphore};
+use tokio::sync::OnceCell;
 use tokio_util::sync::CancellationToken;
 
+use crate::adapt::{self, Gate, Hosts, Signals, Tuner, Watchdog, Window, classify};
 use crate::hash::{Digest, hash_file};
 use crate::path;
 use crate::plan::{Chunk, Codec, FileEntry, Part};
@@ -42,7 +43,8 @@ impl std::fmt::Debug for Signer {
 /// Tuning of a download.
 #[derive(Debug, Clone)]
 pub struct Options {
-    /// Concurrent HTTP requests (0: 8).
+    /// Most HTTP requests at once (0: up to 32). The engine measures how
+    /// many make the download fastest and stays below this.
     pub workers: usize,
     /// Bandwidth cap in bytes per second (0: unlimited).
     pub max_bytes_per_sec: u64,
@@ -51,7 +53,9 @@ pub struct Options {
     pub journal: Option<PathBuf>,
     /// Memory for chunks shared by several files (0: 256 MiB).
     pub cache_bytes: u64,
-    /// Attempts per chunk or file after the first.
+    /// Attempts after the first when a server sends damaged data or
+    /// refuses a signed address. Dropped connections, stalls and busy
+    /// servers are retried until the download is cancelled.
     pub retries: u32,
     /// Signs chunk addresses instead of using [`Chunk::urls`].
     pub signer: Option<Signer>,
@@ -99,6 +103,9 @@ enum Error {
     },
     #[error("network error: {0}")]
     Network(#[from] reqwest::Error),
+    /// The connection stalled or closed early.
+    #[error("{0}")]
+    Interrupted(String),
     #[error("{0}")]
     Corrupt(String),
     #[error(transparent)]
@@ -107,19 +114,57 @@ enum Error {
     Other(#[from] anyhow::Error),
 }
 
+/// How a failed request is retried.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    /// The connection or a busy server: retried until cancelled.
+    Transient,
+    /// Damaged data: retried [`Options::retries`] times.
+    Corrupt,
+    /// Retrying cannot help.
+    Fatal,
+}
+
 impl Error {
-    fn retryable(&self) -> bool {
+    fn kind(&self) -> Kind {
         match self {
-            Error::Status { status, .. } => {
-                status.is_server_error()
+            Error::Status { status, .. }
+                if status.is_server_error()
                     || *status == reqwest::StatusCode::REQUEST_TIMEOUT
-                    || *status == reqwest::StatusCode::TOO_MANY_REQUESTS
+                    || *status == reqwest::StatusCode::TOO_MANY_REQUESTS =>
+            {
+                Kind::Transient
             }
-            Error::Network(_) | Error::Corrupt(_) => true,
-            Error::Cancelled | Error::Io(_) | Error::Other(_) => false,
+            Error::Network(e) if e.is_builder() || e.is_redirect() => Kind::Fatal,
+            Error::Network(_) | Error::Interrupted(_) => Kind::Transient,
+            Error::Corrupt(_) => Kind::Corrupt,
+            Error::Status { .. } | Error::Cancelled | Error::Io(_) | Error::Other(_) => Kind::Fatal,
         }
     }
 }
+
+/// A connection that delivers nothing (or a trickle) for this long is
+/// dropped for another server.
+pub(crate) const STALL: Duration = if cfg!(test) {
+    Duration::from_millis(400)
+} else {
+    Duration::from_secs(8)
+};
+/// The first wait after a failure; it doubles per failure up to a minute.
+const BACKOFF: Duration = if cfg!(test) {
+    Duration::from_millis(10)
+} else {
+    Duration::from_millis(500)
+};
+const MAX_BACKOFF: Duration = Duration::from_secs(60);
+/// How often the number of requests at once is tuned.
+const TUNE_EVERY: Duration = if cfg!(test) {
+    Duration::from_millis(100)
+} else {
+    Duration::from_secs(2)
+};
+/// Files hashed at once while checking what is already on disk.
+const CHECKERS: usize = 4;
 
 /// Download `job`. Files already intact are skipped, partial whole-file
 /// downloads resume, and every file is checked against its digest before it
@@ -139,16 +184,23 @@ pub async fn download(
     tokio::fs::create_dir_all(job.root)
         .await
         .with_context(|| format!("Could not create {}", job.root.display()))?;
-    check_free_space(job.root, job.files).await?;
+    let on_disk = disk_sizes(job.root, job.files).await?;
+    check_free_space(job.root, job.files, &on_disk)?;
 
     let total = job.files.iter().map(|f| f.size).sum();
     let stats = Arc::new(Stats::new(total));
-    let workers = if opts.workers == 0 { 8 } else { opts.workers };
+    let max = if opts.workers == 0 {
+        adapt::DEFAULT_MAX
+    } else {
+        opts.workers
+    };
+    let tuner = Tuner::new(max);
     let cancel = cancel.child_token();
     let ctx = Arc::new(Ctx {
         client: client.clone(),
         root: job.root.to_path_buf(),
-        requests: Semaphore::new(workers),
+        requests: Gate::new(tuner.limit()),
+        hosts: Hosts::default(),
         limiter: (opts.max_bytes_per_sec > 0).then(|| RateLimiter::new(opts.max_bytes_per_sec)),
         cache: ChunkCache::new(
             job.files,
@@ -169,20 +221,35 @@ pub async fn download(
             .signer
             .as_ref()
             .map(|s| Signing::new(s.0.clone(), job.files)),
-        prefetch: (workers / 2).clamp(4, 16),
+        prefetch: (max / 4).clamp(4, 8),
     });
 
     // Owned items keep the future `Send` (borrowing closures trip up
     // higher-ranked lifetime inference).
     let files: Arc<[FileEntry]> = job.files.into();
-    let work = futures::stream::iter(0..files.len())
-        .map(move |i| {
-            let (ctx, files) = (ctx.clone(), files.clone());
-            async move { ctx.process_file(&files[i]).await }
-        })
-        .buffer_unordered(workers)
-        .try_for_each(|()| async { Ok(()) });
-    let result = with_progress(stats, progress, work).await;
+    let work = {
+        let ctx = ctx.clone();
+        async move {
+            let pending = ctx.check_existing(&files, &on_disk).await?;
+            futures::stream::iter(pending)
+                .map(move |i| {
+                    let (ctx, files) = (ctx.clone(), files.clone());
+                    async move { ctx.process_file(&files[i]).await }
+                })
+                .buffer_unordered(max)
+                .try_for_each(|()| async { Ok(()) })
+                .await
+        }
+    };
+    let limit = (opts.max_bytes_per_sec > 0).then_some(opts.max_bytes_per_sec);
+    let result = with_progress(stats, progress, async {
+        tokio::select! {
+            biased;
+            r = work => r,
+            () = tune(&ctx, tuner, limit) => unreachable!("tuning never ends"),
+        }
+    })
+    .await;
     match result {
         Ok(()) => {}
         Err(_) if cancel.is_cancelled() => return Ok(Finished::Cancelled),
@@ -230,23 +297,31 @@ pub(crate) async fn with_progress<F: std::future::Future>(
     }
 }
 
-async fn check_free_space(root: &Path, files: &[FileEntry]) -> Result<()> {
+/// Sizes of the files already below `root`.
+async fn disk_sizes(root: &Path, files: &[FileEntry]) -> Result<Vec<Option<u64>>> {
     let root = root.to_path_buf();
-    let needed: u64 = {
-        let sizes: Vec<(String, u64)> = files.iter().map(|f| (f.path.clone(), f.size)).collect();
-        let root = root.clone();
-        tokio::task::spawn_blocking(move || {
-            sizes
-                .iter()
-                .map(|(rel, size)| {
-                    let have = std::fs::metadata(path::join(&root, rel)).map_or(0, |m| m.len());
-                    size.saturating_sub(have)
-                })
-                .sum()
-        })
-        .await?
-    };
-    match fs4::available_space(&root) {
+    let paths: Vec<String> = files.iter().map(|f| f.path.clone()).collect();
+    Ok(tokio::task::spawn_blocking(move || {
+        paths
+            .iter()
+            .map(|rel| {
+                std::fs::metadata(path::join(&root, rel))
+                    .ok()
+                    .filter(|m| m.is_file())
+                    .map(|m| m.len())
+            })
+            .collect()
+    })
+    .await?)
+}
+
+fn check_free_space(root: &Path, files: &[FileEntry], on_disk: &[Option<u64>]) -> Result<()> {
+    let needed: u64 = files
+        .iter()
+        .zip(on_disk)
+        .map(|(f, have)| f.size.saturating_sub(have.unwrap_or(0)))
+        .sum();
+    match fs4::available_space(root) {
         Ok(free) if free < needed => bail!(
             "Not enough free disk space in {}: {} MiB needed, {} MiB available",
             root.display(),
@@ -261,10 +336,66 @@ async fn check_free_space(root: &Path, files: &[FileEntry]) -> Result<()> {
     }
 }
 
+/// Size the request gate to what the connection takes, and tell what
+/// holds the download back. Runs until dropped.
+async fn tune(ctx: &Ctx, mut tuner: Tuner, limit: Option<u64>) {
+    use std::sync::atomic::Ordering::Relaxed;
+    let stats = &ctx.stats;
+    let snapshot = || {
+        (
+            stats.received.load(Relaxed),
+            stats.failures.load(Relaxed),
+            stats.net_wait_us.load(Relaxed),
+            stats.disk_wait_us.load(Relaxed),
+        )
+    };
+    let mut last = (Instant::now(), snapshot());
+    // A verdict shows once two windows in a row agree.
+    let mut candidate = None;
+    loop {
+        tokio::time::sleep(TUNE_EVERY).await;
+        let now = (Instant::now(), snapshot());
+        let secs = now.0.duration_since(last.0).as_secs_f64().max(0.001);
+        let (received, failures, net_us, disk_us) = (
+            now.1.0 - last.1.0,
+            now.1.1 - last.1.1,
+            now.1.2 - last.1.2,
+            now.1.3 - last.1.3,
+        );
+        last = now;
+        let rate = received as f64 / secs;
+        let contended = ctx.requests.take_contended();
+        let throttled = limit.is_some_and(|l| rate >= l as f64 * 0.85);
+        let n = tuner.step(Window {
+            rate,
+            failures,
+            contended,
+            throttled,
+        });
+        ctx.requests.set_limit(n);
+        let verdict = classify(Signals {
+            rate,
+            failures,
+            backing_off: stats.backing_off.load(Relaxed),
+            limit,
+            net_wait: Duration::from_micros(net_us),
+            disk_wait: Duration::from_micros(disk_us),
+            contended,
+            capped: tuner.capped(),
+        });
+        if verdict == candidate {
+            stats.set_bottleneck(verdict);
+        }
+        candidate = verdict;
+    }
+}
+
 struct Ctx {
     client: reqwest::Client,
     root: PathBuf,
-    requests: Semaphore,
+    /// Requests at once, sized by [`tune`].
+    requests: Gate,
+    hosts: Hosts,
     limiter: Option<RateLimiter>,
     cache: ChunkCache,
     stats: Arc<Stats>,
@@ -291,68 +422,140 @@ impl Ctx {
         }
     }
 
-    async fn backoff(&self, attempt: u32) -> Result<(), Error> {
-        let delay = Duration::from_millis(500 << attempt.min(5));
+    /// Wait out failure number `failures` (1-based) of a request.
+    async fn backoff(&self, failures: u32) -> Result<(), Error> {
+        let delay = BACKOFF
+            .saturating_mul(1 << failures.min(8))
+            .min(MAX_BACKOFF);
+        let _waiting = Waiting::new(&self.stats.backing_off);
         tokio::select! {
             _ = self.cancel.cancelled() => Err(Error::Cancelled),
             _ = tokio::time::sleep(delay) => Ok(()),
         }
     }
 
-    async fn throttle(&self, n: usize) -> Result<(), Error> {
+    /// Wait for the speed limit to allow `n` more bytes; returns the wait.
+    async fn throttle(&self, n: usize) -> Result<Duration, Error> {
         let Some(limiter) = &self.limiter else {
-            return Ok(());
+            return Ok(Duration::ZERO);
         };
         let wait = limiter.reserve(n as u64);
         if wait.is_zero() {
-            return Ok(());
+            return Ok(wait);
         }
         tokio::select! {
             _ = self.cancel.cancelled() => Err(Error::Cancelled),
-            _ = tokio::time::sleep(wait) => Ok(()),
+            _ = tokio::time::sleep(wait) => Ok(wait),
         }
+    }
+
+    /// Note how a request to `url` that ran for `elapsed` ended.
+    fn score<T>(&self, url: &str, result: &Result<T, Error>, bytes: u64, elapsed: Duration) {
+        match result {
+            Ok(_) => self.hosts.record_ok(url, bytes, elapsed),
+            Err(e) if e.kind() == Kind::Transient => {
+                self.hosts.record_failure(url);
+                self.stats.add_failure();
+            }
+            Err(e) if e.kind() == Kind::Corrupt => self.hosts.record_failure(url),
+            Err(_) => {}
+        }
+    }
+
+    /// Skip files already in place: recorded in the journal, or of the
+    /// right size and matching their digest. Returns the indices of the
+    /// files still to download.
+    async fn check_existing(
+        &self,
+        files: &[FileEntry],
+        on_disk: &[Option<u64>],
+    ) -> Result<Vec<usize>, Error> {
+        let mut pending = Vec::new();
+        let mut to_hash = Vec::new();
+        for (i, f) in files.iter().enumerate() {
+            if on_disk[i] != Some(f.size) {
+                pending.push(i);
+            } else if self.journal.as_ref().is_some_and(|j| j.has(f)) {
+                self.skip(f);
+            } else if f.hash.is_none() {
+                self.skip(f);
+                self.record(f).await;
+            } else {
+                to_hash.push(i);
+            }
+        }
+        use std::sync::atomic::Ordering::Relaxed;
+        self.stats.check_total.store(to_hash.len() as u64, Relaxed);
+        let checked: Vec<(usize, bool)> = futures::stream::iter(to_hash)
+            .map(|i| async move {
+                let f = &files[i];
+                let ok = self.intact(&path::join(&self.root, &f.path), f).await?;
+                self.stats.checked.fetch_add(1, Relaxed);
+                Ok::<_, Error>((i, ok))
+            })
+            .buffer_unordered(CHECKERS)
+            .try_collect()
+            .await?;
+        for (i, ok) in checked {
+            if ok {
+                self.skip(&files[i]);
+                self.record(&files[i]).await;
+            } else {
+                pending.push(i);
+            }
+        }
+        pending.sort_unstable();
+        Ok(pending)
     }
 
     async fn process_file(&self, f: &FileEntry) -> Result<(), Error> {
         self.check_cancel()?;
         let dest = path::join(&self.root, &f.path);
-        let on_disk = file_len(&dest).await;
-        let journaled = self.journal.as_ref().is_some_and(|j| j.has(f));
-        if on_disk == Some(f.size) && (journaled || self.intact(&dest, f).await?) {
-            self.skip(f);
-            if !journaled {
-                self.record(f).await;
-            }
-            return Ok(());
-        }
         if let Some(parent) = dest.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
 
-        let mut attempt = 0;
+        // Chunks retry on their own; whole files retry here, moving to the
+        // next server after each failure.
+        let order = match f.parts.first() {
+            Some(p) if f.is_stream() => self.hosts.order(&p.chunk.urls),
+            _ => Vec::new(),
+        };
+        let mirrors = order.len().max(1) as u32;
+        let (mut attempt, mut failures, mut corrupt) = (0, 0, 0);
         loop {
             let result = if f.parts.is_empty() {
                 self.write_empty(f, &dest).await
             } else if f.is_stream() {
-                self.stream_file(f, &dest, attempt).await
+                self.stream_file(f, &dest, &order, attempt).await
             } else {
                 // Local copies are only trusted on the first attempt.
                 self.assemble(f, &dest, attempt == 0).await
             };
-            match result {
+            let e = match result {
                 Ok(()) => break,
-                Err(e)
-                    if e.retryable() && attempt < self.retries && !self.cancel.is_cancelled() =>
-                {
-                    tracing::warn!("{} (attempt {}): {e}", f.path, attempt + 1);
-                    attempt += 1;
-                    self.backoff(attempt).await?;
-                }
-                Err(e) => {
-                    return Err(match e {
-                        Error::Cancelled => e,
-                        e => Error::Other(anyhow::Error::from(e).context(f.path.clone())),
-                    });
+                Err(e) => e,
+            };
+            let kind = e.kind();
+            if self.cancel.is_cancelled()
+                || kind == Kind::Fatal
+                || (kind == Kind::Corrupt && corrupt >= self.retries)
+            {
+                return Err(match e {
+                    Error::Cancelled => e,
+                    e => Error::Other(anyhow::Error::from(e).context(f.path.clone())),
+                });
+            }
+            tracing::warn!("{} (attempt {}): {e}", f.path, attempt + 1);
+            attempt += 1;
+            if kind == Kind::Corrupt {
+                corrupt += 1;
+                self.backoff(corrupt).await?;
+            } else {
+                failures += 1;
+                // Every server gets a try before waiting.
+                if failures >= mirrors {
+                    self.backoff(failures + 1 - mirrors).await?;
                 }
             }
         }
@@ -407,8 +610,15 @@ impl Ctx {
     }
 
     /// Download a whole-file object into `<dest>.ember-part`, resuming what
-    /// an earlier attempt left, then verify and move it into place.
-    async fn stream_file(&self, f: &FileEntry, dest: &Path, attempt: u32) -> Result<(), Error> {
+    /// an earlier attempt left, then verify and move it into place. Servers
+    /// are tried in `order`, starting at the `attempt`th.
+    async fn stream_file(
+        &self,
+        f: &FileEntry,
+        dest: &Path,
+        order: &[usize],
+        attempt: u32,
+    ) -> Result<(), Error> {
         let part = path::part_path(dest);
         let chunk = &f.parts[0].chunk;
         if chunk.urls.is_empty() && self.signing.is_none() {
@@ -430,10 +640,10 @@ impl Ctx {
                 res?;
             } else {
                 // Other mirrors are tried right away when one refuses the request.
-                let n = chunk.urls.len();
+                let n = order.len();
                 let mut tried = 0;
                 loop {
-                    let url = &chunk.urls[(attempt as usize + tried) % n];
+                    let url = &chunk.urls[order[(attempt as usize + tried) % n]];
                     match self
                         .stream_once(url, &part, chunk.download_size, chunk.range, &mut counted)
                         .await
@@ -501,11 +711,32 @@ impl Ctx {
             return Ok(());
         }
 
-        let _permit = self
-            .requests
-            .acquire()
-            .await
-            .map_err(|e| Error::Other(e.into()))?;
+        let _permit = self.requests.acquire().await;
+        let started = Instant::now();
+        let before = *counted;
+        let result = self
+            .stream_body(url, part, size, range, have, counted)
+            .await;
+        self.score(
+            url,
+            &result,
+            counted.saturating_sub(before),
+            started.elapsed(),
+        );
+        result
+    }
+
+    /// The request of [`Self::stream_once`], appending to the `have` bytes
+    /// of `part`.
+    async fn stream_body(
+        &self,
+        url: &str,
+        part: &Path,
+        size: u64,
+        range: Option<(u64, u64)>,
+        mut have: u64,
+        counted: &mut u64,
+    ) -> Result<(), Error> {
         let mut req = self.client.get(url);
         match range {
             Some((start, len)) => {
@@ -517,10 +748,7 @@ impl Ctx {
             None if have > 0 => req = req.header(reqwest::header::RANGE, format!("bytes={have}-")),
             None => {}
         }
-        let resp = tokio::select! {
-            _ = self.cancel.cancelled() => return Err(Error::Cancelled),
-            r = req.send() => r?,
-        };
+        let resp = self.send(req, url).await?;
         let status = resp.status();
         let append = match status {
             reqwest::StatusCode::PARTIAL_CONTENT => have > 0,
@@ -550,21 +778,28 @@ impl Ctx {
         };
         let mut out = tokio::io::BufWriter::with_capacity(1 << 20, file);
         let mut body = resp.bytes_stream();
+        let mut watch = Watchdog::new(STALL, Instant::now());
         loop {
+            let waited = Instant::now();
             let next = tokio::select! {
                 _ = self.cancel.cancelled() => {
                     out.flush().await?;
                     return Err(Error::Cancelled);
                 }
-                n = body.next() => n,
+                n = tokio::time::timeout(STALL, body.next()) => n,
             };
+            self.stats.add_net_wait(waited.elapsed());
             let bytes = match next {
-                None => break,
-                Some(Ok(b)) => b,
-                Some(Err(e)) => {
+                Ok(None) => break,
+                Ok(Some(Ok(b))) => b,
+                Ok(Some(Err(e))) => {
                     // Keep what arrived for the next attempt.
                     out.flush().await?;
                     return Err(e.into());
+                }
+                Err(_) => {
+                    out.flush().await?;
+                    return Err(stalled(url));
                 }
             };
             let n = bytes.len() as u64;
@@ -575,21 +810,42 @@ impl Ctx {
                     "the server sent more data than expected".into(),
                 ));
             }
-            self.throttle(bytes.len()).await?;
+            watch.pause(self.throttle(bytes.len()).await?);
+            let writing = Instant::now();
             out.write_all(&bytes).await?;
+            self.stats.add_disk_wait(writing.elapsed());
             have += n;
             *counted += n;
             self.stats.add_received(n);
             self.stats.add_written(n);
             self.stats.add_done(n);
+            if let Err(e) = watch.feed(n, Instant::now()) {
+                out.flush().await?;
+                return Err(Error::Interrupted(format!("{}: {e}", redact(url))));
+            }
         }
         out.flush().await?;
         if have != size {
-            return Err(Error::Corrupt(format!(
+            return Err(Error::Interrupted(format!(
                 "the connection closed after {have} of {size} bytes"
             )));
         }
         Ok(())
+    }
+
+    /// Send `req`, giving up on a server that does not answer in time.
+    async fn send(
+        &self,
+        req: reqwest::RequestBuilder,
+        url: &str,
+    ) -> Result<reqwest::Response, Error> {
+        tokio::select! {
+            _ = self.cancel.cancelled() => Err(Error::Cancelled),
+            r = tokio::time::timeout(STALL * 2, req.send()) => match r {
+                Ok(r) => Ok(r?),
+                Err(_) => Err(stalled(url)),
+            },
+        }
     }
 
     /// Build a file from chunk slices (or local copies of them), verify it
@@ -607,7 +863,12 @@ impl Ctx {
                     Ok::<_, Error>((p, data))
                 })
                 .buffered(self.prefetch);
-            while let Some(next) = parts.next().await {
+            loop {
+                let waited = Instant::now();
+                let Some(next) = parts.next().await else {
+                    break;
+                };
+                self.stats.add_net_wait(waited.elapsed());
                 let (p, data) = next?;
                 let slice = match &data {
                     PartData::Local(bytes) => bytes.as_slice(),
@@ -619,7 +880,9 @@ impl Ctx {
                             Error::Corrupt("a file part lies outside its chunk".into())
                         })?,
                 };
+                let writing = Instant::now();
                 out.write_all(slice).await?;
+                self.stats.add_disk_wait(writing.elapsed());
                 if let Some(h) = &mut hasher {
                     h.update(slice);
                 }
@@ -688,6 +951,9 @@ impl Ctx {
         .cloned()
     }
 
+    /// A chunk from the best server that has it. Failing servers are left
+    /// for the next one right away; once every server failed, the engine
+    /// waits a little longer each round and keeps trying.
     async fn fetch_chunk(&self, chunk: &Chunk) -> Result<Vec<u8>, Error> {
         if chunk.urls.is_empty() && self.signing.is_none() {
             return Err(Error::Other(anyhow::anyhow!(
@@ -695,92 +961,114 @@ impl Ctx {
                 chunk.key
             )));
         }
-        let mut attempt = 0;
-        let mut mirror = 0;
+        let order = match &self.signing {
+            Some(_) => Vec::new(),
+            None => self.hosts.order(&chunk.urls),
+        };
+        let mirrors = order.len().max(1);
+        let (mut next, mut refused) = (0, 0);
+        let (mut failures, mut corrupt, mut resigned) = (0u32, 0u32, 0u32);
         loop {
-            let url = match &self.signing {
-                Some(s) => s.url(&chunk.key).await?,
-                None => chunk.urls[mirror % chunk.urls.len()].clone(),
+            let (url, alt) = match &self.signing {
+                Some(s) => {
+                    let url = s.url(&chunk.key).await?;
+                    (url.clone(), url)
+                }
+                None => (
+                    chunk.urls[order[next % mirrors]].clone(),
+                    chunk.urls[order[(next + 1) % mirrors]].clone(),
+                ),
             };
-            match self.fetch_chunk_once(chunk, &url).await {
+            let e = match self.fetch_raced(chunk, &url, &alt).await {
                 Ok(data) => return Ok(data),
+                Err(e) => e,
+            };
+            if self.cancel.is_cancelled() {
+                return Err(Error::Cancelled);
+            }
+            match e.kind() {
                 // An expired signature: sign again.
-                Err(Error::Status { status, .. })
+                Kind::Fatal
                     if self.signing.is_some()
-                        && matches!(status.as_u16(), 401 | 403)
-                        && attempt < self.retries =>
+                        && matches!(&e, Error::Status { status, .. } if matches!(status.as_u16(), 401 | 403))
+                        && resigned < self.retries =>
                 {
                     if let Some(s) = &self.signing {
                         s.forget(&chunk.key);
                     }
-                    attempt += 1;
+                    resigned += 1;
                 }
-                // Other mirrors are tried right away when one refuses the request.
-                Err(Error::Status { .. })
-                    if self.signing.is_none() && mirror + 1 < chunk.urls.len() =>
-                {
-                    mirror += 1
+                // Other servers may have what this one refuses.
+                Kind::Fatal if matches!(e, Error::Status { .. }) && refused + 1 < mirrors => {
+                    refused += 1;
+                    next += 1;
                 }
-                Err(e)
-                    if e.retryable() && attempt < self.retries && !self.cancel.is_cancelled() =>
-                {
-                    tracing::warn!("chunk {} (attempt {}): {e}", chunk.key, attempt + 1);
-                    attempt += 1;
-                    mirror += 1;
-                    self.backoff(attempt).await?;
+                Kind::Fatal => return Err(e),
+                Kind::Corrupt => {
+                    corrupt += 1;
+                    if corrupt > self.retries.max(mirrors as u32 - 1) {
+                        return Err(e);
+                    }
+                    tracing::warn!("chunk {} (attempt {corrupt}): {e}", chunk.key);
+                    next += 1;
+                    self.backoff(corrupt).await?;
                 }
-                Err(e) => return Err(e),
+                Kind::Transient => {
+                    failures += 1;
+                    tracing::warn!("chunk {} (failure {failures}): {e}", chunk.key);
+                    next += 1;
+                    if failures as usize >= mirrors {
+                        self.backoff(failures + 1 - mirrors as u32).await?;
+                    }
+                }
             }
+        }
+    }
+
+    /// Fetch from `url`; when that lags while request slots sit idle (the
+    /// end of a download), race the same chunk from `alt` and take
+    /// whichever arrives first.
+    async fn fetch_raced(&self, chunk: &Chunk, url: &str, alt: &str) -> Result<Vec<u8>, Error> {
+        let first = self.fetch_chunk_once(chunk, url);
+        tokio::pin!(first);
+        let patience = self
+            .hosts
+            .chunk_time()
+            .map_or(STALL, |t| (t * 3).clamp(STALL / 4, STALL * 2));
+        tokio::select! {
+            r = &mut first => return r,
+            () = tokio::time::sleep(patience) => {}
+        }
+        if !self.requests.has_spare() {
+            return first.await;
+        }
+        tracing::debug!("chunk {} is slow; racing a second request", chunk.key);
+        let second = self.fetch_chunk_once(chunk, alt);
+        tokio::pin!(second);
+        tokio::select! {
+            r = &mut first => match r {
+                Err(e) if !matches!(e, Error::Cancelled) => second.await,
+                r => r,
+            },
+            r = &mut second => match r {
+                Err(e) if !matches!(e, Error::Cancelled) => first.await,
+                r => r,
+            },
         }
     }
 
     async fn fetch_chunk_once(&self, chunk: &Chunk, url: &str) -> Result<Vec<u8>, Error> {
         let raw = {
-            let _permit = self
-                .requests
-                .acquire()
-                .await
-                .map_err(|e| Error::Other(e.into()))?;
-            let mut req = self.client.get(url);
-            if let Some((start, len)) = chunk.range {
-                req = req.header(
-                    reqwest::header::RANGE,
-                    format!("bytes={start}-{}", start + len - 1),
-                );
-            }
-            let resp = tokio::select! {
-                _ = self.cancel.cancelled() => return Err(Error::Cancelled),
-                r = req.send() => r?,
-            };
-            if !resp.status().is_success() {
-                return Err(Error::Status {
-                    status: resp.status(),
-                    url: redact(url),
-                });
-            }
-            if chunk.range.is_some() && resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
-                return Err(Error::Other(anyhow::anyhow!(
-                    "the server does not support partial downloads"
-                )));
-            }
-            let mut raw = Vec::with_capacity(chunk.download_size as usize);
-            let mut body = resp.bytes_stream();
-            loop {
-                let next = tokio::select! {
-                    _ = self.cancel.cancelled() => return Err(Error::Cancelled),
-                    n = body.next() => n,
-                };
-                let Some(bytes) = next else { break };
-                let bytes = bytes?;
-                self.throttle(bytes.len()).await?;
-                self.stats.add_received(bytes.len() as u64);
-                raw.extend_from_slice(&bytes);
-            }
-            raw
+            let _permit = self.requests.acquire().await;
+            let started = Instant::now();
+            let raw = self.request_chunk(chunk, url).await;
+            let bytes = raw.as_ref().map_or(0, |r| r.len() as u64);
+            self.score(url, &raw, bytes, started.elapsed());
+            raw?
         };
         // Decoding and hashing are CPU-bound: keep them off the async workers.
         let (codec, size, hash) = (chunk.codec.clone(), chunk.size, chunk.hash.clone());
-        tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
+        let decoded = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
             let data = decode(&codec, raw).map_err(|e| format!("{e:#}"))?;
             if data.len() as u64 != size {
                 return Err(format!("{} bytes instead of {size}", data.len()));
@@ -792,7 +1080,77 @@ impl Ctx {
         })
         .await
         .map_err(|e| Error::Other(e.into()))?
-        .map_err(|e| Error::Corrupt(format!("chunk {}: {e}", chunk.key)))
+        .map_err(|e| Error::Corrupt(format!("chunk {}: {e}", chunk.key)));
+        if decoded.is_err() {
+            self.hosts.record_failure(url);
+        }
+        decoded
+    }
+
+    /// The raw bytes of `chunk` from `url`.
+    async fn request_chunk(&self, chunk: &Chunk, url: &str) -> Result<Vec<u8>, Error> {
+        let mut req = self.client.get(url);
+        if let Some((start, len)) = chunk.range {
+            req = req.header(
+                reqwest::header::RANGE,
+                format!("bytes={start}-{}", start + len - 1),
+            );
+        }
+        let resp = self.send(req, url).await?;
+        if !resp.status().is_success() {
+            return Err(Error::Status {
+                status: resp.status(),
+                url: redact(url),
+            });
+        }
+        if chunk.range.is_some() && resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+            return Err(Error::Other(anyhow::anyhow!(
+                "the server does not support partial downloads"
+            )));
+        }
+        let mut raw = Vec::with_capacity(chunk.download_size as usize);
+        let mut body = resp.bytes_stream();
+        let mut watch = Watchdog::new(STALL, Instant::now());
+        loop {
+            let next = tokio::select! {
+                _ = self.cancel.cancelled() => return Err(Error::Cancelled),
+                n = tokio::time::timeout(STALL, body.next()) => n.map_err(|_| stalled(url))?,
+            };
+            let Some(bytes) = next else { break };
+            let bytes = bytes?;
+            watch.pause(self.throttle(bytes.len()).await?);
+            self.stats.add_received(bytes.len() as u64);
+            raw.extend_from_slice(&bytes);
+            watch
+                .feed(bytes.len() as u64, Instant::now())
+                .map_err(|e| Error::Interrupted(format!("{}: {e}", redact(url))))?;
+        }
+        Ok(raw)
+    }
+}
+
+/// The error for a server that stopped sending.
+fn stalled(url: &str) -> Error {
+    Error::Interrupted(format!(
+        "{} sent nothing for {} seconds",
+        adapt::host(url),
+        STALL.as_secs_f32()
+    ))
+}
+
+/// Counts a task in a gauge while it lives.
+struct Waiting<'a>(&'a std::sync::atomic::AtomicU64);
+
+impl<'a> Waiting<'a> {
+    fn new(gauge: &'a std::sync::atomic::AtomicU64) -> Self {
+        gauge.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self(gauge)
+    }
+}
+
+impl Drop for Waiting<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -900,11 +1258,7 @@ impl Signing {
                     .cloned(),
             );
         }
-        let signed = self
-            .signer
-            .sign(&batch)
-            .await
-            .map_err(|e| Error::Other(e.context("Could not get chunk download addresses")))?;
+        let signed = self.signer.sign(&batch).await.map_err(sign_error)?;
         let mut urls = self.urls.lock().unwrap_or_else(|e| e.into_inner());
         urls.extend(signed);
         urls.get(key).cloned().ok_or_else(|| {
@@ -912,6 +1266,21 @@ impl Signing {
                 "no download address was issued for chunk {key}"
             ))
         })
+    }
+}
+
+/// A failure to sign addresses: retried like a dropped connection when
+/// the network was at fault, else final.
+fn sign_error(e: anyhow::Error) -> Error {
+    let network = e.chain().any(|c| {
+        c.downcast_ref::<reqwest::Error>()
+            .is_some_and(|r| !r.is_builder() && r.status().is_none_or(|s| s.is_server_error()))
+    });
+    let e = e.context("Could not get chunk download addresses");
+    if network {
+        Error::Interrupted(format!("{e:#}"))
+    } else {
+        Error::Other(e)
     }
 }
 
