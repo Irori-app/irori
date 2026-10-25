@@ -199,6 +199,8 @@ fn init_logging(gui: bool) {
 }
 
 fn open_main_window(app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
+    #[cfg(target_os = "macos")]
+    cx.activate(true);
     let existing = app.lock().window;
     if let Some(handle) = existing
         && handle

@@ -437,7 +437,11 @@ impl AppShell {
             .when(!cfg!(windows), |d| {
                 d.child(item(
                     "nav-wine",
-                    "shell.nav.wine",
+                    if cfg!(target_os = "macos") {
+                        "manage.wine.title"
+                    } else {
+                        "shell.nav.wine"
+                    },
                     IconName::Wine,
                     "wine",
                     Route::WineManager,

@@ -43,6 +43,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
+          key: native-ci-profile-v1
           cache-on-failure: true
       - uses: actions/setup-python@v5
         with:
@@ -59,6 +60,24 @@ jobs:
         run: cargo build --locked --profile ci -p ember -p ember-sign-in
       - name: Package native application
         run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/ci --output dist
+      - name: Verify per-user Windows installation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $destination = Join-Path $env:RUNNER_TEMP 'Ember installation test'
+          & ./dist/Ember/install.ps1 -Destination $destination
+          foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico')) {
+            if (!(Test-Path -LiteralPath (Join-Path $destination $name))) {
+              throw "Missing installed file: $name"
+            }
+          }
+          $exe = Join-Path $destination 'ember.exe'
+          $command = (Get-Item 'HKCU:\Software\Classes\ember\shell\open\command').GetValue('')
+          if ($command -ne ('"' + $exe + '" "%1"')) { throw 'Invalid URL handler' }
+          $menu = [Environment]::GetFolderPath('Programs')
+          $shell = New-Object -ComObject WScript.Shell
+          $link = $shell.CreateShortcut((Join-Path $menu 'Ember.lnk'))
+          if ($link.TargetPath -ne $exe) { throw 'Invalid Start menu shortcut' }
       - uses: actions/upload-artifact@v4
         with:
           name: Ember-${{ matrix.os }}-unsigned
