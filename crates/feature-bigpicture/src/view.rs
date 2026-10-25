@@ -1931,6 +1931,8 @@ mod tests {
 
     #[gpui_kit::test]
     fn navigates_shelves_and_overlays_with_keyboard_and_gamepad(cx: &mut TestAppContext) {
+        // This integration test receives events from the real Tokio backend.
+        cx.executor().allow_parking();
         let backend = start_backend();
         cx.update(|cx| {
             gpui_kit::init(cx);

@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use ember_core::{AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, UserInfo};
 use ember_services::{DownloadQueueSnapshot, LibrarySnapshot, UserData};
-use gpui_kit::{App, AppContext as _, Context, Entity, Global};
+use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
 use tokio::sync::broadcast::error::{RecvError, TryRecvError};
 
 use crate::state::backend;
@@ -224,9 +224,17 @@ pub(crate) fn install(cx: &mut App) {
     spawn_pump(cx);
 }
 
+// Keep the subscription tied to this app. Reinitialization or shutdown
+// cancels the receiver instead of leaving a detached task on an old model set.
+struct EventPump {
+    _task: Task<()>,
+}
+
+impl Global for EventPump {}
+
 fn spawn_pump(cx: &mut App) {
     let mut rx = backend(cx).subscribe();
-    cx.spawn(async move |cx| {
+    let task = cx.spawn(async move |cx| {
         loop {
             let mut batch = Vec::with_capacity(16);
             let mut resync = false;
@@ -244,8 +252,8 @@ fn spawn_pump(cx: &mut App) {
             }
             cx.update(|cx| apply(batch, resync, cx));
         }
-    })
-    .detach();
+    });
+    cx.set_global(EventPump { _task: task });
 }
 
 /// Apply a batch of events, notifying each affected model once.

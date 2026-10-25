@@ -94,7 +94,7 @@ isolated testing. Configured Steam paths take precedence over defaults.
 
 Each configuration root has one running Ember instance, protected by an OS file
 lock. Subsequent invocations forward arguments over authenticated loopback IPC.
-The tray uses the desktop's native integration. Games inhibit sleep through the
+The tray uses the desktop's native integration. macOS uses Command shortcuts and a native app menu; Windows/Linux retain Control shortcuts. Games inhibit sleep through the
 Linux portal, macOS caffeinate, or Windows thread execution state. Desktop/menu
 shortcuts use `.desktop`, Finder app bundles, or Windows shell links respectively.
 Windows cancellation uses `taskkill /T /F`; games that deliberately escape their

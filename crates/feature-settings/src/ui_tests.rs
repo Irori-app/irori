@@ -29,6 +29,8 @@ fn open<V: gpui_kit::Render>(
     cx: &mut TestAppContext,
     build: impl FnOnce(&mut gpui_kit::Window, &mut gpui_kit::Context<V>) -> V + 'static,
 ) -> (AnyWindowHandle, Entity<V>) {
+    // This integration test receives events from the real Tokio backend.
+    cx.executor().allow_parking();
     let backend = test_backend();
     cx.update(|cx| {
         gpui_kit::init(cx);

@@ -34,3 +34,6 @@ regex.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 nix.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+tempfile = "3"
