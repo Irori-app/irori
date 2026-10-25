@@ -609,7 +609,7 @@ mod tests {
         std::fs::write(pfx.join("user.reg"), USER_REG).unwrap();
         let loc = SaveLocation {
             template: r"{AppData}\mygame\Saved",
-            install_dir: Path::new("/games/x"),
+            install_dir: dir.path(),
             account_id: "acc",
             wine_prefix: Some(&pfx),
             platform: "Windows",
@@ -626,7 +626,7 @@ mod tests {
         };
         assert_eq!(
             resolve_save_path(&install).unwrap(),
-            Path::new("/games/x/Saves/acc")
+            dir.path().join("Saves/acc")
         );
         let bad = SaveLocation {
             template: "{Unknown}/x",

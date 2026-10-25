@@ -265,8 +265,8 @@ mod tests {
             steam.join("steamapps/libraryfolders.vdf"),
             format!(
                 "\"libraryfolders\" {{ \"0\" {{ \"path\" \"{}\" }} \"1\" {{ \"path\" \"{}\" }} \"2\" {{ \"path\" \"/nonexistent/x\" }} }}",
-                steam.display(),
-                other.display()
+                steam.to_string_lossy().replace('\\', "\\\\"),
+                other.to_string_lossy().replace('\\', "\\\\")
             ),
         )
         .unwrap();

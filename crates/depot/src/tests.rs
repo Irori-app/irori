@@ -310,7 +310,17 @@ async fn cancels() {
             .await
         })
     };
-    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        loop {
+            if std::fs::metadata(dir.path().join("a.ember-part")).is_ok_and(|m| m.len() > 0) {
+                break;
+            }
+            assert!(!task.is_finished(), "download finished before cancellation");
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("partial download begins");
     cancel.cancel();
     assert_eq!(task.await.unwrap().unwrap(), Finished::Cancelled);
     assert!(!dir.path().join("a").exists());

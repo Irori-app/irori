@@ -280,7 +280,7 @@ mod tests {
         let g = to_game_info(&raw, Some(&rec));
         assert!(g.is_installed);
         let i = g.install.unwrap();
-        assert_eq!(i.executable, "/g/some-game/game.exe");
+        assert_eq!(Path::new(&i.executable), Path::new("/g/some-game/game.exe"));
         assert_eq!(i.install_size, "2.0 KiB");
     }
 
@@ -303,7 +303,7 @@ mod tests {
         let info = install_info(&game, win, InstallPlatform::Windows, false);
         assert_eq!(info.download_size, 1536 * 1024 * 1024);
         assert_eq!(info.version.as_deref(), Some("1.2.3"));
-        assert!(!info.is_native);
+        assert_eq!(info.is_native, cfg!(windows));
         let lin = platform_files(&files, InstallPlatform::Linux);
         assert!(install_info(&game, lin, InstallPlatform::Linux, true).is_native);
         assert!(platform_files(&files, InstallPlatform::Mac).is_empty());

@@ -242,12 +242,14 @@ mod tests {
         touch(r, "bin/Tool.exe", &[0; 100]);
         touch(r, "bin/SuperGame2.exe", b"x");
         assert_eq!(
-            windows_executable(r, "Super Game 2").as_deref(),
-            Some("bin/SuperGame2.exe")
+            windows_executable(r, "Super Game 2")
+                .as_deref()
+                .map(Path::new),
+            Some(Path::new("bin/SuperGame2.exe"))
         );
         assert_eq!(
-            windows_executable(r, "Nope").as_deref(),
-            Some("bin/Tool.exe")
+            windows_executable(r, "Nope").as_deref().map(Path::new),
+            Some(Path::new("bin/Tool.exe"))
         );
         let empty = tempfile::tempdir().unwrap();
         assert_eq!(windows_executable(empty.path(), "x"), None);
@@ -261,13 +263,13 @@ mod tests {
         touch(r, "Game/lib/libfoo.so", b"\x7fELF");
         touch(r, "Game/readme.txt", b"hello");
         assert_eq!(
-            linux_executable(r, "Game").as_deref(),
-            Some("Game/game.x86_64")
+            linux_executable(r, "Game").as_deref().map(Path::new),
+            Some(Path::new("Game/game.x86_64"))
         );
         touch(r, "Game/start.sh", b"#!/bin/sh\n");
         assert_eq!(
-            linux_executable(r, "Game").as_deref(),
-            Some("Game/start.sh")
+            linux_executable(r, "Game").as_deref().map(Path::new),
+            Some(Path::new("Game/start.sh"))
         );
         touch(r, "start.sh", b"#!/bin/sh\n");
         assert_eq!(linux_executable(r, "Game").as_deref(), Some("start.sh"));
@@ -283,11 +285,14 @@ mod tests {
         let confs = conf_files(r);
         assert_eq!(confs.len(), 2);
         let g = dosbox_game(r, &confs).unwrap();
-        assert_eq!(g.exe, "DOSBOX/DOSBox.exe");
+        assert_eq!(Path::new(&g.exe), Path::new("DOSBOX/DOSBox.exe"));
         assert_eq!(g.dir, "game");
         assert_eq!(
-            g.confs,
-            vec!["game/dosbox_game.conf", "game/dosbox_game_single.conf"]
+            g.confs.iter().map(Path::new).collect::<Vec<_>>(),
+            vec![
+                Path::new("game/dosbox_game.conf"),
+                Path::new("game/dosbox_game_single.conf")
+            ]
         );
 
         touch(

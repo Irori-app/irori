@@ -310,14 +310,22 @@ async fn installs_updates_repairs_launches_and_uninstalls() {
         .launch(APP, &request, OpContext::detached())
         .await
         .unwrap();
-    assert_eq!(plan.command.program, PathBuf::from("/nonexistent/wine"));
-    let args: Vec<String> = plan
+    if cfg!(windows) {
+        assert_eq!(plan.command.program, dir.join("Bin/Game.exe"));
+        assert!(!plan.track_wineserver);
+    } else {
+        assert_eq!(plan.command.program, PathBuf::from("/nonexistent/wine"));
+    }
+    let mut args: Vec<String> = plan
         .command
         .args
         .iter()
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    assert_eq!(args[0], dir.join("Bin/Game.exe").to_string_lossy());
+    if cfg!(windows) {
+        args.insert(0, plan.command.program.to_string_lossy().into_owned());
+    }
+    assert_eq!(Path::new(&args[0]), dir.join("Bin/Game.exe"));
     assert_eq!(args[1], "-epicflag");
     assert_eq!(args[2], "-extra");
     assert!(args.contains(&"-AUTH_PASSWORD=XCHG".to_string()));

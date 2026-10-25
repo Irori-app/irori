@@ -689,7 +689,11 @@ mod tests {
         );
         assert_eq!(
             env["WINEDLLPATH"],
-            format!("{}/wine:{}/wine", lib.display(), lib32.display())
+            format!(
+                "{}:{}",
+                lib.join("wine").display(),
+                lib32.join("wine").display()
+            )
         );
         assert!(
             !env.contains_key("GST_PLUGIN_SYSTEM_PATH_1_0"),

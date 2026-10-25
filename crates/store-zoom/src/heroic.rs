@@ -261,7 +261,7 @@ mod tests {
         assert!(g7.is_dosbox && g7.pinned_version);
         assert_eq!(g7.dosbox_conf, vec!["game.conf", "game_single.conf"]);
         assert_eq!(g7.dosbox_dir, "");
-        assert_eq!(g7.executable, "DOSBOX/DOSBox.exe");
+        assert_eq!(Path::new(&g7.executable), Path::new("DOSBOX/DOSBox.exe"));
         assert_eq!(g7.platform, InstallPlatform::Linux);
         assert_eq!(g7.build_platform, InstallPlatform::Windows);
         assert_eq!(g7.install_size_bytes, 1536 * 1024 * 1024);

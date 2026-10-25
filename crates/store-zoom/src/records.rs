@@ -304,8 +304,16 @@ mod tests {
             PathBuf::from("/games/a/bin/game.exe")
         );
         r.install_path = "/mnt/b".into();
-        assert_eq!(r.to_installed_info().executable, "/mnt/b/bin/game.exe");
-        r.executable = "/abs/start.sh".into();
-        assert_eq!(r.executable_path().unwrap(), PathBuf::from("/abs/start.sh"));
+        assert_eq!(
+            Path::new(&r.to_installed_info().executable),
+            Path::new("/mnt/b/bin/game.exe")
+        );
+        let absolute = if cfg!(windows) {
+            "C:/abs/start.sh"
+        } else {
+            "/abs/start.sh"
+        };
+        r.executable = absolute.into();
+        assert_eq!(r.executable_path().unwrap(), PathBuf::from(absolute));
     }
 }

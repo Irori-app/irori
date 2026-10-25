@@ -508,7 +508,14 @@ mod tests {
             std::fs::canonicalize(t.exe).unwrap(),
             std::fs::canonicalize(d.path().join("Bin/x64/Game.exe")).unwrap()
         );
-        assert_eq!(t.args, ["-path", "C:/a b", "-x"]);
+        assert_eq!(
+            t.args,
+            [
+                "-path",
+                if cfg!(windows) { r"C: b" } else { "C:/a b" },
+                "-x"
+            ]
+        );
         assert_eq!(
             std::fs::canonicalize(t.cwd).unwrap(),
             std::fs::canonicalize(d.path().join("Bin/x64")).unwrap()

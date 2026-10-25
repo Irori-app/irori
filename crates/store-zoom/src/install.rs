@@ -875,6 +875,6 @@ mod tests {
         let dos = det.dosbox.unwrap();
         assert_eq!(dos.confs, vec!["game.conf"]);
         assert_eq!(dos.dir, "");
-        assert_eq!(det.executable, "DOSBox/dosbox.exe");
+        assert_eq!(Path::new(&det.executable), Path::new("DOSBox/dosbox.exe"));
     }
 }

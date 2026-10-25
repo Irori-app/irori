@@ -714,12 +714,7 @@ mod tests {
         let ge = &list[5].installation;
         assert!(ge.lib.as_deref().unwrap().ends_with("lib64"));
         assert!(ge.lib32.is_none());
-        assert!(
-            ge.wineserver
-                .as_deref()
-                .unwrap()
-                .ends_with("bin/wineserver")
-        );
+        assert!(Path::new(ge.wineserver.as_deref().unwrap()).ends_with("bin/wineserver"));
 
         roots.show_valve_proton = true;
         let list = finalize(scan(&roots));

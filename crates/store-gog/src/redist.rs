@@ -780,11 +780,16 @@ mod tests {
             vec!["MSVC2015"]
         );
         let (exe, args) = redist_command(Path::new("/r"), m.depot("MSVC2015").unwrap()).unwrap();
-        assert_eq!(exe, "/r/__redist/MSVC2015/vc_redist.x86.exe");
+        assert_eq!(
+            Path::new(&exe),
+            Path::new("/r/__redist/MSVC2015/vc_redist.x86.exe")
+        );
         assert_eq!(args, vec!["/install", "/quiet"]);
         let (exe, args) = redist_command(Path::new("/r"), m.depot("PHYSXLEGACY").unwrap()).unwrap();
         assert_eq!(exe, "msiexec");
-        assert_eq!(args, vec!["/i", "/r/__redist/PhysX/p.msi", "/x", "/qb"]);
+        assert_eq!(args[0], "/i");
+        assert_eq!(Path::new(&args[1]), Path::new("/r/__redist/PhysX/p.msi"));
+        assert_eq!(&args[2..], ["/x", "/qb"]);
         assert!(redist_command(Path::new("/r"), m.depot("DOSBOX").unwrap()).is_none());
     }
 

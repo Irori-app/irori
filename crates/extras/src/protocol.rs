@@ -281,8 +281,18 @@ mod tests {
 
     #[test]
     fn alt_exe_and_errors() {
-        let l = launch("heroic://launch?appName=x&altExe=%2Fopt%2Fgame.exe");
-        assert_eq!(l.alt_exe, Some(PathBuf::from("/opt/game.exe")));
+        let (url, path) = if cfg!(windows) {
+            (
+                "heroic://launch?appName=x&altExe=C%3A%5CGames%5Cgame.exe",
+                r"C:\Games\game.exe",
+            )
+        } else {
+            (
+                "heroic://launch?appName=x&altExe=%2Fopt%2Fgame.exe",
+                "/opt/game.exe",
+            )
+        };
+        assert_eq!(launch(url).alt_exe, Some(PathBuf::from(path)));
         let l = launch("heroic://launch?appName=x&altExe=relative.exe");
         assert_eq!(l.alt_exe, None);
         assert!(parse("heroic://launch").is_err());

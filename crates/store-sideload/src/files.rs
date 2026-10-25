@@ -51,7 +51,8 @@ fn is_candidate(path: &Path, platform: SideloadPlatform) -> bool {
         SideloadPlatform::Linux | SideloadPlatform::Mac => {
             name.ends_with(".sh")
                 || name.ends_with(".x86_64")
-                || (ember_core::util::is_executable(path)
+                || (cfg!(unix)
+                    && ember_core::util::is_executable(path)
                     && !name.contains(".so")
                     && !name.ends_with(".exe")
                     && !name.ends_with(".dll"))
@@ -64,6 +65,7 @@ fn is_candidate(path: &Path, platform: SideloadPlatform) -> bool {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn deletion_guard() {
         let home = Path::new("/home/u");

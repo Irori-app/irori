@@ -274,10 +274,13 @@ mod tests {
             ]
         );
         assert_eq!(spec.cwd.as_deref(), Some(Path::new("/g/Bin")));
-        assert_eq!(spec.env["FUEL_DIR"], "/sdk/Amazon Games Services/Legacy");
         assert_eq!(
-            spec.env["AMAZON_GAMES_SDK_PATH"],
-            "/sdk/Amazon Games Services/AmazonGamesSDK"
+            Path::new(&spec.env["FUEL_DIR"]),
+            Path::new("/sdk/Amazon Games Services/Legacy")
+        );
+        assert_eq!(
+            Path::new(&spec.env["AMAZON_GAMES_SDK_PATH"]),
+            Path::new("/sdk/Amazon Games Services/AmazonGamesSDK")
         );
         assert_eq!(spec.env["AMAZON_GAMES_FUEL_ENTITLEMENT_ID"], "ent-1");
         assert_eq!(spec.env["AMAZON_GAMES_FUEL_PRODUCT_SKU"], "SKU");
@@ -303,15 +306,18 @@ mod tests {
         inputs.settings = &settings;
         inputs.option = None;
         assert_eq!(
-            args(&build_launch_plan(&inputs).unwrap().command)[2],
-            "/g/Tools/Editor.exe"
+            Path::new(&args(&build_launch_plan(&inputs).unwrap().command)[2]),
+            Path::new("/g/Tools/Editor.exe")
         );
 
         let umu = env_with(Some(wine(WineKind::Proton, "/bin/umu-run", true)), vec![]);
         inputs.environment = &umu;
         let plan = build_launch_plan(&inputs).unwrap();
         assert_eq!(plan.command.program, PathBuf::from("/bin/umu-run"));
-        assert_eq!(args(&plan.command)[0], "/g/Tools/Editor.exe");
+        assert_eq!(
+            Path::new(&args(&plan.command)[0]),
+            Path::new("/g/Tools/Editor.exe")
+        );
 
         let none = env_with(None, vec![]);
         inputs.environment = &none;
@@ -334,10 +340,7 @@ mod tests {
         assert_eq!(spec.program, PathBuf::from("/proton/proton"));
         let a = args(&spec);
         assert_eq!(a[0], "run");
-        assert_eq!(
-            a[1],
-            dir.path().join("__Installer/vc.exe").to_string_lossy()
-        );
+        assert_eq!(Path::new(&a[1]), dir.path().join("__Installer/vc.exe"));
         assert_eq!(a[2], "/quiet");
         assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/prefixes/Foo");
         assert_eq!(spec.cwd.as_deref(), Some(dir.path()));

@@ -725,6 +725,7 @@ mod tests {
         assert_eq!(parse_os_release(None).name, "Unknown Linux Distribution");
     }
 
+    #[cfg(unix)]
     #[test]
     fn gpus_from_sysfs_and_pci_ids() {
         let dir = tempfile::tempdir().unwrap();

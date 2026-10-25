@@ -138,6 +138,7 @@ fn linux_request(f: &Fixture) -> InstallRequest {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn deletion_guard() {
     let protected = [PathBuf::from("/home/u/Games/Ember")];
@@ -236,8 +237,8 @@ async fn login_refresh_install_update_uninstall() {
     let inst = g1.install.as_ref().unwrap();
     assert_eq!(inst.install_path, install_dir.to_string_lossy());
     assert_eq!(
-        inst.executable,
-        install_dir.join("Game/start.sh").to_string_lossy()
+        Path::new(&inst.executable),
+        install_dir.join("Game/start.sh")
     );
     assert_eq!(inst.version, "1.0.2");
     assert!(install_dir.join("Game/data.bin").is_file());
@@ -283,14 +284,16 @@ async fn login_refresh_install_update_uninstall() {
     std::fs::rename(&install_dir, &moved).unwrap();
     store.set_install_path("1", &moved).await.unwrap();
     assert_eq!(
-        store
-            .game("1")
-            .unwrap()
-            .install
-            .as_ref()
-            .unwrap()
-            .executable,
-        moved.join("Game/start.sh").to_string_lossy()
+        Path::new(
+            &store
+                .game("1")
+                .unwrap()
+                .install
+                .as_ref()
+                .unwrap()
+                .executable
+        ),
+        moved.join("Game/start.sh")
     );
 
     store
@@ -408,8 +411,8 @@ async fn import_detects_executable() {
     let g = store.game("2").unwrap();
     assert!(g.is_installed);
     assert_eq!(
-        g.install.as_ref().unwrap().executable,
-        dir.join("bin/Second.exe").to_string_lossy()
+        Path::new(&g.install.as_ref().unwrap().executable),
+        dir.join("bin/Second.exe")
     );
     assert!(
         store

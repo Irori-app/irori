@@ -323,7 +323,7 @@ mod tests {
             title: "Game".into(),
             executable: Some("/games/g/run.sh".into()),
             platform: SideloadPlatform::Linux,
-            launcher_args: "-a 'b c'".into(),
+            launcher_args: r#"-a "b c""#.into(),
             ..Default::default()
         }
     }
@@ -438,7 +438,13 @@ mod tests {
         assert_eq!(
             launch.command.args,
             os(&[
-                "--user-data-dir=/p/chromium/play.example.com",
+                &format!(
+                    "--user-data-dir={}",
+                    Path::new("/p")
+                        .join("chromium")
+                        .join("play.example.com")
+                        .display()
+                ),
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--app=https://play.example.com/g",
@@ -458,7 +464,10 @@ mod tests {
             launch.command.args,
             os(&[
                 "--profile",
-                "/p/firefox/play.example.com",
+                &Path::new("/p")
+                    .join("firefox")
+                    .join("play.example.com")
+                    .to_string_lossy(),
                 "--no-remote",
                 "https://play.example.com/g"
             ])
