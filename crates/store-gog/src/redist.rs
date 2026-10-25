@@ -494,9 +494,11 @@ impl GogStore {
                 support_dir: &support,
                 redist_dir: &self.paths.redist,
             });
+            let mut complete = true;
             for c in cmds {
                 if !c.exe.is_file() {
                     tracing::warn!("setup executable {} is missing", c.exe.display());
+                    complete = false;
                     continue;
                 }
                 let res = crate::wine::run_windows(
@@ -508,12 +510,23 @@ impl GogStore {
                     Some(log_file),
                 )
                 .await;
-                if let Err(e) = res {
-                    tracing::warn!("setup of {}: {e:#}", rec.app_name);
+                match res {
+                    Ok(r) if r.aborted => anyhow::bail!("aborted"),
+                    Ok(r) if r.success() || matches!(r.code, Some(3010 | 1641)) => {}
+                    Ok(r) => {
+                        complete = false;
+                        tracing::warn!("setup of {}: {}", rec.app_name, r.error_summary());
+                    }
+                    Err(e) => {
+                        complete = false;
+                        tracing::warn!("setup of {}: {e:#}", rec.app_name);
+                    }
                 }
             }
-            setup.games.insert(rec.app_name.clone(), key);
-            changed = true;
+            if complete {
+                setup.games.insert(rec.app_name.clone(), key);
+                changed = true;
+            }
         }
 
         let pending: Vec<String> = deps
@@ -554,7 +567,7 @@ impl GogStore {
                 .await
                 {
                     Ok(r) if r.aborted => anyhow::bail!("aborted"),
-                    Ok(r) if r.success() || r.code == Some(3010) => {
+                    Ok(r) if r.success() || matches!(r.code, Some(3010 | 1641)) => {
                         setup.redist.insert(dep);
                     }
                     Ok(r) => tracing::warn!("installing {dep}: {}", r.error_summary()),

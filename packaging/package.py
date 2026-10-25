@@ -68,6 +68,7 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     elif platform == "windows":
         shutil.copy2(root / "packaging/install-windows.ps1", staging / "install.ps1")
         shutil.copy2(root / "packaging/ember.svg", staging)
+        shutil.copy2(root / "packaging/ember.ico", staging)
         archive = output / f"Ember-{version}-windows.zip"
         with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as zip_file:
             for file in staging.rglob("*"):

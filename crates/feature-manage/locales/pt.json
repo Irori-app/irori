@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Usar antes o navegador",
   "manage.login.window.finishing": "A concluir o início de sessão…",
   "manage.wine.title": "Gestor do Wine",
+  "manage.wine.description_macos": "Transfira o Wine para jogos Windows ou utilize uma instalação do CrossOver ou Whisky.",
   "manage.wine.description": "Transfira versões do Proton e do Wine para jogos do Windows e veja todas as versões neste sistema.",
   "manage.wine.description_running_one": "Transfira versões do Proton e do Wine para jogos do Windows. 1 instalação em curso.",
   "manage.wine.description_running_other": "Transfira versões do Proton e do Wine para jogos do Windows. {count} instalações em curso.",

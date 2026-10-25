@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Bunun yerine tarayıcıyı kullan",
   "manage.login.window.finishing": "Giriş tamamlanıyor…",
   "manage.wine.title": "Wine yöneticisi",
+  "manage.wine.description_macos": "Windows oyunları için Wine indirin veya kurulu CrossOver ya da Whisky ortamını kullanın.",
   "manage.wine.description": "Windows oyunları için Proton ve Wine sürümleri indir ve bu sistemdeki tüm sürümleri gör.",
   "manage.wine.description_running_one": "Windows oyunları için Proton ve Wine sürümleri indir. 1 yükleme sürüyor.",
   "manage.wine.description_running_other": "Windows oyunları için Proton ve Wine sürümleri indir. {count} yükleme sürüyor.",

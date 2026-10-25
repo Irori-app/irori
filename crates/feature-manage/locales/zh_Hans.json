@@ -131,6 +131,7 @@
   "manage.login.use_browser": "改用浏览器",
   "manage.login.window.finishing": "正在完成登录…",
   "manage.wine.title": "Wine 管理器",
+  "manage.wine.description_macos": "下载适用于 Windows 游戏的 Wine，或使用已安装的 CrossOver 或 Whisky 运行环境。",
   "manage.wine.description": "为 Windows 游戏下载 Proton 和 Wine 版本，并查看此系统上的所有版本。",
   "manage.wine.description_running_one": "为 Windows 游戏下载 Proton 和 Wine 版本。正在进行 1 项安装。",
   "manage.wine.description_running_other": "为 Windows 游戏下载 Proton 和 Wine 版本。正在进行 {count} 项安装。",

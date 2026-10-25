@@ -144,3 +144,9 @@ Windows argument handling follows Microsoft's
 [CRT parsing rules](https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments).
 The parser/encoder has exhaustive short-input roundtrip tests covering quotes,
 slashes, whitespace, Unicode and metacharacters.
+
+On Windows, Epic Launcher synchronization accepts its native `C:\ProgramData\Epic\EpicGamesLauncher\Data` folder (or `Manifests` beneath it). On Wine hosts it continues to accept a Wine prefix.
+
+macOS base-prefix creation temporarily suppresses Wine’s interactive Mono/Gecko downloader. Its built-in checksum validation is unchanged; the overrides apply only to `wineboot`, never to games or stored prefix settings. Games needing .NET/HTML dependencies must install the appropriate component through Wine tools/Winetricks. A successful prefix smoke test does not verify Mono or a .NET game.
+
+Opt-in real archive/prefix smoke test (downloads roughly 200–240 MB per source; Rosetta required on Apple silicon): set a dedicated absolute `EMBER_HOME`, set `EMBER_RUNTIME_SMOKE` to `Wine-Crossover`, `Wine-Staging-macOS`, or `Game-Porting-Toolkit`, then run `cargo test -p ember-runtime macos_runtime_archive_smoke -- --ignored --nocapture`. Run it separately from the ordinary suite.

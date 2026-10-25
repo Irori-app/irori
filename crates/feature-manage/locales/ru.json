@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Использовать браузер",
   "manage.login.window.finishing": "Завершение входа…",
   "manage.wine.title": "Менеджер Wine",
+  "manage.wine.description_macos": "Скачайте Wine для игр Windows или используйте установленный CrossOver либо Whisky.",
   "manage.wine.description": "Скачивайте сборки Proton и Wine для игр Windows и смотрите все сборки в этой системе.",
   "manage.wine.description_running_one": "Скачивайте сборки Proton и Wine для игр Windows. Идёт 1 установка.",
   "manage.wine.description_running_other": "Скачивайте сборки Proton и Wine для игр Windows. Идёт установок: {count}.",

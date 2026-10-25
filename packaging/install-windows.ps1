@@ -2,7 +2,7 @@
 param([string]$Destination = (Join-Path $env:LOCALAPPDATA 'Programs\Ember'))
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-foreach ($name in @('ember.exe', 'ember-sign-in.exe')) {
+foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico')) {
     $source = Join-Path $PSScriptRoot $name
     if (!(Test-Path -LiteralPath $source)) { throw "Missing package file: $name" }
     Copy-Item -LiteralPath $source -Destination (Join-Path $Destination $name) -Force
@@ -20,5 +20,6 @@ $link = $shell.CreateShortcut((Join-Path $menu 'Ember.lnk'))
 $link.TargetPath = $exe
 $link.WorkingDirectory = $Destination
 $link.Description = 'Ember game launcher'
+$link.IconLocation = (Join-Path $Destination 'ember.ico')
 $link.Save()
 Write-Output "Installed Ember to $Destination. Launch it from the Start menu."

@@ -75,6 +75,8 @@ pub struct WineCommand {
     /// Identifier for `SteamGameId` (`heroic-<id>`).
     pub game_id: String,
     pub skip_prefix_check: bool,
+    /// Unattended base-prefix creation; optional add-ons are installed per game.
+    pub initialize_prefix: bool,
     /// Start the process and return immediately.
     pub detach: bool,
 }
@@ -94,6 +96,7 @@ impl WineCommand {
             install_path: None,
             game_id: "0".into(),
             skip_prefix_check: false,
+            initialize_prefix: false,
             detach: false,
         }
     }
@@ -148,9 +151,12 @@ fn required_files(kind: WineKind) -> &'static [&'static str] {
     }
 }
 
+const BOOTSTRAP_MARKER: &str = ".ember-prefix-incomplete";
+
 /// Whether the prefix looks complete for this build.
 pub fn prefix_complete(wc: &WineContext) -> bool {
     wc.prefix.is_dir()
+        && !wc.prefix.join(BOOTSTRAP_MARKER).exists()
         && required_files(wc.wine.kind)
             .iter()
             .all(|f| wc.prefix.join(f).exists())
@@ -241,6 +247,14 @@ pub fn wine_spec(
         &mut vars,
         wine_env_for(app, settings, wc, &cmd.game_id, host),
     );
+    if cmd.initialize_prefix && cfg!(target_os = "macos") {
+        let value = bootstrap_overrides(
+            vars.get("WINEDLLOVERRIDES")
+                .map(String::as_str)
+                .unwrap_or(""),
+        );
+        vars.insert("WINEDLLOVERRIDES".into(), value);
+    }
     if wc.is_proton() {
         vars.insert("PROTON_VERB".into(), cmd.verb.into());
     }
@@ -258,6 +272,31 @@ pub fn wine_spec(
         spec = spec.cwd(dir);
     }
     spec
+}
+
+/// Wine's optional Mono/Gecko downloader is interactive and some older builds
+/// point at stale download endpoints. Disable those DLLs only for initial
+/// wineboot, without persisting overrides or weakening add-on checksum checks.
+fn bootstrap_overrides(existing: &str) -> String {
+    let mut parts = Vec::new();
+    for entry in existing.split(';').filter(|s| !s.trim().is_empty()) {
+        let Some((names, order)) = entry.split_once('=') else {
+            parts.push(entry.to_owned());
+            continue;
+        };
+        let names: Vec<_> = names
+            .split(',')
+            .filter(|name| {
+                let name = name.trim().to_ascii_lowercase();
+                !matches!(name.trim_end_matches(".dll"), "mscoree" | "mshtml")
+            })
+            .collect();
+        if !names.is_empty() {
+            parts.push(format!("{}={order}", names.join(",")));
+        }
+    }
+    parts.push("mscoree,mshtml=d".into());
+    parts.join(";")
 }
 
 /// Wait for the prefix's wineserver (Wine builds only; Proton manages its
@@ -296,10 +335,12 @@ pub async fn verify_prefix(
             .await
             .with_context(|| format!("creating {}", wc.prefix.display()))?;
     }
-    let system_reg = wc.wine_prefix_dir().join("system.reg");
-    if system_reg.exists() {
+    if prefix_complete(wc) {
         return Ok(false);
     }
+    let marker = wc.prefix.join(BOOTSTRAP_MARKER);
+    tokio::fs::create_dir_all(&wc.prefix).await?;
+    tokio::fs::write(&marker, b"initializing").await?;
     (ctx.step)("Creating Wine prefix");
     let argv: Vec<&str> = if wc.uses_umu {
         vec!["createprefix"]
@@ -309,19 +350,27 @@ pub async fn verify_prefix(
     let mut cmd = WineCommand::new(argv);
     cmd.wait = true;
     cmd.skip_prefix_check = true;
+    cmd.initialize_prefix = true;
     let res = run_wine(app, settings, wc, cmd, ctx)
         .await
         .context("Unable to create Wineprefix")?;
     if res.aborted {
         return Err(crate::download::Cancelled.into());
     }
-    if !system_reg.exists() {
+    if !res.success()
+        || !required_files(wc.wine.kind)
+            .iter()
+            .all(|f| wc.prefix.join(f).exists())
+    {
         bail!(
             "Unable to create Wineprefix at {}: {}",
             wc.prefix.display(),
             res.error_summary()
         );
     }
+    tokio::fs::remove_file(&marker)
+        .await
+        .context("Could not finish prefix initialization")?;
     tracing::info!("Created Wineprefix at {}", wc.prefix.display());
     Ok(true)
 }
@@ -462,6 +511,81 @@ mod tests {
             umu,
             "/usr/bin/umu-run".into(),
         )
+    }
+
+    #[test]
+    fn bootstrap_addon_override_is_temporary_and_preserves_game_dlls() {
+        assert_eq!(
+            bootstrap_overrides("d3d11,dxgi=n;MSCOREE.dll=n;mshtml,other=b"),
+            "d3d11,dxgi=n;other=b;mscoree,mshtml=d"
+        );
+        let app = AppSettings::default();
+        let settings = GameSettings::default();
+        let wc = ctx_for(WineKind::Wine, false);
+        let mut cmd = WineCommand::new(["wineboot", "--init"]);
+        cmd.initialize_prefix = true;
+        let boot = wine_spec(&app, &settings, &wc, &cmd, &HostEnv::default());
+        if cfg!(target_os = "macos") {
+            assert!(boot.env["WINEDLLOVERRIDES"].contains("mscoree,mshtml=d"));
+        }
+        let game = wine_spec(
+            &app,
+            &settings,
+            &wc,
+            &WineCommand::new(["game.exe"]),
+            &HostEnv::default(),
+        );
+        assert!(
+            !game
+                .env
+                .get("WINEDLLOVERRIDES")
+                .is_some_and(|v| v.contains("mscoree"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn failed_wineboot_is_not_accepted_as_a_complete_prefix() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("wine");
+        std::fs::write(&bin, b"#!/bin/sh\nmkdir -p \"$WINEPREFIX/drive_c\" \"$WINEPREFIX/dosdevices\"\ntouch \"$WINEPREFIX/system.reg\" \"$WINEPREFIX/user.reg\" \"$WINEPREFIX/userdef.reg\"\nexit 17\n").unwrap();
+        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let wc = WineContext::new(
+            WineInstallation {
+                bin: bin.to_string_lossy().into_owned(),
+                wineserver: Some("/usr/bin/true".into()),
+                kind: WineKind::Wine,
+                ..Default::default()
+            },
+            dir.path().join("prefix"),
+            false,
+            PathBuf::new(),
+        );
+        assert!(
+            verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                &wc,
+                &OpContext::detached()
+            )
+            .await
+            .is_err()
+        );
+        assert!(wc.prefix.join("system.reg").exists());
+        assert!(!prefix_complete(&wc), "failed setup must remain retryable");
+        std::fs::write(&bin, b"#!/bin/sh\nexit 0\n").unwrap();
+        assert!(
+            verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                &wc,
+                &OpContext::detached()
+            )
+            .await
+            .unwrap()
+        );
+        assert!(prefix_complete(&wc));
     }
 
     #[test]

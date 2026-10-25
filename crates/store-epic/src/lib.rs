@@ -633,7 +633,13 @@ impl EpicStore {
         if let Some(dir) = cwd {
             spec = spec.cwd(dir);
         }
-        process::run(&spec, RunOptions::default().log_file(log)).await
+        let result = process::run(&spec, RunOptions::default().log_file(log)).await?;
+        anyhow::ensure!(
+            result.success() || matches!(result.code, Some(3010 | 1641)),
+            "Windows setup failed: {}",
+            result.error_summary()
+        );
+        Ok(result)
     }
 
     /// Epic's one-time prefix setup for a game: the launcher URL handler,
@@ -689,6 +695,7 @@ impl EpicStore {
                 .await
             {
                 tracing::warn!("running prerequisites of {}: {e:#}", game.app_name);
+                return; // Retry incomplete setup on the next launch.
             }
         }
 
@@ -705,9 +712,13 @@ impl EpicStore {
                     argv.extend(args.iter().map(|s| s.to_string()));
                     if let Err(e) = self.run_windows(wine, env, argv, None, log).await {
                         tracing::warn!("running {}: {e:#}", installer.0);
+                        return;
                     }
                 }
-                Err(e) => tracing::warn!("downloading {}: {e:#}", installer.0),
+                Err(e) => {
+                    tracing::warn!("downloading {}: {e:#}", installer.0);
+                    return;
+                }
             }
         }
 

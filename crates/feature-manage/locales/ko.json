@@ -131,6 +131,7 @@
   "manage.login.use_browser": "대신 브라우저 사용",
   "manage.login.window.finishing": "로그인을 마무리하는 중…",
   "manage.wine.title": "Wine 관리자",
+  "manage.wine.description_macos": "Windows 게임용 Wine을 다운로드하거나 설치된 CrossOver 또는 Whisky를 사용하세요.",
   "manage.wine.description": "Windows 게임용 Proton 및 Wine 빌드를 다운로드하고 이 시스템의 모든 빌드를 확인하세요.",
   "manage.wine.description_running_one": "Windows 게임용 Proton 및 Wine 빌드를 다운로드하세요. 설치 1개 진행 중.",
   "manage.wine.description_running_other": "Windows 게임용 Proton 및 Wine 빌드를 다운로드하세요. 설치 {count}개 진행 중.",

@@ -1,5 +1,5 @@
 //! Keeping installs in sync with an Epic Games Launcher (EGL) running in a
-//! Wine prefix: games installed by EGL show up in Ember and Ember's installs
+//! Wine prefix (or the native Windows launcher): games installed by EGL show up in Ember and Ember's installs
 //! show up in EGL.
 
 use std::path::{Path, PathBuf};
@@ -12,6 +12,10 @@ use crate::state::{InstalledGame, real_prefix};
 
 /// Host path of a Windows path from EGL (`Z:\home\…`, `C:\Games\…`).
 fn host_path(prefix: &Path, win: &str) -> Option<PathBuf> {
+    if cfg!(windows) {
+        let path = PathBuf::from(win);
+        return path.is_absolute().then_some(path);
+    }
     if win.starts_with('/') {
         return Some(PathBuf::from(win));
     }
@@ -31,15 +35,41 @@ fn host_path(prefix: &Path, win: &str) -> Option<PathBuf> {
 
 /// Windows path of a host path, through the `Z:` drive.
 fn windows_path(host: &str) -> String {
-    format!("Z:{}", host.replace('/', "\\"))
+    if cfg!(windows) {
+        host.replace('/', "\\")
+    } else {
+        format!("Z:{}", host.replace('/', "\\"))
+    }
+}
+
+/// On Windows the user selects EGL's native Data folder or its Manifests
+/// subfolder. On Wine hosts the selection remains the Wine prefix.
+fn linked_manifests_dir(root: &Path) -> PathBuf {
+    if cfg!(windows) {
+        if root
+            .file_name()
+            .is_some_and(|name| name.eq_ignore_ascii_case("Manifests"))
+        {
+            root.to_path_buf()
+        } else {
+            root.join("Manifests")
+        }
+    } else {
+        egl::manifests_dir(root)
+    }
 }
 
 /// Remove an install's EGL record (and `.egstore` when its files go).
 pub(crate) fn forget_export(prefix: &Path, installed: &InstalledGame, delete_files: bool) {
-    let Some(pfx) = real_prefix(prefix) else {
-        return;
+    let pfx = if cfg!(windows) {
+        prefix.to_path_buf()
+    } else {
+        let Some(pfx) = real_prefix(prefix) else {
+            return;
+        };
+        pfx
     };
-    if let Err(e) = egl::delete_item(&egl::manifests_dir(&pfx), &installed.egl_guid) {
+    if let Err(e) = egl::delete_item(&linked_manifests_dir(&pfx), &installed.egl_guid) {
         tracing::warn!("removing the EGL record of {}: {e:#}", installed.app_name);
     }
     if delete_files {
@@ -74,7 +104,7 @@ impl EpicStore {
     /// Import EGL's installs, export Ember's, and drop installs EGL removed.
     pub(crate) async fn egl_sync_with(&self, prefix: &Path) -> Result<String> {
         let pfx = real_prefix(prefix).unwrap_or_else(|| prefix.to_path_buf());
-        let dir = egl::manifests_dir(&pfx);
+        let dir = linked_manifests_dir(&pfx);
         if !dir.is_dir() {
             let data = dir.parent().map(Path::to_path_buf).unwrap_or_default();
             if !data.is_dir() {
@@ -227,7 +257,7 @@ impl EpicStore {
             requires_ownership_token: g.requires_ot,
             base_urls: &[],
         });
-        egl::write_item(&egl::manifests_dir(&pfx), &item)?;
+        egl::write_item(&linked_manifests_dir(&pfx), &item)?;
         if g.egl_guid != guid {
             self.update_installed(|map| {
                 if let Some(e) = map.get_mut(app) {
@@ -244,6 +274,23 @@ impl EpicStore {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
+    #[test]
+    fn native_egl_paths_preserve_drive_and_unc_roots() {
+        let root = Path::new(r"C:\ProgramData\Epic\EpicGamesLauncher\Data");
+        assert_eq!(linked_manifests_dir(root), root.join("Manifests"));
+        assert_eq!(
+            linked_manifests_dir(&root.join("Manifests")),
+            root.join("Manifests")
+        );
+        for path in [r"D:\Games\Example", r"\\server\games\Example"] {
+            assert_eq!(host_path(root, path), Some(PathBuf::from(path)));
+            assert_eq!(windows_path(path), path);
+        }
+        assert!(host_path(root, "relative/game").is_none());
+    }
+
+    #[cfg(unix)]
     #[test]
     fn maps_paths() {
         let dir = tempfile::tempdir().unwrap();

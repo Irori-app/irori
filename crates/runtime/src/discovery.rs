@@ -401,7 +401,7 @@ pub fn mac_installations(app: &AppSettings) -> Vec<DiscoveredWine> {
     for custom in &app.custom_wine_paths {
         let path = ember_core::paths::expand_home(&unquote(custom));
         let text = path.to_string_lossy().to_lowercase();
-        let kind = if text.contains("crossover") {
+        let kind = if text.contains(".app/contents/sharedsupport/crossover/") {
             WineKind::Crossover
         } else if text.contains("whisky") || text.contains("game-porting-toolkit") {
             WineKind::Toolkit

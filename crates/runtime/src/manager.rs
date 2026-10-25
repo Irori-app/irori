@@ -564,6 +564,10 @@ pub async fn install(release: &Release, app: &AppSettings, ctx: &OpContext) -> R
             && !release.version.contains(['/', '\\']),
         "Invalid release directory"
     );
+    anyhow::ensure!(
+        kind != ReleaseKind::GamePortingToolkit || discovery::toolkit_supported(),
+        "Game Porting Toolkit requires Apple silicon and macOS 14 or later"
+    );
     if release.download.is_empty() {
         bail!("{} has no download", release.version);
     }
@@ -1045,6 +1049,98 @@ mod tests {
         assert_eq!(latest.has_update, Some(true));
         assert_eq!(latest.disksize, 7);
         assert!(merged[1].install_dir.is_none());
+    }
+
+    /// Opt-in real archive verification; never downloads during ordinary CI.
+    /// Run alone with a dedicated empty EMBER_HOME and EMBER_RUNTIME_SMOKE set
+    /// to one of the three macOS source names.
+    #[cfg(target_os = "macos")]
+    #[tokio::test]
+    #[ignore = "downloads and runs a real macOS Wine runtime; requires Rosetta on Apple silicon"]
+    async fn macos_runtime_archive_smoke() {
+        let root = std::env::var_os("EMBER_HOME").expect("set a dedicated EMBER_HOME");
+        assert!(Path::new(&root).is_absolute());
+        let source = std::env::var("EMBER_RUNTIME_SMOKE").expect("set EMBER_RUNTIME_SMOKE");
+        let kind = ReleaseKind::from_type(&source).expect("unknown source");
+        assert!(ReleaseKind::available().contains(&kind));
+        let releases = update_releases(true, &[kind]).await.unwrap();
+        let release = releases
+            .iter()
+            .find(|r| {
+                r.kind == source
+                    && !r.version.ends_with("latest")
+                    && is_compatible_download(&r.kind, &r.download, host_arch())
+            })
+            .unwrap();
+        let installed = install(release, &AppSettings::default(), &OpContext::detached())
+            .await
+            .unwrap();
+        let wine = installed.installation().unwrap();
+        assert!(discovery::is_usable(&wine));
+        let spec =
+            ember_core::process::CommandSpec::new(discovery::unquote(&wine.bin)).arg("--version");
+        let result = discovery::run_with_timeout(&spec, std::time::Duration::from_secs(30))
+            .await
+            .expect("Wine timed out or could not start");
+        assert!(result.success(), "{}", result.error_summary());
+        assert!(
+            result.stdout.to_lowercase().contains("wine"),
+            "{}",
+            result.stdout
+        );
+        eprintln!("Verified {}: {}", installed.version, result.stdout.trim());
+        let prefix_owner = tempfile::Builder::new()
+            .prefix("runtime-prefix-")
+            .tempdir_in(&Paths::get().data)
+            .unwrap();
+        let prefix = prefix_owner.path().to_path_buf();
+        let settings = ember_core::GameSettings {
+            wine_version: wine.clone(),
+            wine_prefix: prefix.to_string_lossy().into_owned(),
+            ..Default::default()
+        };
+        let game = ember_core::GameInfo {
+            app_name: "runtime-smoke".into(),
+            title: "Runtime smoke".into(),
+            ..Default::default()
+        };
+        let id = ember_core::GameId::new(ember_core::Runner::Sideload, "runtime-smoke");
+        let context = OpContext::detached();
+        let environment = tokio::time::timeout(
+            std::time::Duration::from_secs(120),
+            crate::prepare_launch(
+                &AppSettings::default(),
+                &settings,
+                crate::Target {
+                    id: &id,
+                    game: &game,
+                    platform: ember_core::InstallPlatform::Windows,
+                },
+                &context,
+            ),
+        )
+        .await
+        .expect("prefix initialization timed out")
+        .unwrap();
+        assert!(prefix.join("user.reg").is_file());
+        assert!(!environment.env.contains_key("STEAM_COMPAT_DATA_PATH"));
+        let spec = ember_core::process::CommandSpec::new(discovery::unquote(&wine.bin))
+            .args(["cmd", "/c", "echo", "EMBER_RUNTIME_OK"])
+            .envs(environment.env);
+        let result = discovery::run_with_timeout(&spec, std::time::Duration::from_secs(30))
+            .await
+            .expect("Windows command did not finish");
+        let _ = crate::prefix::kill(&wine, &prefix).await;
+        assert!(result.success(), "{}", result.error_summary());
+        assert!(
+            result.stdout.contains("EMBER_RUNTIME_OK"),
+            "{}",
+            result.stdout
+        );
+        eprintln!(
+            "Verified prefix initialization and Windows command execution for {}",
+            installed.version
+        );
     }
 
     #[test]

@@ -131,6 +131,7 @@
   "manage.login.use_browser": "In plaats daarvan de browser gebruiken",
   "manage.login.window.finishing": "Aanmelding wordt afgerond…",
   "manage.wine.title": "Wine-beheer",
+  "manage.wine.description_macos": "Download Wine voor Windows-games of gebruik een geïnstalleerde CrossOver- of Whisky-runtime.",
   "manage.wine.description": "Download Proton- en Wine-builds voor Windows-games en bekijk alle builds op dit systeem.",
   "manage.wine.description_running_one": "Download Proton- en Wine-builds voor Windows-games. 1 installatie bezig.",
   "manage.wine.description_running_other": "Download Proton- en Wine-builds voor Windows-games. {count} installaties bezig.",
