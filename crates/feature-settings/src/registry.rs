@@ -528,6 +528,25 @@ const THEME_MODE: &[ChoiceOption] = &[
     ),
 ];
 
+const TRANSLUCENCY: &[ChoiceOption] = &[
+    opt(
+        ChoiceValue::Str("auto"),
+        Key("settings.option.translucency.auto"),
+    ),
+    opt(
+        ChoiceValue::Str("off"),
+        Key("settings.option.translucency.off"),
+    ),
+    opt(
+        ChoiceValue::Str("subtle"),
+        Key("settings.option.translucency.subtle"),
+    ),
+    opt(
+        ChoiceValue::Str("strong"),
+        Key("settings.option.translucency.strong"),
+    ),
+];
+
 const LIBRARY_LAYOUT: &[ChoiceOption] = &[
     opt(
         ChoiceValue::Str("grid"),
@@ -1003,6 +1022,23 @@ pub static FIELDS: &[FieldSpec] = &[
         Custom(CustomKind::ThemeName),
     )
     .keywords(&["colors", "palette", "catppuccin", "gruvbox"]),
+    app(
+        "emberUi.translucency",
+        "settings.field.ui_translucency.label",
+        Appearance,
+        "settings.group.theme",
+        Choice(TRANSLUCENCY),
+    )
+    .help("settings.field.ui_translucency.help")
+    .keywords(&[
+        "translucency",
+        "transparency",
+        "blur",
+        "glass",
+        "vibrancy",
+        "mica",
+        "acrylic",
+    ]),
     app(
         "emberUi.fontSize",
         "settings.field.ui_font_size.label",

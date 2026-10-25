@@ -1,6 +1,7 @@
 //! The main window: title bar, sidebar navigation and the routed content area.
 
 use ember_core::{GameId, NoticeLevel, Runner, StatusKind};
+use ember_ui::glass::{self, Glass};
 use ember_ui::i18n::{t, t_args};
 use ember_ui::models::{self, models};
 use ember_ui::nav::{self, Route, navigator};
@@ -42,6 +43,9 @@ pub struct AppShell {
     playing_ticker: Option<Task<()>>,
     /// Appearance preferences last applied to the theme.
     applied_ui: Option<ember_core::settings::UiPrefs>,
+    /// Glass last applied to the window, so it is changed only when the
+    /// preference, route or fullscreen state calls for another.
+    glass: Option<Glass>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -50,7 +54,10 @@ impl AppShell {
         let m = models(cx).clone();
         let nav = navigator(cx);
         let subs = vec![
-            cx.observe(&nav, |_, _, cx| cx.notify()),
+            cx.observe_in(&nav, window, |this, _, window, cx| {
+                this.sync_glass(window, cx);
+                cx.notify();
+            }),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
             cx.observe(&m.accounts, |_, _, cx| cx.notify()),
             cx.observe_in(&m.notices, window, |this, notices, window, cx| {
@@ -79,8 +86,19 @@ impl AppShell {
                     ember_ui::theme::apply(&prefs, Some(window), cx);
                     this.applied_ui = Some(prefs);
                 }
+                this.sync_glass(window, cx);
+            }),
+            // Entering or leaving fullscreen.
+            cx.observe_window_bounds(window, |this, window, cx| this.sync_glass(window, cx)),
+            // "Follow system" follows the system while Ember runs, too.
+            cx.observe_window_appearance(window, |_, window, cx| {
+                let prefs = models(cx).settings.read(cx).app.ui.clone();
+                ember_ui::theme::apply(&prefs, Some(window), cx);
             }),
         ];
+        // The root view exists once this effect cycle ends, before the first
+        // frame is drawn.
+        cx.defer_in(window, |this, window, cx| this.sync_glass(window, cx));
         let collapsed = m.settings.read(cx).app.ui.sidebar_collapsed;
         let reduce = ember_ui::style::reduce_motion(cx);
         cx.set_reduce_motion(reduce);
@@ -94,6 +112,7 @@ impl AppShell {
             minimized_for: None,
             playing_ticker: None,
             applied_ui: Some(m.settings.read(cx).app.ui.clone()),
+            glass: None,
             _subscriptions: subs,
         }
     }
@@ -181,6 +200,20 @@ impl AppShell {
         }
     }
 
+    /// Bring the window's translucency in line with the preference, the route
+    /// and fullscreen. Cheap when nothing changed, which is nearly always: it
+    /// runs on every settings change, navigation and resize.
+    fn sync_glass(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let glass = if window.is_fullscreen() {
+            Glass::Opaque
+        } else {
+            initial_glass(navigator(cx).read(cx).current(), cx)
+        };
+        if self.glass != Some(glass) && glass::apply(glass, window, cx) {
+            self.glass = Some(glass);
+        }
+    }
+
     /// Whether the window is too narrow for the full sidebar beside the page.
     fn is_narrow(window: &Window) -> bool {
         window.viewport_size().width / window.rem_size() < sidebar::NARROW_WINDOW_REM
@@ -233,8 +266,13 @@ impl AppShell {
         let online = models(cx).accounts.read(cx).online;
         let playing = crate::playing::pill(cx);
         let _ = window;
+        let mut title_bar = TitleBar::new();
+        if glass::current(cx).is_translucent() {
+            // One flat tint, like the sidebar, instead of gpui-kit's gradient.
+            title_bar = title_bar.bg(glass::chrome(cx.theme().title_bar, cx));
+        }
 
-        TitleBar::new().child(
+        title_bar.child(
             h_flex()
                 .w_full()
                 .pr_2()
@@ -367,7 +405,7 @@ impl AppShell {
             .px_3()
             .pb_3()
             .gap_0p5()
-            .bg(theme.sidebar)
+            .bg(glass::chrome(theme.sidebar, cx))
             .border_r_1()
             .border_color(theme.sidebar_border)
             .child(
@@ -393,7 +431,13 @@ impl AppShell {
                             .child(Icon::new(IconName::Flame)),
                     )
                     .when(!collapsed, |this| {
-                        this.child(div().font_extrabold().text_xl().child("Ember"))
+                        this.child(
+                            div()
+                                .font_extrabold()
+                                .text_xl()
+                                .text_color(ember_ui::style::SidebarPalette::new(cx).text)
+                                .child("Ember"),
+                        )
                     }),
             )
             .child(item(
@@ -521,7 +565,11 @@ impl Render for AppShell {
             .key_context(SHELL_CONTEXT)
             .track_focus(&self.focus)
             .size_full()
-            .bg(cx.theme().background)
+            // Translucent, the shell leaves the window clear and each region
+            // paints its own surface over the backdrop.
+            .when(!glass::current(cx).is_translucent(), |this| {
+                this.bg(cx.theme().background)
+            })
             .text_color(cx.theme().foreground)
             .on_action(cx.listener(|_, _: &GoBack, _, cx| nav::go_back(cx)))
             .on_action(cx.listener(|_, _: &GoForward, _, cx| nav::go_forward(cx)))
@@ -566,12 +614,28 @@ impl Render for AppShell {
                             // A faint warm glow at the top gives pages depth.
                             .bg(gpui_kit::linear_gradient(
                                 180.,
-                                gpui_kit::linear_color_stop(cx.theme().secondary, 0.),
-                                gpui_kit::linear_color_stop(cx.theme().background, 0.45),
+                                gpui_kit::linear_color_stop(
+                                    glass::page(cx.theme().secondary, cx),
+                                    0.,
+                                ),
+                                gpui_kit::linear_color_stop(
+                                    glass::page(cx.theme().background, cx),
+                                    0.45,
+                                ),
                             ))
                             .child(content),
                     ),
             )
+    }
+}
+
+/// The glass the window should have on `route`, fullscreen aside. Big Picture
+/// covers the screen with its own art, so it is opaque.
+pub fn initial_glass(route: &Route, cx: &App) -> Glass {
+    if matches!(route, Route::BigPicture) {
+        Glass::Opaque
+    } else {
+        glass::resolve(models(cx).settings.read(cx).app.ui.translucency)
     }
 }
 

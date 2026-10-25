@@ -1,0 +1,331 @@
+//! Translucent window chrome ("glass").
+//!
+//! With translucency on, the window asks the system to blur whatever is
+//! behind it (macOS vibrancy, Windows 11 Mica, KWin's blur on Wayland) and
+//! Ember paints its title bar and sidebar partly transparent on top, so the
+//! desktop shows through them. Pages stay solid unless the user picks
+//! [`Translucency::Strong`].
+//!
+//! It costs Ember nothing to draw: the scene has the same primitives, only
+//! some colours carry alpha. The blur is the compositor's, and the window
+//! goes back to opaque wherever there is nothing worth seeing behind it
+//! (Big Picture, fullscreen, gamescope), which also spares the compositor.
+//!
+//! Views ask [`chrome`] and [`page`] for their surface colours instead of
+//! adding alpha themselves, so every surface agrees on one level.
+
+use ember_core::settings::Translucency;
+use gpui_kit::component::{ActiveTheme as _, Root};
+use gpui_kit::{App, Global, Hsla, Styled as _, Window, WindowBackgroundAppearance};
+use once_cell::sync::Lazy;
+
+/// How see-through the main window is right now.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Glass {
+    #[default]
+    Opaque,
+    /// Title bar and sidebar let the desktop through; pages are solid.
+    Subtle,
+    /// Clearer chrome, and pages let a little through as well.
+    Strong,
+}
+
+impl Global for Glass {}
+
+impl Glass {
+    pub fn is_translucent(self) -> bool {
+        self != Glass::Opaque
+    }
+
+    /// Opacity of the title bar and sidebar. Light themes need more body
+    /// than dark ones to stay readable over a busy wallpaper.
+    fn chrome_alpha(self, dark: bool) -> f32 {
+        match (self, dark) {
+            (Glass::Opaque, _) => 1.0,
+            (Glass::Subtle, true) => 0.72,
+            (Glass::Subtle, false) => 0.78,
+            // White text still reads at 4.5:1 over a white window behind.
+            (Glass::Strong, true) => 0.58,
+            (Glass::Strong, false) => 0.62,
+        }
+    }
+
+    /// Opacity of the page area beside the sidebar.
+    fn page_alpha(self, dark: bool) -> f32 {
+        match (self, dark) {
+            (Glass::Strong, true) => 0.84,
+            (Glass::Strong, false) => 0.88,
+            _ => 1.0,
+        }
+    }
+}
+
+/// What this machine can put behind a translucent window.
+#[derive(Debug, Clone, Copy)]
+struct Backdrop {
+    appearance: WindowBackgroundAppearance,
+    /// The system blurs it. Without blur, text over an arbitrary wallpaper
+    /// is hard to read, so [`Translucency::Auto`] stays opaque.
+    blurs: bool,
+}
+
+/// Detected once: the OS, its version and the desktop do not change while
+/// Ember runs.
+static BACKDROP: Lazy<Option<Backdrop>> = Lazy::new(detect_backdrop);
+
+#[cfg(target_os = "macos")]
+fn detect_backdrop() -> Option<Backdrop> {
+    // An NSVisualEffectView behind the content, blur only (GPUI strips its
+    // tint), so the theme's colours decide the look.
+    Some(Backdrop {
+        appearance: WindowBackgroundAppearance::Blurred,
+        blurs: true,
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn detect_backdrop() -> Option<Backdrop> {
+    // Without DirectComposition GPUI's swap chain ignores alpha.
+    if std::env::var("GPUI_DISABLE_DIRECT_COMPOSITION").is_ok_and(|v| v == "true" || v == "1") {
+        return None;
+    }
+    let build = sysinfo::System::kernel_version()
+        .and_then(|v| v.trim().parse::<u32>().ok())
+        .unwrap_or(0);
+    if build >= 22621 {
+        // Windows 11 22H2: Mica, which samples the wallpaper once and costs
+        // next to nothing.
+        Some(Backdrop {
+            appearance: WindowBackgroundAppearance::MicaBackdrop,
+            blurs: true,
+        })
+    } else if build >= 17763 {
+        // Older builds only have acrylic, which lags while the window is
+        // dragged; available when asked for, never by default.
+        Some(Backdrop {
+            appearance: WindowBackgroundAppearance::Blurred,
+            blurs: false,
+        })
+    } else {
+        None
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn detect_backdrop() -> Option<Backdrop> {
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    // Steam's gaming mode: Ember is the only thing on screen.
+    if desktop == "gamescope" {
+        return None;
+    }
+    let wayland = std::env::var_os("WAYLAND_DISPLAY").is_some_and(|v| !v.is_empty());
+    let kde = desktop.split(':').any(|d| d.eq_ignore_ascii_case("KDE"));
+    // GPUI asks for KWin's blur on Wayland. Elsewhere the window is plainly
+    // see-through, and compositors with their own blur rules (Hyprland,
+    // niri, picom) can match Ember by its app id.
+    Some(Backdrop {
+        appearance: WindowBackgroundAppearance::Blurred,
+        blurs: wayland && kde,
+    })
+}
+
+/// The glass a preference asks for on this machine.
+pub fn resolve(pref: Translucency) -> Glass {
+    let Some(backdrop) = *BACKDROP else {
+        return Glass::Opaque;
+    };
+    match pref {
+        Translucency::Auto if backdrop.blurs => Glass::Subtle,
+        Translucency::Auto | Translucency::Off => Glass::Opaque,
+        Translucency::Subtle => Glass::Subtle,
+        Translucency::Strong => Glass::Strong,
+    }
+}
+
+/// The window background `glass` needs, for `WindowOptions` and [`apply`].
+pub fn window_background(glass: Glass) -> WindowBackgroundAppearance {
+    match *BACKDROP {
+        Some(backdrop) if glass.is_translucent() => backdrop.appearance,
+        _ => WindowBackgroundAppearance::Opaque,
+    }
+}
+
+/// The glass the main window currently has.
+pub fn current(cx: &App) -> Glass {
+    cx.try_global::<Glass>().copied().unwrap_or_default()
+}
+
+/// `color` as a title bar or sidebar surface at the current glass.
+pub fn chrome(color: Hsla, cx: &App) -> Hsla {
+    match current(cx) {
+        Glass::Opaque => color,
+        glass => {
+            let level = glass.chrome_alpha(cx.theme().mode.is_dark());
+            color.opacity(level.max(legibility_floor(cx)))
+        }
+    }
+}
+
+/// The least opacity at which the theme's sidebar still carries text at
+/// 4.5:1 whatever is behind the window. Mid-tone sidebars (Solarized,
+/// Tokyo Night) need more body than near-black ones; the glass level is
+/// raised to this where it would fall below. Cached per sidebar colour.
+fn legibility_floor(cx: &App) -> f32 {
+    thread_local! {
+        static FLOOR: std::cell::Cell<Option<([u32; 4], bool, f32)>> =
+            const { std::cell::Cell::new(None) };
+    }
+    let theme = cx.theme();
+    let surface = theme.sidebar;
+    let dark = theme.mode.is_dark();
+    let key = [surface.h, surface.s, surface.l, surface.a].map(f32::to_bits);
+    if let Some((k, d, floor)) = FLOOR.get()
+        && k == key
+        && d == dark
+    {
+        return floor;
+    }
+    // Dark themes write white over it, with a white window behind at worst;
+    // light themes the reverse.
+    let (ink, behind) = if dark {
+        (gpui_kit::white(), gpui_kit::white())
+    } else {
+        (gpui_kit::black(), gpui_kit::black())
+    };
+    let reads =
+        |a: f32| crate::style::contrast(ink, over(surface.opacity(a), behind)) >= LEGIBLE_CHROME;
+    let floor = if !reads(1.0) {
+        1.0
+    } else {
+        let (mut lo, mut hi) = (0.0_f32, 1.0_f32);
+        for _ in 0..12 {
+            let mid = (lo + hi) / 2.0;
+            if reads(mid) {
+                hi = mid;
+            } else {
+                lo = mid;
+            }
+        }
+        hi
+    };
+    FLOOR.set(Some((key, dark, floor)));
+    floor
+}
+
+/// Contrast the chrome floor keeps for text, a little over WCAG AA so the
+/// colours derived from it have room.
+const LEGIBLE_CHROME: f32 = 4.7;
+
+/// `color` as the page surface at the current glass.
+pub fn page(color: Hsla, cx: &App) -> Hsla {
+    match current(cx) {
+        Glass::Opaque => color,
+        glass => color.opacity(glass.page_alpha(cx.theme().mode.is_dark())),
+    }
+}
+
+/// What a stack of chrome `layers` (bottom first, each painted through
+/// [`chrome`]) can look like on screen. Translucent, the desktop behind is
+/// unknown, so the stack is shown over the two extremes, black and white;
+/// opaque, both entries are the stack itself. Readability checks hold a
+/// colour against both.
+pub fn chrome_surfaces(layers: &[Hsla], cx: &App) -> [Hsla; 2] {
+    let stack = |backdrop: Hsla| {
+        layers
+            .iter()
+            .fold(backdrop, |under, layer| over(chrome(*layer, cx), under))
+    };
+    if current(cx).is_translucent() {
+        [stack(gpui_kit::black()), stack(gpui_kit::white())]
+    } else {
+        let solid = stack(cx.theme().background);
+        [solid, solid]
+    }
+}
+
+/// `top` composited over the opaque `under`.
+fn over(top: Hsla, under: Hsla) -> Hsla {
+    let (t, u) = (top.to_rgb(), under.to_rgb());
+    let a = top.a;
+    gpui_kit::Rgba {
+        r: t.r * a + u.r * (1. - a),
+        g: t.g * a + u.g * (1. - a),
+        b: t.b * a + u.b * (1. - a),
+        a: 1.,
+    }
+    .into()
+}
+
+/// Whether pages are solid, so a page may paint its own opaque background.
+/// Under [`Glass::Strong`] the shell paints the one translucent page surface
+/// and pages should leave it showing rather than stack another on top.
+pub fn solid_pages(cx: &App) -> bool {
+    current(cx) != Glass::Strong
+}
+
+/// Give `window` the glass `glass`: its system backdrop, the root surface
+/// behind Ember's views, and the colours [`chrome`] and [`page`] hand out.
+/// Callers skip it when the glass did not change; it refreshes the window.
+///
+/// Returns false, having changed nothing, while the window has no root view
+/// yet (during its construction); call it again once it has.
+pub fn apply(glass: Glass, window: &mut Window, cx: &mut App) -> bool {
+    let Some(root) = window.root::<Root>().flatten() else {
+        return false;
+    };
+    window.set_background_appearance(window_background(glass));
+    // gpui-kit's root paints the theme background under everything; clear
+    // it so the backdrop shows. `None` hands it back to the theme.
+    root.update(cx, |root, cx| {
+        root.style().background = if glass.is_translucent() {
+            Some(gpui_kit::transparent_black().into())
+        } else {
+            None
+        };
+        cx.notify();
+    });
+    cx.set_global(glass);
+    window.refresh();
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn off_is_always_opaque() {
+        assert_eq!(resolve(Translucency::Off), Glass::Opaque);
+        assert_eq!(
+            window_background(Glass::Opaque),
+            WindowBackgroundAppearance::Opaque
+        );
+    }
+
+    #[test]
+    fn explicit_levels_need_only_a_backdrop() {
+        let expected = |g| if BACKDROP.is_some() { g } else { Glass::Opaque };
+        assert_eq!(resolve(Translucency::Subtle), expected(Glass::Subtle));
+        assert_eq!(resolve(Translucency::Strong), expected(Glass::Strong));
+    }
+
+    #[test]
+    fn auto_needs_a_blurring_backdrop() {
+        let blurs = BACKDROP.is_some_and(|b| b.blurs);
+        let want = if blurs { Glass::Subtle } else { Glass::Opaque };
+        assert_eq!(resolve(Translucency::Auto), want);
+    }
+
+    #[test]
+    fn chrome_is_clearer_than_pages_and_light_keeps_more_body() {
+        for glass in [Glass::Subtle, Glass::Strong] {
+            for dark in [true, false] {
+                assert!(glass.chrome_alpha(dark) < glass.page_alpha(dark));
+            }
+            assert!(glass.chrome_alpha(false) > glass.chrome_alpha(true));
+        }
+        assert!(Glass::Strong.chrome_alpha(true) < Glass::Subtle.chrome_alpha(true));
+        assert_eq!(Glass::Opaque.chrome_alpha(true), 1.0);
+        assert_eq!(Glass::Subtle.page_alpha(true), 1.0);
+    }
+}

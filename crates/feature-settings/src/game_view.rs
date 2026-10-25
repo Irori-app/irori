@@ -626,7 +626,9 @@ impl Render for GameSettingsView {
             .id("game-settings")
             .size_full()
             .items_stretch()
-            .bg(cx.theme().background)
+            .when(ember_ui::glass::solid_pages(cx), |this| {
+                this.bg(cx.theme().background)
+            })
             .child(nav)
             .child(content)
             .into_any_element()

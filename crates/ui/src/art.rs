@@ -77,6 +77,9 @@ pub struct ArtStore {
     ready: HashMap<ArtKey, Arc<Path>>,
     pending: HashSet<ArtKey>,
     failed: HashSet<ArtKey>,
+    /// Pending thumbnails shown meanwhile at another width (see
+    /// [`ArtStore::stand_in`]); they replace it without a fade.
+    stood_in: HashSet<ArtKey>,
     /// When thumbnails produced in this session became ready (art already on
     /// disk is not listed: it shows at once and needs no fade).
     arrived: HashMap<ArtKey, Instant>,
@@ -106,6 +109,7 @@ pub(crate) fn install(cx: &mut App) {
         ready: HashMap::new(),
         pending: HashSet::new(),
         failed: HashSet::new(),
+        stood_in: HashSet::new(),
         arrived: HashMap::new(),
         ambient: HashMap::new(),
         ambient_pending: HashSet::new(),
@@ -177,7 +181,7 @@ impl ArtStore {
             return Art::Missing;
         }
         if self.pending.contains(&key) {
-            return Art::Loading;
+            return self.stand_in_or_loading(&key);
         }
         let thumb = thumb_path(url, key.width, keep_alpha);
         if thumb.is_file() {
@@ -186,6 +190,7 @@ impl ArtStore {
             return Art::Ready(p);
         }
         self.pending.insert(key.clone());
+        let shown = self.stand_in_or_loading(&key);
         let b = backend(cx);
         let permits = self.downloads.clone();
         let url = key.url.to_string();
@@ -201,9 +206,12 @@ impl ArtStore {
                 if store.pending.is_empty() {
                     release_freed_memory(cx);
                 }
+                let stood_in = store.stood_in.remove(&key);
                 match result {
                     Ok(path) => {
-                        store.arrived.insert(key.clone(), Instant::now());
+                        if !stood_in {
+                            store.arrived.insert(key.clone(), Instant::now());
+                        }
                         store.ready.insert(key, path.into());
                     }
                     Err(e) => {
@@ -215,7 +223,40 @@ impl ArtStore {
             });
         })
         .detach();
-        Art::Loading
+        shown
+    }
+
+    /// While `key` is produced, the same art at the nearest width already in
+    /// memory, so a tile that changes size (interface size, a window crossing
+    /// a bucket) keeps its picture instead of flashing a placeholder: the next
+    /// larger width when there is one, else the largest smaller one.
+    fn stand_in_or_loading(&mut self, key: &ArtKey) -> Art {
+        let at = |width: u32| {
+            self.ready.get(&ArtKey {
+                width,
+                ..key.clone()
+            })
+        };
+        let larger = BUCKETS
+            .iter()
+            .filter(|w| **w > key.width)
+            .find_map(|w| at(*w));
+        let stand_in = larger
+            .or_else(|| {
+                BUCKETS
+                    .iter()
+                    .rev()
+                    .filter(|w| **w < key.width)
+                    .find_map(|w| at(*w))
+            })
+            .cloned();
+        match stand_in {
+            Some(path) => {
+                self.stood_in.insert(key.clone());
+                Art::Ready(path)
+            }
+            None => Art::Loading,
+        }
     }
 
     /// Whether the thumbnail for these arguments was produced moments ago, so

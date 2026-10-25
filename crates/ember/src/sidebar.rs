@@ -9,7 +9,7 @@ use ember_ui::components::art_img;
 use ember_ui::i18n::t;
 use ember_ui::models::models;
 use ember_ui::nav::{self, Route, navigator};
-use ember_ui::style::{KeyboardFocusable as _, caption};
+use ember_ui::style::{KeyboardFocusable as _, SidebarPalette, caption};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::{ActiveTheme as _, Icon, Sizable as _, StyledExt as _, h_flex, v_flex};
@@ -52,13 +52,15 @@ pub(crate) fn nav_item(item: NavItem, collapsed: bool, cx: &App) -> AnyElement {
         suffix,
     } = item;
     let theme = cx.theme();
+    // Held readable whatever the theme and glass.
+    let palette = SidebarPalette::new(cx);
     let (fg, icon_color) = if active {
-        (theme.sidebar_accent_foreground, theme.sidebar_primary)
+        (palette.selected_text, palette.selected_icon)
     } else {
-        (theme.sidebar_foreground, theme.muted_foreground)
+        (palette.text, palette.icon)
     };
-    let hover_bg = theme.sidebar_accent;
-    let hover_fg = theme.sidebar_accent_foreground;
+    let hover_bg = palette.highlight;
+    let hover_fg = palette.selected_text;
     let tooltip = label.clone();
     h_flex()
         .id(id)
@@ -70,7 +72,7 @@ pub(crate) fn nav_item(item: NavItem, collapsed: bool, cx: &App) -> AnyElement {
         .rounded(theme.radius)
         .text_color(fg)
         .when(collapsed, |d| d.justify_center().px_0())
-        .when(active, |d| d.bg(theme.sidebar_accent).font_bold())
+        .when(active, |d| d.bg(hover_bg).font_bold())
         .when(!active, |d| {
             d.font_medium()
                 .hover(move |s| s.bg(hover_bg).text_color(hover_fg))
@@ -85,7 +87,7 @@ pub(crate) fn nav_item(item: NavItem, collapsed: bool, cx: &App) -> AnyElement {
                     .bottom(rems(0.6))
                     .w(px(3.))
                     .rounded_full()
-                    .bg(theme.sidebar_primary),
+                    .bg(palette.selected_icon),
             )
         })
         .child(Icon::new(icon).text_color(icon_color))
@@ -155,10 +157,11 @@ impl Render for RecentGames {
         let current = navigator(cx).read(cx).current().clone();
         let thumb_width = ember_ui::components::physical_width(rems(2.), window);
         let theme = cx.theme();
-        let hover_bg = theme.sidebar_accent;
+        let palette = SidebarPalette::new(cx);
+        let hover_bg = palette.highlight;
         let muted_bg = theme.muted;
         let radius = theme.radius;
-        let (active_fg, fg) = (theme.sidebar_accent_foreground, theme.sidebar_foreground);
+        let (active_fg, fg) = (palette.selected_text, palette.text);
         let rows: Vec<AnyElement> = games
             .iter()
             .map(|game| {
@@ -179,7 +182,9 @@ impl Render for RecentGames {
                     .text_sm()
                     .text_color(if active { active_fg } else { fg })
                     .when(active, |d| d.bg(hover_bg).font_semibold())
-                    .when(!active, |d| d.hover(move |s| s.bg(hover_bg)))
+                    .when(!active, |d| {
+                        d.hover(move |s| s.bg(hover_bg).text_color(active_fg))
+                    })
                     .child(
                         div()
                             .w(rems(1.5))
@@ -214,7 +219,7 @@ impl Render for RecentGames {
                     .px_3()
                     .pt_5()
                     .pb_2()
-                    .child(caption(t("shell.nav.recent"), cx)),
+                    .child(caption(t("shell.nav.recent"), cx).text_color(palette.caption)),
             )
             .children(rows)
         })
@@ -224,6 +229,7 @@ impl Render for RecentGames {
 /// The way into Big Picture: a quiet button with the controller glyph.
 pub(crate) fn big_picture_button(collapsed: bool, cx: &App) -> AnyElement {
     let theme = cx.theme();
+    let palette = SidebarPalette::new(cx);
     let hover_border = theme.sidebar_primary;
     let tooltip = t("shell.nav.big_picture_tooltip");
     h_flex()
@@ -237,7 +243,8 @@ pub(crate) fn big_picture_button(collapsed: bool, cx: &App) -> AnyElement {
         .rounded(theme.radius)
         .border_1()
         .border_color(theme.sidebar_border)
-        .bg(theme.sidebar_accent)
+        .bg(palette.highlight)
+        .text_color(palette.selected_text)
         .font_semibold()
         .cursor_pointer()
         .hover(move |s| s.border_color(hover_border))
