@@ -241,7 +241,9 @@ pub fn wine_spec(
         &mut vars,
         wine_env_for(app, settings, wc, &cmd.game_id, host),
     );
-    vars.insert("PROTON_VERB".into(), cmd.verb.into());
+    if wc.is_proton() {
+        vars.insert("PROTON_VERB".into(), cmd.verb.into());
+    }
     if wc.uses_umu {
         vars.entry("GAMEID".into())
             .or_insert_with(|| "umu-0".into());
@@ -261,7 +263,7 @@ pub fn wine_spec(
 /// Wait for the prefix's wineserver (Wine builds only; Proton manages its
 /// own).
 async fn wait_wineserver(wc: &WineContext, env: &EnvMap) {
-    if wc.wine.kind != WineKind::Wine {
+    if wc.wine.kind == WineKind::Proton {
         return;
     }
     let Some(server) = wc.wine.wineserver.as_deref().filter(|s| !s.is_empty()) else {
@@ -406,15 +408,24 @@ fn server_for(wine: &WineInstallation, prefix: &Path) -> (Option<PathBuf>, PathB
     }
 }
 
+fn server_command(server: PathBuf, kind: WineKind, prefix: &Path) -> CommandSpec {
+    if kind == WineKind::Crossover {
+        CommandSpec::new(server).env(
+            "CX_BOTTLE",
+            prefix.file_name().unwrap_or_default().to_string_lossy(),
+        )
+    } else {
+        CommandSpec::new(server).env("WINEPREFIX", prefix.to_string_lossy())
+    }
+}
+
 /// Kill every process of a prefix (`wineserver -k`).
 pub async fn kill(wine: &WineInstallation, prefix: &Path) -> Result<()> {
     let (server, real_prefix) = server_for(wine, prefix);
     let Some(server) = server else {
         bail!("no wineserver found for {}", wine.name);
     };
-    let spec = CommandSpec::new(server)
-        .arg("-k")
-        .env("WINEPREFIX", real_prefix.to_string_lossy());
+    let spec = server_command(server, wine.kind, &real_prefix).arg("-k");
     match discovery::run_with_timeout(&spec, Duration::from_secs(20)).await {
         Some(_) => Ok(()),
         None => bail!("wineserver -k did not finish"),
@@ -430,9 +441,7 @@ pub async fn wait(wine: &WineInstallation, prefix: &Path) -> Result<()> {
     if !real_prefix.is_dir() {
         return Ok(());
     }
-    let spec = CommandSpec::new(server)
-        .arg("-w")
-        .env("WINEPREFIX", real_prefix.to_string_lossy());
+    let spec = server_command(server, wine.kind, &real_prefix).arg("-w");
     process::run(&spec, RunOptions::default()).await?;
     Ok(())
 }
@@ -470,7 +479,11 @@ mod tests {
         assert_eq!(spec.program, PathBuf::from("/p/GE/proton"));
         assert_eq!(spec.args, vec!["run", "winecfg"]);
         assert_eq!(spec.env["PROTON_VERB"], "run");
-        assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/pfx");
+        if cfg!(target_os = "linux") {
+            assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/pfx");
+        } else {
+            assert!(!spec.env.contains_key("STEAM_COMPAT_DATA_PATH"));
+        }
         assert_eq!(spec.cwd.as_deref(), Some(Path::new("/g")));
         assert!(!spec.env.contains_key("GAMEID"));
 
@@ -479,7 +492,9 @@ mod tests {
         assert_eq!(spec.program, PathBuf::from("/usr/bin/umu-run"));
         assert_eq!(spec.args, vec!["winecfg"]);
         assert_eq!(spec.env["GAMEID"], "umu-0");
-        assert_eq!(spec.env["PROTONPATH"], "/p/GE");
+        if cfg!(target_os = "linux") {
+            assert_eq!(spec.env["PROTONPATH"], "/p/GE");
+        }
 
         let mut wc = ctx_for(WineKind::Wine, false);
         wc.wine.bin = "/w/bin/wine".into();

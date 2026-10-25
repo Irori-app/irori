@@ -1,3 +1,4 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 //! Ember: a fast, native game launcher for Linux.
 
 mod actions;
@@ -13,6 +14,10 @@ mod shell;
 mod sidebar;
 mod stores;
 mod strings;
+#[cfg(target_os = "linux")]
+mod tray;
+#[cfg(not(target_os = "linux"))]
+#[path = "tray_native.rs"]
 mod tray;
 
 use std::sync::Arc;
@@ -73,7 +78,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let Some(listener) = instance::acquire(&args) else {
+    let Some(listener) = instance::acquire(&args)? else {
         // Forwarded to the running instance.
         return Ok(());
     };
@@ -87,51 +92,59 @@ fn main() -> Result<()> {
         let tx = tx.clone();
         instance::serve(listener, move |args| {
             let _ = tx.unbounded_send(ShellCommand::Args(args));
-        });
+        })?;
     }
 
-    gpui_kit::application()
-        .with_assets(gpui_kit::assets::AllAssets)
-        .run(move |cx| {
-            gpui_kit::init(cx);
-            ember_ui::init(backend.clone(), cx);
-            ember_ui::i18n::register(strings::CATALOGS);
-            ember_ui::hooks::install(stores::hooks(), cx);
-            ember_bigpicture::init(cx);
-            ember_library::init(cx);
-            ember_manage::init(cx);
-            ember_settings::init(cx);
-            ember_game::init(cx);
-            ember_game::install_hooks(stores::game_hooks(), cx);
-            ember_settings::install_store_handles(stores::EPIC.get().cloned(), cx);
-            ember_game::install_store_handles(
-                stores::EPIC.get().cloned(),
-                stores::GOG.get().cloned(),
-                cx,
-            );
-            if let Some(sideload) = stores::SIDELOAD.get() {
-                ember_library::install_sideload_store(sideload.clone(), cx);
-            }
-            actions::bind_keys(cx);
-            cx.set_quit_mode(QuitMode::Explicit);
-            let prefs = backend.settings.app().ui.clone();
-            ember_ui::theme::apply(&prefs, None, cx);
+    let application = gpui_kit::application().with_assets(gpui_kit::assets::AllAssets);
+    let url_tx = tx.clone();
+    application.on_open_urls(move |urls| {
+        let _ = url_tx.unbounded_send(ShellCommand::Args(urls));
+    });
+    let reopen_tx = tx.clone();
+    application.on_reopen(move |_| {
+        let _ = reopen_tx.unbounded_send(ShellCommand::Show);
+    });
+    application.run(move |cx| {
+        gpui_kit::init(cx);
+        ember_ui::init(backend.clone(), cx);
+        ember_ui::i18n::register(strings::CATALOGS);
+        ember_ui::hooks::install(stores::hooks(), cx);
+        ember_bigpicture::init(cx);
+        ember_library::init(cx);
+        ember_manage::init(cx);
+        ember_settings::init(cx);
+        ember_game::init(cx);
+        ember_game::install_hooks(stores::game_hooks(), cx);
+        ember_settings::install_store_handles(stores::EPIC.get().cloned(), cx);
+        ember_game::install_store_handles(
+            stores::EPIC.get().cloned(),
+            stores::GOG.get().cloned(),
+            cx,
+        );
+        if let Some(sideload) = stores::SIDELOAD.get() {
+            ember_library::install_sideload_store(sideload.clone(), cx);
+        }
+        actions::bind_keys(cx);
+        cx.set_quit_mode(QuitMode::Explicit);
+        let prefs = backend.settings.app().ui.clone();
+        ember_ui::theme::apply(&prefs, None, cx);
 
-            let app = Arc::new(Mutex::new(AppHandles::default()));
-            start_tray(&backend, tx.clone(), app.clone(), cx);
+        let app = Arc::new(Mutex::new(AppHandles::default()));
+        start_tray(&backend, tx.clone(), app.clone(), cx);
 
-            let start_hidden =
-                (cli.minimized || backend.settings.app().start_in_tray) && !cli.has_request();
-            if !start_hidden {
-                open_main_window(&app, cx);
-                if backend.settings.app().start_in_console_mode {
-                    nav::navigate(Route::BigPicture, cx);
-                }
+        let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)
+            && app.lock().tray.is_some()
+            && !cli.has_request();
+        if !start_hidden {
+            open_main_window(&app, cx);
+            if backend.settings.app().start_in_console_mode {
+                nav::navigate(Route::BigPicture, cx);
             }
-            handle_cli(&cli, &app, cx);
-            listen(rx, app.clone(), cx);
-            install_quit_on_close(app, cx);
-        });
+        }
+        handle_cli(&cli, &app, cx);
+        listen(rx, app.clone(), cx);
+        install_quit_on_close(app, cx);
+    });
     instance::release();
     Ok(())
 }
@@ -140,6 +153,7 @@ fn main() -> Result<()> {
 /// 8 × cores) and rarely returns their memory; image decoding on the worker
 /// threads would otherwise leave tens of MiB stranded in each.
 fn limit_malloc_arenas() {
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     // SAFETY: mallopt only adjusts allocator tunables; called before other threads allocate.
     unsafe {
         libc::mallopt(libc::M_ARENA_MAX, 2);
@@ -299,6 +313,7 @@ fn listen(
     .detach();
 }
 
+#[cfg(target_os = "linux")]
 fn start_tray(
     backend: &Backend,
     tx: mpsc::UnboundedSender<ShellCommand>,
@@ -321,6 +336,23 @@ fn start_tray(
     .detach();
 }
 
+#[cfg(not(target_os = "linux"))]
+fn start_tray(
+    backend: &Backend,
+    tx: mpsc::UnboundedSender<ShellCommand>,
+    app: Arc<Mutex<AppHandles>>,
+    cx: &mut App,
+) {
+    let settings = backend.settings.app();
+    if settings.no_tray_icon {
+        return;
+    }
+    if let Some(handle) = tray::start(tx, settings.dark_tray_icon) {
+        app.lock().tray = Some(handle.clone());
+        watch_recent_for_tray(handle, cx);
+    }
+}
+
 /// Keep the tray's "Recently played" menu in step with the library model.
 fn watch_recent_for_tray(handle: tray::TrayHandle, cx: &mut App) {
     let library = models(cx).library.clone();
@@ -338,7 +370,10 @@ fn watch_recent_for_tray(handle: tray::TrayHandle, cx: &mut App) {
         }
         *last.borrow_mut() = ids;
         let h = handle.clone();
+        #[cfg(target_os = "linux")]
         b.spawn(async move { tray::set_recent(&h, recent).await });
+        #[cfg(not(target_os = "linux"))]
+        tray::set_recent(&h, recent);
     };
     push(cx);
     cx.observe(&library, move |_, cx| push(cx)).detach();

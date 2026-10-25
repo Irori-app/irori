@@ -139,11 +139,17 @@ fn resolve_command(command: &str, install_dir: &Path) -> String {
 /// `wine <cmd> <args>`, `proton run <cmd> <args>` or `umu-run <cmd> <args>`,
 /// started in the install directory.
 pub fn post_install_command(
-    wine: &WineLaunch,
+    wine: Option<&WineLaunch>,
     env: &BTreeMap<String, String>,
     action: &FuelAction,
     install_dir: &Path,
 ) -> CommandSpec {
+    let Some(wine) = wine else {
+        return CommandSpec::new(resolve_command(&action.command, install_dir))
+            .args(action.args.iter().cloned())
+            .cwd(install_dir)
+            .envs(env.clone());
+    };
     let mut argv: Vec<String> = vec![unquote(&wine.bin)];
     if wine.kind == WineKind::Proton && !wine.uses_umu {
         argv.push("run".into());
@@ -169,7 +175,7 @@ pub fn post_install_command(
                     .or_insert_with(|| dir.to_string_lossy().into_owned());
             }
         }
-    } else {
+    } else if wine.kind != WineKind::Crossover {
         spec.env.entry("WINEPREFIX".into()).or_insert(prefix);
     }
     spec
@@ -324,7 +330,7 @@ mod tests {
         let env = BTreeMap::new();
 
         let proton = wine(WineKind::Proton, "/proton/proton", false);
-        let spec = post_install_command(&proton, &env, &action, dir.path());
+        let spec = post_install_command(Some(&proton), &env, &action, dir.path());
         assert_eq!(spec.program, PathBuf::from("/proton/proton"));
         let a = args(&spec);
         assert_eq!(a[0], "run");
@@ -341,12 +347,12 @@ mod tests {
             command: "C:\\x.exe".into(),
             args: vec![],
         };
-        let spec = post_install_command(&w, &env, &missing, dir.path());
+        let spec = post_install_command(Some(&w), &env, &missing, dir.path());
         assert_eq!(args(&spec), vec!["C:\\x.exe"]);
         assert_eq!(spec.env["WINEPREFIX"], "/prefixes/Foo");
 
         let umu = wine(WineKind::Proton, "/bin/umu-run", true);
-        let spec = post_install_command(&umu, &env, &missing, dir.path());
+        let spec = post_install_command(Some(&umu), &env, &missing, dir.path());
         assert_eq!(spec.program, PathBuf::from("/bin/umu-run"));
         assert_eq!(spec.env["PROTONPATH"], "/proton/GE");
     }

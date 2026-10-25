@@ -118,6 +118,15 @@ impl ScanRoots {
 /// validated and sorted (Proton first, then Wine; within each, by source and
 /// newest version first).
 pub async fn discover(app: &AppSettings) -> Vec<DiscoveredWine> {
+    if cfg!(windows) {
+        return Vec::new();
+    }
+    if cfg!(target_os = "macos") {
+        let app = app.clone();
+        return tokio::task::spawn_blocking(move || mac_installations(&app))
+            .await
+            .unwrap_or_default();
+    }
     let roots = ScanRoots::for_settings(app);
     let mut found = tokio::task::spawn_blocking(move || scan(&roots))
         .await
@@ -246,6 +255,38 @@ pub fn is_valid(w: &WineInstallation) -> bool {
     }
 }
 
+/// A present build whose runtime family supports the current host.
+pub fn is_usable(w: &WineInstallation) -> bool {
+    if !ember_core::HostPlatform::current().supports_wine(w.kind) || !is_valid(w) {
+        return false;
+    }
+    if cfg!(target_os = "macos") {
+        // Imported Linux Wine binaries can exist on a shared disk. Reject ELF
+        // rather than trying to initialize a prefix with an incompatible build.
+        use std::io::Read as _;
+        let mut magic = [0; 4];
+        if std::fs::File::open(unquote(&w.bin))
+            .and_then(|mut f| f.read_exact(&mut magic))
+            .is_ok()
+            && magic == *b"\x7fELF"
+        {
+            return false;
+        }
+        if w.kind == WineKind::Toolkit && !toolkit_supported() {
+            return false;
+        }
+    }
+    true
+}
+
+/// Apple's toolkit requires Apple silicon and macOS Sonoma or later.
+pub fn toolkit_supported() -> bool {
+    cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && sysinfo::System::os_version()
+            .and_then(|v| v.split('.').next()?.parse::<u32>().ok())
+            .is_some_and(|v| v >= 14)
+}
+
 /// Old configs stored binaries wrapped in single quotes; strip them.
 pub fn unquote(bin: &str) -> String {
     if bin.len() >= 2 && bin.starts_with('\'') && bin.ends_with('\'') {
@@ -269,9 +310,25 @@ pub fn wineserver_for(bin: &Path) -> Option<PathBuf> {
 
 /// A Wine build rooted at `dir` (`dir/bin/wine`), with its libraries.
 pub fn wine_build(dir: &Path, name: &str) -> WineInstallation {
-    let bin = dir.join("bin").join("wine");
-    let lib = dir.join("lib64");
-    let lib32 = dir.join("lib");
+    let root = [
+        dir.to_path_buf(),
+        dir.join("Contents/Resources"),
+        dir.join("Wine.app/Contents/Resources"),
+        dir.join("Contents/Resources/wine"),
+        dir.join("Wine.app/Contents/Resources/wine"),
+    ]
+    .into_iter()
+    .find(|p| p.join("bin/wine").is_file() || p.join("bin/wine64").is_file())
+    .unwrap_or_else(|| dir.to_path_buf());
+    let bin = if root.join("bin/wine").is_file() {
+        root.join("bin/wine")
+    } else if root.join("bin/wine64").is_file() {
+        root.join("bin/wine64")
+    } else {
+        root.join("bin/wine")
+    };
+    let lib = root.join("lib64");
+    let lib32 = root.join("lib");
     WineInstallation {
         bin: bin.to_string_lossy().into_owned(),
         name: name.to_string(),
@@ -280,6 +337,95 @@ pub fn wine_build(dir: &Path, name: &str) -> WineInstallation {
         lib32: lib32.is_dir().then(|| lib32.to_string_lossy().into_owned()),
         wineserver: wineserver_for(&bin).map(|p| p.to_string_lossy().into_owned()),
     }
+}
+
+/// Discover macOS Wine bundles and externally managed CrossOver/Whisky installs.
+/// Nothing here initializes or alters an external application's bottles.
+pub fn mac_installations(app: &AppSettings) -> Vec<DiscoveredWine> {
+    let mut out = Vec::new();
+    for (base, source) in [(Paths::get().tools_dir(), WineSource::Ember)]
+        .into_iter()
+        .chain(locations::heroic_tools_dir().map(|p| (p, WineSource::Heroic)))
+    {
+        scan_wine_dir(&base.join("wine"), source, &mut out);
+        for (name, dir) in sorted_entries(&base.join("game-porting-toolkit")) {
+            let mut installation = wine_build(&dir, &name);
+            installation.kind = WineKind::Toolkit;
+            out.push(DiscoveredWine {
+                installation,
+                source,
+            });
+        }
+    }
+    let home = locations::home();
+    let mut candidates: Vec<(PathBuf, &str, WineKind)> = Vec::new();
+    for base in [PathBuf::from("/Applications"), home.join("Applications")] {
+        for name in ["CrossOver.app", "CrossOver Preview.app"] {
+            candidates.push((
+                base.join(name)
+                    .join("Contents/SharedSupport/CrossOver/bin/wine"),
+                "CrossOver",
+                WineKind::Crossover,
+            ));
+        }
+        for name in ["Wine Stable.app", "Wine Staging.app", "Wine Devel.app"] {
+            candidates.push((
+                base.join(name).join("Contents/Resources/wine/bin/wine64"),
+                name,
+                WineKind::Wine,
+            ));
+        }
+    }
+    candidates.push((
+        home.join("Library/Application Support/com.isaacmarovitz.Whisky/Libraries/Wine/bin/wine64"),
+        "Whisky",
+        WineKind::Toolkit,
+    ));
+    for prefix in ["/opt/homebrew", "/usr/local"] {
+        candidates.push((
+            Path::new(prefix).join("bin/wine64"),
+            "System Wine",
+            WineKind::Wine,
+        ));
+        candidates.push((
+            Path::new(prefix).join("bin/wine"),
+            "System Wine",
+            WineKind::Wine,
+        ));
+        candidates.push((
+            Path::new(prefix).join("opt/game-porting-toolkit/bin/wine64"),
+            "Game Porting Toolkit",
+            WineKind::Toolkit,
+        ));
+    }
+    for custom in &app.custom_wine_paths {
+        let path = ember_core::paths::expand_home(&unquote(custom));
+        let text = path.to_string_lossy().to_lowercase();
+        let kind = if text.contains("crossover") {
+            WineKind::Crossover
+        } else if text.contains("whisky") || text.contains("game-porting-toolkit") {
+            WineKind::Toolkit
+        } else {
+            WineKind::Wine
+        };
+        candidates.push((path, "Custom Wine", kind));
+    }
+    for (bin, name, kind) in candidates {
+        out.push(DiscoveredWine {
+            installation: WineInstallation {
+                bin: bin.to_string_lossy().into_owned(),
+                name: name.into(),
+                kind,
+                wineserver: wineserver_for(&bin).map(|p| p.to_string_lossy().into_owned()),
+                ..Default::default()
+            },
+            source: WineSource::System,
+        });
+    }
+    finalize(out)
+        .into_iter()
+        .filter(|w| is_usable(&w.installation))
+        .collect()
 }
 
 /// A Proton build rooted at `dir` (`dir/proton`).
@@ -321,7 +467,7 @@ fn scan_proton_dir(dir: &Path, source: WineSource, out: &mut Vec<DiscoveredWine>
 
 fn scan_wine_dir(dir: &Path, source: WineSource, out: &mut Vec<DiscoveredWine>) {
     for (name, path) in sorted_entries(dir) {
-        if path.join("bin/wine").is_file() {
+        if Path::new(&wine_build(&path, &name).bin).is_file() {
             out.push(DiscoveredWine {
                 installation: wine_build(&path, &name),
                 source,
@@ -469,6 +615,24 @@ mod tests {
     }
 
     #[test]
+    fn mac_bundle_runtime_layouts() {
+        for layout in [
+            "Contents/Resources/wine",
+            "Wine.app/Contents/Resources/wine",
+            "Contents/Resources",
+            "",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let root = dir.path().join(layout);
+            touch(&root.join("bin/wine64"));
+            touch(&root.join("bin/wineserver"));
+            let installation = wine_build(dir.path(), "macOS Wine");
+            assert_eq!(Path::new(&installation.bin), root.join("bin/wine64"));
+            assert!(is_valid(&installation));
+        }
+    }
+
+    #[test]
     fn natural_ordering() {
         let mut names = vec![
             "GE-Proton9-27",
@@ -505,6 +669,7 @@ mod tests {
         let steam = root.join("steam");
         touch(&steam.join("compatibilitytools.d/GE-Proton9-27/proton"));
         touch(&steam.join("steamapps/common/Proton 9.0/proton"));
+        #[cfg(unix)]
         std::os::unix::fs::symlink(&steam, root.join("steam-link")).unwrap();
         touch(&root.join("lutris/runners/wine/lutris-7.2/bin/wine"));
         touch(&root.join("lutris/runners/wine/lutris-7.2/bin/wineserver"));

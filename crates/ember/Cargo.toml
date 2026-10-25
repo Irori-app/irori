@@ -3,6 +3,7 @@ name = "ember"
 description = "Ember game launcher"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
@@ -37,9 +38,16 @@ serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
-nix.workspace = true
+uuid.workspace = true
 libc = "0.2"
-ksni = { version = "0.3", default-features = false, features = ["tokio"] }
 
 [dev-dependencies]
+tempfile = "3"
 regex.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = { version = "0.3", default-features = false, features = ["tokio"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+tray-icon = "0.21"
+resvg = "0.45"

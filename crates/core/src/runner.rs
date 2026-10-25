@@ -127,9 +127,9 @@ impl InstallPlatform {
         })
     }
 
-    /// Whether running this platform on the Linux host needs a Wine layer.
+    /// Whether running this build on the current host needs a Wine layer.
     pub fn needs_wine(self) -> bool {
-        matches!(self, InstallPlatform::Windows)
+        crate::HostPlatform::current().needs_wine(self)
     }
 }
 

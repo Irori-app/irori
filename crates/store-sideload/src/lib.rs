@@ -321,7 +321,14 @@ impl SideloadStore {
 /// Fail unless `path` is an existing regular file.
 async fn ensure_file(path: &Path) -> Result<()> {
     match tokio::time::timeout(AVAILABILITY_TIMEOUT, tokio::fs::metadata(path)).await {
-        Ok(Ok(m)) if m.is_file() => Ok(()),
+        Ok(Ok(m))
+            if m.is_file()
+                || (cfg!(target_os = "macos")
+                    && m.is_dir()
+                    && path.extension().is_some_and(|e| e == "app")) =>
+        {
+            Ok(())
+        }
         Ok(Ok(_)) => bail!("{} is not a file", path.display()),
         Ok(Err(_)) => bail!("{} was not found", path.display()),
         Err(_) => bail!(
@@ -332,6 +339,7 @@ async fn ensure_file(path: &Path) -> Result<()> {
 }
 
 /// Add execute permission to a native program that lacks it.
+#[cfg(unix)]
 async fn ensure_executable(path: &Path) {
     use std::os::unix::fs::PermissionsExt as _;
     let Ok(meta) = tokio::fs::metadata(path).await else {
@@ -345,6 +353,9 @@ async fn ensure_executable(path: &Path) {
         }
     }
 }
+
+#[cfg(not(unix))]
+async fn ensure_executable(_path: &Path) {}
 
 #[async_trait]
 impl Store for SideloadStore {
@@ -585,12 +596,16 @@ impl Store for SideloadStore {
         if app.platform == SideloadPlatform::Browser {
             return self.browser_plan(app).await;
         }
+        anyhow::ensure!(
+            ember_core::HostPlatform::current().supports(app.platform.install_platform()),
+            "This app was built for a different operating system"
+        );
         let exe = launch::resolve_executable(app, &request.settings.target_exe)
             .context("This app has no executable; edit it and choose one")?;
         ensure_file(&exe).await?;
         let args = launch::launch_args(app, request);
         match app.platform {
-            SideloadPlatform::Linux => {
+            p if !p.install_platform().needs_wine() => {
                 ensure_executable(&exe).await;
                 Ok(launch::native_plan(&exe, args, &request.environment))
             }
@@ -640,7 +655,13 @@ mod tests {
         SideloadApp {
             title: "Native".into(),
             executable: Some(exe.to_path_buf()),
-            platform: SideloadPlatform::Linux,
+            platform: if cfg!(target_os = "macos") {
+                SideloadPlatform::Mac
+            } else if cfg!(windows) {
+                SideloadPlatform::Windows
+            } else {
+                SideloadPlatform::Linux
+            },
             ..Default::default()
         }
     }
@@ -810,12 +831,17 @@ mod tests {
             })
             .await
             .unwrap();
-        let err = f
+        let result = f
             .store
             .launch(&win.app_name, &request(), OpContext::detached())
-            .await
-            .unwrap_err();
-        assert!(err.to_string().contains("Wine or Proton"));
+            .await;
+        if cfg!(windows) {
+            let plan = result.unwrap();
+            assert_eq!(plan.command.program, win_exe);
+            assert!(!plan.track_wineserver);
+        } else {
+            assert!(result.unwrap_err().to_string().contains("Wine or Proton"));
+        }
     }
 
     #[tokio::test]
@@ -855,7 +881,7 @@ mod tests {
 
         assert!(
             f.store
-                .import("x", &exe, InstallPlatform::Mac)
+                .import("x", &exe, InstallPlatform::Browser)
                 .await
                 .is_err()
         );

@@ -152,7 +152,7 @@ impl Backend {
         // "Turn off logs" sends everything to /dev/null; stores and scripts
         // still get a path to write to.
         let log_file = if app.disable_logs {
-            PathBuf::from("/dev/null")
+            PathBuf::from(ember_core::platform::null_device())
         } else {
             Paths::get().game_log_file(id)
         };
@@ -532,7 +532,10 @@ fn write_log_header(
     game: &GameInfo,
     settings: &ember_core::GameSettings,
 ) -> Result<()> {
-    if let Some(dir) = path.parent() {
+    if path == Path::new(ember_core::platform::null_device()) {
+        return Ok(());
+    }
+    if let Some(dir) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(dir)?;
     }
     let mut header = format!(
@@ -646,7 +649,14 @@ fn copy_tree(src: &Path, dst: &Path, on_bytes: &mut dyn FnMut(u64)) -> Result<()
             copy_tree(&entry.path(), &to, on_bytes)?;
         } else if ty.is_symlink() {
             let target = std::fs::read_link(entry.path())?;
+            #[cfg(unix)]
             std::os::unix::fs::symlink(target, &to)?;
+            #[cfg(windows)]
+            if entry.path().is_dir() {
+                std::os::windows::fs::symlink_dir(target, &to)?;
+            } else {
+                std::os::windows::fs::symlink_file(target, &to)?;
+            }
         } else {
             let n = std::fs::copy(entry.path(), &to)
                 .with_context(|| format!("copying {}", entry.path().display()))?;

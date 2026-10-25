@@ -44,9 +44,13 @@ impl EpicStore {
         env.insert("STORE".into(), "egs".into());
         env.entry("GAMEID".into()).or_insert_with(|| "umu-0".into());
 
+        if cfg!(windows) && installed.install_platform() == ember_core::InstallPlatform::Windows {
+            self.first_launch_setup(&game, &installed, request, None, ctx)
+                .await;
+        }
         let mut wrapper_exe = None;
         if let (Some(wine), true) = (&request.environment.wine, needs_wine) {
-            self.first_launch_setup(&game, &installed, request, wine, ctx)
+            self.first_launch_setup(&game, &installed, request, Some(wine), ctx)
                 .await;
             wrapper_exe = self.install_fake_exe(wine, &env).await;
             if wine.uses_umu

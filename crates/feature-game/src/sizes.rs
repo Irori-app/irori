@@ -191,17 +191,20 @@ pub fn disk_space(path: &Path) -> anyhow::Result<DiskSpace> {
             &[("path", &path.display().to_string())],
         )
     })?;
-    let st = nix::sys::statvfs::statvfs(&dir).with_context(|| {
+    let free = fs4::available_space(&dir).with_context(|| {
         t_args(
             "game.disk.read_failed",
             &[("path", &dir.display().to_string())],
         )
     })?;
-    let frag = st.fragment_size() as u64;
+    let total = fs4::total_space(&dir)?;
+    #[cfg(unix)]
     let writable = nix::unistd::access(&dir, nix::unistd::AccessFlags::W_OK).is_ok();
+    #[cfg(not(unix))]
+    let writable = std::fs::metadata(&dir).is_ok_and(|m| !m.permissions().readonly());
     Ok(DiskSpace {
-        free: (st.blocks_available() as u64).saturating_mul(frag),
-        total: (st.blocks() as u64).saturating_mul(frag),
+        free,
+        total,
         writable,
     })
 }

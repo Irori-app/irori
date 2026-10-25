@@ -53,6 +53,9 @@ fn source_description(kind: ReleaseKind) -> SharedString {
         ReleaseKind::ProtonCachyOs => t("manage.wine.source.proton_cachyos"),
         ReleaseKind::WineGe => t("manage.wine.source.wine_ge"),
         ReleaseKind::WineKron4ek => t("manage.wine.source.wine_kron4ek"),
+        ReleaseKind::WineCrossover
+        | ReleaseKind::WineStagingMac
+        | ReleaseKind::GamePortingToolkit => kind.type_str().into(),
     }
 }
 
@@ -133,7 +136,7 @@ impl WineManagerView {
     }
 
     fn tab_kind(&self) -> Option<ReleaseKind> {
-        ReleaseKind::ALL.get(self.tab_ix).copied()
+        ReleaseKind::available().get(self.tab_ix).copied()
     }
 
     fn select_tab(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
@@ -714,7 +717,7 @@ impl Render for WineManagerView {
             });
         }
         let running = self.ops.read(cx).running.len();
-        let tabs = ReleaseKind::ALL
+        let tabs = ReleaseKind::available()
             .iter()
             .map(|k| Tab::new().label(source_label(*k)))
             .chain(std::iter::once(

@@ -6,6 +6,10 @@
 //! [`ShortcutTargets`], [`add`] and [`remove`] are the contract used by
 //! `ember-services`.
 
+#[cfg(target_os = "linux")]
+pub mod desktop;
+#[cfg(any(target_os = "macos", windows))]
+#[path = "desktop_native.rs"]
 pub mod desktop;
 pub mod icon;
 pub mod steam;

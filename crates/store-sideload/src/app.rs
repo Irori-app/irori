@@ -17,6 +17,8 @@ pub enum SideloadPlatform {
     Windows,
     /// A native Linux executable or script.
     Linux,
+    /// A macOS executable or application bundle.
+    Mac,
     /// A web app opened by URL.
     Browser,
 }
@@ -26,6 +28,7 @@ impl SideloadPlatform {
         match self {
             SideloadPlatform::Windows => InstallPlatform::Windows,
             SideloadPlatform::Linux => InstallPlatform::Linux,
+            SideloadPlatform::Mac => InstallPlatform::Mac,
             SideloadPlatform::Browser => InstallPlatform::Browser,
         }
     }
@@ -36,7 +39,7 @@ impl SideloadPlatform {
             InstallPlatform::Windows => Some(SideloadPlatform::Windows),
             InstallPlatform::Linux => Some(SideloadPlatform::Linux),
             InstallPlatform::Browser => Some(SideloadPlatform::Browser),
-            InstallPlatform::Mac => None,
+            InstallPlatform::Mac => Some(SideloadPlatform::Mac),
         }
     }
 }
@@ -76,7 +79,13 @@ impl SideloadApp {
         self.install_folder.clone().or_else(|| {
             self.executable
                 .as_deref()
-                .and_then(Path::parent)
+                .and_then(|p| {
+                    if p.extension().is_some_and(|e| e == "app") {
+                        Some(p)
+                    } else {
+                        p.parent()
+                    }
+                })
                 .filter(|p| !p.as_os_str().is_empty())
                 .map(Path::to_path_buf)
         })
@@ -103,7 +112,7 @@ impl SideloadApp {
                 self.executable = None;
                 self.install_folder = None;
             }
-            SideloadPlatform::Windows | SideloadPlatform::Linux => {
+            SideloadPlatform::Windows | SideloadPlatform::Linux | SideloadPlatform::Mac => {
                 let exe = self
                     .executable
                     .filter(|p| !p.as_os_str().is_empty())
@@ -177,6 +186,7 @@ impl StoredApp {
                 .and_then(Path::file_name)
                 .map(|n| n.to_string_lossy().into_owned()),
             is_linux_native: app.platform == SideloadPlatform::Linux,
+            is_mac_native: app.platform == SideloadPlatform::Mac,
             platforms: vec![platform],
             browser_url: app.browser_url.clone(),
             custom_user_agent: app.custom_user_agent.clone(),

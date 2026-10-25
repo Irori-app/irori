@@ -254,12 +254,16 @@ pub fn checksum_matches(expected: &str, actual: &str) -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Compression {
     Gzip,
+    Bzip2,
     Xz,
     Zstd,
     None,
 }
 
 pub fn detect_compression(header: &[u8]) -> Compression {
+    if header.starts_with(b"BZh") {
+        return Compression::Bzip2;
+    }
     if header.starts_with(&[0x1f, 0x8b]) {
         Compression::Gzip
     } else if header.starts_with(&[0xfd, b'7', b'z', b'X', b'Z', 0x00]) {
@@ -322,6 +326,7 @@ pub fn extract_tar(
         started: Instant::now(),
     };
     let reader: Box<dyn Read> = match compression {
+        Compression::Bzip2 => Box::new(bzip2::read::BzDecoder::new(counting)),
         Compression::Gzip => Box::new(flate2::read::GzDecoder::new(counting)),
         Compression::Xz => Box::new(xz2::read::XzDecoder::new_multi_decoder(counting)),
         Compression::Zstd => {
@@ -468,12 +473,16 @@ mod tests {
             &CancellationToken::new(),
         )
         .unwrap();
+        #[cfg(unix)]
         use std::os::unix::fs::PermissionsExt as _;
-        let mode = std::fs::metadata(dest.join("proton"))
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o111, 0o111);
+        #[cfg(unix)]
+        {
+            let mode = std::fs::metadata(dest.join("proton"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o111, 0o111);
+        }
         assert_eq!(std::fs::read(dest.join("files/bin/wine")).unwrap(), b"elf");
         assert_eq!(
             std::fs::read_link(dest.join("files/bin/wine64")).unwrap(),

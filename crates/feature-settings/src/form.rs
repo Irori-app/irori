@@ -186,6 +186,7 @@ impl SettingsForm {
     pub fn new(target: FormTarget, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let fields: Vec<&'static FieldSpec> = registry::FIELDS
             .iter()
+            .filter(|f| f.supported_on_host())
             .filter(|f| match &target {
                 FormTarget::App => f.scope == Scope::App,
                 FormTarget::Defaults => f.applies_to_game(false),

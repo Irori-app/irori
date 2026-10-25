@@ -1,6 +1,10 @@
 #!/bin/sh
 # Install Ember for the current user: binaries, desktop entry, icon, URL scheme.
 set -eu
+if [ "$(uname -s)" != "Linux" ]; then
+    echo "Use packaging/package.py for macOS and Windows; see docs/PLATFORMS.md." >&2
+    exit 1
+fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PREFIX="${PREFIX:-$HOME/.local}"
 cargo build --release --manifest-path "$ROOT/Cargo.toml" -p ember

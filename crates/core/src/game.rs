@@ -70,13 +70,19 @@ pub struct GameInfo {
 }
 
 impl GameInfo {
-    /// Platform to install when the user picks no options: the native Linux
+    /// Platform to install when the user picks no options: the native host
     /// build when the store offers one, else Windows.
     pub fn default_platform(&self) -> InstallPlatform {
-        if self.platforms.contains(&InstallPlatform::Linux)
-            || (self.platforms.is_empty() && self.is_linux_native)
+        let native = crate::HostPlatform::current().native();
+        if self.platforms.contains(&native)
+            || (self.platforms.is_empty()
+                && match native {
+                    InstallPlatform::Linux => self.is_linux_native,
+                    InstallPlatform::Mac => self.is_mac_native,
+                    _ => false,
+                })
         {
-            InstallPlatform::Linux
+            native
         } else {
             InstallPlatform::Windows
         }

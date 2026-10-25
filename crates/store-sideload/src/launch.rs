@@ -72,7 +72,48 @@ pub(crate) fn find_browser(lookup: &dyn Fn(&str) -> Option<PathBuf>) -> Option<B
 
 /// `PATH` lookup used outside tests.
 pub(crate) fn which_lookup(name: &str) -> Option<PathBuf> {
-    which::which(name).ok()
+    if let Ok(path) = which::which(name) {
+        return Some(path);
+    }
+    let mut candidates = Vec::new();
+    if cfg!(target_os = "macos") {
+        let app = match name {
+            "google-chrome" => Some(("Google Chrome.app", "Google Chrome")),
+            "brave" => Some(("Brave Browser.app", "Brave Browser")),
+            "microsoft-edge-stable" => Some(("Microsoft Edge.app", "Microsoft Edge")),
+            "firefox" => Some(("Firefox.app", "firefox")),
+            _ => None,
+        };
+        if let Some((bundle, exe)) = app {
+            for base in [
+                Some(PathBuf::from("/Applications")),
+                dirs::home_dir().map(|h| h.join("Applications")),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                candidates.push(base.join(bundle).join("Contents/MacOS").join(exe));
+            }
+        }
+    }
+    if cfg!(windows) {
+        let rel = match name {
+            "google-chrome" => Some("Google/Chrome/Application/chrome.exe"),
+            "brave" => Some("BraveSoftware/Brave-Browser/Application/brave.exe"),
+            "microsoft-edge-stable" => Some("Microsoft/Edge/Application/msedge.exe"),
+            "firefox" => Some("Mozilla Firefox/firefox.exe"),
+            _ => None,
+        };
+        if let Some(rel) = rel {
+            for base in ["LOCALAPPDATA", "ProgramFiles", "ProgramFiles(x86)"]
+                .into_iter()
+                .filter_map(std::env::var_os)
+            {
+                candidates.push(PathBuf::from(base).join(rel));
+            }
+        }
+    }
+    candidates.into_iter().find(|p| p.is_file())
 }
 
 /// What launching a browser app needs: the command, and for Firefox the
@@ -95,7 +136,15 @@ pub(crate) fn browser_launch(
         .as_deref()
         .context("This app has no web address")?;
     let xdg_open = || BrowserLaunch {
-        command: CommandSpec::new("xdg-open").arg(url),
+        command: if cfg!(target_os = "macos") {
+            CommandSpec::new("/usr/bin/open").arg(url)
+        } else if cfg!(windows) {
+            CommandSpec::new("rundll32.exe")
+                .arg("url.dll,FileProtocolHandler")
+                .arg(url)
+        } else {
+            CommandSpec::new("xdg-open").arg(url)
+        },
         user_js: None,
     };
     if app.custom_user_agent.is_none() && !app.launch_fullscreen {
@@ -361,8 +410,20 @@ mod tests {
             Some("/usr/bin/chromium".into())
         })
         .unwrap();
-        assert_eq!(launch.command.program, PathBuf::from("xdg-open"));
-        assert_eq!(launch.command.args, os(&["https://play.example.com/g"]));
+        assert_eq!(
+            launch.command.program,
+            PathBuf::from(if cfg!(target_os = "macos") {
+                "/usr/bin/open"
+            } else if cfg!(windows) {
+                "rundll32.exe"
+            } else {
+                "xdg-open"
+            })
+        );
+        assert_eq!(
+            launch.command.args.last().unwrap(),
+            "https://play.example.com/g"
+        );
     }
 
     #[test]
@@ -410,6 +471,15 @@ mod tests {
     #[test]
     fn falls_back_to_xdg_open_without_browser() {
         let launch = browser_launch(&web(None, true), Path::new("/p"), &|_| None).unwrap();
-        assert_eq!(launch.command.program, PathBuf::from("xdg-open"));
+        assert_eq!(
+            launch.command.program,
+            PathBuf::from(if cfg!(target_os = "macos") {
+                "/usr/bin/open"
+            } else if cfg!(windows) {
+                "rundll32.exe"
+            } else {
+                "xdg-open"
+            })
+        );
     }
 }

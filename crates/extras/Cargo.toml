@@ -3,6 +3,7 @@ name = "ember-extras"
 description = "Integrations: desktop/Steam shortcuts, game info from wikis, anticheat data, known fixes, SteamGridDB, Heroic import"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
@@ -22,6 +23,8 @@ dirs.workspace = true
 url.workspace = true
 time.workspace = true
 md5.workspace = true
+plist.workspace = true
+sysinfo.workspace = true
 image = { workspace = true, features = ["ico"] }
 
 [dev-dependencies]

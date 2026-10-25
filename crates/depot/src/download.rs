@@ -365,7 +365,8 @@ async fn tune(ctx: &Ctx, mut tuner: Tuner, limit: Option<u64>) {
         last = now;
         let rate = received as f64 / secs;
         let contended = ctx.requests.take_contended();
-        let throttled = limit.is_some_and(|l| rate >= l as f64 * 0.85);
+        let throttled =
+            stats.throttling.load(Relaxed) > 0 || limit.is_some_and(|l| rate >= l as f64 * 0.85);
         let n = tuner.step(Window {
             rate,
             failures,
@@ -373,16 +374,20 @@ async fn tune(ctx: &Ctx, mut tuner: Tuner, limit: Option<u64>) {
             throttled,
         });
         ctx.requests.set_limit(n);
-        let verdict = classify(Signals {
-            rate,
-            failures,
-            backing_off: stats.backing_off.load(Relaxed),
-            limit,
-            net_wait: Duration::from_micros(net_us),
-            disk_wait: Duration::from_micros(disk_us),
-            contended,
-            capped: tuner.capped(),
-        });
+        let verdict = if throttled {
+            Some(ember_core::Bottleneck::SpeedLimit)
+        } else {
+            classify(Signals {
+                rate,
+                failures,
+                backing_off: stats.backing_off.load(Relaxed),
+                limit,
+                net_wait: Duration::from_micros(net_us),
+                disk_wait: Duration::from_micros(disk_us),
+                contended,
+                capped: tuner.capped(),
+            })
+        };
         if verdict == candidate {
             stats.set_bottleneck(verdict);
         }
@@ -443,6 +448,7 @@ impl Ctx {
         if wait.is_zero() {
             return Ok(wait);
         }
+        let _waiting = Waiting::new(&self.stats.throttling);
         tokio::select! {
             _ = self.cancel.cancelled() => Err(Error::Cancelled),
             _ = tokio::time::sleep(wait) => Ok(wait),

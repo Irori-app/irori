@@ -3,25 +3,59 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+          - os: macos-15
+            platform: macos
+          - os: macos-15-intel
+            platform: macos
+          - os: windows-2022
+            platform: windows
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: System libraries
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
             libvulkan-dev libfontconfig-dev libfreetype-dev libxcb1-dev libx11-xcb-dev \
-            libudev-dev libssl-dev pkg-config
+            libudev-dev libssl-dev pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev xvfb
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Tests (Linux display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a cargo test --locked --workspace --no-fail-fast
+      - name: Tests
+        if: runner.os != 'Linux'
+        run: cargo test --locked --workspace --no-fail-fast
+      - name: Build desktop and sign-in helper
+        run: cargo build --locked -p ember -p ember-sign-in
+      - name: Package native application
+        run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/debug --output dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ember-${{ matrix.os }}-unsigned
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error

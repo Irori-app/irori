@@ -3,6 +3,7 @@ name = "ember-depot"
 description = "Download engine shared by Ember's store clients: parallel chunked downloads, resume, verification and delta updates"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 

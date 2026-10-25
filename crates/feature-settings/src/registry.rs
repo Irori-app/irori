@@ -387,6 +387,45 @@ impl FieldSpec {
 
     /// Whether the field is shown for application settings, game defaults
     /// (`game == false`) or one game (`game == true`).
+    pub fn supported_on_host(&self) -> bool {
+        use ember_core::HostPlatform;
+        let host = HostPlatform::current();
+        if host == HostPlatform::Linux {
+            return !matches!(
+                self.path,
+                "enableMsync" | "wineCrossoverBottle" | "advertiseAvxForRosetta"
+            );
+        }
+        if self.path.starts_with("gamescope.")
+            || matches!(
+                self.path,
+                "useGameMode"
+                    | "showMangohud"
+                    | "nvidiaPrime"
+                    | "enableFsync"
+                    | "enableFSR"
+                    | "enableWineWayland"
+                    | "enableHDR"
+                    | "enableWoW64"
+                    | "eacRuntime"
+                    | "battlEyeRuntime"
+                    | "disableUMU"
+                    | "steamRuntime"
+                    | "preferSystemLibs"
+                    | "autoInstallDxvk"
+                    | "autoInstallVkd3d"
+                    | "autoInstallDxvkNvapi"
+                    | "downloadProtonToSteam"
+                    | "showValveProton"
+            )
+        {
+            return false;
+        }
+        host != HostPlatform::Windows
+            || (self.section != FieldSection::Wine
+                && !matches!(self.path, "showFps" | "enableDXVKFpsLimit" | "DXVKFpsCap"))
+    }
+
     pub fn applies_to_game(&self, per_game: bool) -> bool {
         match self.scope {
             Scope::App => false,
@@ -1610,12 +1649,16 @@ pub fn find(path: &str) -> Option<&'static FieldSpec> {
 
 /// Fields of one section, in display order.
 pub fn section_fields(section: FieldSection) -> impl Iterator<Item = &'static FieldSpec> {
-    FIELDS.iter().filter(move |f| f.section == section)
+    FIELDS
+        .iter()
+        .filter(move |f| f.supported_on_host() && f.section == section)
 }
 
 /// Fields matching a search query, in display order. Empty for a blank query.
 pub fn search(query: &str) -> impl Iterator<Item = &'static FieldSpec> + '_ {
-    FIELDS.iter().filter(move |f| f.matches(query))
+    FIELDS
+        .iter()
+        .filter(move |f| f.supported_on_host() && f.matches(query))
 }
 
 #[cfg(test)]
@@ -1687,13 +1730,23 @@ mod tests {
     fn search_matches_labels_keywords_and_tags() {
         crate::i18n::register();
         let paths = |q: &str| search(q).map(|f| f.path).collect::<Vec<_>>();
-        assert_eq!(paths("fsync"), vec!["enableFsync"]);
+        assert_eq!(
+            paths("fsync"),
+            if cfg!(target_os = "linux") {
+                vec!["enableFsync"]
+            } else {
+                vec![]
+            }
+        );
         assert!(paths("TRAY").contains(&"exitToTray"));
         assert!(paths("epic").contains(&"downloadNoHttps"));
         assert!(paths("epic").contains(&"offlineMode"));
         // Every token must match.
         let fps = paths("gamescope fps");
-        assert!(fps.contains(&"gamescope.fpsLimiter"));
+        assert_eq!(
+            fps.contains(&"gamescope.fpsLimiter"),
+            cfg!(target_os = "linux")
+        );
         assert!(!fps.contains(&"enableDXVKFpsLimit"));
         assert!(paths("   ").is_empty());
         assert!(paths("no such setting").is_empty());

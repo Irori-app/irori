@@ -460,7 +460,7 @@ impl GogStore {
     pub(crate) async fn prepare_prefix(
         &self,
         rec: &InstalledRecord,
-        wine: &WineContext,
+        wine: Option<&WineContext>,
         ctx: &OpContext,
         log_file: &Path,
     ) -> Result<()> {
@@ -478,7 +478,8 @@ impl GogStore {
             tracing::warn!("{e:#}");
         }
 
-        let mut setup = self.load_prefix_setup(&wine.prefix).await;
+        let setup_path = wine.map(|w| w.prefix.clone()).unwrap_or_else(|| rec.path());
+        let mut setup = self.load_prefix_setup(&setup_path).await;
         let key = setup_key(rec);
         let mut changed = false;
 
@@ -498,15 +499,15 @@ impl GogStore {
                     tracing::warn!("setup executable {} is missing", c.exe.display());
                     continue;
                 }
-                let res = wine
-                    .run(
-                        &c.exe.to_string_lossy(),
-                        &c.args,
-                        Some(&rec.path()),
-                        Some(ctx.cancel.clone()),
-                        Some(log_file),
-                    )
-                    .await;
+                let res = crate::wine::run_windows(
+                    wine,
+                    &c.exe.to_string_lossy(),
+                    &c.args,
+                    Some(&rec.path()),
+                    Some(ctx.cancel.clone()),
+                    Some(log_file),
+                )
+                .await;
                 if let Err(e) = res {
                     tracing::warn!("setup of {}: {e:#}", rec.app_name);
                 }
@@ -542,27 +543,31 @@ impl GogStore {
                         &depot.readable_name
                     }
                 ));
-                match wine
-                    .run(
-                        &exe,
-                        &args,
-                        Some(&self.paths.redist),
-                        Some(ctx.cancel.clone()),
-                        Some(log_file),
-                    )
-                    .await
+                match crate::wine::run_windows(
+                    wine,
+                    &exe,
+                    &args,
+                    Some(&self.paths.redist),
+                    Some(ctx.cancel.clone()),
+                    Some(log_file),
+                )
+                .await
                 {
                     Ok(r) if r.aborted => anyhow::bail!("aborted"),
-                    Ok(_) => {
+                    Ok(r) if r.success() || r.code == Some(3010) => {
                         setup.redist.insert(dep);
                     }
+                    Ok(r) => tracing::warn!("installing {dep}: {}", r.error_summary()),
                     Err(e) => tracing::warn!("installing {dep}: {e:#}"),
                 }
                 changed = true;
             }
         }
 
-        if (self.settings)().comet_support && !setup.comet {
+        if (self.settings)().comet_support
+            && !setup.comet
+            && let Some(wine) = wine
+        {
             match self.install_galaxy_communication(wine).await {
                 Ok(()) => {
                     setup.comet = true;
@@ -573,7 +578,7 @@ impl GogStore {
         }
 
         if changed {
-            self.store_prefix_setup(&wine.prefix, setup).await;
+            self.store_prefix_setup(&setup_path, setup).await;
         }
         Ok(())
     }

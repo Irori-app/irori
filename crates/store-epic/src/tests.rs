@@ -129,6 +129,9 @@ async fn fixture() -> Fixture {
         if p.starts_with("/account/api/oauth/sessions/kill/") {
             return Resp::status(204);
         }
+        if p.starts_with("/launcher/api/public/assets/Mac") {
+            return Resp::json(json!([]));
+        }
         if p.starts_with("/launcher/api/public/assets/Windows") {
             return Resp::json(json!([
                 {"appName": APP, "buildVersion": format!("v{v}"), "catalogItemId": "cat",

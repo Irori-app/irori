@@ -86,11 +86,14 @@ pub fn steam_path(app: &AppSettings) -> PathBuf {
             return p;
         }
     }
+    if !cfg!(target_os = "linux") {
+        return ember_core::platform::steam_dir();
+    }
     let flatpak = home().join(".var/app/com.valvesoftware.Steam/.steam/steam");
     if flatpak.exists() {
         return flatpak;
     }
-    home().join(".steam/steam")
+    ember_core::platform::steam_dir()
 }
 
 /// Value for `STEAM_COMPAT_CLIENT_INSTALL_PATH`.

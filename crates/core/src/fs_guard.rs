@@ -16,6 +16,19 @@ const SYSTEM_ROOTS: &[&str] = &[
     "/snap", "/sys", "/usr", "/var",
 ];
 
+fn path_contains(parent: &Path, child: &Path) -> bool {
+    if cfg!(windows) {
+        let normalize = |p: &Path| {
+            p.to_string_lossy()
+                .trim_start_matches(r"\\?\")
+                .to_lowercase()
+        };
+        Path::new(&normalize(child)).starts_with(normalize(parent))
+    } else {
+        child.starts_with(parent)
+    }
+}
+
 /// Refuse to delete `dir` unless it is clearly a single game's (or prefix's)
 /// own folder: an absolute path at least two levels deep, not the home
 /// directory, one of its ancestors or direct children (`~/Downloads`,
@@ -38,18 +51,35 @@ pub fn check_deletable(dir: &Path, home: Option<&Path>, protected: &[PathBuf]) -
     if depth < 2 {
         return refuse("it is a top-level folder");
     }
-    if SYSTEM_ROOTS.iter().any(|root| dir.starts_with(root)) {
+    let temp = std::env::temp_dir();
+    let temp = std::fs::canonicalize(&temp).unwrap_or(temp);
+    let resolved = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+    let in_temp = resolved.starts_with(&temp) && resolved != temp;
+    let mac_system = cfg!(target_os = "macos")
+        && ["/System", "/Library", "/private"]
+            .iter()
+            .any(|r| resolved.starts_with(r));
+    let windows_system = cfg!(windows)
+        && ["SystemRoot", "WINDIR", "ProgramData"]
+            .iter()
+            .filter_map(std::env::var_os)
+            .any(|r| path_contains(Path::new(&r), &resolved));
+    if !in_temp
+        && (SYSTEM_ROOTS.iter().any(|root| resolved.starts_with(root))
+            || mac_system
+            || windows_system)
+    {
         return refuse("it is a system folder");
     }
     if let Some(home) = home {
-        if home.starts_with(dir) {
+        if path_contains(dir, home) {
             return refuse("it contains your home folder");
         }
         if dir.parent() == Some(home) {
             return refuse("it is a folder directly inside your home folder");
         }
     }
-    if protected.iter().any(|p| p.starts_with(dir)) {
+    if protected.iter().any(|p| path_contains(dir, p)) {
         return refuse("it contains launcher or library folders");
     }
     Ok(())

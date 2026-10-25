@@ -314,7 +314,8 @@ fn picking_games_for_bulk_actions(cx: &mut TestAppContext) {
     let state = |cx: &mut TestAppContext| cx.read(|cx| view.read(cx).selection_state());
     let game = |app: &str| GameId::new(Runner::Gog, app);
     let ctrl = gpui_kit::Modifiers {
-        control: true,
+        control: !cfg!(target_os = "macos"),
+        platform: cfg!(target_os = "macos"),
         ..Default::default()
     };
     let shift = gpui_kit::Modifiers {

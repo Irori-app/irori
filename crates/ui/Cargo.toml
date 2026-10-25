@@ -3,6 +3,7 @@ name = "ember-ui"
 description = "Shared UI layer: backend bridge, observable models, navigation, art pipeline, theme and common components"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 

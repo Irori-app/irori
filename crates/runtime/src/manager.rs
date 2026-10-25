@@ -26,18 +26,45 @@ pub enum ReleaseKind {
     ProtonCachyOs,
     WineGe,
     WineKron4ek,
+    WineCrossover,
+    WineStagingMac,
+    GamePortingToolkit,
 }
 
 impl ReleaseKind {
-    pub const ALL: [ReleaseKind; 4] = [
+    pub const ALL: [ReleaseKind; 7] = [
         ReleaseKind::GeProton,
         ReleaseKind::ProtonCachyOs,
         ReleaseKind::WineGe,
         ReleaseKind::WineKron4ek,
+        ReleaseKind::GamePortingToolkit,
+        ReleaseKind::WineCrossover,
+        ReleaseKind::WineStagingMac,
     ];
 
     /// Sources refreshed by default (Heroic's Linux defaults).
     pub const DEFAULT: [ReleaseKind; 2] = [ReleaseKind::GeProton, ReleaseKind::ProtonCachyOs];
+
+    /// Sources offered on a host, in display order.
+    pub fn for_host(host: ember_core::HostPlatform) -> &'static [Self] {
+        match host {
+            ember_core::HostPlatform::Linux => &[
+                Self::GeProton,
+                Self::ProtonCachyOs,
+                Self::WineGe,
+                Self::WineKron4ek,
+            ],
+            ember_core::HostPlatform::Mac => &[
+                Self::GamePortingToolkit,
+                Self::WineCrossover,
+                Self::WineStagingMac,
+            ],
+            ember_core::HostPlatform::Windows => &[],
+        }
+    }
+    pub fn available() -> &'static [Self] {
+        Self::for_host(ember_core::HostPlatform::current())
+    }
 
     /// The `type` string stored in release entries.
     pub fn type_str(self) -> &'static str {
@@ -46,6 +73,9 @@ impl ReleaseKind {
             ReleaseKind::ProtonCachyOs => "Proton-CachyOS",
             ReleaseKind::WineGe => "Wine-GE",
             ReleaseKind::WineKron4ek => "Wine-Kron4ek",
+            Self::WineCrossover => "Wine-Crossover",
+            Self::WineStagingMac => "Wine-Staging-macOS",
+            Self::GamePortingToolkit => "Game-Porting-Toolkit",
         }
     }
 
@@ -66,6 +96,13 @@ impl ReleaseKind {
                 "https://api.github.com/repos/GloriousEggroll/wine-ge-custom/releases"
             }
             ReleaseKind::WineKron4ek => "https://api.github.com/repos/Kron4ek/Wine-Builds/releases",
+            Self::WineCrossover => {
+                "https://api.github.com/repos/Heroic-Games-Launcher/wine-crossover/releases"
+            }
+            Self::WineStagingMac => "https://api.github.com/repos/Gcenx/macOS_Wine_builds/releases",
+            Self::GamePortingToolkit => {
+                "https://api.github.com/repos/Gcenx/game-porting-toolkit/releases"
+            }
         }
     }
 
@@ -123,6 +160,11 @@ impl Release {
         let dir = PathBuf::from(self.install_dir.as_deref()?);
         if !dir.is_dir() {
             return None;
+        }
+        if self.release_kind() == Some(ReleaseKind::GamePortingToolkit) {
+            let mut wine = discovery::wine_build(&dir, &self.version);
+            wine.kind = ember_core::WineKind::Toolkit;
+            return Some(wine);
         }
         let is_wine = self.kind.contains("Wine");
         Some(if is_wine {
@@ -197,12 +239,16 @@ pub fn is_compatible_download(kind: &str, url: &str, arch: &str) -> bool {
             (url.ends_with(".tar.gz") || url.ends_with(".tar.xz")) && ARM_ASSET.is_match(url) == arm
         }
         Some(ReleaseKind::WineKron4ek) => !arm,
+        Some(ReleaseKind::GamePortingToolkit) => arm,
         _ => true,
     }
 }
 
 fn is_tarball(name: &str) -> bool {
-    name.ends_with(".tar.gz") || name.ends_with(".tar.xz") || name.ends_with(".tar.zst")
+    name.ends_with(".tar.gz")
+        || name.ends_with(".tar.xz")
+        || name.ends_with(".tar.zst")
+        || name.ends_with(".tar.bz2")
 }
 
 fn checksum_name(asset: &str) -> String {
@@ -220,6 +266,15 @@ fn select_asset<'a>(kind: ReleaseKind, assets: &'a [GhAsset], arch: &str) -> Opt
         ReleaseKind::GeProton | ReleaseKind::ProtonCachyOs => assets
             .iter()
             .find(|a| is_compatible_download(ty, &a.browser_download_url, arch)),
+        ReleaseKind::WineCrossover => assets
+            .iter()
+            .find(|a| a.name.starts_with("Wine-Crossover") && is_tarball(&a.name)),
+        ReleaseKind::WineStagingMac => assets.iter().find(|a| {
+            a.name.starts_with("wine-staging-") && a.name.contains("osx64") && is_tarball(&a.name)
+        }),
+        ReleaseKind::GamePortingToolkit => assets.iter().find(|a| {
+            is_compatible_download(ty, &a.browser_download_url, arch) && is_tarball(&a.name)
+        }),
         ReleaseKind::WineGe => assets
             .iter()
             .filter(|a| is_tarball(&a.name))
@@ -244,6 +299,8 @@ fn select_asset<'a>(kind: ReleaseKind, assets: &'a [GhAsset], arch: &str) -> Opt
 fn version_of(kind: ReleaseKind, tag: &str) -> String {
     match kind {
         ReleaseKind::WineKron4ek => format!("Wine-Kron4ek-{tag}-staging"),
+        ReleaseKind::WineCrossover => format!("Wine-Crossover-{tag}"),
+        ReleaseKind::WineStagingMac => format!("Wine-Staging-macOS-{tag}"),
         k if k.type_str().contains("Wine") => format!("Wine-{tag}"),
         _ => tag.to_string(),
     }
@@ -302,11 +359,19 @@ fn releases_from_github(kind: ReleaseKind, gh: Vec<GhRelease>, arch: &str) -> Ve
 
 /// Fetch the newest `count` releases of a source from GitHub.
 pub async fn fetch_releases(kind: ReleaseKind, count: u32) -> Result<Vec<Release>> {
+    anyhow::ensure!(
+        ReleaseKind::available().contains(&kind),
+        "This runtime source is not available on this operating system"
+    );
     let url = format!("{}?per_page={count}", kind.url());
-    let gh: Vec<GhRelease> = download::get_json(&url)
+    fetch_releases_at(kind, &url, host_arch()).await
+}
+
+async fn fetch_releases_at(kind: ReleaseKind, url: &str, arch: &str) -> Result<Vec<Release>> {
+    let gh: Vec<GhRelease> = download::get_json(url)
         .await
         .with_context(|| format!("could not fetch {} releases", kind.type_str()))?;
-    Ok(releases_from_github(kind, gh, host_arch()))
+    Ok(releases_from_github(kind, gh, arch))
 }
 
 fn keep_cached(r: &Release) -> bool {
@@ -448,6 +513,9 @@ pub fn cached_releases() -> Vec<Release> {
 
 /// Directory a release installs into.
 pub fn install_base(release: &Release, app: &AppSettings) -> PathBuf {
+    if release.release_kind() == Some(ReleaseKind::GamePortingToolkit) {
+        return Paths::get().tools_dir().join("game-porting-toolkit");
+    }
     if release.kind.contains("Wine") {
         return Paths::get().wine_dir();
     }
@@ -482,6 +550,20 @@ fn file_name_of(url: &str) -> String {
 /// release with its install state. Cancellation surfaces as
 /// [`download::Cancelled`].
 pub async fn install(release: &Release, app: &AppSettings, ctx: &OpContext) -> Result<Release> {
+    let kind = release
+        .release_kind()
+        .context("Unknown runtime release source")?;
+    anyhow::ensure!(
+        ReleaseKind::available().contains(&kind),
+        "This runtime cannot be installed on this operating system"
+    );
+    anyhow::ensure!(
+        Path::new(&release.version).components().count() == 1
+            && release.version != "."
+            && release.version != ".."
+            && !release.version.contains(['/', '\\']),
+        "Invalid release directory"
+    );
     if release.download.is_empty() {
         bail!("{} has no download", release.version);
     }
@@ -556,6 +638,18 @@ pub async fn install(release: &Release, app: &AppSettings, ctx: &OpContext) -> R
         return Err(e).with_context(|| format!("extracting {}", release.version));
     }
 
+    let mut candidate = release.clone();
+    candidate.install_dir = Some(staging.to_string_lossy().into_owned());
+    if !candidate
+        .installation()
+        .is_some_and(|w| discovery::is_usable(&w))
+    {
+        let _ = tokio::fs::remove_dir_all(&staging).await;
+        bail!(
+            "The downloaded archive does not contain a usable {} runtime",
+            release.kind
+        );
+    }
     let backup = PathBuf::from(format!("{}_backup", target.display()));
     if target.exists() {
         let _ = tokio::fs::remove_dir_all(&backup).await;
@@ -637,7 +731,12 @@ pub async fn remove(release: &Release) -> Result<()> {
 /// GE-Proton. Returns the installation that was just installed (Heroic
 /// returns whichever Proton sorts first instead).
 pub async fn download_default_wine(app: &AppSettings, ctx: &OpContext) -> Result<WineInstallation> {
-    let releases = update_releases(true, &ReleaseKind::DEFAULT).await?;
+    let kinds = if cfg!(target_os = "linux") {
+        &ReleaseKind::DEFAULT[..]
+    } else {
+        ReleaseKind::available()
+    };
+    let releases = update_releases(true, kinds).await?;
     let pick = |kind: ReleaseKind| {
         releases
             .iter()
@@ -647,9 +746,16 @@ pub async fn download_default_wine(app: &AppSettings, ctx: &OpContext) -> Result
             })
             .cloned()
     };
-    let release = pick(ReleaseKind::ProtonCachyOs)
-        .or_else(|| pick(ReleaseKind::GeProton))
-        .context("no downloadable Proton build was found")?;
+    let release = if cfg!(target_os = "macos") {
+        discovery::toolkit_supported()
+            .then(|| pick(ReleaseKind::GamePortingToolkit))
+            .flatten()
+            .or_else(|| pick(ReleaseKind::WineStagingMac))
+            .or_else(|| pick(ReleaseKind::WineCrossover))
+    } else {
+        pick(ReleaseKind::ProtonCachyOs).or_else(|| pick(ReleaseKind::GeProton))
+    }
+    .context("No compatible Wine runtime could be downloaded")?;
     let installed = if release.installed() {
         release
     } else {
@@ -683,6 +789,80 @@ mod tests {
 
     fn parse(v: serde_json::Value) -> Vec<GhRelease> {
         serde_json::from_value(v).unwrap()
+    }
+
+    #[tokio::test]
+    #[ignore = "requires the local Postman runtime-releases simulation"]
+    async fn simulated_macos_releases() {
+        let base = std::env::var("EMBER_RELEASE_TEST_URL").expect("Set the simulator's local URL");
+        let url = url::Url::parse(&base).unwrap();
+        assert!(
+            matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "::1")),
+            "This test only talks to a local simulator"
+        );
+        for kind in ReleaseKind::for_host(ember_core::HostPlatform::Mac) {
+            let path = kind.url().strip_prefix("https://api.github.com").unwrap();
+            let releases =
+                fetch_releases_at(*kind, &format!("{base}/github{path}?per_page=1"), "aarch64")
+                    .await
+                    .unwrap();
+            assert_eq!(releases.len(), 2);
+            assert_eq!(releases[0].kind, kind.type_str());
+            assert!(releases[1].downsize > 100_000_000);
+            let error = fetch_releases_at(
+                *kind,
+                &format!("{base}/limited{path}?per_page=1"),
+                "aarch64",
+            )
+            .await
+            .unwrap_err();
+            assert!(format!("{error:#}").contains("429"));
+        }
+    }
+
+    #[test]
+    fn mac_sources_and_asset_architectures() {
+        use ember_core::HostPlatform;
+        assert!(ReleaseKind::for_host(HostPlatform::Windows).is_empty());
+        assert_eq!(
+            ReleaseKind::for_host(HostPlatform::Mac),
+            &[
+                ReleaseKind::GamePortingToolkit,
+                ReleaseKind::WineCrossover,
+                ReleaseKind::WineStagingMac
+            ]
+        );
+        for (kind, tag, assets, selected) in [
+            (
+                ReleaseKind::WineCrossover,
+                "23.7.1-1",
+                vec!["Wine-Crossover-23.7.1-1.tar.xz"],
+                "Wine-Crossover-23.7.1-1.tar.xz",
+            ),
+            (
+                ReleaseKind::WineStagingMac,
+                "11.18",
+                vec![
+                    "wine-devel-11.18-osx64.tar.xz",
+                    "wine-staging-11.18-osx64.tar.xz",
+                ],
+                "wine-staging-11.18-osx64.tar.xz",
+            ),
+            (
+                ReleaseKind::GamePortingToolkit,
+                "Game-Porting-Toolkit-3.0-3",
+                vec!["game-porting-toolkit-3.0-3.tar.xz"],
+                "game-porting-toolkit-3.0-3.tar.xz",
+            ),
+        ] {
+            let fixture = serde_json::json!([gh(tag, "2026-10-25", &assets)]);
+            let arm = releases_from_github(kind, parse(fixture.clone()), "aarch64");
+            assert_eq!(arm.len(), 2);
+            assert!(arm[1].download.ends_with(selected));
+            assert_eq!(arm[0].kind, kind.type_str());
+            let intel = releases_from_github(kind, parse(fixture), "x86_64");
+            assert_eq!(intel.is_empty(), kind == ReleaseKind::GamePortingToolkit);
+        }
     }
 
     #[test]

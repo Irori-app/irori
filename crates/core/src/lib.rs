@@ -10,6 +10,8 @@ pub mod json_store;
 pub mod launch;
 pub mod log_cap;
 pub mod paths;
+pub mod platform;
+pub use platform::HostPlatform;
 pub mod process;
 pub mod runner;
 pub mod settings;

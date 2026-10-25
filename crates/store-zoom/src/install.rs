@@ -106,7 +106,7 @@ pub(crate) fn detect_installed(
         .collect();
     if let Some(game) = detect::dosbox_game(root, &new_confs) {
         let platform = if detect::system_dosbox().is_some() {
-            InstallPlatform::Linux
+            ember_core::HostPlatform::current().native()
         } else {
             InstallPlatform::Windows
         };
@@ -123,6 +123,10 @@ pub(crate) fn detect_installed(
     }
 }
 
+#[cfg(not(unix))]
+fn make_executable(_path: &Path) {}
+
+#[cfg(unix)]
 fn make_executable(path: &Path) {
     use std::os::unix::fs::PermissionsExt as _;
     if let Ok(meta) = std::fs::metadata(path) {
@@ -133,6 +137,9 @@ fn make_executable(path: &Path) {
 
 /// `Z:\path\in\wine` for a host path.
 fn wine_path(p: &Path) -> String {
+    if cfg!(windows) {
+        return p.to_string_lossy().replace('/', "\\");
+    }
     format!("Z:{}", p.to_string_lossy().replace('/', "\\"))
 }
 
@@ -281,8 +288,7 @@ fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
 /// Free bytes on the filesystem holding `path` (or its nearest existing parent).
 fn free_space(path: &Path) -> Option<u64> {
     let existing = path.ancestors().find(|p| p.exists())?;
-    let st = nix::sys::statvfs::statvfs(existing).ok()?;
-    Some(st.blocks_available() as u64 * st.fragment_size() as u64)
+    fs4::available_space(existing).ok()
 }
 
 /// Partial file of a download by earlier Ember versions.
@@ -740,16 +746,29 @@ impl ZoomStore {
                 game,
                 platform: InstallPlatform::Windows,
             };
-            let res = ember_runtime::run_in_prefix(
-                &app_settings,
-                &settings,
-                target,
-                argv,
-                true,
-                ctx.clone(),
-            )
-            .await
-            .context("Could not run the installer through Wine")?;
+            let res = if cfg!(windows) {
+                let spec = ember_core::process::CommandSpec::new(&argv[0])
+                    .args(&argv[1..])
+                    .cwd(staging);
+                ember_core::process::run(
+                    &spec,
+                    ember_core::process::RunOptions::default()
+                        .cancel(ctx.cancel.clone())
+                        .log_file(&installer_log),
+                )
+                .await
+            } else {
+                ember_runtime::run_in_prefix(
+                    &app_settings,
+                    &settings,
+                    target,
+                    argv,
+                    true,
+                    ctx.clone(),
+                )
+                .await
+            }
+            .context("Could not run the game installer")?;
             if let Ok(text) = tokio::fs::read(&installer_log).await {
                 log_line(ctx, &String::from_utf8_lossy(&text));
             }

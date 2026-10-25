@@ -1,0 +1,12 @@
+version: 1
+id: 835e75dc-e075-4655-9f23-5c78cf48d478
+name: github-releases
+slug: github-releases
+protocol: http
+interceptRequests: true
+origin: api.github.com
+port: 4500
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

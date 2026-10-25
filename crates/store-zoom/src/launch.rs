@@ -69,7 +69,7 @@ pub fn build_plan(
         let windows_exe = exe
             .extension()
             .is_some_and(|e| e.eq_ignore_ascii_case("exe") || e.eq_ignore_ascii_case("bat"));
-        if record.platform.needs_wine() || windows_exe {
+        if record.platform.needs_wine() || (windows_exe && !cfg!(windows)) {
             wine_command(request, title, &exe, &cwd, args)?
         } else {
             ensure_executable(&exe);
@@ -159,6 +159,10 @@ fn dosbox_command(
     }
 }
 
+#[cfg(not(unix))]
+fn ensure_executable(_path: &Path) {}
+
+#[cfg(unix)]
 fn ensure_executable(path: &Path) {
     use std::os::unix::fs::PermissionsExt as _;
     if let Ok(meta) = std::fs::metadata(path) {

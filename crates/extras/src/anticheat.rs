@@ -261,6 +261,9 @@ impl InstallGate {
 
 /// Install gate for a game with the given anticheat info.
 pub fn blocks_install(info: Option<&AntiCheatInfo>, app: &AppSettings) -> InstallGate {
+    if cfg!(windows) {
+        return InstallGate::Allowed;
+    }
     match info {
         Some(i) if i.status.is_broken() => {
             if app.allow_installation_broken_anticheat {

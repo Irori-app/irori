@@ -26,7 +26,16 @@ pub struct WineContext {
 }
 
 fn keep_env(key: &str) -> bool {
-    const PREFIXES: [&str; 5] = ["WINE", "STEAM_COMPAT_", "PROTON", "UMU_", "DXVK_"];
+    const PREFIXES: [&str; 8] = [
+        "WINE",
+        "STEAM_COMPAT_",
+        "PROTON",
+        "UMU_",
+        "DXVK_",
+        "CX_",
+        "MTL_",
+        "ROSETTA_",
+    ];
     PREFIXES.iter().any(|p| key.starts_with(p))
         || matches!(
             key,
@@ -75,7 +84,7 @@ impl WineContext {
         } else if self.kind == WineKind::Proton {
             spec = spec.arg("run");
         }
-        if self.kind != WineKind::Proton && !self.uses_umu {
+        if !matches!(self.kind, WineKind::Proton | WineKind::Crossover) && !self.uses_umu {
             spec = spec.env("WINEPREFIX", self.prefix.to_string_lossy());
         }
         spec.arg(exe).args(args.iter().cloned())
@@ -126,8 +135,41 @@ impl WineContext {
     }
 }
 
+/// Run setup on Windows directly, or through the selected compatibility layer.
+pub async fn run_windows(
+    wine: Option<&WineContext>,
+    exe: &str,
+    args: &[String],
+    cwd: Option<&Path>,
+    cancel: Option<CancellationToken>,
+    log_file: Option<&Path>,
+) -> Result<ExecResult> {
+    if let Some(wine) = wine {
+        return wine.run(exe, args, cwd, cancel, log_file).await;
+    }
+    anyhow::ensure!(
+        cfg!(windows),
+        "A Wine runtime is required to run Windows programs on this host"
+    );
+    let mut spec = CommandSpec::new(exe).args(args.iter().cloned());
+    if let Some(cwd) = cwd {
+        spec = spec.cwd(cwd);
+    }
+    let mut opts = RunOptions::default();
+    if let Some(cancel) = cancel {
+        opts = opts.cancel(cancel);
+    }
+    if let Some(log) = log_file {
+        opts = opts.log_file(log);
+    }
+    process::run(&spec, opts).await
+}
+
 /// Host path as seen from Wine (`/a/b` → `Z:\a\b`).
 pub fn to_windows_path(unix: &Path) -> String {
+    if cfg!(windows) {
+        return unix.to_string_lossy().replace('/', "\\");
+    }
     format!("Z:{}", unix.to_string_lossy().replace('/', "\\"))
 }
 

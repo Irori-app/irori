@@ -122,6 +122,39 @@ pub async fn get(refresh: bool) -> Arc<SystemInfo> {
 }
 
 async fn collect() -> SystemInfo {
+    if !cfg!(target_os = "linux") {
+        return tokio::task::spawn_blocking(|| {
+            let mut system = sysinfo::System::new();
+            system.refresh_cpu_all();
+            system.refresh_memory();
+            SystemInfo {
+                cpu: CpuInfo {
+                    model: system
+                        .cpus()
+                        .first()
+                        .map(|c| c.brand().to_owned())
+                        .unwrap_or_default(),
+                    cores: system.cpus().len(),
+                },
+                memory: MemoryInfo {
+                    total: system.total_memory(),
+                    used: system.used_memory(),
+                },
+                os: OsInfo {
+                    name: sysinfo::System::name().unwrap_or_default(),
+                    version: sysinfo::System::os_version(),
+                    kernel: sysinfo::System::kernel_version().unwrap_or_default(),
+                },
+                software: SoftwareVersions {
+                    ember: env!("CARGO_PKG_VERSION").into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        })
+        .await
+        .unwrap_or_default();
+    }
     let blocking = tokio::task::spawn_blocking(|| {
         let cpuinfo = std::fs::read_to_string("/proc/cpuinfo").unwrap_or_default();
         let meminfo = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
