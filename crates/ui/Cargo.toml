@@ -24,3 +24,11 @@ sha2.workspace = true
 hex.workspace = true
 open.workspace = true
 libc = "0.2"
+
+[dev-dependencies]
+# gpui-kit/test-support pulls the GPUI Fast crates, which conflict with gpui-pre in the
+# lockfile; GPUI's own test support exposes the test harness through `gpui_kit::*`.
+gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+sysinfo.workspace = true
