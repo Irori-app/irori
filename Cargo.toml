@@ -94,6 +94,17 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 2
 
+# Native CI builds should fit hosted runners without spending time optimizing
+# the entire GPUI dependency tree or retaining large debug/incremental data.
+[profile.ci]
+inherits = "dev"
+opt-level = 0
+debug = 0
+incremental = false
+
+[profile.ci.package."*"]
+opt-level = 0
+
 # Release speed with symbols, for `perf`/`heaptrack`.
 [profile.profiling]
 inherits = "release"

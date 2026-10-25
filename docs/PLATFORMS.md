@@ -78,7 +78,7 @@ Both binaries are required, so a package never silently omits store sign-in.
   Authenticode signing before distribution.
 
 CI builds and tests Linux, Windows x64, macOS Intel and Apple silicon and uploads
-unsigned debug packages for validation. It does not publish a release.
+unsigned validation packages using the small `ci` Cargo profile. It does not publish a release.
 
 ## Paths and desktop behavior
 

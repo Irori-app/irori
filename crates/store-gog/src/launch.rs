@@ -113,10 +113,19 @@ pub fn task_command(
             );
             bundles.remove(0)
         };
+        let exe = ember_core::platform::bundle_executable(&bundle)?;
+        let resources = bundle.join("Contents/Resources");
+        let cwd = if resources.is_dir() {
+            resources
+        } else {
+            exe.parent()
+                .context("The app executable has no parent directory")?
+                .to_path_buf()
+        };
         return Ok(TaskCommand {
-            exe: ember_core::platform::bundle_executable(&bundle)?,
+            exe,
             args: Vec::new(),
-            cwd: bundle.join("Contents/Resources"),
+            cwd,
         });
     }
     if platform == InstallPlatform::Linux {
@@ -137,7 +146,13 @@ pub fn task_command(
         .context("The game's play task has no executable")?
         .replace('\\', "/");
     let args = match &task.arguments {
-        Some(Value::String(s)) => split_args(&s.replace('\\', "/")),
+        Some(Value::String(s)) => {
+            if cfg!(windows) {
+                split_args(s)
+            } else {
+                split_args(&s.replace('\\', "/"))
+            }
+        }
         Some(Value::Array(a)) => a
             .iter()
             .filter_map(|v| v.as_str().map(str::to_string))

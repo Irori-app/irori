@@ -48,17 +48,17 @@ jobs:
         with:
           python-version: '3.12'
       - run: cargo fmt --all --check
-      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo clippy --locked --workspace --all-targets --profile ci -- -D warnings
       - name: Tests (Linux display)
         if: runner.os == 'Linux'
-        run: xvfb-run -a cargo test --locked --workspace --no-fail-fast
+        run: xvfb-run -a cargo test --locked --workspace --no-fail-fast --profile ci
       - name: Tests
         if: runner.os != 'Linux'
-        run: cargo test --locked --workspace --no-fail-fast
+        run: cargo test --locked --workspace --no-fail-fast --profile ci
       - name: Build desktop and sign-in helper
-        run: cargo build --locked -p ember -p ember-sign-in
+        run: cargo build --locked --profile ci -p ember -p ember-sign-in
       - name: Package native application
-        run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/debug --output dist
+        run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/ci --output dist
       - uses: actions/upload-artifact@v4
         with:
           name: Ember-${{ matrix.os }}-unsigned
