@@ -290,14 +290,19 @@ mod tests {
 
         // Executable overrides: launch option, then settings (relative to
         // the install folder).
+        let absolute = if cfg!(windows) {
+            "C:/abs/Other.exe"
+        } else {
+            "/abs/Other.exe"
+        };
         let alt = LaunchOption::AltExe {
-            executable: "/abs/Other.exe".into(),
+            executable: absolute.into(),
         };
         inputs.option = Some(&alt);
         inputs.extra_args = &[];
         inputs.sdk_dir = None;
         let plan = build_launch_plan(&inputs).unwrap();
-        assert_eq!(args(&plan.command)[2], "/abs/Other.exe");
+        assert_eq!(Path::new(&args(&plan.command)[2]), Path::new(absolute));
         assert!(!plan.command.env.contains_key("FUEL_DIR"));
         let settings = GameSettings {
             target_exe: "Tools\\Editor.exe".into(),

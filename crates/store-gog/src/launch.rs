@@ -512,7 +512,7 @@ mod tests {
             t.args,
             [
                 "-path",
-                if cfg!(windows) { r"C: b" } else { "C:/a b" },
+                if cfg!(windows) { r"C:\a b" } else { "C:/a b" },
                 "-x"
             ]
         );
