@@ -94,8 +94,9 @@ pub async fn resolve_wine(
     ctx: &OpContext,
     allow_download: bool,
 ) -> Result<WineInstallation> {
+    anyhow::ensure!(!cfg!(windows), "Windows games run natively on Windows");
     let wanted = &settings.wine_version;
-    if discovery::is_valid(wanted) {
+    if discovery::is_usable(wanted) {
         return Ok(wanted.clone());
     }
     let fallback_note = |found: &WineInstallation| {
@@ -109,7 +110,7 @@ pub async fn resolve_wine(
             );
         }
     };
-    if discovery::is_valid(&app.game.wine_version) {
+    if discovery::is_usable(&app.game.wine_version) {
         fallback_note(&app.game.wine_version);
         return Ok(app.game.wine_version.clone());
     }
@@ -141,7 +142,36 @@ pub async fn wine_context(
     allow_download: bool,
 ) -> Result<WineContext> {
     let wine = resolve_wine(app, settings, ctx, allow_download).await?;
-    let prefix = prefix_path(app, settings, game);
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        // These macOS Wine distributions execute Intel Windows code through
+        // Rosetta. Test its availability without installing anything silently.
+        let rosetta = ember_core::process::run(
+            &CommandSpec::new("/usr/bin/arch").args(["-x86_64", "/usr/bin/true"]),
+            ember_core::process::RunOptions::default(),
+        )
+        .await;
+        anyhow::ensure!(
+            rosetta.is_ok_and(|r| r.success()),
+            "This Wine runtime needs Rosetta 2. Install Rosetta in macOS, then try again."
+        );
+    }
+    let prefix = if wine.kind == WineKind::Crossover {
+        let bottle = settings.wine_crossover_bottle.trim();
+        anyhow::ensure!(
+            !bottle.is_empty() && !bottle.contains(['/', '\\']) && bottle != "." && bottle != "..",
+            "Choose a valid CrossOver bottle name"
+        );
+        let prefix = locations::home()
+            .join("Library/Application Support/CrossOver/Bottles")
+            .join(bottle);
+        anyhow::ensure!(
+            prefix.join("cxbottle.conf").is_file(),
+            "CrossOver bottle {bottle} was not found. Create it in CrossOver first."
+        );
+        prefix
+    } else {
+        prefix_path(app, settings, game)
+    };
     let effective = with_wine(settings, &wine);
     let mut uses_umu = runtimes::is_umu_supported(&effective, false);
     let mut umu = PathBuf::new();
@@ -191,6 +221,9 @@ fn find_on_path(name: &str) -> Option<String> {
 /// 7–9). A missing MangoHud or GameMode fails the launch; a missing
 /// gamescope only logs a warning.
 async fn wrapper_parts(settings: &GameSettings, ctx: &OpContext) -> Result<WrapperParts> {
+    if !cfg!(target_os = "linux") {
+        return Ok(WrapperParts::default());
+    }
     let deck_game_mode = locations::is_steam_deck_game_mode();
     let flatpak_hint = if locations::is_flatpak() {
         ". Make sure to install the MangoHud Flatpak extension matching Ember's runtime and restart Ember."
@@ -248,6 +281,11 @@ pub async fn prepare_launch(
     target: Target<'_>,
     ctx: &OpContext,
 ) -> Result<LaunchEnvironment> {
+    anyhow::ensure!(
+        ember_core::HostPlatform::current().supports(target.platform),
+        "{} builds cannot run on this operating system. Install a compatible build instead.",
+        target.platform.label()
+    );
     let host = HostEnv::current();
     let mut vars = env::wrapper_env(target.id);
     let install_path = target.game.install_path();
@@ -260,13 +298,17 @@ pub async fn prepare_launch(
     }
 
     let mut parts = wrapper_parts(settings, ctx).await?;
-    let fixes = hooks::hooks().known_fixes_env(target.id).await;
+    let fixes = if cfg!(target_os = "linux") {
+        hooks::hooks().known_fixes_env(target.id).await
+    } else {
+        Default::default()
+    };
 
     if !target.platform.needs_wine() {
         let runtime = settings
             .steam_runtime
             .as_deref()
-            .filter(|r| !r.trim().is_empty())
+            .filter(|r| cfg!(target_os = "linux") && !r.trim().is_empty())
             .map(runtimes::steam_runtime_protonpath);
         if runtime.is_some() {
             let umu = runtimes::ensure_umu(ctx)
@@ -307,7 +349,7 @@ pub async fn prepare_launch(
         Err(e) => tracing::warn!("{e:#}"),
     }
 
-    if wc.wine.kind == WineKind::Wine {
+    if cfg!(target_os = "linux") && wc.wine.kind == WineKind::Wine {
         let mut wanted = Vec::new();
         if settings.auto_install_dxvk {
             wanted.push(DxTool::Dxvk);
@@ -330,7 +372,7 @@ pub async fn prepare_launch(
         (settings.eac_runtime, RuntimeName::EacRuntime),
         (settings.battl_eye_runtime, RuntimeName::BattlEyeRuntime),
     ] {
-        if !enabled {
+        if !cfg!(target_os = "linux") || !enabled {
             continue;
         }
         if let Err(e) = runtimes::ensure(runtime, ctx).await {
@@ -414,12 +456,13 @@ pub async fn run_in_prefix(
 /// setting, else the prefix its last launch used).
 fn resolve_for_settings(settings: &GameSettings) -> Option<(WineInstallation, PathBuf)> {
     let recorded = ACTIVE.lock().get(&fingerprint(settings)).cloned();
-    let prefix = if settings.wine_prefix.is_empty() {
-        recorded.as_ref().map(|(_, p)| p.clone())?
-    } else {
-        ember_core::paths::expand_home(&settings.wine_prefix)
-    };
-    let wine = if discovery::is_valid(&settings.wine_version) {
+    let prefix =
+        if settings.wine_prefix.is_empty() || settings.wine_version.kind == WineKind::Crossover {
+            recorded.as_ref().map(|(_, p)| p.clone())?
+        } else {
+            ember_core::paths::expand_home(&settings.wine_prefix)
+        };
+    let wine = if discovery::is_usable(&settings.wine_version) {
         settings.wine_version.clone()
     } else {
         recorded.map(|(w, _)| w)?
@@ -446,7 +489,7 @@ pub async fn kill_game_prefix(
     game: &GameInfo,
 ) -> Result<()> {
     let prefix = prefix_path(app, settings, game);
-    let wine = if discovery::is_valid(&settings.wine_version) {
+    let wine = if discovery::is_usable(&settings.wine_version) {
         settings.wine_version.clone()
     } else {
         app.game.wine_version.clone()
@@ -504,6 +547,19 @@ pub async fn wait_prefix(settings: &GameSettings) -> Result<()> {
 
 /// Resolve the prefix path a game uses (settings value, or the default).
 pub fn prefix_path(app: &AppSettings, settings: &GameSettings, game: &GameInfo) -> PathBuf {
+    let wine = if settings.wine_version.is_set() {
+        &settings.wine_version
+    } else {
+        &app.game.wine_version
+    };
+    if cfg!(target_os = "macos") && wine.kind == WineKind::Crossover {
+        let bottle = settings.wine_crossover_bottle.trim();
+        if !bottle.is_empty() && !bottle.contains(['/', '\\']) && bottle != "." && bottle != ".." {
+            return locations::home()
+                .join("Library/Application Support/CrossOver/Bottles")
+                .join(bottle);
+        }
+    }
     if settings.wine_prefix.is_empty() {
         default_prefix(app, game)
     } else {
@@ -522,6 +578,10 @@ pub async fn set_dx_tool(
     enabled: bool,
     ctx: OpContext,
 ) -> Result<()> {
+    anyhow::ensure!(
+        cfg!(target_os = "linux"),
+        "DXVK management is available on Linux. macOS runtimes manage their own graphics libraries."
+    );
     let wc = wine_context(app, settings, target.game, &ctx, false).await?;
     let effective = with_wine(settings, &wc.wine);
     prefix::verify_prefix(app, &effective, &wc, &ctx).await?;
@@ -632,7 +692,7 @@ mod tests {
         let target = Target {
             id: &id,
             game: &g,
-            platform: InstallPlatform::Linux,
+            platform: ember_core::HostPlatform::current().native(),
         };
         let le = prepare_launch(&AppSettings::default(), &gs, target, &OpContext::detached())
             .await
@@ -641,10 +701,13 @@ mod tests {
         assert_eq!(le.wrappers, vec![vec!["env", "-u", "X"]]);
         assert_eq!(le.env["A"], "1");
         assert_eq!(le.env["HEROIC_APP_RUNNER"], "gog");
-        assert_eq!(le.env["STEAM_COMPAT_INSTALL_PATH"], "/games/my");
+        if cfg!(target_os = "linux") {
+            assert_eq!(le.env["STEAM_COMPAT_INSTALL_PATH"], "/games/my");
+        }
         assert!(!le.env.contains_key("WINEPREFIX"));
     }
 
+    #[cfg(target_os = "linux")]
     #[tokio::test]
     async fn missing_gamemode_fails() {
         if which::which("gamemoderun").is_ok() {

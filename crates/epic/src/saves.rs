@@ -49,10 +49,7 @@ pub fn resolve_save_path(loc: &SaveLocation<'_>) -> Result<PathBuf> {
     let mut vars: HashMap<String, PathBuf> = HashMap::new();
     vars.insert("{installdir}".into(), loc.install_dir.to_path_buf());
     vars.insert("{epicid}".into(), PathBuf::from(loc.account_id));
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from)
-        .unwrap_or_default();
+    let home = dirs::home_dir().unwrap_or_default();
     match (loc.wine_prefix, loc.platform) {
         (Some(prefix), _) => {
             let f = registry::shell_folders(prefix)?;
@@ -88,7 +85,10 @@ pub fn resolve_save_path(loc: &SaveLocation<'_>) -> Result<PathBuf> {
         }
         (None, "Mac") => {
             vars.insert("{appdata}".into(), home.join("Library/Application Support"));
-            vars.insert("{userdir}".into(), home.join("Documents"));
+            vars.insert(
+                "{userdir}".into(),
+                dirs::document_dir().unwrap_or_else(|| home.join("Documents")),
+            );
             vars.insert("{userlibrary}".into(), home.join("Library"));
         }
         (None, _) => {
@@ -96,21 +96,29 @@ pub fn resolve_save_path(loc: &SaveLocation<'_>) -> Result<PathBuf> {
                 .map(PathBuf::from)
                 .unwrap_or_else(|| home.join("AppData/Local"));
             vars.insert("{appdata}".into(), local);
-            vars.insert("{userdir}".into(), home.join("Documents"));
+            vars.insert(
+                "{userdir}".into(),
+                dirs::document_dir().unwrap_or_else(|| home.join("Documents")),
+            );
             vars.insert("{userprofile}".into(), home.clone());
             vars.insert("{usersavedgames}".into(), home.join("Saved Games"));
         }
     }
-    let mut out = PathBuf::new();
+    let mut parts = Vec::new();
     for part in template.split('/').filter(|p| !p.is_empty()) {
         match vars.get(&part.to_lowercase()) {
-            Some(v) => out.push(v),
+            Some(v) => parts.push(v.to_string_lossy().into_owned()),
             None if part.starts_with('{') || part.contains('%') => {
                 bail!("The save folder uses an unknown variable {part}")
             }
-            None => out.push(part),
+            None => parts.push(part.to_string()),
         }
     }
+    let out = PathBuf::from(format!(
+        "{}{}",
+        if template.starts_with('/') { "/" } else { "" },
+        parts.join("/")
+    ));
     if !out.is_absolute() {
         bail!("The save folder {} could not be resolved", out.display());
     }
@@ -601,14 +609,15 @@ mod tests {
         std::fs::write(pfx.join("user.reg"), USER_REG).unwrap();
         let loc = SaveLocation {
             template: r"{AppData}\mygame\Saved",
-            install_dir: Path::new("/games/x"),
+            install_dir: dir.path(),
             account_id: "acc",
             wine_prefix: Some(&pfx),
             platform: "Windows",
         };
         assert_eq!(
-            resolve_save_path(&loc).unwrap(),
-            pfx.join("drive_c/users/steamuser/AppData/Local/MyGame/Saved")
+            std::fs::canonicalize(resolve_save_path(&loc).unwrap().parent().unwrap()).unwrap(),
+            std::fs::canonicalize(pfx.join("drive_c/users/steamuser/AppData/Local/MyGame"))
+                .unwrap()
         );
         let install = SaveLocation {
             template: "{InstallDir}/Saves/{EpicId}",
@@ -617,7 +626,7 @@ mod tests {
         };
         assert_eq!(
             resolve_save_path(&install).unwrap(),
-            Path::new("/games/x/Saves/acc")
+            dir.path().join("Saves/acc")
         );
         let bad = SaveLocation {
             template: "{Unknown}/x",

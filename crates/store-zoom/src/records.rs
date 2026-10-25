@@ -14,6 +14,7 @@
 
 use std::collections::BTreeMap;
 use std::io::Write as _;
+#[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 
@@ -197,11 +198,11 @@ pub fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     let tmp = path.with_extension("tmp");
     {
-        let mut f = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
+        let mut opts = std::fs::OpenOptions::new();
+        opts.write(true).create(true).truncate(true);
+        #[cfg(unix)]
+        opts.mode(0o600);
+        let mut f = opts
             .open(&tmp)
             .with_context(|| format!("writing {}", tmp.display()))?;
         f.write_all(bytes)?;
@@ -265,6 +266,7 @@ mod tests {
 
     #[test]
     fn credentials_are_private() {
+        #[cfg(unix)]
         use std::os::unix::fs::PermissionsExt as _;
         let dir = tempfile::tempdir().unwrap();
         let layout = Layout {
@@ -279,11 +281,14 @@ mod tests {
             },
         )
         .unwrap();
-        let mode = std::fs::metadata(layout.auth_file())
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o777, 0o600);
+        #[cfg(unix)]
+        {
+            let mode = std::fs::metadata(layout.auth_file())
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
         assert_eq!(load_auth(&layout).unwrap().username, "u");
     }
 
@@ -299,8 +304,16 @@ mod tests {
             PathBuf::from("/games/a/bin/game.exe")
         );
         r.install_path = "/mnt/b".into();
-        assert_eq!(r.to_installed_info().executable, "/mnt/b/bin/game.exe");
-        r.executable = "/abs/start.sh".into();
-        assert_eq!(r.executable_path().unwrap(), PathBuf::from("/abs/start.sh"));
+        assert_eq!(
+            Path::new(&r.to_installed_info().executable),
+            Path::new("/mnt/b/bin/game.exe")
+        );
+        let absolute = if cfg!(windows) {
+            "C:/abs/start.sh"
+        } else {
+            "/abs/start.sh"
+        };
+        r.executable = absolute.into();
+        assert_eq!(r.executable_path().unwrap(), PathBuf::from(absolute));
     }
 }

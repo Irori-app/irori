@@ -119,19 +119,40 @@ pub fn generic_env(
     steam_runtime: Option<&str>,
     host: &HostEnv,
 ) -> EnvMap {
+    generic_env_for(
+        ember_core::HostPlatform::current(),
+        settings,
+        install_path,
+        steam_runtime,
+        host,
+    )
+}
+
+/// Assemble variables for an explicit host (also used by cross-platform tests).
+pub fn generic_env_for(
+    platform: ember_core::HostPlatform,
+    settings: &GameSettings,
+    install_path: Option<&Path>,
+    steam_runtime: Option<&str>,
+    host: &HostEnv,
+) -> EnvMap {
     let mut env = EnvMap::new();
-    if settings.nvidia_prime {
+    if platform == ember_core::HostPlatform::Linux && settings.nvidia_prime {
         env.insert("DRI_PRIME".into(), "1".into());
         env.insert("__NV_PRIME_RENDER_OFFLOAD".into(), "1".into());
         env.insert("__GLX_VENDOR_LIBRARY_NAME".into(), "nvidia".into());
     }
-    if let Some(path) = install_path.filter(|p| !p.as_os_str().is_empty()) {
+    if let Some(path) = install_path
+        .filter(|p| platform == ember_core::HostPlatform::Linux && !p.as_os_str().is_empty())
+    {
         env.insert(
             "STEAM_COMPAT_INSTALL_PATH".into(),
             path.to_string_lossy().into_owned(),
         );
     }
-    if let Some(runtime) = steam_runtime.filter(|r| !r.is_empty()) {
+    if let Some(runtime) =
+        steam_runtime.filter(|r| platform == ember_core::HostPlatform::Linux && !r.is_empty())
+    {
         env.insert("PROTONPATH".into(), runtime.into());
     }
     for var in &settings.environment_options {
@@ -145,7 +166,10 @@ pub fn generic_env(
         .environment_options
         .iter()
         .any(|v| v.key.trim() == "LD_PRELOAD");
-    if !host.contains("LD_PRELOAD") && !user_sets_preload {
+    if platform == ember_core::HostPlatform::Linux
+        && !host.contains("LD_PRELOAD")
+        && !user_sets_preload
+    {
         env.insert("LD_PRELOAD".into(), String::new());
     }
     env
@@ -177,6 +201,43 @@ static OLD_GE: Lazy<Regex> = Lazy::new(|| {
 
 /// Wine/Proton specific variables (Heroic's `setupWineEnvVars`).
 pub fn wine_env(input: &WineEnvInput<'_>) -> EnvMap {
+    wine_env_for(ember_core::HostPlatform::current(), input)
+}
+
+/// Wine settings appropriate to the host; imported Linux settings must not
+/// enable Linux graphics/runtime injection on macOS.
+pub fn wine_env_for(platform: ember_core::HostPlatform, input: &WineEnvInput<'_>) -> EnvMap {
+    if platform == ember_core::HostPlatform::Windows {
+        return EnvMap::new();
+    }
+    if platform == ember_core::HostPlatform::Mac {
+        let gs = input.settings;
+        let mut env = EnvMap::new();
+        if input.wine.kind == WineKind::Crossover {
+            env.insert("CX_BOTTLE".into(), gs.wine_crossover_bottle.clone());
+        } else {
+            env.insert(
+                "WINEPREFIX".into(),
+                input.prefix.to_string_lossy().into_owned(),
+            );
+        }
+        if gs.enable_esync || (gs.enable_msync && input.wine.kind == WineKind::Toolkit) {
+            env.insert("WINEESYNC".into(), "1".into());
+        }
+        if gs.enable_msync {
+            env.insert("WINEMSYNC".into(), "1".into());
+        }
+        if gs.show_fps {
+            env.insert("MTL_HUD_ENABLED".into(), "1".into());
+        }
+        if gs.advertise_avx_for_rosetta {
+            env.insert("ROSETTA_ADVERTISE_AVX".into(), "1".into());
+        }
+        if gs.enable_dxvk_fps_limit && !gs.dxvk_fps_cap.trim().is_empty() {
+            env.insert("DXVK_FRAME_RATE".into(), gs.dxvk_fps_cap.trim().into());
+        }
+        return env;
+    }
     let gs = input.settings;
     let kind = input.wine.kind;
     let proton = kind == WineKind::Proton;
@@ -424,6 +485,60 @@ mod tests {
     }
 
     #[test]
+    fn macos_and_windows_do_not_inherit_linux_runtime_features() {
+        use ember_core::HostPlatform::{Mac, Windows};
+        let settings = GameSettings {
+            nvidia_prime: true,
+            enable_fsync: true,
+            auto_install_dxvk: true,
+            show_fps: true,
+            enable_msync: true,
+            wine_crossover_bottle: "My Games".into(),
+            ..Default::default()
+        };
+        let host = HostEnv::default();
+        let mut wine = wine(Path::new("/Applications/Wine.app"));
+        for platform in [Mac, Windows] {
+            let generic = generic_env_for(
+                platform,
+                &settings,
+                Some(Path::new("/game")),
+                Some("umu-sniper"),
+                &host,
+            );
+            for key in [
+                "DRI_PRIME",
+                "LD_PRELOAD",
+                "PROTONPATH",
+                "STEAM_COMPAT_INSTALL_PATH",
+            ] {
+                assert!(!generic.contains_key(key));
+            }
+            let vars = wine_env_for(platform, &input(&settings, &wine, &host));
+            for key in [
+                "WINEFSYNC",
+                "PROTONPATH",
+                "STEAM_COMPAT_DATA_PATH",
+                "PROTON_EAC_RUNTIME",
+                "LD_LIBRARY_PATH",
+            ] {
+                assert!(!vars.contains_key(key));
+            }
+            if platform == Windows {
+                assert!(vars.is_empty());
+            } else {
+                assert_eq!(vars["WINEPREFIX"], "/pfx");
+                assert_eq!(vars["WINEMSYNC"], "1");
+                assert_eq!(vars["MTL_HUD_ENABLED"], "1");
+            }
+        }
+        wine.kind = WineKind::Crossover;
+        let vars = wine_env_for(Mac, &input(&settings, &wine, &host));
+        assert_eq!(vars["CX_BOTTLE"], "My Games");
+        assert!(!vars.contains_key("WINEPREFIX"));
+    }
+
+    #[test]
     fn quotes() {
         assert_eq!(remove_quote_if_necessary("\"a b\""), "a b");
         assert_eq!(remove_quote_if_necessary("\"\"x\"\""), "x");
@@ -451,7 +566,13 @@ mod tests {
         };
         gs.environment_options = vec![user("FOO", "\"bar baz\""), user(" ", "x")];
         let host = HostEnv::default();
-        let env = generic_env(&gs, Some(Path::new("/games/x")), Some("umu-sniper"), &host);
+        let env = generic_env_for(
+            ember_core::HostPlatform::Linux,
+            &gs,
+            Some(Path::new("/games/x")),
+            Some("umu-sniper"),
+            &host,
+        );
         assert_eq!(env["DRI_PRIME"], "1");
         assert_eq!(env["__NV_PRIME_RENDER_OFFLOAD"], "1");
         assert_eq!(env["__GLX_VENDOR_LIBRARY_NAME"], "nvidia");
@@ -462,9 +583,18 @@ mod tests {
         assert_eq!(env.len(), 7);
 
         let host = HostEnv::from_pairs([("LD_PRELOAD", "/lib/x.so")]);
-        assert!(!generic_env(&gs, None, None, &host).contains_key("LD_PRELOAD"));
+        assert!(
+            !generic_env_for(ember_core::HostPlatform::Linux, &gs, None, None, &host)
+                .contains_key("LD_PRELOAD")
+        );
         gs.environment_options.push(user("LD_PRELOAD", "/my.so"));
-        let env = generic_env(&gs, None, None, &HostEnv::default());
+        let env = generic_env_for(
+            ember_core::HostPlatform::Linux,
+            &gs,
+            None,
+            None,
+            &HostEnv::default(),
+        );
         assert_eq!(env["LD_PRELOAD"], "/my.so");
     }
 
@@ -485,7 +615,7 @@ mod tests {
         };
         let w = proton();
         let host = HostEnv::from_pairs([("SteamAppId", "42")]);
-        let env = wine_env(&input(&gs, &w, &host));
+        let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&gs, &w, &host));
         assert_eq!(
             env["STEAM_COMPAT_CLIENT_INSTALL_PATH"],
             "/home/u/.steam/steam"
@@ -536,7 +666,7 @@ mod tests {
         };
         let w = wine(dir.path());
         let host = HostEnv::from_pairs([("LD_LIBRARY_PATH", "/host")]);
-        let env = wine_env(&input(&gs, &w, &host));
+        let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&gs, &w, &host));
         assert_eq!(env["WINEPREFIX"], "/pfx");
         assert_eq!(env["WineDllOverrides"], "d3d11=n;winemenubuilder.exe=d");
         assert!(!env.contains_key("WINEDLLOVERRIDES"));
@@ -559,7 +689,11 @@ mod tests {
         );
         assert_eq!(
             env["WINEDLLPATH"],
-            format!("{}/wine:{}/wine", lib.display(), lib32.display())
+            format!(
+                "{}:{}",
+                lib.join("wine").display(),
+                lib32.join("wine").display()
+            )
         );
         assert!(
             !env.contains_key("GST_PLUGIN_SYSTEM_PATH_1_0"),
@@ -567,7 +701,7 @@ mod tests {
         );
 
         let plain = GameSettings::default();
-        let env = wine_env(&input(&plain, &w, &host));
+        let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&plain, &w, &host));
         assert_eq!(env["WINEDLLOVERRIDES"], "winemenubuilder.exe=d");
         assert_eq!(env["WINE_FULLSCREEN_FSR"], "0");
         assert!(!env.contains_key("WINE_FULLSCREEN_FSR_STRENGTH"));
@@ -576,7 +710,7 @@ mod tests {
             prefer_system_libs: true,
             ..Default::default()
         };
-        let env = wine_env(&input(&sys, &w, &host));
+        let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&sys, &w, &host));
         assert!(!env.contains_key("LD_LIBRARY_PATH"));
         assert!(!env.contains_key("ORIG_LD_LIBRARY_PATH"));
     }
@@ -590,7 +724,7 @@ mod tests {
         };
         let w = proton();
         let host = HostEnv::default();
-        let env = wine_env(&input(&gs, &w, &host));
+        let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&gs, &w, &host));
         assert_eq!(env["WINE_FULLSCREEN_FSR_STRENGTH"], "2");
         assert_eq!(env["PROTON_DISABLE_NVAPI"], "1");
         assert!(!env.contains_key("DXVK_NVAPI_ALLOW_OTHER_DRIVERS"));
@@ -608,7 +742,7 @@ mod tests {
         ] {
             let mut w = proton();
             w.name = name.into();
-            let env = wine_env(&input(&gs, &w, &host));
+            let env = wine_env_for(ember_core::HostPlatform::Linux, &input(&gs, &w, &host));
             assert_eq!(env.contains_key("SteamVirtualGamepadInfo"), hit, "{name}");
         }
     }
@@ -622,10 +756,16 @@ mod tests {
         let w = proton();
         let host = HostEnv::default();
         let mut env = wrapper_env(&GameId::new(Runner::Gog, "1"));
-        layer(&mut env, generic_env(&gs, None, None, &host));
+        layer(
+            &mut env,
+            generic_env_for(ember_core::HostPlatform::Linux, &gs, None, None, &host),
+        );
         let fixes: EnvMap = [("FIX".to_string(), "fix".to_string())].into();
         layer(&mut env, fixes);
-        layer(&mut env, wine_env(&input(&gs, &w, &host)));
+        layer(
+            &mut env,
+            wine_env_for(ember_core::HostPlatform::Linux, &input(&gs, &w, &host)),
+        );
         assert_eq!(env["WINEPREFIX"], "/pfx");
         assert_eq!(env["FIX"], "fix");
         assert_eq!(env["STORE"], "gog");

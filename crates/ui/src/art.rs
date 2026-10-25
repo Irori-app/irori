@@ -287,6 +287,7 @@ impl ArtStore {
 /// it otherwise; `malloc_trim` walks every arena, so run it off the UI thread.
 fn release_freed_memory(cx: &App) {
     backend(cx).spawn_blocking(|| {
+        #[cfg(all(target_os = "linux", target_env = "gnu"))]
         // SAFETY: malloc_trim only releases free pages; it is thread-safe.
         unsafe {
             libc::malloc_trim(0);

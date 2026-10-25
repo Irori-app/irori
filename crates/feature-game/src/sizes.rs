@@ -191,17 +191,25 @@ pub fn disk_space(path: &Path) -> anyhow::Result<DiskSpace> {
             &[("path", &path.display().to_string())],
         )
     })?;
-    let st = nix::sys::statvfs::statvfs(&dir).with_context(|| {
+    let free = fs4::available_space(&dir).with_context(|| {
         t_args(
             "game.disk.read_failed",
             &[("path", &dir.display().to_string())],
         )
     })?;
-    let frag = st.fragment_size() as u64;
+    let total = fs4::total_space(&dir)?;
+    #[cfg(unix)]
     let writable = nix::unistd::access(&dir, nix::unistd::AccessFlags::W_OK).is_ok();
+    // Windows directory read-only attributes do not represent ACL write access.
+    // Probe creation with a unique, automatically removed file instead.
+    #[cfg(windows)]
+    let writable = tempfile::Builder::new()
+        .prefix(".ember-write-test-")
+        .tempfile_in(&dir)
+        .is_ok();
     Ok(DiskSpace {
-        free: (st.blocks_available() as u64).saturating_mul(frag),
-        total: (st.blocks() as u64).saturating_mul(frag),
+        free,
+        total,
         writable,
     })
 }
@@ -345,6 +353,20 @@ mod tests {
             install_button_label("Install", 3 * 1024 * 1024 * 1024),
             "Install · 3.0 GiB"
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn readonly_directory_attribute_does_not_block_installation() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = std::fs::metadata(dir.path()).unwrap().permissions();
+        let mut readonly = original.clone();
+        readonly.set_readonly(true);
+        std::fs::set_permissions(dir.path(), readonly).unwrap();
+        let result = disk_space(dir.path());
+        std::fs::set_permissions(dir.path(), original).unwrap();
+        assert!(result.unwrap().writable);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
     }
 
     #[test]

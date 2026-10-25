@@ -14,6 +14,8 @@ use crate::onboarding::OnboardingStep;
 use crate::{DownloadsView, OnboardingEvent, OnboardingView, should_show_onboarding};
 
 fn setup(cx: &mut TestAppContext) {
+    // This integration test receives events from the real Tokio backend.
+    cx.executor().allow_parking();
     static PATHS: Once = Once::new();
     PATHS.call_once(|| {
         let dir = tempfile::tempdir().expect("temp dir").keep();

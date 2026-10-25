@@ -139,11 +139,17 @@ fn resolve_command(command: &str, install_dir: &Path) -> String {
 /// `wine <cmd> <args>`, `proton run <cmd> <args>` or `umu-run <cmd> <args>`,
 /// started in the install directory.
 pub fn post_install_command(
-    wine: &WineLaunch,
+    wine: Option<&WineLaunch>,
     env: &BTreeMap<String, String>,
     action: &FuelAction,
     install_dir: &Path,
 ) -> CommandSpec {
+    let Some(wine) = wine else {
+        return CommandSpec::new(resolve_command(&action.command, install_dir))
+            .args(action.args.iter().cloned())
+            .cwd(install_dir)
+            .envs(env.clone());
+    };
     let mut argv: Vec<String> = vec![unquote(&wine.bin)];
     if wine.kind == WineKind::Proton && !wine.uses_umu {
         argv.push("run".into());
@@ -169,7 +175,7 @@ pub fn post_install_command(
                     .or_insert_with(|| dir.to_string_lossy().into_owned());
             }
         }
-    } else {
+    } else if wine.kind != WineKind::Crossover {
         spec.env.entry("WINEPREFIX".into()).or_insert(prefix);
     }
     spec
@@ -268,10 +274,13 @@ mod tests {
             ]
         );
         assert_eq!(spec.cwd.as_deref(), Some(Path::new("/g/Bin")));
-        assert_eq!(spec.env["FUEL_DIR"], "/sdk/Amazon Games Services/Legacy");
         assert_eq!(
-            spec.env["AMAZON_GAMES_SDK_PATH"],
-            "/sdk/Amazon Games Services/AmazonGamesSDK"
+            Path::new(&spec.env["FUEL_DIR"]),
+            Path::new("/sdk/Amazon Games Services/Legacy")
+        );
+        assert_eq!(
+            Path::new(&spec.env["AMAZON_GAMES_SDK_PATH"]),
+            Path::new("/sdk/Amazon Games Services/AmazonGamesSDK")
         );
         assert_eq!(spec.env["AMAZON_GAMES_FUEL_ENTITLEMENT_ID"], "ent-1");
         assert_eq!(spec.env["AMAZON_GAMES_FUEL_PRODUCT_SKU"], "SKU");
@@ -281,14 +290,19 @@ mod tests {
 
         // Executable overrides: launch option, then settings (relative to
         // the install folder).
+        let absolute = if cfg!(windows) {
+            "C:/abs/Other.exe"
+        } else {
+            "/abs/Other.exe"
+        };
         let alt = LaunchOption::AltExe {
-            executable: "/abs/Other.exe".into(),
+            executable: absolute.into(),
         };
         inputs.option = Some(&alt);
         inputs.extra_args = &[];
         inputs.sdk_dir = None;
         let plan = build_launch_plan(&inputs).unwrap();
-        assert_eq!(args(&plan.command)[2], "/abs/Other.exe");
+        assert_eq!(Path::new(&args(&plan.command)[2]), Path::new(absolute));
         assert!(!plan.command.env.contains_key("FUEL_DIR"));
         let settings = GameSettings {
             target_exe: "Tools\\Editor.exe".into(),
@@ -297,15 +311,18 @@ mod tests {
         inputs.settings = &settings;
         inputs.option = None;
         assert_eq!(
-            args(&build_launch_plan(&inputs).unwrap().command)[2],
-            "/g/Tools/Editor.exe"
+            Path::new(&args(&build_launch_plan(&inputs).unwrap().command)[2]),
+            Path::new("/g/Tools/Editor.exe")
         );
 
         let umu = env_with(Some(wine(WineKind::Proton, "/bin/umu-run", true)), vec![]);
         inputs.environment = &umu;
         let plan = build_launch_plan(&inputs).unwrap();
         assert_eq!(plan.command.program, PathBuf::from("/bin/umu-run"));
-        assert_eq!(args(&plan.command)[0], "/g/Tools/Editor.exe");
+        assert_eq!(
+            Path::new(&args(&plan.command)[0]),
+            Path::new("/g/Tools/Editor.exe")
+        );
 
         let none = env_with(None, vec![]);
         inputs.environment = &none;
@@ -324,14 +341,11 @@ mod tests {
         let env = BTreeMap::new();
 
         let proton = wine(WineKind::Proton, "/proton/proton", false);
-        let spec = post_install_command(&proton, &env, &action, dir.path());
+        let spec = post_install_command(Some(&proton), &env, &action, dir.path());
         assert_eq!(spec.program, PathBuf::from("/proton/proton"));
         let a = args(&spec);
         assert_eq!(a[0], "run");
-        assert_eq!(
-            a[1],
-            dir.path().join("__Installer/vc.exe").to_string_lossy()
-        );
+        assert_eq!(Path::new(&a[1]), dir.path().join("__Installer/vc.exe"));
         assert_eq!(a[2], "/quiet");
         assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/prefixes/Foo");
         assert_eq!(spec.cwd.as_deref(), Some(dir.path()));
@@ -341,12 +355,12 @@ mod tests {
             command: "C:\\x.exe".into(),
             args: vec![],
         };
-        let spec = post_install_command(&w, &env, &missing, dir.path());
+        let spec = post_install_command(Some(&w), &env, &missing, dir.path());
         assert_eq!(args(&spec), vec!["C:\\x.exe"]);
         assert_eq!(spec.env["WINEPREFIX"], "/prefixes/Foo");
 
         let umu = wine(WineKind::Proton, "/bin/umu-run", true);
-        let spec = post_install_command(&umu, &env, &missing, dir.path());
+        let spec = post_install_command(Some(&umu), &env, &missing, dir.path());
         assert_eq!(spec.program, PathBuf::from("/bin/umu-run"));
         assert_eq!(spec.env["PROTONPATH"], "/proton/GE");
     }

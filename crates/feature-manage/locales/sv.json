@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Använd webbläsaren i stället",
   "manage.login.window.finishing": "Slutför inloggningen…",
   "manage.wine.title": "Wine-hanterare",
+  "manage.wine.description_macos": "Hämta Wine för Windows-spel eller använd en installerad CrossOver- eller Whisky-miljö.",
   "manage.wine.description": "Ladda ned Proton- och Wine-versioner för Windows-spel och se alla versioner på det här systemet.",
   "manage.wine.description_running_one": "Ladda ned Proton- och Wine-versioner för Windows-spel. 1 installation pågår.",
   "manage.wine.description_running_other": "Ladda ned Proton- och Wine-versioner för Windows-spel. {count} installationer pågår.",

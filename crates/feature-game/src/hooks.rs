@@ -299,13 +299,24 @@ mod tests {
             AnticheatStatus::Denied,
             AnticheatStatus::Unknown,
         ] {
-            assert_eq!(install_gate(Some(&report(s)), &app), InstallGate::Blocked);
+            assert_eq!(
+                install_gate(Some(&report(s)), &app),
+                if cfg!(windows) {
+                    InstallGate::Allowed
+                } else {
+                    InstallGate::Blocked
+                }
+            );
             assert!(s.blocks_multiplayer());
         }
         app.allow_installation_broken_anticheat = true;
         assert_eq!(
             install_gate(Some(&report(AnticheatStatus::Denied)), &app),
-            InstallGate::Confirm
+            if cfg!(windows) {
+                InstallGate::Allowed
+            } else {
+                InstallGate::Confirm
+            }
         );
     }
 }

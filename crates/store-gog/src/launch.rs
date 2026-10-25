@@ -97,6 +97,37 @@ pub fn task_command(
     info: Option<&GameInfoFile>,
     prefer: Option<usize>,
 ) -> Result<TaskCommand> {
+    if platform == InstallPlatform::Mac {
+        let bundle = if install.extension().is_some_and(|e| e == "app") {
+            install.to_path_buf()
+        } else {
+            let mut bundles: Vec<_> = std::fs::read_dir(install)?
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.extension().is_some_and(|e| e == "app"))
+                .collect();
+            bundles.sort();
+            anyhow::ensure!(
+                bundles.len() == 1,
+                "Select the macOS app in the game's alternative executable setting"
+            );
+            bundles.remove(0)
+        };
+        let exe = ember_core::platform::bundle_executable(&bundle)?;
+        let resources = bundle.join("Contents/Resources");
+        let cwd = if resources.is_dir() {
+            resources
+        } else {
+            exe.parent()
+                .context("The app executable has no parent directory")?
+                .to_path_buf()
+        };
+        return Ok(TaskCommand {
+            exe,
+            args: Vec::new(),
+            cwd,
+        });
+    }
     if platform == InstallPlatform::Linux {
         return Ok(TaskCommand {
             exe: install.join("start.sh"),
@@ -115,7 +146,13 @@ pub fn task_command(
         .context("The game's play task has no executable")?
         .replace('\\', "/");
     let args = match &task.arguments {
-        Some(Value::String(s)) => split_args(&s.replace('\\', "/")),
+        Some(Value::String(s)) => {
+            if cfg!(windows) {
+                split_args(s)
+            } else {
+                split_args(&s.replace('\\', "/"))
+            }
+        }
         Some(Value::Array(a)) => a
             .iter()
             .filter_map(|v| v.as_str().map(str::to_string))
@@ -275,7 +312,6 @@ impl GogStore {
         if !bin_dir.is_dir() {
             return Ok(false);
         }
-        let wine = wine.context("REDmod needs Wine or Proton")?;
         let install = rec.path();
         let selected = cfg.mods_to_load.clone();
         let mods =
@@ -293,15 +329,15 @@ impl GogStore {
             args.push(m.clone());
         }
         let exe = bin_dir.join("redMod.exe");
-        let res = wine
-            .run(
-                &exe.to_string_lossy(),
-                &args,
-                Some(&bin_dir),
-                Some(ctx.cancel.clone()),
-                Some(log_file),
-            )
-            .await?;
+        let res = crate::wine::run_windows(
+            wine,
+            &exe.to_string_lossy(),
+            &args,
+            Some(&bin_dir),
+            Some(ctx.cancel.clone()),
+            Some(log_file),
+        )
+        .await?;
         if res.aborted {
             bail!("aborted");
         }
@@ -329,14 +365,18 @@ impl GogStore {
                 install.display()
             );
         }
-        let native = rec.platform != InstallPlatform::Windows;
+        let native = !rec.platform.needs_wine();
         let wine = if native {
+            if rec.platform == ember_core::InstallPlatform::Windows {
+                self.prepare_prefix(&rec, None, &ctx, &request.log_file)
+                    .await?;
+            }
             None
         } else {
             let w = WineContext::from_launch(&request.environment)
                 .context("No Wine or Proton version is set up for this game")?;
             self.remember_wine_context(app_name, &w).await;
-            self.prepare_prefix(&rec, &w, &ctx, &request.log_file)
+            self.prepare_prefix(&rec, Some(&w), &ctx, &request.log_file)
                 .await?;
             Some(w)
         };
@@ -464,9 +504,22 @@ mod tests {
         )
         .unwrap();
         let t = task_command(d.path(), InstallPlatform::Windows, Some(&info), None).unwrap();
-        assert_eq!(t.exe, d.path().join("Bin/x64/Game.exe"));
-        assert_eq!(t.args, ["-path", "C:/a b", "-x"]);
-        assert_eq!(t.cwd, d.path().join("Bin/x64"));
+        assert_eq!(
+            std::fs::canonicalize(t.exe).unwrap(),
+            std::fs::canonicalize(d.path().join("Bin/x64/Game.exe")).unwrap()
+        );
+        assert_eq!(
+            t.args,
+            [
+                "-path",
+                if cfg!(windows) { r"C:\a b" } else { "C:/a b" },
+                "-x"
+            ]
+        );
+        assert_eq!(
+            std::fs::canonicalize(t.cwd).unwrap(),
+            std::fs::canonicalize(d.path().join("Bin/x64")).unwrap()
+        );
         let t = task_command(d.path(), InstallPlatform::Windows, Some(&info), Some(1)).unwrap();
         assert_eq!(t.exe, d.path().join("cfg.exe"));
         assert_eq!(t.args, ["-a", "b c"]);

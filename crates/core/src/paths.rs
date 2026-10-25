@@ -42,12 +42,12 @@ impl Paths {
         if let Some(root) = std::env::var_os("EMBER_HOME") {
             return Paths::under(Path::new(&root));
         }
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+        let home = dirs::home_dir().unwrap_or_else(std::env::temp_dir);
         Paths {
             config: dirs::config_dir()
                 .unwrap_or_else(|| home.join(".config"))
                 .join("ember"),
-            data: dirs::data_dir()
+            data: dirs::data_local_dir()
                 .unwrap_or_else(|| home.join(".local/share"))
                 .join("ember"),
             cache: dirs::cache_dir()

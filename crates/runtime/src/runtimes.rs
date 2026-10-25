@@ -174,6 +174,10 @@ pub async fn download(name: RuntimeName, ctx: &OpContext) -> Result<()> {
 
 /// Download a runtime unless it is installed and current.
 pub async fn ensure(name: RuntimeName, ctx: &OpContext) -> Result<()> {
+    anyhow::ensure!(
+        cfg!(target_os = "linux"),
+        "This runtime is only available on Linux"
+    );
     if is_installed(name).await {
         return Ok(());
     }
@@ -204,6 +208,9 @@ pub fn umu_path() -> PathBuf {
 /// Heroic's `isUmuSupported`: Proton, umu not disabled, and (when
 /// `check_installed`) umu-run present.
 pub fn is_umu_supported(settings: &GameSettings, check_installed: bool) -> bool {
+    if !cfg!(target_os = "linux") {
+        return false;
+    }
     settings.wine_version.kind == WineKind::Proton
         && !settings.disable_umu
         && (!check_installed || umu_path().is_file())
@@ -212,6 +219,7 @@ pub fn is_umu_supported(settings: &GameSettings, check_installed: bool) -> bool 
 /// Make umu-run available: a system or Heroic copy is used as is; Ember's own
 /// copy is downloaded or refreshed from lutris.net. Returns the path to run.
 pub async fn ensure_umu(ctx: &OpContext) -> Result<PathBuf> {
+    anyhow::ensure!(cfg!(target_os = "linux"), "umu is only supported on Linux");
     let path = umu_path();
     if path != locations::default_umu_path() && path.is_file() {
         return Ok(path);
@@ -263,7 +271,7 @@ mod tests {
     fn umu_support_rules() {
         let mut gs = GameSettings::default();
         gs.wine_version.kind = WineKind::Proton;
-        assert!(is_umu_supported(&gs, false));
+        assert_eq!(is_umu_supported(&gs, false), cfg!(target_os = "linux"));
         gs.disable_umu = true;
         assert!(!is_umu_supported(&gs, false));
         gs.disable_umu = false;

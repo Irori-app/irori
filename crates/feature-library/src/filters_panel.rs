@@ -194,7 +194,7 @@ impl Render for FiltersPanel {
             .collect();
         let muted = cx.theme().muted_foreground;
 
-        let platforms: [(Option<InstallPlatform>, SharedString); 4] = [
+        let platforms: [(Option<InstallPlatform>, SharedString); 5] = [
             (None, t("library.filters.platform.any")),
             (
                 Some(InstallPlatform::Windows),
@@ -203,6 +203,10 @@ impl Render for FiltersPanel {
             (
                 Some(InstallPlatform::Linux),
                 InstallPlatform::Linux.label().into(),
+            ),
+            (
+                Some(InstallPlatform::Mac),
+                InstallPlatform::Mac.label().into(),
             ),
             (
                 Some(InstallPlatform::Browser),

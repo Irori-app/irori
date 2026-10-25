@@ -64,6 +64,9 @@ pub fn steam_path(app: &AppSettings) -> PathBuf {
             return p;
         }
     }
+    if !cfg!(target_os = "linux") {
+        return ember_core::platform::steam_dir();
+    }
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
     let candidates = [
         home.join(".var/app/com.valvesoftware.Steam/.steam/steam"),
@@ -116,18 +119,30 @@ pub async fn is_running(steam: &Path) -> bool {
     if std::env::var("XDG_CURRENT_DESKTOP").as_deref() == Ok("gamescope") {
         return true;
     }
+    let system = tokio::task::spawn_blocking(|| {
+        sysinfo::System::new_with_specifics(
+            sysinfo::RefreshKind::nothing().with_processes(sysinfo::ProcessRefreshKind::nothing()),
+        )
+    })
+    .await
+    .unwrap_or_default();
     for pid_file in [steam.join("../steam.pid"), steam.join("steam.pid")] {
         let Ok(text) = tokio::fs::read_to_string(&pid_file).await else {
             continue;
         };
         if let Ok(pid) = text.trim().parse::<u32>()
             && pid > 0
-            && Path::new("/proc").join(pid.to_string()).exists()
+            && system.process(sysinfo::Pid::from_u32(pid)).is_some()
         {
             return true;
         }
     }
-    false
+    system.processes().values().any(|p| {
+        matches!(
+            p.name().to_string_lossy().to_ascii_lowercase().as_str(),
+            "steam" | "steam.exe" | "steam_osx"
+        )
+    })
 }
 
 /// `Exe`, `StartDir` and `LaunchOptions` of Ember's shortcut for a game.

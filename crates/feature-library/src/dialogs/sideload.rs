@@ -41,17 +41,28 @@ use gpui_kit::{
 use super::steamgrid::{ArtKind, ArtPicker, ArtPickerEvent};
 use super::{dialog_width, optional_text, pick_path, text};
 
-const PLATFORMS: [SideloadPlatform; 3] = [
-    SideloadPlatform::Windows,
-    SideloadPlatform::Linux,
-    SideloadPlatform::Browser,
-];
+const PLATFORMS: &[SideloadPlatform] = if cfg!(target_os = "macos") {
+    &[
+        SideloadPlatform::Mac,
+        SideloadPlatform::Windows,
+        SideloadPlatform::Browser,
+    ]
+} else if cfg!(windows) {
+    &[SideloadPlatform::Windows, SideloadPlatform::Browser]
+} else {
+    &[
+        SideloadPlatform::Windows,
+        SideloadPlatform::Linux,
+        SideloadPlatform::Browser,
+    ]
+};
 
 /// Name of a platform choice; operating systems keep their own names.
 fn platform_label(platform: SideloadPlatform) -> SharedString {
     match platform {
         SideloadPlatform::Windows => "Windows".into(),
         SideloadPlatform::Linux => "Linux".into(),
+        SideloadPlatform::Mac => "macOS".into(),
         SideloadPlatform::Browser => t("library.sideload.platform.web"),
     }
 }

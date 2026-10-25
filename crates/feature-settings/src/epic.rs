@@ -376,6 +376,14 @@ impl Render for EosOverlayPanel {
     }
 }
 
+fn egl_path_hint() -> SharedString {
+    if cfg!(windows) {
+        r"C:\ProgramData\Epic\EpicGamesLauncher\Data".into()
+    } else {
+        t("settings.egl.prefix_placeholder")
+    }
+}
+
 /// Validate the prefix typed for EGL sync: the expanded path, or why it
 /// can't be used.
 pub(crate) fn egl_prefix_from_text(text: &str) -> Result<PathBuf, String> {
@@ -401,7 +409,7 @@ impl EglSyncPanel {
         let linked = backend(cx).settings.app().egs_linked_path.clone();
         let input = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder(t("settings.egl.prefix_placeholder"))
+                .placeholder(egl_path_hint())
                 .default_value(linked)
         });
         let settings = models(cx).settings.clone();
@@ -530,7 +538,7 @@ impl Render for EglSyncPanel {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.language.changed() {
             cx.defer_in(window, |this, window, cx| {
-                let placeholder = t("settings.egl.prefix_placeholder");
+                let placeholder = egl_path_hint();
                 this.input
                     .update(cx, |s, cx| s.set_placeholder(placeholder, window, cx));
             });

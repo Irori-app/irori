@@ -242,7 +242,7 @@ mod tests {
             wrapper_options: vec![
                 Wrapper {
                     exe: "strace".into(),
-                    args: "-f -o '/tmp/a b'".into(),
+                    args: r#"-f -o "/tmp/a b""#.into(),
                 },
                 Wrapper {
                     exe: " ".into(),

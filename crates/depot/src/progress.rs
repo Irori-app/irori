@@ -54,6 +54,7 @@ pub(crate) struct Stats {
     pub failures: AtomicU64,
     /// Requests waiting out a failure right now.
     pub backing_off: AtomicU64,
+    pub throttling: AtomicU64,
     /// Microseconds writers waited for downloaded data, and spent writing.
     pub net_wait_us: AtomicU64,
     pub disk_wait_us: AtomicU64,

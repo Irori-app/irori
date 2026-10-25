@@ -1,8 +1,8 @@
 # Ember
 
-A fast, native game launcher for Linux. Ember plays your **Epic Games**, **GOG**,
+A fast, native game launcher for Linux, macOS and Windows. Ember plays your **Epic Games**, **GOG**,
 **Amazon Games** and **ZOOM Platform** libraries plus any game you add yourself, running
-Windows games through Wine, Proton or umu.
+Windows games natively on Windows, through Wine/Proton/umu on Linux, and through macOS Wine, CrossOver or Game Porting Toolkit on macOS.
 
 Ember is written in Rust with [GPUI](https://www.gpui.rs) and
 [GPUI Kit](https://gpui-kit.com). It is a new application, built from scratch to
@@ -41,7 +41,7 @@ thumbnails and held in an LRU GPU cache; every long list is virtualized.
 
 ## Building
 
-Requirements: Rust 1.85+, and the usual GPUI system libraries (Vulkan, Wayland, X11/xcb,
+Requirements: Rust 1.95+. See [platform support and packaging](docs/PLATFORMS.md) for macOS and Windows. Linux needs the usual GPUI system libraries (Vulkan, Wayland, X11/xcb,
 xkbcommon, fontconfig, freetype). The sign-in window (`cargo build -p ember-sign-in`)
 also needs WebKitGTK 4.1 (`webkit2gtk4.1-devel` on Fedora, `libwebkit2gtk-4.1-dev` on
 Debian/Ubuntu); Ember runs without it. Store downloads, updates and cloud saves are
@@ -80,12 +80,12 @@ packaging/install.sh
 ## Notes
 
 - Store logins open in Ember's sign-in window (`ember-sign-in`, a small helper process
-  using WebKitGTK) and finish on their own: Ember never needs anything copied. Without
+  using WebKitGTK on Linux, WKWebView on macOS, and WebView2 on Windows) and finish on their own: Ember never needs anything copied. Without
   the helper, or with "Use the browser instead", the page opens in your browser and Ember
   watches the clipboard for the code or redirect URL.
 - Discord Rich Presence needs a Discord application ID (Settings → General → Integrations).
-- Data lives in `~/.config/ember`, `~/.local/share/ember` and `~/.cache/ember`;
-  `EMBER_HOME` relocates all of it.
+- Data uses each operating system’s application-data and cache directories;
+  `EMBER_HOME` relocates all of it. See [platform paths](docs/PLATFORMS.md#paths-and-desktop-behavior).
 
 ## License
 

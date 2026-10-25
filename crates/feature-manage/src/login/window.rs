@@ -10,7 +10,11 @@ use ember_core::process::CancellationToken;
 use tokio::io::AsyncReadExt as _;
 
 /// The helper's file name.
-const HELPER: &str = "ember-sign-in";
+const HELPER: &str = if cfg!(windows) {
+    "ember-sign-in.exe"
+} else {
+    "ember-sign-in"
+};
 /// The helper's exit status when its window was closed without signing in.
 const CLOSED: i32 = 2;
 

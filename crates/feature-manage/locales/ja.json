@@ -131,6 +131,7 @@
   "manage.login.use_browser": "代わりにブラウザーを使う",
   "manage.login.window.finishing": "サインインを完了しています…",
   "manage.wine.title": "Wine マネージャー",
+  "manage.wine.description_macos": "Windows ゲーム用の Wine をダウンロードするか、インストール済みの CrossOver または Whisky を使用します。",
   "manage.wine.description": "Windows ゲーム用の Proton と Wine のビルドをダウンロードし、このシステムにあるすべてのビルドを確認できます。",
   "manage.wine.description_running_one": "Windows ゲーム用の Proton と Wine のビルドをダウンロードします。1 件をインストール中です。",
   "manage.wine.description_running_other": "Windows ゲーム用の Proton と Wine のビルドをダウンロードします。{count} 件をインストール中です。",

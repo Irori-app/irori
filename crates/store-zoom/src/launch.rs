@@ -69,7 +69,7 @@ pub fn build_plan(
         let windows_exe = exe
             .extension()
             .is_some_and(|e| e.eq_ignore_ascii_case("exe") || e.eq_ignore_ascii_case("bat"));
-        if record.platform.needs_wine() || windows_exe {
+        if record.platform.needs_wine() || (windows_exe && !cfg!(windows)) {
             wine_command(request, title, &exe, &cwd, args)?
         } else {
             ensure_executable(&exe);
@@ -159,6 +159,10 @@ fn dosbox_command(
     }
 }
 
+#[cfg(not(unix))]
+fn ensure_executable(_path: &Path) {}
+
+#[cfg(unix)]
 fn ensure_executable(path: &Path) {
     use std::os::unix::fs::PermissionsExt as _;
     if let Ok(meta) = std::fs::metadata(path) {
@@ -251,16 +255,19 @@ mod tests {
     }
 
     #[test]
-    fn windows_launch_goes_through_wine() {
+    fn windows_launch_uses_the_host_execution_path() {
         let (d, mut rec) = install(&["bin/Game.exe", "Other.exe"]);
         rec.executable = "bin/Game.exe".into();
         rec.platform = InstallPlatform::Windows;
         let plan = build_plan(&rec, "G", &request(Some(proton())), None).unwrap();
         let a = args(&plan.command);
-        assert_eq!(a[0], "/p/proton");
-        assert_eq!(a[1], "waitforexitandrun");
-        assert_eq!(a[2], d.path().join("bin/Game.exe").to_string_lossy());
-        assert!(plan.track_wineserver);
+        let exe_index = if cfg!(windows) { 0 } else { 2 };
+        if !cfg!(windows) {
+            assert_eq!(a[0], "/p/proton");
+            assert_eq!(a[1], "waitforexitandrun");
+        }
+        assert_eq!(Path::new(&a[exe_index]), d.path().join("bin/Game.exe"));
+        assert_eq!(plan.track_wineserver, !cfg!(windows));
 
         let mut req = request(Some(proton()));
         req.option = Some(LaunchOption::AltExe {
@@ -268,12 +275,16 @@ mod tests {
         });
         let plan = build_plan(&rec, "G", &req, None).unwrap();
         assert_eq!(
-            args(&plan.command)[2],
+            args(&plan.command)[exe_index],
             d.path().join("Other.exe").to_string_lossy()
         );
 
-        let err = build_plan(&rec, "G", &request(None), None).unwrap_err();
-        assert!(err.to_string().contains("Wine"));
+        let native = build_plan(&rec, "G", &request(None), None);
+        if cfg!(windows) {
+            assert!(!native.unwrap().track_wineserver);
+        } else {
+            assert!(native.unwrap_err().to_string().contains("Wine"));
+        }
     }
 
     #[test]

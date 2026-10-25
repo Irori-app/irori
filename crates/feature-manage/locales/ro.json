@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Folosește browserul",
   "manage.login.window.finishing": "Se finalizează autentificarea…",
   "manage.wine.title": "Manager Wine",
+  "manage.wine.description_macos": "Descarcă Wine pentru jocuri Windows sau folosește o instalare existentă de CrossOver ori Whisky.",
   "manage.wine.description": "Descarcă versiuni Proton și Wine pentru jocurile Windows și vezi toate versiunile de pe acest sistem.",
   "manage.wine.description_running_one": "Descarcă versiuni Proton și Wine pentru jocurile Windows. 1 instalare în curs.",
   "manage.wine.description_running_other": "Descarcă versiuni Proton și Wine pentru jocurile Windows. Instalări în curs: {count}.",

@@ -3,6 +3,7 @@ name = "ember-gog-api"
 description = "GOG protocol client: accounts, content system builds, depots, Linux installers, redistributables and cloud saves"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 

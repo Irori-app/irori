@@ -3,6 +3,7 @@ name = "ember-manage"
 description = "Ember management screens: downloads, Wine manager, store accounts and login, store links and deals, first-run onboarding"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 

@@ -197,6 +197,7 @@ mod tests {
         std::fs::create_dir_all(d.path().join("a/b")).unwrap();
         std::fs::write(d.path().join("a/b/x"), [0u8; 10]).unwrap();
         std::fs::write(d.path().join("y"), [0u8; 5]).unwrap();
+        #[cfg(unix)]
         std::os::unix::fs::symlink(d.path().join("y"), d.path().join("z")).unwrap();
         assert_eq!(dir_size(d.path()), 15);
     }

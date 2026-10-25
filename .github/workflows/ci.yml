@@ -2,26 +2,99 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+          - os: macos-15
+            platform: macos
+          - os: macos-15-intel
+            platform: macos
+          - os: windows-2022
+            platform: windows
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: System libraries
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
             libvulkan-dev libfontconfig-dev libfreetype-dev libxcb1-dev libx11-xcb-dev \
-            libudev-dev libssl-dev pkg-config
+            libudev-dev libssl-dev pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev xvfb
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: native-ci-profile-v1
+          cache-on-failure: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Packaging regression tests
+        run: python -m unittest discover -s packaging -p "test_*.py"
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+      - run: cargo clippy --locked --workspace --all-targets --profile ci -- -D warnings
+      - name: Tests (Linux display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a cargo test --locked --workspace --no-fail-fast --profile ci
+      - name: Tests
+        if: runner.os != 'Linux'
+        run: cargo test --locked --workspace --no-fail-fast --profile ci
+      - name: Build desktop and sign-in helper
+        run: cargo build --locked --profile ci -p ember -p ember-sign-in
+      - name: Package native application
+        run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/ci --output dist
+      - name: Verify per-user Windows installation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $destination = Join-Path $env:RUNNER_TEMP 'Ember installation test'
+          & ./dist/Ember/install.ps1 -Destination $destination
+          foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+            if (!(Test-Path -LiteralPath (Join-Path $destination $name))) {
+              throw "Missing installed file: $name"
+            }
+          }
+          $exe = Join-Path $destination 'ember.exe'
+          $versionOutput = Join-Path $env:RUNNER_TEMP 'ember-version.txt'
+          $process = Start-Process -FilePath $exe -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $versionOutput
+          if ($process.ExitCode -ne 0 -or (Get-Content $versionOutput -Raw) -notmatch '^ember [0-9]+\.[0-9]+\.[0-9]+') {
+            throw 'Installed Ember failed to start'
+          }
+          $helper = Join-Path $destination 'ember-sign-in.exe'
+          $helperError = Join-Path $env:RUNNER_TEMP 'ember-helper-error.txt'
+          $process = Start-Process -FilePath $helper -ArgumentList '--unsupported' -Wait -PassThru -RedirectStandardError $helperError
+          if ($process.ExitCode -ne 1 -or (Get-Content $helperError -Raw) -notmatch 'unknown argument --unsupported') {
+            throw 'Installed sign-in helper failed to load'
+          }
+          $command = (Get-Item 'HKCU:\Software\Classes\ember\shell\open\command').GetValue('')
+          if ($command -ne ('"' + $exe + '" "%1"')) { throw 'Invalid URL handler' }
+          $menu = [Environment]::GetFolderPath('Programs')
+          $shell = New-Object -ComObject WScript.Shell
+          $link = $shell.CreateShortcut((Join-Path $menu 'Ember.lnk'))
+          if ($link.TargetPath -ne $exe) { throw 'Invalid Start menu shortcut' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ember-${{ matrix.os }}-unsigned
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error

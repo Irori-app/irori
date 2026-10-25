@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Stattdessen den Browser verwenden",
   "manage.login.window.finishing": "Anmeldung wird abgeschlossen…",
   "manage.wine.title": "Wine-Manager",
+  "manage.wine.description_macos": "Lade Wine für Windows-Spiele herunter oder verwende eine installierte CrossOver- oder Whisky-Laufzeit.",
   "manage.wine.description": "Lade Proton- und Wine-Builds für Windows-Spiele herunter und sieh dir alle Builds auf diesem System an.",
   "manage.wine.description_running_one": "Lade Proton- und Wine-Builds für Windows-Spiele herunter. 1 Installation läuft.",
   "manage.wine.description_running_other": "Lade Proton- und Wine-Builds für Windows-Spiele herunter. {count} Installationen laufen.",

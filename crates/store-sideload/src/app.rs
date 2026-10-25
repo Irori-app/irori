@@ -17,6 +17,8 @@ pub enum SideloadPlatform {
     Windows,
     /// A native Linux executable or script.
     Linux,
+    /// A macOS executable or application bundle.
+    Mac,
     /// A web app opened by URL.
     Browser,
 }
@@ -26,6 +28,7 @@ impl SideloadPlatform {
         match self {
             SideloadPlatform::Windows => InstallPlatform::Windows,
             SideloadPlatform::Linux => InstallPlatform::Linux,
+            SideloadPlatform::Mac => InstallPlatform::Mac,
             SideloadPlatform::Browser => InstallPlatform::Browser,
         }
     }
@@ -36,7 +39,7 @@ impl SideloadPlatform {
             InstallPlatform::Windows => Some(SideloadPlatform::Windows),
             InstallPlatform::Linux => Some(SideloadPlatform::Linux),
             InstallPlatform::Browser => Some(SideloadPlatform::Browser),
-            InstallPlatform::Mac => None,
+            InstallPlatform::Mac => Some(SideloadPlatform::Mac),
         }
     }
 }
@@ -76,7 +79,13 @@ impl SideloadApp {
         self.install_folder.clone().or_else(|| {
             self.executable
                 .as_deref()
-                .and_then(Path::parent)
+                .and_then(|p| {
+                    if p.extension().is_some_and(|e| e == "app") {
+                        Some(p)
+                    } else {
+                        p.parent()
+                    }
+                })
                 .filter(|p| !p.as_os_str().is_empty())
                 .map(Path::to_path_buf)
         })
@@ -103,7 +112,7 @@ impl SideloadApp {
                 self.executable = None;
                 self.install_folder = None;
             }
-            SideloadPlatform::Windows | SideloadPlatform::Linux => {
+            SideloadPlatform::Windows | SideloadPlatform::Linux | SideloadPlatform::Mac => {
                 let exe = self
                     .executable
                     .filter(|p| !p.as_os_str().is_empty())
@@ -177,6 +186,7 @@ impl StoredApp {
                 .and_then(Path::file_name)
                 .map(|n| n.to_string_lossy().into_owned()),
             is_linux_native: app.platform == SideloadPlatform::Linux,
+            is_mac_native: app.platform == SideloadPlatform::Mac,
             platforms: vec![platform],
             browser_url: app.browser_url.clone(),
             custom_user_agent: app.custom_user_agent.clone(),
@@ -249,15 +259,23 @@ fn absolute(path: &Path, what: &str) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
+    fn absolute(path: &str) -> String {
+        if cfg!(windows) {
+            format!("C:{path}")
+        } else {
+            path.to_owned()
+        }
+    }
+
     fn windows_app() -> SideloadApp {
         SideloadApp {
             title: "  Game  ".into(),
-            executable: Some("/games/Game/game.exe".into()),
+            executable: Some(absolute("/games/Game/game.exe").into()),
             platform: SideloadPlatform::Windows,
             browser_url: Some("example.com".into()),
             custom_user_agent: Some("UA".into()),
             launch_fullscreen: true,
-            cover_art: Some("/art/cover.png".into()),
+            cover_art: Some(absolute("/art/cover.png")),
             background_art: Some(" ".into()),
             ..Default::default()
         }
@@ -283,7 +301,10 @@ mod tests {
         assert!(app.custom_user_agent.is_none());
         assert!(!app.launch_fullscreen);
         assert!(app.background_art.is_none());
-        assert_eq!(app.install_dir(), Some(PathBuf::from("/games/Game")));
+        assert_eq!(
+            app.install_dir(),
+            Some(PathBuf::from(absolute("/games/Game")))
+        );
 
         let mut relative = windows_app();
         relative.executable = Some("game.exe".into());
@@ -328,7 +349,14 @@ mod tests {
 
     #[test]
     fn art_paths_become_file_urls() {
-        assert_eq!(art_url("/a b/c.png"), "file:///a%20b/c.png");
+        assert_eq!(
+            art_url(&absolute("/a b/c.png")),
+            if cfg!(windows) {
+                "file:///C:/a%20b/c.png"
+            } else {
+                "file:///a%20b/c.png"
+            }
+        );
         assert_eq!(art_url("https://x/y.jpg"), "https://x/y.jpg");
         assert_eq!(art_url("file:///z.png"), "file:///z.png");
     }
@@ -345,12 +373,22 @@ mod tests {
         assert_eq!(g.sort_title, "game");
         assert!(g.is_installed);
         assert!(g.can_run_offline);
-        assert_eq!(g.art_cover.as_deref(), Some("file:///art/cover.png"));
+        assert_eq!(
+            g.art_cover.as_deref(),
+            Some(if cfg!(windows) {
+                "file:///C:/art/cover.png"
+            } else {
+                "file:///art/cover.png"
+            })
+        );
         assert!(g.art_square.is_none());
         assert_eq!(g.folder_name.as_deref(), Some("Game"));
         let install = g.install.unwrap();
-        assert_eq!(install.executable, "/games/Game/game.exe");
-        assert_eq!(install.install_path, "/games/Game");
+        assert_eq!(install.executable, absolute("/games/Game/game.exe"));
+        assert_eq!(
+            Path::new(&install.install_path),
+            Path::new(&absolute("/games/Game"))
+        );
         assert_eq!(install.platform, InstallPlatform::Windows);
 
         let web = StoredApp {

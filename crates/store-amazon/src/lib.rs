@@ -312,11 +312,13 @@ impl AmazonStore {
         game: &GameInfo,
         install_dir: &Path,
         fuel: &ember_amazon_api::fuel::Fuel,
-        wine: &WineLaunch,
+        wine: Option<&WineLaunch>,
         request: &LaunchRequest,
         ctx: &OpContext,
     ) -> Result<()> {
-        let list_file = launch::prefix_games_file(&wine.prefix);
+        let list_file = wine
+            .map(|w| launch::prefix_games_file(&w.prefix))
+            .unwrap_or_else(|| install_dir.join(".ember-installed-games.json"));
         let mut done: Vec<String> = match tokio::fs::read(&list_file).await {
             Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
             Err(_) => Vec::new(),
@@ -332,6 +334,7 @@ impl AmazonStore {
             );
             (ctx.step)("Installing dependencies (Amazon)");
             let env = launch_env(&request.environment, &game.app_name);
+            let mut succeeded = true;
             for action in &fuel.post_install {
                 let spec = post_install_command(wine, &env, action, install_dir);
                 let opts = RunOptions::default()
@@ -339,21 +342,32 @@ impl AmazonStore {
                     .log_file(request.log_file.clone());
                 match process::run(&spec, opts).await {
                     Ok(r) if r.aborted => bail!("Launch canceled"),
-                    Ok(r) if !r.success() => tracing::warn!(
-                        "post-install step {} of {} exited with {:?}",
-                        action.command,
-                        game.title,
-                        r.code
-                    ),
-                    Err(e) => tracing::warn!("post-install step of {}: {e:#}", game.title),
+                    Ok(r) if !r.success() => {
+                        succeeded = false;
+                        tracing::warn!(
+                            "post-install step {} of {} exited with {:?}",
+                            action.command,
+                            game.title,
+                            r.code
+                        );
+                    }
+                    Err(e) => {
+                        succeeded = false;
+                        tracing::warn!("post-install step of {}: {e:#}", game.title);
+                    }
                     Ok(_) => {}
                 }
+            }
+            if !succeeded {
+                return Ok(());
             }
         }
 
         done.push(game.app_name.clone());
         if let Err(e) = async {
-            tokio::fs::create_dir_all(&wine.prefix).await?;
+            if let Some(parent) = list_file.parent() {
+                tokio::fs::create_dir_all(parent).await?;
+            }
             tokio::fs::write(&list_file, serde_json::to_vec(&done)?).await?;
             anyhow::Ok(())
         }
@@ -775,10 +789,15 @@ impl Store for AmazonStore {
         } else {
             self.ensure_sdk(&ctx).await
         };
-        if let Some(wine) = &request.environment.wine {
-            self.post_install_once(&game, &dir, &fuel, wine, request, &ctx)
-                .await?;
-        }
+        self.post_install_once(
+            &game,
+            &dir,
+            &fuel,
+            request.environment.wine.as_ref(),
+            request,
+            &ctx,
+        )
+        .await?;
         let ent = self.state.read().entitlements.get(app_name).cloned();
         let display_name = self.user().map(|u| u.display_name).unwrap_or_default();
         build_launch_plan(&LaunchInputs {

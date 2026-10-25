@@ -166,6 +166,9 @@ async fn desktop_target(dir: &Path, game: &GameInfo) -> PathBuf {
 
 async fn write_entry(path: &Path, content: &str, executable: bool) -> Result<()> {
     util::write_atomic(path, content.as_bytes()).await?;
+    #[cfg(not(unix))]
+    let _ = executable;
+    #[cfg(unix)]
     if executable {
         use std::os::unix::fs::PermissionsExt as _;
         tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755))

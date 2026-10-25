@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Použít raději prohlížeč",
   "manage.login.window.finishing": "Dokončování přihlášení…",
   "manage.wine.title": "Správce Wine",
+  "manage.wine.description_macos": "Stáhněte Wine pro hry pro Windows nebo použijte nainstalovaný CrossOver či Whisky.",
   "manage.wine.description": "Stahujte sestavení Proton a Wine pro hry z Windows a prohlédněte si všechna sestavení v tomto systému.",
   "manage.wine.description_running_one": "Stahujte sestavení Proton a Wine pro hry z Windows. Probíhá 1 instalace.",
   "manage.wine.description_running_other": "Stahujte sestavení Proton a Wine pro hry z Windows. Probíhající instalace: {count}.",

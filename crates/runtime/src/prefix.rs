@@ -50,9 +50,9 @@ impl WineContext {
         }
     }
 
-    /// The real Wine prefix (`<prefix>/pfx` for Proton).
+    /// The real Wine prefix (`<prefix>/pfx` for direct Proton, flat for UMU).
     pub fn wine_prefix_dir(&self) -> PathBuf {
-        if self.is_proton() {
+        if self.is_proton() && !self.uses_umu {
             self.prefix.join("pfx")
         } else {
             self.prefix.clone()
@@ -75,6 +75,8 @@ pub struct WineCommand {
     /// Identifier for `SteamGameId` (`heroic-<id>`).
     pub game_id: String,
     pub skip_prefix_check: bool,
+    /// Unattended base-prefix creation; optional add-ons are installed per game.
+    pub initialize_prefix: bool,
     /// Start the process and return immediately.
     pub detach: bool,
 }
@@ -94,6 +96,7 @@ impl WineCommand {
             install_path: None,
             game_id: "0".into(),
             skip_prefix_check: false,
+            initialize_prefix: false,
             detach: false,
         }
     }
@@ -125,9 +128,9 @@ pub fn wine_env_for(
 }
 
 /// Files that must exist in an initialised prefix of this kind.
-fn required_files(kind: WineKind) -> &'static [&'static str] {
-    match kind {
-        WineKind::Proton => &[
+fn required_files(wc: &WineContext) -> &'static [&'static str] {
+    match (wc.wine.kind, wc.uses_umu) {
+        (WineKind::Proton, false) => &[
             "pfx.lock",
             "tracked_files",
             "version",
@@ -148,10 +151,13 @@ fn required_files(kind: WineKind) -> &'static [&'static str] {
     }
 }
 
+const BOOTSTRAP_MARKER: &str = ".ember-prefix-incomplete";
+
 /// Whether the prefix looks complete for this build.
 pub fn prefix_complete(wc: &WineContext) -> bool {
     wc.prefix.is_dir()
-        && required_files(wc.wine.kind)
+        && !wc.prefix.join(BOOTSTRAP_MARKER).exists()
+        && required_files(wc)
             .iter()
             .all(|f| wc.prefix.join(f).exists())
 }
@@ -241,7 +247,17 @@ pub fn wine_spec(
         &mut vars,
         wine_env_for(app, settings, wc, &cmd.game_id, host),
     );
-    vars.insert("PROTON_VERB".into(), cmd.verb.into());
+    if cmd.initialize_prefix && cfg!(target_os = "macos") {
+        let value = bootstrap_overrides(
+            vars.get("WINEDLLOVERRIDES")
+                .map(String::as_str)
+                .unwrap_or(""),
+        );
+        vars.insert("WINEDLLOVERRIDES".into(), value);
+    }
+    if wc.is_proton() {
+        vars.insert("PROTON_VERB".into(), cmd.verb.into());
+    }
     if wc.uses_umu {
         vars.entry("GAMEID".into())
             .or_insert_with(|| "umu-0".into());
@@ -258,10 +274,35 @@ pub fn wine_spec(
     spec
 }
 
+/// Wine's optional Mono/Gecko downloader is interactive and some older builds
+/// point at stale download endpoints. Disable those DLLs only for initial
+/// wineboot, without persisting overrides or weakening add-on checksum checks.
+fn bootstrap_overrides(existing: &str) -> String {
+    let mut parts = Vec::new();
+    for entry in existing.split(';').filter(|s| !s.trim().is_empty()) {
+        let Some((names, order)) = entry.split_once('=') else {
+            parts.push(entry.to_owned());
+            continue;
+        };
+        let names: Vec<_> = names
+            .split(',')
+            .filter(|name| {
+                let name = name.trim().to_ascii_lowercase();
+                !matches!(name.trim_end_matches(".dll"), "mscoree" | "mshtml")
+            })
+            .collect();
+        if !names.is_empty() {
+            parts.push(format!("{}={order}", names.join(",")));
+        }
+    }
+    parts.push("mscoree,mshtml=d".into());
+    parts.join(";")
+}
+
 /// Wait for the prefix's wineserver (Wine builds only; Proton manages its
 /// own).
 async fn wait_wineserver(wc: &WineContext, env: &EnvMap) {
-    if wc.wine.kind != WineKind::Wine {
+    if wc.wine.kind == WineKind::Proton {
         return;
     }
     let Some(server) = wc.wine.wineserver.as_deref().filter(|s| !s.is_empty()) else {
@@ -294,10 +335,12 @@ pub async fn verify_prefix(
             .await
             .with_context(|| format!("creating {}", wc.prefix.display()))?;
     }
-    let system_reg = wc.wine_prefix_dir().join("system.reg");
-    if system_reg.exists() {
+    if prefix_complete(wc) {
         return Ok(false);
     }
+    let marker = wc.prefix.join(BOOTSTRAP_MARKER);
+    tokio::fs::create_dir_all(&wc.prefix).await?;
+    tokio::fs::write(&marker, b"initializing").await?;
     (ctx.step)("Creating Wine prefix");
     let argv: Vec<&str> = if wc.uses_umu {
         vec!["createprefix"]
@@ -307,19 +350,27 @@ pub async fn verify_prefix(
     let mut cmd = WineCommand::new(argv);
     cmd.wait = true;
     cmd.skip_prefix_check = true;
+    cmd.initialize_prefix = true;
     let res = run_wine(app, settings, wc, cmd, ctx)
         .await
         .context("Unable to create Wineprefix")?;
     if res.aborted {
         return Err(crate::download::Cancelled.into());
     }
-    if !system_reg.exists() {
+    if !res.success()
+        || !required_files(wc)
+            .iter()
+            .all(|f| wc.prefix.join(f).exists())
+    {
         bail!(
             "Unable to create Wineprefix at {}: {}",
             wc.prefix.display(),
             res.error_summary()
         );
     }
+    tokio::fs::remove_file(&marker)
+        .await
+        .context("Could not finish prefix initialization")?;
     tracing::info!("Created Wineprefix at {}", wc.prefix.display());
     Ok(true)
 }
@@ -406,15 +457,24 @@ fn server_for(wine: &WineInstallation, prefix: &Path) -> (Option<PathBuf>, PathB
     }
 }
 
+fn server_command(server: PathBuf, kind: WineKind, prefix: &Path) -> CommandSpec {
+    if kind == WineKind::Crossover {
+        CommandSpec::new(server).env(
+            "CX_BOTTLE",
+            prefix.file_name().unwrap_or_default().to_string_lossy(),
+        )
+    } else {
+        CommandSpec::new(server).env("WINEPREFIX", prefix.to_string_lossy())
+    }
+}
+
 /// Kill every process of a prefix (`wineserver -k`).
 pub async fn kill(wine: &WineInstallation, prefix: &Path) -> Result<()> {
     let (server, real_prefix) = server_for(wine, prefix);
     let Some(server) = server else {
         bail!("no wineserver found for {}", wine.name);
     };
-    let spec = CommandSpec::new(server)
-        .arg("-k")
-        .env("WINEPREFIX", real_prefix.to_string_lossy());
+    let spec = server_command(server, wine.kind, &real_prefix).arg("-k");
     match discovery::run_with_timeout(&spec, Duration::from_secs(20)).await {
         Some(_) => Ok(()),
         None => bail!("wineserver -k did not finish"),
@@ -430,9 +490,7 @@ pub async fn wait(wine: &WineInstallation, prefix: &Path) -> Result<()> {
     if !real_prefix.is_dir() {
         return Ok(());
     }
-    let spec = CommandSpec::new(server)
-        .arg("-w")
-        .env("WINEPREFIX", real_prefix.to_string_lossy());
+    let spec = server_command(server, wine.kind, &real_prefix).arg("-w");
     process::run(&spec, RunOptions::default()).await?;
     Ok(())
 }
@@ -456,6 +514,101 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_addon_override_is_temporary_and_preserves_game_dlls() {
+        assert_eq!(
+            bootstrap_overrides("d3d11,dxgi=n;MSCOREE.dll=n;mshtml,other=b"),
+            "d3d11,dxgi=n;other=b;mscoree,mshtml=d"
+        );
+        let app = AppSettings::default();
+        let settings = GameSettings::default();
+        let wc = ctx_for(WineKind::Wine, false);
+        let mut cmd = WineCommand::new(["wineboot", "--init"]);
+        cmd.initialize_prefix = true;
+        let boot = wine_spec(&app, &settings, &wc, &cmd, &HostEnv::default());
+        if cfg!(target_os = "macos") {
+            assert!(boot.env["WINEDLLOVERRIDES"].contains("mscoree,mshtml=d"));
+        }
+        let game = wine_spec(
+            &app,
+            &settings,
+            &wc,
+            &WineCommand::new(["game.exe"]),
+            &HostEnv::default(),
+        );
+        assert!(
+            !game
+                .env
+                .get("WINEDLLOVERRIDES")
+                .is_some_and(|v| v.contains("mscoree"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn failed_wineboot_is_not_accepted_as_a_complete_prefix() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("wine");
+        std::fs::write(&bin, b"#!/bin/sh\nmkdir -p \"$WINEPREFIX/drive_c\" \"$WINEPREFIX/dosdevices\"\ntouch \"$WINEPREFIX/system.reg\" \"$WINEPREFIX/user.reg\" \"$WINEPREFIX/userdef.reg\"\nexit 17\n").unwrap();
+        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let wc = WineContext::new(
+            WineInstallation {
+                bin: bin.to_string_lossy().into_owned(),
+                wineserver: Some("/usr/bin/true".into()),
+                kind: WineKind::Wine,
+                ..Default::default()
+            },
+            dir.path().join("prefix"),
+            false,
+            PathBuf::new(),
+        );
+        assert!(
+            verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                &wc,
+                &OpContext::detached()
+            )
+            .await
+            .is_err()
+        );
+        assert!(wc.prefix.join("system.reg").exists());
+        assert!(!prefix_complete(&wc), "failed setup must remain retryable");
+        std::fs::write(&bin, b"#!/bin/sh\nexit 0\n").unwrap();
+        assert!(
+            verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                &wc,
+                &OpContext::detached()
+            )
+            .await
+            .unwrap()
+        );
+        assert!(prefix_complete(&wc));
+    }
+
+    #[test]
+    fn umu_and_direct_proton_prefix_layouts_remain_distinct() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut umu = ctx_for(WineKind::Proton, true);
+        umu.prefix = dir.path().into();
+        for name in ["drive_c", "dosdevices"] {
+            std::fs::create_dir_all(dir.path().join(name)).unwrap();
+        }
+        for name in ["system.reg", "user.reg", "userdef.reg"] {
+            std::fs::write(dir.path().join(name), "").unwrap();
+        }
+        assert!(prefix_complete(&umu));
+        assert_eq!(umu.wine_prefix_dir(), dir.path());
+        let direct = WineContext {
+            uses_umu: false,
+            ..umu
+        };
+        assert!(!prefix_complete(&direct));
+    }
+
+    #[test]
     fn command_lines() {
         let app = AppSettings::default();
         let gs = GameSettings::default();
@@ -470,7 +623,11 @@ mod tests {
         assert_eq!(spec.program, PathBuf::from("/p/GE/proton"));
         assert_eq!(spec.args, vec!["run", "winecfg"]);
         assert_eq!(spec.env["PROTON_VERB"], "run");
-        assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/pfx");
+        if cfg!(target_os = "linux") {
+            assert_eq!(spec.env["STEAM_COMPAT_DATA_PATH"], "/pfx");
+        } else {
+            assert!(!spec.env.contains_key("STEAM_COMPAT_DATA_PATH"));
+        }
         assert_eq!(spec.cwd.as_deref(), Some(Path::new("/g")));
         assert!(!spec.env.contains_key("GAMEID"));
 
@@ -479,14 +636,20 @@ mod tests {
         assert_eq!(spec.program, PathBuf::from("/usr/bin/umu-run"));
         assert_eq!(spec.args, vec!["winecfg"]);
         assert_eq!(spec.env["GAMEID"], "umu-0");
-        assert_eq!(spec.env["PROTONPATH"], "/p/GE");
+        if cfg!(target_os = "linux") {
+            assert_eq!(spec.env["PROTONPATH"], "/p/GE");
+        }
 
         let mut wc = ctx_for(WineKind::Wine, false);
         wc.wine.bin = "/w/bin/wine".into();
         let spec = wine_spec(&app, &gs, &wc, &cmd, &host);
         assert_eq!(spec.program, PathBuf::from("/w/bin/wine"));
         assert_eq!(spec.args, vec!["winecfg"]);
-        assert_eq!(spec.env["WINEPREFIX"], "/pfx");
+        if cfg!(windows) {
+            assert!(!spec.env.contains_key("WINEPREFIX"));
+        } else {
+            assert_eq!(spec.env["WINEPREFIX"], "/pfx");
+        }
     }
 
     #[tokio::test]
@@ -541,8 +704,8 @@ mod tests {
         );
         let (w, p) = wine_from_proton(&wc);
         assert_eq!(w.kind, WineKind::Wine);
-        assert!(w.bin.ends_with("files/bin/wine"));
-        assert!(w.wineserver.unwrap().ends_with("files/bin/wineserver"));
+        assert!(Path::new(&w.bin).ends_with("files/bin/wine"));
+        assert!(Path::new(&w.wineserver.unwrap()).ends_with("files/bin/wineserver"));
         assert_eq!(p, PathBuf::from("/games/pfx/pfx"));
         let umu = WineContext {
             uses_umu: true,

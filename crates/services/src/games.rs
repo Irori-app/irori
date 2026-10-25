@@ -152,7 +152,7 @@ impl Backend {
         // "Turn off logs" sends everything to /dev/null; stores and scripts
         // still get a path to write to.
         let log_file = if app.disable_logs {
-            PathBuf::from("/dev/null")
+            PathBuf::from(ember_core::platform::null_device())
         } else {
             Paths::get().game_log_file(id)
         };
@@ -355,6 +355,13 @@ impl Backend {
         let _guard = self.statuses.guard(id, StatusKind::Uninstalling);
         let app = self.settings.app();
         let settings = self.settings.game(id);
+        if args.remove_prefix && Self::target_platform(&game).needs_wine() {
+            let prefix = ember_runtime::prefix_path(&app, &settings, &game);
+            anyhow::ensure!(
+                !prefix.join("cxbottle.conf").is_file(),
+                "This CrossOver bottle may be shared by other games. Keep the prefix when uninstalling, and manage bottles in CrossOver."
+            );
+        }
         store.uninstall(&id.app_name, args).await?;
         if args.remove_prefix && Self::target_platform(&game).needs_wine() {
             let prefix = ember_runtime::prefix_path(&app, &settings, &game);
@@ -532,7 +539,10 @@ fn write_log_header(
     game: &GameInfo,
     settings: &ember_core::GameSettings,
 ) -> Result<()> {
-    if let Some(dir) = path.parent() {
+    if path == Path::new(ember_core::platform::null_device()) {
+        return Ok(());
+    }
+    if let Some(dir) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(dir)?;
     }
     let mut header = format!(
@@ -584,6 +594,10 @@ async fn run_script(script: &str, game: &GameInfo, log_file: &Path) -> Result<()
 /// Delete a prefix after sanity checks: never the shared prefix root, a
 /// protected folder, or a directory that is not actually a Wine prefix.
 async fn remove_prefix_dir(prefix: &Path, app: &ember_core::AppSettings) -> Result<()> {
+    anyhow::ensure!(
+        !prefix.join("cxbottle.conf").is_file(),
+        "Manage shared CrossOver bottles in CrossOver"
+    );
     if !ember_runtime::is_prefix(prefix) {
         tracing::warn!("not deleting {}: not a Wine prefix", prefix.display());
         return Ok(());
@@ -646,7 +660,14 @@ fn copy_tree(src: &Path, dst: &Path, on_bytes: &mut dyn FnMut(u64)) -> Result<()
             copy_tree(&entry.path(), &to, on_bytes)?;
         } else if ty.is_symlink() {
             let target = std::fs::read_link(entry.path())?;
+            #[cfg(unix)]
             std::os::unix::fs::symlink(target, &to)?;
+            #[cfg(windows)]
+            if entry.path().is_dir() {
+                std::os::windows::fs::symlink_dir(target, &to)?;
+            } else {
+                std::os::windows::fs::symlink_file(target, &to)?;
+            }
         } else {
             let n = std::fs::copy(entry.path(), &to)
                 .with_context(|| format!("copying {}", entry.path().display()))?;
@@ -654,4 +675,20 @@ fn copy_tree(src: &Path, dst: &Path, on_bytes: &mut dyn FnMut(u64)) -> Result<()
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod platform_tests {
+    use super::*;
+    #[tokio::test]
+    async fn uninstall_never_removes_shared_crossover_bottles() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("cxbottle.conf"), "[Bottle]").unwrap();
+        std::fs::create_dir_all(dir.path().join("drive_c")).unwrap();
+        let error = remove_prefix_dir(dir.path(), &ember_core::AppSettings::default())
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("CrossOver"));
+        assert!(dir.path().join("cxbottle.conf").exists());
+    }
 }

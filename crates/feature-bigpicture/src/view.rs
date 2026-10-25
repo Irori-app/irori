@@ -1799,7 +1799,7 @@ mod tests {
         DynStore, ExtraInfo, InstallInfo, InstallPlatform, InstallRequest, LaunchPlan,
         LaunchRequest, LoginFlow, OpContext, Outcome, Paths, Runner, Store, UserInfo, async_trait,
     };
-    use ember_services::{Backend, LibrarySnapshot};
+    use ember_services::Backend;
     use gpui_kit::{
         AppContext as _, Bounds, TestAppContext, WindowBounds, WindowOptions, px, size,
     };
@@ -1903,7 +1903,7 @@ mod tests {
         let root =
             std::env::temp_dir().join(format!("ember-bigpicture-test-{}", std::process::id()));
         Paths::init(Paths::under(&root));
-        Backend::start(|_, _| {
+        let backend = Backend::start_headless(|_, _| {
             let games = library();
             let store = |runner: Runner| -> DynStore {
                 Arc::new(FakeStore {
@@ -1917,7 +1917,16 @@ mod tests {
             };
             vec![store(Runner::Gog), store(Runner::Legendary)]
         })
-        .expect("backend starts")
+        .expect("backend starts");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+        while backend.library().len() != 3 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "test library did not load"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        backend
     }
 
     fn focused_title(view: &Entity<BigPictureView>, cx: &TestAppContext) -> String {
@@ -1931,20 +1940,13 @@ mod tests {
 
     #[gpui_kit::test]
     fn navigates_shelves_and_overlays_with_keyboard_and_gamepad(cx: &mut TestAppContext) {
+        // This integration test receives events from the real Tokio backend.
+        cx.executor().allow_parking();
         let backend = start_backend();
         cx.update(|cx| {
             gpui_kit::init(cx);
             ember_ui::init(backend, cx);
             crate::bind_keys(cx);
-            // The backend builds the same library asynchronously; seed the
-            // model so the view renders deterministically.
-            let mut snapshot = LibrarySnapshot::default();
-            snapshot.games = library();
-            snapshot.revision = u64::MAX;
-            models(cx).library.clone().update(cx, |l, cx| {
-                l.snapshot = Arc::new(snapshot);
-                cx.notify();
-            });
         });
         let (handle, view) = cx.update(|cx| {
             gpui_kit::open_window(

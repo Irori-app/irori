@@ -616,20 +616,30 @@ impl EpicStore {
 
     async fn run_windows(
         &self,
-        wine: &WineLaunch,
+        wine: Option<&WineLaunch>,
         env: &BTreeMap<String, String>,
         argv: Vec<String>,
         cwd: Option<&Path>,
         log: &Path,
     ) -> Result<ExecResult> {
-        let mut parts = launch::setup_exec_prefix(wine);
+        anyhow::ensure!(
+            wine.is_some() || cfg!(windows),
+            "Windows programs require Wine on this host"
+        );
+        let mut parts = wine.map(launch::setup_exec_prefix).unwrap_or_default();
         parts.extend(argv);
         let program = parts.remove(0);
         let mut spec = CommandSpec::new(program).args(parts).envs(env.clone());
         if let Some(dir) = cwd {
             spec = spec.cwd(dir);
         }
-        process::run(&spec, RunOptions::default().log_file(log)).await
+        let result = process::run(&spec, RunOptions::default().log_file(log)).await?;
+        anyhow::ensure!(
+            result.success() || matches!(result.code, Some(3010 | 1641)),
+            "Windows setup failed: {}",
+            result.error_summary()
+        );
+        Ok(result)
     }
 
     /// Epic's one-time prefix setup for a game: the launcher URL handler,
@@ -641,10 +651,12 @@ impl EpicStore {
         game: &GameInfo,
         installed: &InstalledGame,
         req: &LaunchRequest,
-        wine: &WineLaunch,
+        wine: Option<&WineLaunch>,
         ctx: &OpContext,
     ) {
-        let marker = wine.prefix.join(SETUP_MARKER);
+        let marker = wine
+            .map(|w| w.prefix.join(SETUP_MARKER))
+            .unwrap_or_else(|| Path::new(&installed.install_path).join(SETUP_MARKER));
         let mut done: Vec<String> = tokio::fs::read(&marker)
             .await
             .ok()
@@ -662,7 +674,9 @@ impl EpicStore {
             r"HKEY_CLASSES_ROOT\com.epicgames.launcher".to_string(),
             "/f".to_string(),
         ];
-        if let Err(e) = self.run_windows(wine, env, reg, None, log).await {
+        if wine.is_some()
+            && let Err(e) = self.run_windows(wine, env, reg, None, log).await
+        {
             tracing::warn!("registering the Epic URL handler: {e:#}");
         }
 
@@ -681,6 +695,7 @@ impl EpicStore {
                 .await
             {
                 tracing::warn!("running prerequisites of {}: {e:#}", game.app_name);
+                return; // Retry incomplete setup on the next launch.
             }
         }
 
@@ -697,13 +712,17 @@ impl EpicStore {
                     argv.extend(args.iter().map(|s| s.to_string()));
                     if let Err(e) = self.run_windows(wine, env, argv, None, log).await {
                         tracing::warn!("running {}: {e:#}", installer.0);
+                        return;
                     }
                 }
-                Err(e) => tracing::warn!("downloading {}: {e:#}", installer.0),
+                Err(e) => {
+                    tracing::warn!("downloading {}: {e:#}", installer.0);
+                    return;
+                }
             }
         }
 
-        if let Some(pfx) = real_prefix(&wine.prefix) {
+        if let Some(pfx) = wine.and_then(|w| real_prefix(&w.prefix)) {
             if self.eos_overlay_status().await.installed {
                 if !self.eos_overlay_is_enabled(&pfx).await.unwrap_or(false) {
                     tracing::info!("EOS Overlay: Enabling");
@@ -762,11 +781,11 @@ impl EpicStore {
         env: BTreeMap<String, String>,
         offline: bool,
     ) -> Result<LaunchPlan> {
-        let wine = request
-            .environment
-            .wine
-            .as_ref()
-            .context("No Wine or Proton version is configured for this game")?;
+        let wine = request.environment.wine.as_ref();
+        anyhow::ensure!(
+            wine.is_some() || cfg!(windows),
+            "No Wine runtime is configured for this game"
+        );
         let target = if game.is_ea_managed {
             let code = if offline {
                 None
@@ -789,7 +808,24 @@ impl EpicStore {
         } else {
             UBISOFT_CONNECT_EXE.to_string()
         };
-        let mut argv = wine.exec_prefix();
+        if wine.is_none() {
+            let command = if game.is_ea_managed {
+                CommandSpec::new("rundll32.exe")
+                    .arg("url.dll,FileProtocolHandler")
+                    .arg(target)
+            } else {
+                let root = std::env::var_os("ProgramFiles(x86)")
+                    .context("Program Files directory not found")?;
+                CommandSpec::new(
+                    PathBuf::from(root).join("Ubisoft/Ubisoft Game Launcher/UbisoftConnect.exe"),
+                )
+            };
+            return Ok(LaunchPlan {
+                command: command.envs(env).wrapped(&request.environment.wrappers),
+                track_wineserver: false,
+            });
+        }
+        let mut argv = wine.expect("checked above").exec_prefix();
         if game.is_ea_managed {
             argv.extend(["start".to_string(), target]);
         } else {

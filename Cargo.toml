@@ -7,6 +7,7 @@ exclude = ["crates/webview"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.95"
 license = "GPL-3.0-or-later"
 publish = false
 
@@ -62,13 +63,14 @@ rsa = { version = "0.9", default-features = false, features = ["std", "pem", "sh
 prost = { version = "0.14", default-features = false, features = ["std", "derive"] }
 lzma-rs = "0.3"
 fs4 = "1"
+plist = "1"
 hex = "0.4"
 nix = { version = "0.31", features = ["signal", "process", "fs", "user"] }
 which = "8"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 flate2 = "1"
 tar = "0.4"
-xz2 = "0.1"
+xz2 = { version = "0.1", features = ["static"] }
 zstd = "0.13"
 bzip2 = "0.6"  # pure-Rust backend by default
 zip = { version = "9", default-features = false, features = ["deflate"] }
@@ -91,6 +93,17 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 2
+
+# Native CI builds should fit hosted runners without spending time optimizing
+# the entire GPUI dependency tree or retaining large debug/incremental data.
+[profile.ci]
+inherits = "dev"
+opt-level = 0
+debug = 0
+incremental = false
+
+[profile.ci.package."*"]
+opt-level = 0
 
 # Release speed with symbols, for `perf`/`heaptrack`.
 [profile.profiling]

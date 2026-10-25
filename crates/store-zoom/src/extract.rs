@@ -379,6 +379,9 @@ fn extract_zip(
                 std::fs::create_dir_all(parent)?;
             }
             let _ = std::fs::remove_file(&out);
+            #[cfg(not(unix))]
+            anyhow::bail!("This archive requires Unix symbolic links");
+            #[cfg(unix)]
             std::os::unix::fs::symlink(target, &out)
                 .with_context(|| format!("creating link {}", out.display()))?;
         } else {
@@ -387,6 +390,7 @@ fn extract_zip(
             }
             let mut f = File::create(&out).with_context(|| format!("writing {}", out.display()))?;
             io::copy(&mut entry, &mut f).with_context(|| format!("writing {}", out.display()))?;
+            #[cfg(unix)]
             if let Some(m) = mode {
                 use std::os::unix::fs::PermissionsExt as _;
                 let perm = (m & 0o777) | 0o600;
@@ -402,6 +406,7 @@ fn extract_zip(
 #[cfg(test)]
 pub(crate) mod tests {
     use std::io::Write as _;
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt as _;
 
     use super::*;
@@ -526,11 +531,14 @@ pub(crate) mod tests {
         assert_eq!(std::fs::read(dest.join("bin/game")).unwrap(), b"ELF");
         assert_eq!(std::fs::read(dest.join("data/a.pak")).unwrap(), b"pak");
         assert_eq!(std::fs::read(dest.join("readme.txt")).unwrap(), b"hi");
-        let mode = std::fs::metadata(dest.join("bin/game"))
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o111, 0o111);
+        #[cfg(unix)]
+        {
+            let mode = std::fs::metadata(dest.join("bin/game"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o111, 0o111);
+        }
         assert_eq!(last.0, last.1);
 
         // A truncated download is reported, not half-extracted silently.
@@ -615,11 +623,14 @@ pub(crate) mod tests {
             std::fs::read(dest.join("Game/data/x.dat")).unwrap(),
             b"data"
         );
-        let mode = std::fs::metadata(dest.join("Game/start.sh"))
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o111, 0o111);
+        #[cfg(unix)]
+        {
+            let mode = std::fs::metadata(dest.join("Game/start.sh"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o111, 0o111);
+        }
         assert_eq!(last.0, last.1);
     }
 
@@ -653,11 +664,14 @@ pub(crate) mod tests {
         assert!(dest.join("start.sh").is_file());
         assert!(dest.join("game/bin").is_file());
         assert!(!dest.join("scripts").exists());
-        let mode = std::fs::metadata(dest.join("start.sh"))
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o755, 0o755);
+        #[cfg(unix)]
+        {
+            let mode = std::fs::metadata(dest.join("start.sh"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o755, 0o755);
+        }
     }
 
     #[test]

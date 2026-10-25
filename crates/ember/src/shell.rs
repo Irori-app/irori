@@ -434,15 +434,21 @@ impl AppShell {
             ))
             .when(!collapsed, |d| d.child(self.recent.clone()))
             .child(div().flex_1())
-            .child(item(
-                "nav-wine",
-                "shell.nav.wine",
-                IconName::Wine,
-                "wine",
-                Route::WineManager,
-                None,
-                cx,
-            ))
+            .when(!cfg!(windows), |d| {
+                d.child(item(
+                    "nav-wine",
+                    if cfg!(target_os = "macos") {
+                        "manage.wine.title"
+                    } else {
+                        "shell.nav.wine"
+                    },
+                    IconName::Wine,
+                    "wine",
+                    Route::WineManager,
+                    None,
+                    cx,
+                ))
+            })
             .child(item(
                 "nav-accounts",
                 if any_account {

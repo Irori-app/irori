@@ -542,8 +542,21 @@ fn finish_tree(dir: &Path, plan: &Plan) -> Result<()> {
         #[cfg(unix)]
         std::os::unix::fs::symlink(target, &p)
             .with_context(|| format!("linking {}", p.display()))?;
-        #[cfg(not(unix))]
-        tracing::debug!("not creating link {} → {target}", p.display());
+        #[cfg(windows)]
+        {
+            let target_path = p.parent().unwrap_or(dir).join(target);
+            let result = if target_path.is_dir() {
+                std::os::windows::fs::symlink_dir(target, &p)
+            } else {
+                std::os::windows::fs::symlink_file(target, &p)
+            };
+            result.with_context(|| {
+                format!(
+                    "Creating link {} requires Windows Developer Mode or administrator rights",
+                    p.display()
+                )
+            })?;
+        }
     }
     Ok(())
 }

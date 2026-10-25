@@ -128,8 +128,13 @@ fn open_sheet(id: GameId, mode: InstallMode, window: &mut Window, cx: &mut App) 
 /// Platforms the user can install on this host, native Linux first.
 pub fn installable_platforms(game: &GameInfo) -> Vec<InstallPlatform> {
     let mut out = Vec::new();
-    if game.is_linux_native || game.platforms.contains(&InstallPlatform::Linux) {
-        out.push(InstallPlatform::Linux);
+    let native = ember_core::HostPlatform::current().native();
+    if native != InstallPlatform::Windows
+        && (game.platforms.contains(&native)
+            || (native == InstallPlatform::Linux && game.is_linux_native)
+            || (native == InstallPlatform::Mac && game.is_mac_native))
+    {
+        out.push(native);
     }
     if game.platforms.is_empty() || game.platforms.contains(&InstallPlatform::Windows) {
         out.push(InstallPlatform::Windows);
@@ -1439,7 +1444,11 @@ mod tests {
         };
         assert_eq!(
             installable_platforms(&game),
-            vec![InstallPlatform::Linux, InstallPlatform::Windows]
+            if cfg!(target_os = "linux") {
+                vec![InstallPlatform::Linux, InstallPlatform::Windows]
+            } else {
+                vec![InstallPlatform::Windows]
+            }
         );
         let windows_only = GameInfo {
             platforms: vec![InstallPlatform::Windows, InstallPlatform::Mac],
@@ -1447,7 +1456,11 @@ mod tests {
         };
         assert_eq!(
             installable_platforms(&windows_only),
-            vec![InstallPlatform::Windows]
+            if cfg!(target_os = "macos") {
+                vec![InstallPlatform::Mac, InstallPlatform::Windows]
+            } else {
+                vec![InstallPlatform::Windows]
+            }
         );
         assert_eq!(
             installable_platforms(&GameInfo::default()),

@@ -262,10 +262,8 @@ async fn installs_updates_repairs_launches_and_uninstalls() {
         .await
         .unwrap();
     assert_eq!(plan.command.program, PathBuf::from("/usr/bin/wine"));
-    assert_eq!(
-        plan.command.args,
-        [dir.join("Bin/Game.exe").into_os_string(), "-fuel".into()]
-    );
+    assert_eq!(Path::new(&plan.command.args[0]), dir.join("Bin/Game.exe"));
+    assert_eq!(&plan.command.args[1..], ["-fuel"]);
     assert_eq!(plan.command.cwd.as_deref(), Some(dir.as_path()));
     assert_eq!(
         plan.command.env["AMAZON_GAMES_FUEL_ENTITLEMENT_ID"],

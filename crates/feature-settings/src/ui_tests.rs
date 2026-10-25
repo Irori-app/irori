@@ -29,6 +29,8 @@ fn open<V: gpui_kit::Render>(
     cx: &mut TestAppContext,
     build: impl FnOnce(&mut gpui_kit::Window, &mut gpui_kit::Context<V>) -> V + 'static,
 ) -> (AnyWindowHandle, Entity<V>) {
+    // This integration test receives events from the real Tokio backend.
+    cx.executor().allow_parking();
     let backend = test_backend();
     cx.update(|cx| {
         gpui_kit::init(cx);
@@ -70,7 +72,10 @@ fn typing_in_search_filters_fields_across_sections(cx: &mut TestAppContext) {
         assert_eq!(v.query(), "fsync");
         assert_eq!(v.app_form().read(cx).visible_count(), 0);
         // Fsync lives in the game defaults form, not the current section.
-        assert_eq!(v.defaults_form().read(cx).visible_count(), 1);
+        assert_eq!(
+            v.defaults_form().read(cx).visible_count(),
+            usize::from(cfg!(target_os = "linux"))
+        );
     });
 
     // Opening a section clears the query and restores the section filter.

@@ -491,6 +491,10 @@ const WINETRICKS_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 /// missing (or, with `refresh`, older than 7 days). Falls back to an existing
 /// copy, then to a system `winetricks`.
 pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
+    anyhow::ensure!(
+        !cfg!(windows),
+        "Winetricks is not used for native Windows games"
+    );
     let path = locations::winetricks_path();
     let fresh = tokio::fs::metadata(&path)
         .await
@@ -510,8 +514,11 @@ pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
             tokio::task::spawn_blocking(move || ember_core::json_store::write_bytes(&p, &bytes))
                 .await
                 .context("saving winetricks")??;
-            use std::os::unix::fs::PermissionsExt as _;
-            tokio::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).await?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt as _;
+                tokio::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).await?;
+            }
             Ok(path)
         }
         other => {

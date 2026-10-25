@@ -177,7 +177,12 @@ mod tests {
     fn imports_and_merges() {
         let heroic = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(heroic.path().join("sideload_apps")).unwrap();
-        std::fs::write(heroic.path().join("sideload_apps/library.json"), FIXTURE).unwrap();
+        let fixture = if cfg!(windows) {
+            FIXTURE.replace("\"executable\": \"/", "\"executable\": \"C:/")
+        } else {
+            FIXTURE.to_owned()
+        };
+        std::fs::write(heroic.path().join("sideload_apps/library.json"), fixture).unwrap();
         let ember = tempfile::tempdir().unwrap();
         let target = ember.path().join("library.json");
         let existing = StoredApp {

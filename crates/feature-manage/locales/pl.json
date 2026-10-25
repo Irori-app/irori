@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Użyj zamiast tego przeglądarki",
   "manage.login.window.finishing": "Kończenie logowania…",
   "manage.wine.title": "Menedżer Wine",
+  "manage.wine.description_macos": "Pobierz Wine do gier Windows albo użyj zainstalowanego CrossOver lub Whisky.",
   "manage.wine.description": "Pobieraj wersje Proton i Wine dla gier na Windows i przeglądaj wszystkie wersje w tym systemie.",
   "manage.wine.description_running_one": "Pobieraj wersje Proton i Wine dla gier na Windows. Trwa 1 instalacja.",
   "manage.wine.description_running_other": "Pobieraj wersje Proton i Wine dla gier na Windows. Trwające instalacje: {count}.",

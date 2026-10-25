@@ -6,10 +6,13 @@ use std::ffi::OsString;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+#[cfg(any(unix, test))]
 use std::time::Duration;
 
 use anyhow::{Context as _, Result};
+#[cfg(unix)]
 use nix::sys::signal::{Signal, killpg};
+#[cfg(unix)]
 use nix::unistd::Pid;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
@@ -95,8 +98,14 @@ impl CommandSpec {
         }
     }
 
-    fn to_command(&self) -> Command {
-        let mut cmd = Command::new(&self.program);
+    fn to_command(&self) -> Result<Command> {
+        let program =
+            if cfg!(target_os = "macos") && self.program.extension().is_some_and(|e| e == "app") {
+                crate::platform::bundle_executable(&self.program)?
+            } else {
+                self.program.clone()
+            };
+        let mut cmd = Command::new(program);
         cmd.args(&self.args);
         for key in &self.env_remove {
             cmd.env_remove(key);
@@ -107,9 +116,10 @@ impl CommandSpec {
         }
         // Own process group so cancellation reaches every descendant
         // (wine, wineserver children, game processes).
+        #[cfg(unix)]
         cmd.process_group(0);
         cmd.kill_on_drop(false);
-        cmd
+        Ok(cmd)
     }
 }
 
@@ -169,6 +179,14 @@ pub fn shell_quote(s: &str) -> String {
 
 /// Split a user-entered argument string like a shell would (quotes, escapes).
 pub fn split_args(input: &str) -> Vec<String> {
+    if cfg!(windows) {
+        split_windows_args(input)
+    } else {
+        split_unix_args(input)
+    }
+}
+
+fn split_unix_args(input: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut in_token = false;
@@ -213,6 +231,77 @@ pub fn split_args(input: &str) -> Vec<String> {
     if in_token {
         out.push(cur);
     }
+    out
+}
+
+/// Parse an argument tail using Microsoft's CRT quoting rules. Backslashes
+/// remain path separators unless immediately followed by a double quote.
+/// This parses arguments, not argv[0], which has different Windows rules.
+pub fn split_windows_args(input: &str) -> Vec<String> {
+    let mut chars = input.chars().peekable();
+    let mut result = Vec::new();
+    while chars.peek().is_some() {
+        while chars.peek().is_some_and(|c| matches!(c, ' ' | '\t')) {
+            chars.next();
+        }
+        if chars.peek().is_none() {
+            break;
+        }
+        let mut arg = String::new();
+        let mut quoted = false;
+        loop {
+            let mut slashes = 0;
+            while chars.peek() == Some(&'\\') {
+                slashes += 1;
+                chars.next();
+            }
+            if chars.peek() == Some(&'"') {
+                arg.extend(std::iter::repeat_n('\\', slashes / 2));
+                chars.next();
+                if slashes % 2 == 1 {
+                    arg.push('"');
+                } else if quoted && chars.peek() == Some(&'"') {
+                    arg.push('"');
+                    chars.next();
+                } else {
+                    quoted = !quoted;
+                }
+            } else {
+                arg.extend(std::iter::repeat_n('\\', slashes));
+                match chars.peek().copied() {
+                    None => break,
+                    Some(' ' | '\t') if !quoted => break,
+                    Some(c) => {
+                        arg.push(c);
+                        chars.next();
+                    }
+                }
+            }
+        }
+        result.push(arg);
+    }
+    result
+}
+
+/// Encode one Windows CRT argument for shortcuts and URL-handler registration.
+/// This is not quoting for cmd.exe or PowerShell; never embed it in a script.
+pub fn windows_arg(arg: &str) -> String {
+    let mut out = String::from("\"");
+    let mut slashes = 0;
+    for c in arg.chars() {
+        if c == '\\' {
+            slashes += 1;
+            continue;
+        }
+        out.extend(std::iter::repeat_n(
+            '\\',
+            if c == '"' { slashes * 2 + 1 } else { slashes },
+        ));
+        slashes = 0;
+        out.push(c);
+    }
+    out.extend(std::iter::repeat_n('\\', slashes * 2));
+    out.push('"');
     out
 }
 
@@ -295,7 +384,7 @@ impl ExecResult {
 /// Run a command to completion, streaming lines and honouring cancellation.
 pub async fn run(spec: &CommandSpec, mut opts: RunOptions) -> Result<ExecResult> {
     tracing::debug!(command = %spec, "run");
-    let mut cmd = spec.to_command();
+    let mut cmd = spec.to_command()?;
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     cmd.stdin(if opts.stdin.is_some() {
         Stdio::piped()
@@ -383,7 +472,7 @@ pub async fn output(spec: &CommandSpec) -> Result<String> {
 /// memory: stdout/stderr go straight to `log_file` (or are discarded).
 pub fn spawn(spec: &CommandSpec, log_file: Option<&Path>) -> Result<Child> {
     tracing::info!(command = %spec, "spawn");
-    let mut cmd = spec.to_command();
+    let mut cmd = spec.to_command()?;
     cmd.stdin(Stdio::null());
     match log_file {
         Some(path) => {
@@ -405,6 +494,7 @@ pub fn spawn(spec: &CommandSpec, log_file: Option<&Path>) -> Result<Child> {
 }
 
 /// SIGTERM the child's process group, escalating to SIGKILL after 5 s.
+#[cfg(unix)]
 pub async fn terminate(child: &mut Child) {
     let Some(pid) = child.id() else { return };
     let pgid = Pid::from_raw(pid as i32);
@@ -419,6 +509,7 @@ pub async fn terminate(child: &mut Child) {
 }
 
 /// Signal a process group by its leader pid (used for games tracked by pid).
+#[cfg(unix)]
 pub fn kill_group(pid: u32, force: bool) {
     let sig = if force {
         Signal::SIGKILL
@@ -426,6 +517,33 @@ pub fn kill_group(pid: u32, force: bool) {
         Signal::SIGTERM
     };
     let _ = killpg(Pid::from_raw(pid as i32), sig);
+}
+
+#[cfg(windows)]
+pub async fn terminate(child: &mut Child) {
+    if let Some(pid) = child.id() {
+        let _ = Command::new("taskkill.exe")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .await;
+    }
+    let _ = child.kill().await;
+    let _ = child.wait().await;
+}
+
+#[cfg(windows)]
+pub fn kill_group(pid: u32, force: bool) {
+    // Spawn off the UI thread; `/T` includes descendants of the game process.
+    std::thread::spawn(move || {
+        let mut command = std::process::Command::new("taskkill.exe");
+        command.args(["/PID", &pid.to_string(), "/T"]);
+        if force {
+            command.arg("/F");
+        }
+        let _ = command.stdout(Stdio::null()).stderr(Stdio::null()).status();
+    });
 }
 
 fn pump<R: AsyncRead + Unpin + Send + 'static>(
@@ -490,14 +608,125 @@ impl Tail {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "macos")]
+    #[tokio::test]
+    async fn mac_bundle_launch_tracks_exit_and_environment() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let bundle = dir.path().join("Game With Spaces.app");
+        std::fs::create_dir_all(bundle.join("Contents/MacOS")).unwrap();
+        let mut info = plist::Dictionary::new();
+        info.insert(
+            "CFBundleExecutable".into(),
+            plist::Value::String("game".into()),
+        );
+        plist::Value::Dictionary(info)
+            .to_file_xml(bundle.join("Contents/Info.plist"))
+            .unwrap();
+        let exe = bundle.join("Contents/MacOS/game");
+        std::fs::write(
+            &exe,
+            b"#!/bin/sh\nprintf '%s|%s' \"$EMBER_TEST\" \"$1\"\nexit 7\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let result = run(
+            &CommandSpec::new(bundle)
+                .arg("space value")
+                .env("EMBER_TEST", "present")
+                .cwd(dir.path()),
+            RunOptions::default(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.stdout.trim_end(), "present|space value");
+        assert_eq!(result.code, Some(7));
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn windows_native_run_and_cancel() {
+        let result = run(
+            &CommandSpec::new("cmd.exe").args(["/D", "/C", "exit 7"]),
+            RunOptions::default(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.code, Some(7));
+        let token = CancellationToken::new();
+        let cancel = token.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(150)).await;
+            cancel.cancel();
+        });
+        let result = tokio::time::timeout(
+            Duration::from_secs(10),
+            run(
+                &CommandSpec::new("powershell.exe").args([
+                    "-NoProfile",
+                    "-Command",
+                    "Start-Sleep -Seconds 30",
+                ]),
+                RunOptions::default().cancel(token),
+            ),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(result.aborted);
+    }
+
     #[test]
     fn splits_like_a_shell() {
         assert_eq!(
-            split_args(r#"-a "b c" 'd e' f\ g "h\"i""#),
+            split_unix_args(r#"-a "b c" 'd e' f\ g "h\"i""#),
             vec!["-a", "b c", "d e", "f g", "h\"i"]
         );
         assert!(split_args("   ").is_empty());
-        assert_eq!(split_args("''"), vec![""]);
+        assert_eq!(split_unix_args("''"), vec![""]);
+    }
+
+    #[test]
+    fn windows_paths_and_crt_examples() {
+        assert_eq!(
+            split_windows_args(r#"C:\Games\Game.exe "C:\My Games\"folder" \\server\share """#),
+            [
+                r"C:\Games\Game.exe",
+                r#"C:\My Games"folder"#,
+                r"\\server\share",
+                ""
+            ]
+        );
+        assert_eq!(
+            split_windows_args(r#"a\\\b d"e f"g h"#),
+            [r"a\\\b", "de fg", "h"]
+        );
+        assert_eq!(split_windows_args(r#"a"b"" c d"#), ["ab\" c d"]);
+    }
+
+    #[test]
+    fn windows_argument_roundtrip_exhaustive() {
+        // Exhaust the short strings over characters with special meaning, plus
+        // Unicode and metacharacters. No test-only dependency is needed.
+        let alphabet = ['a', ' ', '\t', '\\', '"', '\'', 'é', '$', '%'];
+        let mut values = vec![String::new()];
+        for _ in 0..4 {
+            let previous = values.clone();
+            values = previous
+                .iter()
+                .flat_map(|s| alphabet.iter().map(move |c| format!("{s}{c}")))
+                .collect();
+            for value in &values {
+                let command = format!(
+                    "{} {} {}",
+                    windows_arg("before"),
+                    windows_arg(value),
+                    windows_arg("after")
+                );
+                assert_eq!(split_windows_args(&command), ["before", value, "after"]);
+            }
+        }
+        assert_eq!(split_windows_args(&windows_arg("")), [""]);
     }
 
     #[test]
@@ -523,6 +752,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn streams_and_captures() {
         let spec = CommandSpec::new("sh").args(["-c", "printf 'a\\rb\\n'; echo err >&2; exit 3"]);
@@ -541,6 +771,7 @@ mod tests {
         assert!(got.contains(&(Stream::Stdout, "b".into())));
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn cancellation_kills_group() {
         let token = CancellationToken::new();

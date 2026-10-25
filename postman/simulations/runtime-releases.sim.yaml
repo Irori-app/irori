@@ -1,0 +1,13 @@
+simulation: runtime-releases
+routing: path
+mocks:
+  - name: GitHub releases
+    routeKey: github
+    path: postman/mocks/github-releases/config.yaml
+  - name: GitHub rate limit
+    routeKey: limited
+    path: postman/mocks/github-releases/config.yaml
+    scenarios:
+      - overrides:
+          conditions:
+            error: { status_code: 429 }

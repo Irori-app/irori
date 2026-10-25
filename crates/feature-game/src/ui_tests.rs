@@ -151,6 +151,8 @@ fn settle() {
 }
 
 fn open_page(cx: &mut TestAppContext, id: GameId) -> (Backend, AnyWindowHandle, Entity<GamePage>) {
+    // This integration test receives events from the real Tokio backend.
+    cx.executor().allow_parking();
     let b = backend();
     let shared = b.clone();
     cx.update(|cx| {

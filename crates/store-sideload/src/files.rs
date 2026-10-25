@@ -13,7 +13,14 @@ pub(crate) fn find_single_executable(dir: &Path, platform: SideloadPlatform) -> 
     let mut candidates = std::fs::read_dir(dir)
         .ok()?
         .flatten()
-        .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
+        .filter(|e| {
+            e.file_type().is_ok_and(|t| {
+                t.is_file()
+                    || (platform == SideloadPlatform::Mac
+                        && t.is_dir()
+                        && e.path().extension().is_some_and(|x| x == "app"))
+            })
+        })
         .map(|e| e.path())
         .filter(|p| is_candidate(p, platform));
     let first = candidates.next()?;
@@ -40,10 +47,12 @@ fn is_candidate(path: &Path, platform: SideloadPlatform) -> bool {
     }
     match platform {
         SideloadPlatform::Windows => name.ends_with(".exe"),
-        SideloadPlatform::Linux => {
+        SideloadPlatform::Mac if name.ends_with(".app") => true,
+        SideloadPlatform::Linux | SideloadPlatform::Mac => {
             name.ends_with(".sh")
                 || name.ends_with(".x86_64")
-                || (ember_core::util::is_executable(path)
+                || (cfg!(unix)
+                    && ember_core::util::is_executable(path)
                     && !name.contains(".so")
                     && !name.ends_with(".exe")
                     && !name.ends_with(".dll"))
@@ -56,6 +65,7 @@ fn is_candidate(path: &Path, platform: SideloadPlatform) -> bool {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn deletion_guard() {
         let home = Path::new("/home/u");

@@ -460,7 +460,7 @@ impl GogStore {
     pub(crate) async fn prepare_prefix(
         &self,
         rec: &InstalledRecord,
-        wine: &WineContext,
+        wine: Option<&WineContext>,
         ctx: &OpContext,
         log_file: &Path,
     ) -> Result<()> {
@@ -478,7 +478,8 @@ impl GogStore {
             tracing::warn!("{e:#}");
         }
 
-        let mut setup = self.load_prefix_setup(&wine.prefix).await;
+        let setup_path = wine.map(|w| w.prefix.clone()).unwrap_or_else(|| rec.path());
+        let mut setup = self.load_prefix_setup(&setup_path).await;
         let key = setup_key(rec);
         let mut changed = false;
 
@@ -493,26 +494,39 @@ impl GogStore {
                 support_dir: &support,
                 redist_dir: &self.paths.redist,
             });
+            let mut complete = true;
             for c in cmds {
                 if !c.exe.is_file() {
                     tracing::warn!("setup executable {} is missing", c.exe.display());
+                    complete = false;
                     continue;
                 }
-                let res = wine
-                    .run(
-                        &c.exe.to_string_lossy(),
-                        &c.args,
-                        Some(&rec.path()),
-                        Some(ctx.cancel.clone()),
-                        Some(log_file),
-                    )
-                    .await;
-                if let Err(e) = res {
-                    tracing::warn!("setup of {}: {e:#}", rec.app_name);
+                let res = crate::wine::run_windows(
+                    wine,
+                    &c.exe.to_string_lossy(),
+                    &c.args,
+                    Some(&rec.path()),
+                    Some(ctx.cancel.clone()),
+                    Some(log_file),
+                )
+                .await;
+                match res {
+                    Ok(r) if r.aborted => anyhow::bail!("aborted"),
+                    Ok(r) if r.success() || matches!(r.code, Some(3010 | 1641)) => {}
+                    Ok(r) => {
+                        complete = false;
+                        tracing::warn!("setup of {}: {}", rec.app_name, r.error_summary());
+                    }
+                    Err(e) => {
+                        complete = false;
+                        tracing::warn!("setup of {}: {e:#}", rec.app_name);
+                    }
                 }
             }
-            setup.games.insert(rec.app_name.clone(), key);
-            changed = true;
+            if complete {
+                setup.games.insert(rec.app_name.clone(), key);
+                changed = true;
+            }
         }
 
         let pending: Vec<String> = deps
@@ -542,27 +556,31 @@ impl GogStore {
                         &depot.readable_name
                     }
                 ));
-                match wine
-                    .run(
-                        &exe,
-                        &args,
-                        Some(&self.paths.redist),
-                        Some(ctx.cancel.clone()),
-                        Some(log_file),
-                    )
-                    .await
+                match crate::wine::run_windows(
+                    wine,
+                    &exe,
+                    &args,
+                    Some(&self.paths.redist),
+                    Some(ctx.cancel.clone()),
+                    Some(log_file),
+                )
+                .await
                 {
                     Ok(r) if r.aborted => anyhow::bail!("aborted"),
-                    Ok(_) => {
+                    Ok(r) if r.success() || matches!(r.code, Some(3010 | 1641)) => {
                         setup.redist.insert(dep);
                     }
+                    Ok(r) => tracing::warn!("installing {dep}: {}", r.error_summary()),
                     Err(e) => tracing::warn!("installing {dep}: {e:#}"),
                 }
                 changed = true;
             }
         }
 
-        if (self.settings)().comet_support && !setup.comet {
+        if (self.settings)().comet_support
+            && !setup.comet
+            && let Some(wine) = wine
+        {
             match self.install_galaxy_communication(wine).await {
                 Ok(()) => {
                     setup.comet = true;
@@ -573,7 +591,7 @@ impl GogStore {
         }
 
         if changed {
-            self.store_prefix_setup(&wine.prefix, setup).await;
+            self.store_prefix_setup(&setup_path, setup).await;
         }
         Ok(())
     }
@@ -690,14 +708,28 @@ mod tests {
             cmds[0].exe,
             PathBuf::from("/r/__redist/ISI/scriptinterpreter.exe")
         );
-        assert!(cmds[0].args.contains(&"/DIR=Z:\\g\\CP".to_string()));
+        assert!(
+            cmds[0].args.contains(
+                &(if cfg!(windows) {
+                    r"/DIR=\g\CP"
+                } else {
+                    r"/DIR=Z:\g\CP"
+                })
+                .to_string()
+            )
+        );
         assert!(cmds[0].args.contains(&"/Language=English".to_string()));
         assert!(cmds[0].args.contains(&"/ProductId=1423049311".to_string()));
         assert!(cmds[0].args.contains(&"/buildId=600".to_string()));
         assert!(
-            cmds[0]
-                .args
-                .contains(&"/supportDir=Z:\\s\\1423049311".to_string())
+            cmds[0].args.contains(
+                &(if cfg!(windows) {
+                    r"/supportDir=\s\1423049311"
+                } else {
+                    r"/supportDir=Z:\s\1423049311"
+                })
+                .to_string()
+            )
         );
         assert!(cmds[1].args.contains(&"/ProductId=1256837418".to_string()));
     }
@@ -748,11 +780,16 @@ mod tests {
             vec!["MSVC2015"]
         );
         let (exe, args) = redist_command(Path::new("/r"), m.depot("MSVC2015").unwrap()).unwrap();
-        assert_eq!(exe, "/r/__redist/MSVC2015/vc_redist.x86.exe");
+        assert_eq!(
+            Path::new(&exe),
+            Path::new("/r/__redist/MSVC2015/vc_redist.x86.exe")
+        );
         assert_eq!(args, vec!["/install", "/quiet"]);
         let (exe, args) = redist_command(Path::new("/r"), m.depot("PHYSXLEGACY").unwrap()).unwrap();
         assert_eq!(exe, "msiexec");
-        assert_eq!(args, vec!["/i", "/r/__redist/PhysX/p.msi", "/x", "/qb"]);
+        assert_eq!(args[0], "/i");
+        assert_eq!(Path::new(&args[1]), Path::new("/r/__redist/PhysX/p.msi"));
+        assert_eq!(&args[2..], ["/x", "/qb"]);
         assert!(redist_command(Path::new("/r"), m.depot("DOSBOX").unwrap()).is_none());
     }
 

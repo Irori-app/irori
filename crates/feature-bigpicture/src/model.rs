@@ -447,12 +447,26 @@ mod tests {
             platforms: vec![InstallPlatform::Windows, InstallPlatform::Linux],
             ..Default::default()
         };
-        assert_eq!(default_platform(&g), InstallPlatform::Linux);
+        assert_eq!(
+            default_platform(&g),
+            if cfg!(target_os = "linux") {
+                InstallPlatform::Linux
+            } else {
+                InstallPlatform::Windows
+            }
+        );
         g.platforms = vec![InstallPlatform::Windows];
         assert_eq!(default_platform(&g), InstallPlatform::Windows);
         g.platforms.clear();
         g.is_linux_native = true;
-        assert_eq!(default_platform(&g), InstallPlatform::Linux);
+        assert_eq!(
+            default_platform(&g),
+            if cfg!(target_os = "linux") {
+                InstallPlatform::Linux
+            } else {
+                InstallPlatform::Windows
+            }
+        );
 
         let info = InstallInfo {
             sdl: vec![

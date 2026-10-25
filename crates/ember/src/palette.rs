@@ -50,7 +50,15 @@ impl Palette {
             ("shell.nav.downloads", IconName::Download, Route::Downloads),
             ("shell.nav.stores", IconName::Store, Route::Stores),
             ("shell.nav.stats", IconName::ChartColumn, Route::Stats),
-            ("shell.nav.wine", IconName::Wine, Route::WineManager),
+            (
+                if cfg!(target_os = "macos") {
+                    "manage.wine.title"
+                } else {
+                    "shell.nav.wine"
+                },
+                IconName::Wine,
+                Route::WineManager,
+            ),
             ("shell.nav.accounts", IconName::CircleUser, Route::Accounts),
             (
                 "shell.nav.settings",
@@ -63,6 +71,9 @@ impl Palette {
                 Route::BigPicture,
             ),
         ] {
+            if cfg!(windows) && route == Route::WineManager {
+                continue;
+            }
             push(
                 CommandItem::new()
                     .label(t_args("shell.palette.go_to", &[("place", &t(label))]))

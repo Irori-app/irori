@@ -473,36 +473,38 @@ impl SettingsView {
                 &[("os", os.trim()), ("kernel", &info.os.kernel)],
             ),
         ));
-        let desktop = info
-            .desktop
-            .clone()
-            .map(SharedString::from)
-            .unwrap_or_else(|| t("settings.sysinfo.unknown_desktop"));
-        let session = info
-            .session_type
-            .clone()
-            .map(SharedString::from)
-            .unwrap_or_else(|| t("settings.sysinfo.unknown_session"));
-        rows.push((
-            t("settings.sysinfo.session"),
-            format!(
-                "{desktop} · {session}{}",
-                if info.is_flatpak { " · Flatpak" } else { "" }
-            )
-            .into(),
-        ));
-        rows.push((
-            "Vulkan".into(),
-            if info.vulkan.available() {
-                info.vulkan
-                    .instance_version
-                    .clone()
-                    .map(SharedString::from)
-                    .unwrap_or_else(|| t("settings.sysinfo.available"))
-            } else {
-                t("settings.sysinfo.not_available")
-            },
-        ));
+        if cfg!(target_os = "linux") {
+            let desktop = info
+                .desktop
+                .clone()
+                .map(SharedString::from)
+                .unwrap_or_else(|| t("settings.sysinfo.unknown_desktop"));
+            let session = info
+                .session_type
+                .clone()
+                .map(SharedString::from)
+                .unwrap_or_else(|| t("settings.sysinfo.unknown_session"));
+            rows.push((
+                t("settings.sysinfo.session"),
+                format!(
+                    "{desktop} · {session}{}",
+                    if info.is_flatpak { " · Flatpak" } else { "" }
+                )
+                .into(),
+            ));
+            rows.push((
+                "Vulkan".into(),
+                if info.vulkan.available() {
+                    info.vulkan
+                        .instance_version
+                        .clone()
+                        .map(SharedString::from)
+                        .unwrap_or_else(|| t("settings.sysinfo.available"))
+                } else {
+                    t("settings.sysinfo.not_available")
+                },
+            ));
+        }
         let software = &info.software;
         rows.push(("Ember".into(), software.ember.clone().into()));
         for (name, v) in [
@@ -512,7 +514,9 @@ impl SettingsView {
             ("MangoHud", &software.mangohud),
             ("umu-launcher", &software.umu),
         ] {
-            rows.push((name.into(), opt(v)));
+            if cfg!(target_os = "linux") || (name == "Wine" && !cfg!(windows)) {
+                rows.push((name.into(), opt(v)));
+            }
         }
         let list = rows
             .into_iter()

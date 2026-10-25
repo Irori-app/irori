@@ -366,7 +366,7 @@ impl Default for AppSettings {
             custom_wine_paths: Vec::new(),
             dark_tray_icon: false,
             default_install_path: games.to_string_lossy().into_owned(),
-            default_steam_path: home.join(".steam/steam").to_string_lossy().into_owned(),
+            default_steam_path: crate::platform::steam_dir().to_string_lossy().into_owned(),
             default_wine_prefix_dir: games.join("Prefixes").to_string_lossy().into_owned(),
             disable_controller: false,
             disable_playtime_sync: false,
