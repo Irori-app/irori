@@ -66,7 +66,9 @@ Both binaries are required, so a package never silently omits store sign-in.
 - Linux needs the GPUI libraries listed in CI, plus GTK 3 and WebKitGTK 4.1 for
   sign-in. `packaging/install.sh` retains the per-user Linux installation flow.
 - macOS needs Xcode Command Line Tools. The package includes an `.app` with the
-  helper and `ember://` URL declaration. Move it into Applications before making
+  helper and `ember://` URL declaration. XZ support links statically; packaging rejects
+  non-system dynamic libraries so Homebrew paths cannot leak into distributed binaries.
+  Move it into Applications before making
   shortcuts. `package.py` ad-hoc signs local builds. Set `EMBER_SIGN_IDENTITY` to
   a Developer ID for distribution signing, then notarize and staple with Apple's
   tools. An ad-hoc signature is not notarization.

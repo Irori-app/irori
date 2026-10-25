@@ -70,7 +70,7 @@ which = "8"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 flate2 = "1"
 tar = "0.4"
-xz2 = "0.1"
+xz2 = { version = "0.1", features = ["static"] }
 zstd = "0.13"
 bzip2 = "0.6"  # pure-Rust backend by default
 zip = { version = "9", default-features = false, features = ["deflate"] }

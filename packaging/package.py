@@ -18,6 +18,20 @@ import tomllib
 import zipfile
 
 
+def validate_macos_dependencies(binary: Path) -> None:
+    """Fail rather than ship an app that only runs on its build machine."""
+    linked = subprocess.run(["otool", "-L", str(binary)], check=True, capture_output=True, text=True)
+    for line in linked.stdout.splitlines():
+        if not line.startswith("\t"):
+            continue
+        dependency = line.strip().split(" (compatibility version", 1)[0]
+        if not dependency.startswith(("/System/Library/", "/usr/lib/")):
+            raise RuntimeError(
+                f"{binary.name} depends on a library outside macOS: {dependency}. "
+                "Enable static linking or explicitly bundle and relocate that dependency."
+            )
+
+
 def package(platform: str, binary_dir: Path, output: Path) -> Path:
     root = Path(__file__).resolve().parent.parent
     version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
@@ -26,6 +40,9 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     for binary in binaries:
         if not binary.is_file():
             raise FileNotFoundError(f"Build both Ember and its sign-in helper first: {binary}")
+    if platform == "macos":
+        for binary in binaries:
+            validate_macos_dependencies(binary)
     output.mkdir(parents=True, exist_ok=True)
     staging = output / ("Ember.app" if platform == "macos" else "Ember")
     staging.mkdir()  # Never overwrite an existing package or unrelated files.
