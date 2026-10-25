@@ -124,6 +124,50 @@ pub fn resolve_location(location: &str, install_path: &Path, dirs: &PrefixDirs) 
     normalize(path)
 }
 
+/// Native saves use the host's known folders, including redirected Documents
+/// and AppData. No Wine prefix is required for Windows or macOS native games.
+fn resolve_native_location(location: &str, install: &Path) -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_default();
+    let documents = dirs::document_dir().unwrap_or_else(|| home.join("Documents"));
+    let local = dirs::data_local_dir().unwrap_or_else(|| home.join("AppData/Local"));
+    let roaming = dirs::config_dir().unwrap_or_else(|| home.join("AppData/Roaming"));
+    let support = home.join("Library/Application Support");
+    let mut text = location.to_string();
+    for (name, value) in [
+        ("DOCUMENTS", documents.as_path()),
+        ("APPLICATION_DATA_LOCAL", local.as_path()),
+        ("APPLICATION_DATA_ROAMING", roaming.as_path()),
+        ("APPLICATION_SUPPORT", support.as_path()),
+    ] {
+        text = text.replace(&format!("<?{name}?>"), &value.to_string_lossy());
+    }
+    static VAR: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"(?i)%(LOCALAPPDATA|APPDATA|USERPROFILE|PROGRAMDATA|PUBLIC|WINDIR|SYSTEMROOT)%")
+            .expect("valid regex")
+    });
+    let text = VAR.replace_all(&text, |c: &regex::Captures| {
+        match c[1].to_ascii_uppercase().as_str() {
+            "LOCALAPPDATA" => local.to_string_lossy().into_owned(),
+            "APPDATA" => roaming.to_string_lossy().into_owned(),
+            "USERPROFILE" => home.to_string_lossy().into_owned(),
+            key => std::env::var(key).unwrap_or_else(|_| c[0].to_string()),
+        }
+    });
+    // Native absolute paths retain their drive/UNC root. Wine's C:/Z:
+    // mapping is only valid for compatibility-layer games.
+    let text = text
+        .replace("<?INSTALL?>", &install.to_string_lossy())
+        .replace(
+            "<?SAVED_GAMES?>",
+            &home.join("Saved Games").to_string_lossy(),
+        )
+        .replace(
+            "<?APPLICATION_DATA_LOCAL_LOW?>",
+            &home.join("AppData/LocalLow").to_string_lossy(),
+        );
+    normalize(PathBuf::from(text.replace('\\', "/")))
+}
+
 /// Encode resolved locations into the single `save_path` string.
 pub fn encode_locations(locs: &[CloudSaveLocation]) -> String {
     match locs {
@@ -244,22 +288,29 @@ impl GogStore {
     ) -> Result<String> {
         let rec = self.installed_record(app_name)?;
         let locs = self.locations(&rec).await?;
-        let prefix = match prefix {
-            Some(p) => p.to_path_buf(),
-            None => self
-                .wine_context(app_name)
-                .await
-                .map(|w| w.prefix)
-                .context("Launch the game once so its Wine prefix exists")?,
+        let prefix = if rec.platform.needs_wine() {
+            Some(match prefix {
+                Some(p) => p.to_path_buf(),
+                None => self
+                    .wine_context(app_name)
+                    .await
+                    .map(|w| w.prefix)
+                    .context("Launch the game once so its Wine prefix exists")?,
+            })
+        } else {
+            None
         };
         let install = rec.path();
         let resolved = tokio::task::spawn_blocking(move || {
-            let dirs = PrefixDirs::of(&prefix);
+            let dirs = prefix.as_deref().map(PrefixDirs::of);
             locs.into_iter()
                 .map(|l| CloudSaveLocation {
-                    location: resolve_location(&l.location, &install, &dirs)
-                        .to_string_lossy()
-                        .into_owned(),
+                    location: match &dirs {
+                        Some(dirs) => resolve_location(&l.location, &install, dirs),
+                        None => resolve_native_location(&l.location, &install),
+                    }
+                    .to_string_lossy()
+                    .into_owned(),
                     name: l.name,
                 })
                 .collect::<Vec<_>>()
@@ -406,6 +457,39 @@ mod tests {
         PrefixDirs {
             drive_c: "/p/pfx/drive_c".into(),
             user_dir: "/p/pfx/drive_c/users/steamuser".into(),
+        }
+    }
+
+    #[test]
+    fn native_saves_use_known_folders_without_a_prefix() {
+        let home = dirs::home_dir().unwrap();
+        let install = home.join("Games/Example");
+        let docs = dirs::document_dir().unwrap_or_else(|| home.join("Documents"));
+        assert_eq!(
+            resolve_native_location("<?DOCUMENTS?>/Example", &install),
+            docs.join("Example")
+        );
+        assert_eq!(
+            resolve_native_location("<?INSTALL?>/saves", &install),
+            install.join("saves")
+        );
+        assert_eq!(
+            resolve_native_location("%LOCALAPPDATA%/Example", &install),
+            dirs::data_local_dir().unwrap().join("Example")
+        );
+        assert_eq!(
+            resolve_native_location("<?APPLICATION_SUPPORT?>/Example", &install),
+            home.join("Library/Application Support/Example")
+        );
+        if cfg!(windows) {
+            assert_eq!(
+                resolve_native_location(r"D:\Games\Example\saves", &install),
+                PathBuf::from(r"D:\Games\Example\saves")
+            );
+            assert_eq!(
+                resolve_native_location(r"\\server\share\saves", &install),
+                PathBuf::from(r"\\server\share\saves")
+            );
         }
     }
 

@@ -816,8 +816,26 @@ mod tests {
         assert_eq!(argv[0], "/g/.zoom-download/1/setup.exe");
         assert!(argv.contains(&"/VERYSILENT".to_string()));
         assert!(argv.contains(&"/SP-".to_string()));
-        assert!(argv.contains(&r"/DIR=Z:\g\My Game".to_string()));
-        assert!(argv.contains(&r"/LOADINF=Z:\g\.zoom-download\1\zoom_installer.inf".to_string()));
+        assert!(
+            argv.contains(
+                &(if cfg!(windows) {
+                    r"/DIR=\g\My Game"
+                } else {
+                    r"/DIR=Z:\g\My Game"
+                })
+                .to_string()
+            )
+        );
+        assert!(
+            argv.contains(
+                &(if cfg!(windows) {
+                    r"/LOADINF=\g\.zoom-download\1\zoom_installer.inf"
+                } else {
+                    r"/LOADINF=Z:\g\.zoom-download\1\zoom_installer.inf"
+                })
+                .to_string()
+            )
+        );
         let nsis = installer_argv(
             InstallerKind::Nsis,
             Path::new("/s.exe"),
@@ -825,7 +843,18 @@ mod tests {
             Path::new("/i"),
             Path::new("/l"),
         );
-        assert_eq!(nsis, vec!["/s.exe", "/S", r"/D=Z:\g\x"]);
+        assert_eq!(
+            nsis,
+            vec![
+                "/s.exe",
+                "/S",
+                if cfg!(windows) {
+                    r"/D=\g\x"
+                } else {
+                    r"/D=Z:\g\x"
+                }
+            ]
+        );
     }
 
     #[test]

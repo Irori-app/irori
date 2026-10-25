@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+#[cfg(any(unix, test))]
 use std::time::Duration;
 
 use anyhow::{Context as _, Result};

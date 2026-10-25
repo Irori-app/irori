@@ -456,11 +456,12 @@ pub async fn run_in_prefix(
 /// setting, else the prefix its last launch used).
 fn resolve_for_settings(settings: &GameSettings) -> Option<(WineInstallation, PathBuf)> {
     let recorded = ACTIVE.lock().get(&fingerprint(settings)).cloned();
-    let prefix = if settings.wine_prefix.is_empty() {
-        recorded.as_ref().map(|(_, p)| p.clone())?
-    } else {
-        ember_core::paths::expand_home(&settings.wine_prefix)
-    };
+    let prefix =
+        if settings.wine_prefix.is_empty() || settings.wine_version.kind == WineKind::Crossover {
+            recorded.as_ref().map(|(_, p)| p.clone())?
+        } else {
+            ember_core::paths::expand_home(&settings.wine_prefix)
+        };
     let wine = if discovery::is_usable(&settings.wine_version) {
         settings.wine_version.clone()
     } else {

@@ -246,6 +246,13 @@ mod tests {
             d.path().join("pfx/drive_c/ProgramData/GOG.com")
         );
         assert_eq!(ctx.to_unix("Z:\\home\\u"), PathBuf::from("/home/u"));
-        assert_eq!(to_windows_path(Path::new("/home/u/G")), "Z:\\home\\u\\G");
+        assert_eq!(
+            to_windows_path(Path::new("/home/u/G")),
+            if cfg!(windows) {
+                r"\home\u\G"
+            } else {
+                r"Z:\home\u\G"
+            }
+        );
     }
 }

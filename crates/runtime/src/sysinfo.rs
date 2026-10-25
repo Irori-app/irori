@@ -141,7 +141,11 @@ async fn collect() -> SystemInfo {
                     used: system.used_memory(),
                 },
                 os: OsInfo {
-                    name: sysinfo::System::name().unwrap_or_default(),
+                    name: if cfg!(target_os = "macos") {
+                        "macOS".into()
+                    } else {
+                        sysinfo::System::name().unwrap_or_default()
+                    },
                     version: sysinfo::System::os_version(),
                     kernel: sysinfo::System::kernel_version().unwrap_or_default(),
                 },

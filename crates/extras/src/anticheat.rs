@@ -338,6 +338,13 @@ mod tests {
             blocks_install(Some(&db.entries[0]), &app),
             InstallGate::Allowed
         );
+        if cfg!(windows) {
+            assert_eq!(
+                blocks_install(Some(&db.entries[1]), &app),
+                InstallGate::Allowed
+            );
+            return;
+        }
         assert!(blocks_install(Some(&db.entries[1]), &app).blocks());
         assert_eq!(
             blocks_install(Some(&db.entries[2]), &app),

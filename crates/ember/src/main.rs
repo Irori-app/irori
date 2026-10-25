@@ -133,7 +133,8 @@ fn main() -> Result<()> {
         start_tray(&backend, tx.clone(), app.clone(), cx);
 
         let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)
-            && app.lock().tray.is_some()
+            && ((cfg!(target_os = "linux") && !backend.settings.app().no_tray_icon)
+                || app.lock().tray.is_some())
             && !cli.has_request();
         if !start_hidden {
             open_main_window(&app, cx);
@@ -328,6 +329,7 @@ fn start_tray(
     let task = ember_ui::state::run_infallible(cx, async move { tray::start(tx, dark).await });
     cx.spawn(async move |cx| {
         let Some(Some(handle)) = task.await else {
+            cx.update(|cx| open_main_window(&app, cx));
             return;
         };
         app.lock().tray = Some(handle.clone());

@@ -501,7 +501,11 @@ mod tests {
         let spec = wine_spec(&app, &gs, &wc, &cmd, &host);
         assert_eq!(spec.program, PathBuf::from("/w/bin/wine"));
         assert_eq!(spec.args, vec!["winecfg"]);
-        assert_eq!(spec.env["WINEPREFIX"], "/pfx");
+        if cfg!(windows) {
+            assert!(!spec.env.contains_key("WINEPREFIX"));
+        } else {
+            assert_eq!(spec.env["WINEPREFIX"], "/pfx");
+        }
     }
 
     #[tokio::test]
@@ -556,8 +560,8 @@ mod tests {
         );
         let (w, p) = wine_from_proton(&wc);
         assert_eq!(w.kind, WineKind::Wine);
-        assert!(w.bin.ends_with("files/bin/wine"));
-        assert!(w.wineserver.unwrap().ends_with("files/bin/wineserver"));
+        assert!(Path::new(&w.bin).ends_with("files/bin/wine"));
+        assert!(Path::new(&w.wineserver.unwrap()).ends_with("files/bin/wineserver"));
         assert_eq!(p, PathBuf::from("/games/pfx/pfx"));
         let umu = WineContext {
             uses_umu: true,

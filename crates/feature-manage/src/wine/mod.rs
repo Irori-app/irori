@@ -727,13 +727,17 @@ impl Render for WineManagerView {
             Some(kind) => self.render_source(kind, cx),
             None => self.render_system(cx),
         };
-        let description = match running {
-            0 => t("manage.wine.description"),
-            1 => t("manage.wine.description_running_one"),
-            n => t_args(
-                "manage.wine.description_running_other",
-                &[("count", &n.to_string())],
-            ),
+        let description = if cfg!(target_os = "macos") {
+            t("manage.wine.description_macos")
+        } else {
+            match running {
+                0 => t("manage.wine.description"),
+                1 => t("manage.wine.description_running_one"),
+                n => t_args(
+                    "manage.wine.description_running_other",
+                    &[("count", &n.to_string())],
+                ),
+            }
         };
         v_flex()
             .size_full()

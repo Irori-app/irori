@@ -35,7 +35,7 @@ Whisky's Wine installation. Custom paths may point to a runtime executable.
 CrossOver uses the bottle selected in settings, located under
 `~/Library/Application Support/CrossOver/Bottles`. Create the bottle in CrossOver
 first. Ember uses `CX_BOTTLE`, including for setup and wineserver commands, and
-does not initialize an external bottle. Whisky uses its runtime with an Ember
+does not initialize an external bottle. Uninstall refuses to delete a shared CrossOver bottle; keep the prefix and manage it in CrossOver. Whisky uses its runtime with an Ember
 prefix; existing Whisky bottles are not imported automatically.
 
 macOS settings include Msync, Metal HUD and Rosetta AVX advertisement. Linux
@@ -50,7 +50,7 @@ the process attached for exit status, logs, cancellation, and playtime.
 
 ## Build and package
 
-Use Rust 1.95 or newer; CI uses current stable. Build on the target operating
+Use Rust 1.95 or newer and Python 3.11+ for packaging; CI uses current stable Rust. Build on the target operating
 system. Cross-compiling the complete GPUI/WebView stack is not the supported
 release workflow.
 

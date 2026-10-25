@@ -63,6 +63,9 @@ impl Palette {
                 Route::BigPicture,
             ),
         ] {
+            if cfg!(windows) && route == Route::WineManager {
+                continue;
+            }
             push(
                 CommandItem::new()
                     .label(t_args("shell.palette.go_to", &[("place", &t(label))]))

@@ -695,14 +695,28 @@ mod tests {
             cmds[0].exe,
             PathBuf::from("/r/__redist/ISI/scriptinterpreter.exe")
         );
-        assert!(cmds[0].args.contains(&"/DIR=Z:\\g\\CP".to_string()));
+        assert!(
+            cmds[0].args.contains(
+                &(if cfg!(windows) {
+                    r"/DIR=\g\CP"
+                } else {
+                    r"/DIR=Z:\g\CP"
+                })
+                .to_string()
+            )
+        );
         assert!(cmds[0].args.contains(&"/Language=English".to_string()));
         assert!(cmds[0].args.contains(&"/ProductId=1423049311".to_string()));
         assert!(cmds[0].args.contains(&"/buildId=600".to_string()));
         assert!(
-            cmds[0]
-                .args
-                .contains(&"/supportDir=Z:\\s\\1423049311".to_string())
+            cmds[0].args.contains(
+                &(if cfg!(windows) {
+                    r"/supportDir=\s\1423049311"
+                } else {
+                    r"/supportDir=Z:\s\1423049311"
+                })
+                .to_string()
+            )
         );
         assert!(cmds[1].args.contains(&"/ProductId=1256837418".to_string()));
     }

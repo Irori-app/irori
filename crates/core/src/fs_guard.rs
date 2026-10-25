@@ -75,7 +75,10 @@ pub fn check_deletable(dir: &Path, home: Option<&Path>, protected: &[PathBuf]) -
         if path_contains(dir, home) {
             return refuse("it contains your home folder");
         }
-        if dir.parent() == Some(home) {
+        if dir
+            .parent()
+            .is_some_and(|parent| path_contains(parent, home) && path_contains(home, parent))
+        {
             return refuse("it is a folder directly inside your home folder");
         }
     }
@@ -114,6 +117,34 @@ pub fn ensure_deletable(dir: &Path, app: &AppSettings) -> Result<()> {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
+    #[test]
+    fn refuses_windows_roots_and_case_variants() {
+        let home = Path::new(r"C:\Users\Player");
+        let protected = vec![PathBuf::from(r"D:\Games\Ember")];
+        for bad in [
+            r"C:\",
+            r"C:\Users",
+            r"c:\users\player",
+            r"C:\USERS\PLAYER\Downloads",
+            r"D:\Games\Ember",
+            r"C:\Users\Player\x\..\Games",
+        ] {
+            assert!(
+                check_deletable(Path::new(bad), Some(home), &protected).is_err(),
+                "{bad}"
+            );
+        }
+        assert!(
+            check_deletable(Path::new(r"D:\Games\Ember\Hades"), Some(home), &protected).is_ok()
+        );
+        let windows = std::env::var_os("SystemRoot").unwrap();
+        assert!(
+            check_deletable(&PathBuf::from(windows).join("System32"), Some(home), &[]).is_err()
+        );
+    }
+
+    #[cfg(unix)]
     #[test]
     fn refuses_broad_folders() {
         let home = Path::new("/home/u");

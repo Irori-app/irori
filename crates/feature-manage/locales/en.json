@@ -131,6 +131,7 @@
   "manage.login.use_browser": "Use the browser instead",
   "manage.login.window.finishing": "Finishing the sign-in…",
   "manage.wine.title": "Wine manager",
+  "manage.wine.description_macos": "Download Wine builds for Windows games, or use an installed CrossOver or Whisky runtime.",
   "manage.wine.description": "Download Proton and Wine builds for Windows games, and see every build on this system.",
   "manage.wine.description_running_one": "Download Proton and Wine builds for Windows games. 1 install running.",
   "manage.wine.description_running_other": "Download Proton and Wine builds for Windows games. {count} installs running.",
