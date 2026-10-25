@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import plistlib
 import shutil
+import struct
 import subprocess
 import tarfile
 import tomllib
@@ -32,6 +33,52 @@ def validate_macos_dependencies(binary: Path) -> None:
             )
 
 
+WINDOWS_CRT_FILES = ("vcruntime140.dll", "vcruntime140_1.dll")
+
+
+def validate_windows_x64(binary: Path) -> None:
+    """Never mix an ARM/x86 executable with the x64 redistributable."""
+    with binary.open("rb") as file:
+        dos = file.read(64)
+        if len(dos) != 64 or dos[:2] != b"MZ":
+            raise ValueError(f"Not a Windows executable: {binary}")
+        file.seek(struct.unpack_from("<I", dos, 60)[0])
+        pe = file.read(6)
+    if len(pe) != 6 or pe[:4] != b"PE\0\0" or struct.unpack_from("<H", pe, 4)[0] != 0x8664:
+        raise ValueError(f"Windows packaging currently requires x64 binaries: {binary}")
+
+
+def windows_crt_directory() -> Path:
+    """Find the installed toolchain's redistributable, never arbitrary system DLLs."""
+    explicit = os.environ.get("EMBER_WINDOWS_CRT_DIR")
+    if explicit:
+        candidates = [Path(explicit)]
+    else:
+        roots = []
+        if directory := os.environ.get("VCToolsRedistDir"):
+            roots.append(Path(directory))
+        vswhere = Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft Visual Studio/Installer/vswhere.exe"
+        if vswhere.is_file():
+            installation = subprocess.run(
+                [str(vswhere), "-latest", "-products", "*", "-requires",
+                 "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"],
+                check=True, capture_output=True, text=True,
+            ).stdout.strip()
+            if installation:
+                redist = Path(installation) / "VC/Redist/MSVC"
+                versions = [p for p in redist.glob("*") if p.is_dir()]
+                versions.sort(key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdecimal()), reverse=True)
+                roots.extend(versions)
+        candidates = [candidate for root in roots for candidate in root.glob("x64/Microsoft.VC*.CRT")]
+    for candidate in candidates:
+        if all((candidate / name).is_file() for name in WINDOWS_CRT_FILES):
+            return candidate
+    raise FileNotFoundError(
+        "Missing x64 Visual C++ redistributable DLLs. Install the Visual Studio C++ tools, "
+        "or set EMBER_WINDOWS_CRT_DIR to their x64 Microsoft.VC*.CRT directory."
+    )
+
+
 def package(platform: str, binary_dir: Path, output: Path) -> Path:
     root = Path(__file__).resolve().parent.parent
     version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
@@ -43,6 +90,12 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     if platform == "macos":
         for binary in binaries:
             validate_macos_dependencies(binary)
+    windows_runtime = []
+    if platform == "windows":
+        runtime_directory = windows_crt_directory()
+        windows_runtime = [runtime_directory / name for name in WINDOWS_CRT_FILES]
+        for binary in [*binaries, *windows_runtime]:
+            validate_windows_x64(binary)
     output.mkdir(parents=True, exist_ok=True)
     staging = output / ("Ember.app" if platform == "macos" else "Ember")
     staging.mkdir()  # Never overwrite an existing package or unrelated files.
@@ -85,6 +138,8 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
         archive = output / f"Ember-{version}-macos.zip"
         subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(staging), str(archive)], check=True)
     elif platform == "windows":
+        for library in windows_runtime:
+            shutil.copy2(library, staging / library.name)
         shutil.copy2(root / "packaging/install-windows.ps1", staging / "install.ps1")
         shutil.copy2(root / "packaging/ember.svg", staging)
         shutil.copy2(root / "packaging/ember.ico", staging)

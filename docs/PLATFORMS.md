@@ -75,7 +75,14 @@ Both binaries are required, so a package never silently omits store sign-in.
 - Windows needs the MSVC Rust toolchain, Visual Studio C++ Build Tools/Windows
   SDK, and WebView2 Runtime for sign-in. Unzip and run the included `install.ps1`
   to install under LocalAppData and register a Start-menu shortcut and URL
-  handler. No administrator access is required for Ember itself. Game
+  handler. Packaging includes the x64 Visual C++ runtime DLLs from the installed
+  Visual Studio redistributable directory, so Ember does not depend on build tools
+  or an existing VC runtime installation on the user's machine. Set
+  `EMBER_WINDOWS_CRT_DIR` to an explicit x64 `Microsoft.VC*.CRT` directory if
+  discovery cannot find it. Keep the build toolchain current and rebuild packages
+  to ship runtime security updates; these app-local DLLs are updated with Ember.
+  See Microsoft's [deployment guidance](https://learn.microsoft.com/en-us/cpp/windows/deployment-in-visual-cpp).
+  No administrator access is required for Ember itself. Game
   redistributables may have their own UAC requirements. Public builds need
   Authenticode signing before distribution.
 

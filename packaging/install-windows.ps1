@@ -2,7 +2,7 @@
 param([string]$Destination = (Join-Path $env:LOCALAPPDATA 'Programs\Ember'))
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico')) {
+foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
     $source = Join-Path $PSScriptRoot $name
     if (!(Test-Path -LiteralPath $source)) { throw "Missing package file: $name" }
     Copy-Item -LiteralPath $source -Destination (Join-Path $Destination $name) -Force
