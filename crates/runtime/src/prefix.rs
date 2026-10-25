@@ -50,9 +50,9 @@ impl WineContext {
         }
     }
 
-    /// The real Wine prefix (`<prefix>/pfx` for Proton).
+    /// The real Wine prefix (`<prefix>/pfx` for direct Proton, flat for UMU).
     pub fn wine_prefix_dir(&self) -> PathBuf {
-        if self.is_proton() {
+        if self.is_proton() && !self.uses_umu {
             self.prefix.join("pfx")
         } else {
             self.prefix.clone()
@@ -128,9 +128,9 @@ pub fn wine_env_for(
 }
 
 /// Files that must exist in an initialised prefix of this kind.
-fn required_files(kind: WineKind) -> &'static [&'static str] {
-    match kind {
-        WineKind::Proton => &[
+fn required_files(wc: &WineContext) -> &'static [&'static str] {
+    match (wc.wine.kind, wc.uses_umu) {
+        (WineKind::Proton, false) => &[
             "pfx.lock",
             "tracked_files",
             "version",
@@ -157,7 +157,7 @@ const BOOTSTRAP_MARKER: &str = ".ember-prefix-incomplete";
 pub fn prefix_complete(wc: &WineContext) -> bool {
     wc.prefix.is_dir()
         && !wc.prefix.join(BOOTSTRAP_MARKER).exists()
-        && required_files(wc.wine.kind)
+        && required_files(wc)
             .iter()
             .all(|f| wc.prefix.join(f).exists())
 }
@@ -358,7 +358,7 @@ pub async fn verify_prefix(
         return Err(crate::download::Cancelled.into());
     }
     if !res.success()
-        || !required_files(wc.wine.kind)
+        || !required_files(wc)
             .iter()
             .all(|f| wc.prefix.join(f).exists())
     {
@@ -586,6 +586,26 @@ mod tests {
             .unwrap()
         );
         assert!(prefix_complete(&wc));
+    }
+
+    #[test]
+    fn umu_and_direct_proton_prefix_layouts_remain_distinct() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut umu = ctx_for(WineKind::Proton, true);
+        umu.prefix = dir.path().into();
+        for name in ["drive_c", "dosdevices"] {
+            std::fs::create_dir_all(dir.path().join(name)).unwrap();
+        }
+        for name in ["system.reg", "user.reg", "userdef.reg"] {
+            std::fs::write(dir.path().join(name), "").unwrap();
+        }
+        assert!(prefix_complete(&umu));
+        assert_eq!(umu.wine_prefix_dir(), dir.path());
+        let direct = WineContext {
+            uses_umu: false,
+            ..umu
+        };
+        assert!(!prefix_complete(&direct));
     }
 
     #[test]
