@@ -71,10 +71,12 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
             info["CFBundleIconFile"] = "ember.icns"
         with (staging / "Contents/Info.plist").open("wb") as file:
             plistlib.dump(info, file)
-        # Sign nested executables before the bundle. Ad-hoc signatures are for
-        # local/CI validation only, not Developer ID distribution.
+        # Sign the nested helper before the bundle. Signing CFBundleExecutable
+        # directly promotes the operation to the whole app, so it must not run
+        # while the helper is still unsigned (as it is on Intel builds).
+        # Ad-hoc signatures are for local/CI validation, not distribution.
         identity = os.environ.get("EMBER_SIGN_IDENTITY", "-")
-        for path in [*(destination / binary.name for binary in binaries), staging]:
+        for path in [destination / "ember-sign-in", staging]:
             command = ["codesign", "--force", "--sign", identity]
             if identity != "-":
                 command += ["--options", "runtime", "--timestamp", "--entitlements", str(root / "packaging/macos.entitlements")]
