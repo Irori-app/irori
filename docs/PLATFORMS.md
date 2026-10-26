@@ -111,6 +111,11 @@ launch options and overlay. The opener exits at once, so Ember records no sessio
 these games; the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` are
 merged into Ember's playtime instead.
 
+On Linux a Steam game's menu offers Protontricks once Steam has made its Proton prefix
+(`steamapps/compatdata/<id>/pfx`). Ember runs `protontricks` from `PATH`, or the Flathub
+app `com.github.Matoking.protontricks`, with `STEAM_DIR` set to the Steam folder it reads.
+protontricks only knows Steam app IDs, so games Ember runs itself keep using winetricks.
+
 Each configuration root has one running Ember instance, protected by an OS file
 lock. Subsequent invocations forward arguments over authenticated loopback IPC.
 The tray uses the desktop's native integration. macOS uses Command shortcuts and a native app menu; Windows/Linux retain Control shortcuts. Games inhibit sleep through the

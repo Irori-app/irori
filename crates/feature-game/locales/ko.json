@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "확인하려면 인터넷 연결이 필요합니다.",
   "game.ops.winecfg_failed": "Wine 설정을 열 수 없습니다",
   "game.ops.winetricks_failed": "Winetricks를 열 수 없습니다",
+  "game.ops.protontricks_failed": "Protontricks를 열 수 없습니다",
   "game.overlay.description": "친구, 도전 과제, 구매를 위한 Epic 게임 내 오버레이입니다.",
   "game.overlay.disable_failed": "EOS 오버레이를 끌 수 없습니다",
   "game.overlay.enable": "이 게임에서 사용",

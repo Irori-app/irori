@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "La verificación necesita conexión a internet.",
   "game.ops.winecfg_failed": "No se pudo abrir la configuración de Wine",
   "game.ops.winetricks_failed": "No se pudo abrir Winetricks",
+  "game.ops.protontricks_failed": "No se pudo abrir Protontricks",
   "game.overlay.description": "La superposición de Epic en el juego para amigos, logros y compras.",
   "game.overlay.disable_failed": "No se pudo desactivar la superposición de EOS",
   "game.overlay.enable": "Activar para este juego",

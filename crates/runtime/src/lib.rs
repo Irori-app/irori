@@ -13,6 +13,7 @@ pub mod hooks;
 pub mod locations;
 pub mod manager;
 pub mod prefix;
+pub mod protontricks;
 pub mod runtimes;
 pub mod sysinfo;
 pub mod tools;

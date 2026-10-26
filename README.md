@@ -34,7 +34,8 @@ and kept in a bounded GPU cache.
   Steam starts Ember, which offers to install a game that isn't installed yet.
 - Your installed Steam games in the same library, read from Steam's own files with no
   login. Play opens them in Steam, and the playtime Steam recorded is shown in Ember;
-  installing, updating and removing them stays in Steam.
+  installing, updating and removing them stays in Steam. On Linux, Protontricks opens
+  on a Steam game's Proton prefix from its menu.
 - One-click import of your Heroic accounts, installs, settings, favourites and categories.
 - Translated into 19 languages, switchable live; searchable settings.
 - Tray menu with recent games, desktop and Steam shortcuts, Discord Rich Presence,

@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "Weryfikacja wymaga połączenia z internetem.",
   "game.ops.winecfg_failed": "Nie udało się otworzyć konfiguracji Wine",
   "game.ops.winetricks_failed": "Nie udało się otworzyć Winetricks",
+  "game.ops.protontricks_failed": "Nie udało się otworzyć Protontricks",
   "game.overlay.description": "Nakładka Epic w grze do obsługi znajomych, osiągnięć i zakupów.",
   "game.overlay.disable_failed": "Nie udało się wyłączyć nakładki EOS",
   "game.overlay.enable": "Włącz dla tej gry",

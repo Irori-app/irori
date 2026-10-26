@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "Verifiering kräver en internetanslutning.",
   "game.ops.winecfg_failed": "Det gick inte att öppna Wine-konfigurationen",
   "game.ops.winetricks_failed": "Det gick inte att öppna Winetricks",
+  "game.ops.protontricks_failed": "Det gick inte att öppna Protontricks",
   "game.overlay.description": "Epics överlägg i spelet för vänner, prestationer och köp.",
   "game.overlay.disable_failed": "Det gick inte att stänga av EOS-överlägget",
   "game.overlay.enable": "Aktivera för det här spelet",

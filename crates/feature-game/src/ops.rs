@@ -348,6 +348,19 @@ pub fn winetricks(id: &GameId, window: &mut Window, cx: &mut App) -> Task<bool> 
     )
 }
 
+/// Open protontricks on the Proton prefix of a Steam game (Linux).
+pub fn protontricks(id: &GameId, window: &mut Window, cx: &mut App) -> Task<bool> {
+    let b = backend(cx);
+    let id = id.clone();
+    run_reporting(
+        window,
+        cx,
+        t("game.ops.protontricks_failed"),
+        async move { b.protontricks(&id, Vec::new()).await.map(|_| ()) },
+        |_, _, _| {},
+    )
+}
+
 /// Point the install record at another folder without moving files (for
 /// installs whose drive moved or that were copied elsewhere).
 pub fn change_install_location(id: &GameId, window: &mut Window, cx: &mut App) {

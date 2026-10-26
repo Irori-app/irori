@@ -238,6 +238,17 @@ pub(super) fn build_menu(
                     .on_click(move |_, window, cx| ops::winetricks(&i, window, cx).detach()),
             );
         }
+        // protontricks finds Steam's own Proton prefixes by app ID.
+        if cfg!(target_os = "linux") && id.runner == Runner::Steam {
+            menu = menu.separator();
+            let i = id.clone();
+            menu = menu.item(
+                PopupMenuItem::new("Protontricks")
+                    .icon(IconName::Wrench)
+                    .disabled(!idle)
+                    .on_click(move |_, window, cx| ops::protontricks(&i, window, cx).detach()),
+            );
+        }
         menu = menu.separator();
         if shortcuts_exist != Some(true) {
             let i = id.clone();

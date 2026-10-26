@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "A verificação precisa de ligação à Internet.",
   "game.ops.winecfg_failed": "Não foi possível abrir a configuração do Wine",
   "game.ops.winetricks_failed": "Não foi possível abrir o Winetricks",
+  "game.ops.protontricks_failed": "Não foi possível abrir o Protontricks",
   "game.overlay.description": "A sobreposição no jogo da Epic para amigos, conquistas e compras.",
   "game.overlay.disable_failed": "Não foi possível desativar a sobreposição EOS",
   "game.overlay.enable": "Ativar para este jogo",

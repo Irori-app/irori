@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "Для проверки нужно подключение к интернету.",
   "game.ops.winecfg_failed": "Не удалось открыть настройку Wine",
   "game.ops.winetricks_failed": "Не удалось открыть Winetricks",
+  "game.ops.protontricks_failed": "Не удалось открыть Protontricks",
   "game.overlay.description": "Внутриигровой оверлей Epic для друзей, достижений и покупок.",
   "game.overlay.disable_failed": "Не удалось отключить оверлей EOS",
   "game.overlay.enable": "Включить для этой игры",

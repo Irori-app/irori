@@ -613,6 +613,33 @@ impl Backend {
             .check()
     }
 
+    /// Run protontricks on the Proton prefix Steam made for one of its games
+    /// (Linux): its window when `verbs` is empty, else the verbs unattended.
+    pub async fn protontricks(&self, id: &GameId, verbs: Vec<String>) -> Result<ExecResult> {
+        anyhow::ensure!(cfg!(target_os = "linux"), "Protontricks runs on Linux only");
+        let game = self.installed_game(id)?;
+        anyhow::ensure!(
+            id.runner == ember_core::Runner::Steam,
+            "Protontricks works with Steam games. Use Winetricks for {}.",
+            game.title
+        );
+        let install = game.install_path().context("unknown install location")?;
+        let prefix = ember_runtime::protontricks::prefix_of(&install, &id.app_name)
+            .context("unknown install location")?;
+        if !tokio::fs::try_exists(&prefix).await.unwrap_or(false) {
+            bail!(
+                "Steam hasn't made a Proton prefix for {} yet. Play it once with Proton in Steam first.",
+                game.title
+            );
+        }
+        let steam_dir = ember_runtime::locations::steam_path(&self.settings.app());
+        let _guard = self.statuses.guard(id, StatusKind::Winetricks);
+        let ctx = self.op_context(id, CancellationToken::new());
+        ember_runtime::protontricks::run(&steam_dir, &id.app_name, &verbs, &ctx)
+            .await?
+            .check()
+    }
+
     /// Record that a game's files now live at `path` (files already moved).
     pub async fn set_install_path(&self, id: &GameId, path: &Path) -> Result<()> {
         Self::ensure_managed(id)?;

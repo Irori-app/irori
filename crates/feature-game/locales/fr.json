@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "La vérification nécessite une connexion Internet.",
   "game.ops.winecfg_failed": "Impossible d’ouvrir la configuration de Wine",
   "game.ops.winetricks_failed": "Impossible d’ouvrir Winetricks",
+  "game.ops.protontricks_failed": "Impossible d’ouvrir Protontricks",
   "game.overlay.description": "L’overlay en jeu d’Epic pour les amis, les succès et les achats.",
   "game.overlay.disable_failed": "Impossible de désactiver l’overlay EOS",
   "game.overlay.enable": "Activer pour ce jeu",

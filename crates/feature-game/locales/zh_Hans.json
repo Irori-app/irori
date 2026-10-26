@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "验证需要联网。",
   "game.ops.winecfg_failed": "无法打开 Wine 配置",
   "game.ops.winetricks_failed": "无法打开 Winetricks",
+  "game.ops.protontricks_failed": "无法打开 Protontricks",
   "game.overlay.description": "Epic 的游戏内覆盖层，用于好友、成就和购买。",
   "game.overlay.disable_failed": "无法禁用 EOS 覆盖层",
   "game.overlay.enable": "为此游戏启用",

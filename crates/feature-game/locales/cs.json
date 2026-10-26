@@ -362,6 +362,7 @@
   "game.ops.verify_offline": "Ověření vyžaduje připojení k internetu.",
   "game.ops.winecfg_failed": "Konfiguraci Wine se nepodařilo otevřít",
   "game.ops.winetricks_failed": "Winetricks se nepodařilo otevřít",
+  "game.ops.protontricks_failed": "Protontricks se nepodařilo otevřít",
   "game.overlay.description": "Herní překryvná vrstva Epicu pro přátele, úspěchy a nákupy.",
   "game.overlay.disable_failed": "Překryvnou vrstvu EOS se nepodařilo vypnout",
   "game.overlay.enable": "Zapnout pro tuto hru",
