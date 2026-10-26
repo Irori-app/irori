@@ -260,6 +260,9 @@ impl TokenStore {
             .await
             .map_err(|e| anyhow::anyhow!("Could not reach GOG ({})", e.without_url()))?;
         let status = resp.status();
+        if matches!(status.as_u16(), 400 | 401) {
+            return Err(SignInRejected(format!("GOG refused the login ({status})")).into());
+        }
         if !status.is_success() {
             bail!("GOG answered {status}");
         }
@@ -271,6 +274,20 @@ impl TokenStore {
         Ok(creds)
     }
 }
+
+/// GOG's token service refused the saved login (HTTP 400 or 401): the
+/// refresh token was revoked or ran out. Signing in again fixes it; retrying
+/// does not.
+#[derive(Debug, Clone)]
+pub struct SignInRejected(pub String);
+
+impl std::fmt::Display for SignInRejected {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for SignInRejected {}
 
 /// Write `bytes` atomically, readable only by the user where the platform
 /// supports it.
@@ -358,5 +375,31 @@ mod tests {
         }
         store.clear().await.unwrap();
         assert!(store.credentials().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn tells_a_refused_refresh_from_a_failing_server() {
+        let refuse = std::sync::atomic::AtomicBool::new(true);
+        let server = TestServer::start(move |_| {
+            if refuse.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                Resp::status(400)
+            } else {
+                Resp::status(502)
+            }
+        });
+        let dir = tempfile::tempdir().unwrap();
+        let store = TokenStore::with_endpoint(dir.path().join("auth.json"), server.url("/token"));
+        store
+            .put(&Credentials {
+                access_token: "AT".into(),
+                refresh_token: "RT".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let e = store.credentials().await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_some(), "{e:#}");
+        let e = store.credentials().await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_none(), "{e:#}");
     }
 }

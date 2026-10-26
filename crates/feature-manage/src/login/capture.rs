@@ -77,9 +77,13 @@ impl ClipboardWatcher {
 mod tests {
     use super::*;
 
-    const GOG: &str = r"on_login_success\?(?:[^\s#]*&)?code=([A-Za-z0-9._~-]+)";
-    const ZOOM: &str = r"li_token=([^&#\s]+)";
-    const EPIC: &str = r#""authorizationCode"\s*:\s*"([0-9a-f]{32})""#;
+    use ember_amazon_api::auth::CODE_CAPTURE as AMAZON;
+    use ember_epic_api::auth::CAPTURE as EPIC;
+    use ember_gog_api::auth::LOGIN_CAPTURE as GOG;
+
+    /// ZOOM's pattern is private to its store crate, which this crate does
+    /// not depend on; keep it in step with `LI_TOKEN_CAPTURE` there.
+    const ZOOM: &str = r"(?:^|[?&#])li_token=([^&#\s]+)";
 
     #[test]
     fn matches_store_secrets() {
@@ -100,6 +104,15 @@ mod tests {
             r#"{"redirectUrl":"x","authorizationCode":"0123456789abcdef0123456789abcdef","sid":null}"#
         ));
         assert!(!contains_secret(&epic, r#"{"authorizationCode":null}"#));
+        let amazon = compile_capture(AMAZON).unwrap();
+        assert!(contains_secret(
+            &amazon,
+            "https://www.amazon.com/?openid.oa2.authorization_code=ANcode123&openid.mode=id_res"
+        ));
+        assert!(!contains_secret(
+            &amazon,
+            "https://www.amazon.com/ap/signin"
+        ));
     }
 
     #[test]

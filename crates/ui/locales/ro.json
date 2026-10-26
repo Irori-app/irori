@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Modificat acum {count} zi",
+  "ui.saves.changed_days_other": "Modificat acum {count} zile",
+  "ui.saves.changed_hours_one": "Modificat acum {count} oră",
+  "ui.saves.changed_hours_other": "Modificat acum {count} h",
+  "ui.saves.changed_just_now": "Modificat chiar acum",
+  "ui.saves.changed_minutes_one": "Modificat acum {count} minut",
+  "ui.saves.changed_minutes_other": "Modificat acum {count} min",
+  "ui.saves.cloud": "Cloud",
+  "ui.saves.conflict_description": "Salvările s-au schimbat pe acest dispozitiv și în cloud de la ultima sincronizare. Cele pe care nu le păstrezi vor fi înlocuite.",
+  "ui.saves.conflict_title": "Ce salvări ale „{title}” vrei să păstrezi?",
+  "ui.saves.keep_cloud": "Păstrează-le pe cele din cloud",
+  "ui.saves.keep_local": "Păstrează-le pe cele de pe acest dispozitiv",
+  "ui.saves.no_saves": "Nicio salvare",
+  "ui.saves.not_now": "Nu acum",
+  "ui.saves.start_failed": "{title} nu a putut porni",
+  "ui.saves.this_device": "Acest dispozitiv",
   "ui.status.installing": "Se instalează",
   "ui.status.importing": "Se importă",
   "ui.status.updating": "Se actualizează",
@@ -20,5 +36,7 @@
   "ui.progress.left": "mai sunt {time}",
   "ui.progress.file_lists": "Se citesc listele de fișiere {done} / {total}",
   "ui.progress.checking_files": "Se verifică fișierele {done} / {total}",
-  "ui.cover.no_art": "Fără imagine"
+  "ui.cover.no_art": "Fără imagine",
+  "ui.notify.failed_start": "„{title}” nu a pornit",
+  "ui.notify.failed_start_body": "Deschide Ember ca să vezi ce nu a mers."
 }

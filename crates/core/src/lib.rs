@@ -27,7 +27,9 @@ pub use paths::Paths;
 pub use runner::{GameId, InstallPlatform, Runner};
 pub use settings::*;
 pub use status::{GameStatus, StatusKind};
-pub use store::{DynStore, InstallInfoQuery, LoginFlow, OpContext, SettingsFn, Store};
+pub use store::{
+    DynStore, InstallInfoQuery, LoginFlow, OpContext, SessionExpired, SettingsFn, Store,
+};
 
 pub use anyhow;
 pub use async_trait::async_trait;

@@ -41,21 +41,16 @@ pub(crate) fn duration_text(minutes: u64) -> SharedString {
     }
 }
 
-/// Whether a finished session gets a note: it ran long enough to matter and
-/// did not crash (crashes have their own note).
-fn noted(seconds: u64, crashed: bool) -> bool {
-    !crashed && seconds >= MIN_NOTED_SECONDS
+/// Whether a finished session gets a note: it ran long enough to matter.
+/// Failed starts get the launch-problem sheet instead.
+fn noted(seconds: u64) -> bool {
+    seconds >= MIN_NOTED_SECONDS
 }
 
 /// The note after a session of `id` ("You played Hades for 47 min · 12 h in
 /// total"), opening the game's page when clicked.
-pub(crate) fn session_note(
-    id: &GameId,
-    seconds: u64,
-    crashed: bool,
-    cx: &App,
-) -> Option<Notification> {
-    if !noted(seconds, crashed) {
+pub(crate) fn session_note(id: &GameId, seconds: u64, cx: &App) -> Option<Notification> {
+    if !noted(seconds) {
         return None;
     }
     let b = ember_ui::backend(cx);
@@ -171,9 +166,8 @@ mod tests {
 
     #[test]
     fn only_real_sessions_are_noted() {
-        assert!(noted(60, false));
-        assert!(noted(3 * 3600, false));
-        assert!(!noted(59, false));
-        assert!(!noted(600, true));
+        assert!(noted(60));
+        assert!(noted(3 * 3600));
+        assert!(!noted(59));
     }
 }

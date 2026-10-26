@@ -1,5 +1,5 @@
 //! The game page and every per-game workflow: install, import, modify,
-//! uninstall, move, cloud saves and logs.
+//! uninstall, move, cloud saves, logs and help after a failed start.
 //!
 //! The shell renders [`GamePage`] for `Route::Game(id)`, calls [`init`] once
 //! at startup (translations, key bindings), may install [`GameHooks`] to override the
@@ -19,6 +19,7 @@ mod hooks;
 mod i18n;
 mod import_installers;
 mod install;
+mod launch_problem;
 mod load;
 mod logs;
 mod manage;
@@ -43,6 +44,7 @@ pub use install::{
     InstallFooter, InstallMode, InstallSheet, installable_platforms, open_install_sheet,
     open_modify_sheet,
 };
+pub use launch_problem::{LaunchHint, game_output_start, launch_hints, open_launch_problem_sheet};
 pub use logs::{LineLevel, LogTail, LogViewer, open_log_sheet, parse_tail};
 pub use manage::{
     ImportForm, UninstallOptions, open_cancel_download_dialog, open_import_dialog,

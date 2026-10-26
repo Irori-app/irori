@@ -23,6 +23,7 @@ tracing.workspace = true
 discord-rich-presence = "1.1"
 once_cell.workspace = true
 fuzzy-matcher.workspace = true
+fs4.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # The desktop portal's Inhibit, with the features GPUI already builds ashpd with.

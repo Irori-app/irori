@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Змінено {count} день тому",
+  "ui.saves.changed_days_other": "Змінено {count} дн. тому",
+  "ui.saves.changed_hours_one": "Змінено {count} годину тому",
+  "ui.saves.changed_hours_other": "Змінено {count} год тому",
+  "ui.saves.changed_just_now": "Змінено щойно",
+  "ui.saves.changed_minutes_one": "Змінено {count} хвилину тому",
+  "ui.saves.changed_minutes_other": "Змінено {count} хв тому",
+  "ui.saves.cloud": "Хмара",
+  "ui.saves.conflict_description": "Збереження змінилися і на цьому пристрої, і в хмарі після останньої синхронізації. Ті, що ви не залишите, буде замінено.",
+  "ui.saves.conflict_title": "Які збереження «{title}» залишити?",
+  "ui.saves.keep_cloud": "Залишити хмарні збереження",
+  "ui.saves.keep_local": "Залишити збереження з пристрою",
+  "ui.saves.no_saves": "Немає збережень",
+  "ui.saves.not_now": "Не зараз",
+  "ui.saves.start_failed": "Не вдалося запустити {title}",
+  "ui.saves.this_device": "Цей пристрій",
   "ui.status.installing": "Встановлення",
   "ui.status.importing": "Імпорт",
   "ui.status.updating": "Оновлення",
@@ -20,5 +36,7 @@
   "ui.progress.left": "залишилося {time}",
   "ui.progress.file_lists": "Читання списків файлів {done} / {total}",
   "ui.progress.checking_files": "Перевірка файлів {done} / {total}",
-  "ui.cover.no_art": "Немає зображення"
+  "ui.cover.no_art": "Немає зображення",
+  "ui.notify.failed_start": "«{title}» не запустилася",
+  "ui.notify.failed_start_body": "Відкрийте Ember, щоб дізнатися, що пішло не так."
 }

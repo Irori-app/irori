@@ -50,6 +50,8 @@ pub(crate) struct StoreCard {
     pub disabled: bool,
     /// The user hid the store: its games and pages are left out.
     pub hidden: bool,
+    /// The store refused the saved login, with its reason.
+    pub expired: Option<String>,
 }
 
 /// Cards for the stores this build has, in display order.
@@ -81,6 +83,7 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
             games: counts.get(&runner).copied().unwrap_or(0),
             disabled: runner == Runner::Zoom && !zoom_enabled,
             hidden: !shown.shows(runner),
+            expired: accounts.login_expired(runner).map(str::to_string),
         })
         .collect()
 }
@@ -191,6 +194,7 @@ impl AccountsView {
                 this.logging_out.remove(&runner);
                 match result {
                     Ok(()) => {
+                        backend(cx).forget_expired_login(runner);
                         notify_success(
                             t_args(
                                 "manage.accounts.logged_out",
@@ -230,6 +234,10 @@ impl AccountsView {
             Tag::secondary()
                 .small()
                 .child(t("manage.accounts.state.turned_off"))
+        } else if card_data.expired.is_some() {
+            Tag::warning()
+                .small()
+                .child(t("manage.accounts.state.expired"))
         } else if card_data.user.is_some() {
             Tag::success()
                 .small()
@@ -244,6 +252,19 @@ impl AccountsView {
                 .text_sm()
                 .text_color(theme.muted_foreground)
                 .child(t("manage.accounts.hidden_detail"))
+                .into_any_element(),
+            (_, false) if let Some(reason) = &card_data.expired => v_flex()
+                .gap_0p5()
+                .child(div().text_sm().child(t_args(
+                    "manage.accounts.expired_hint",
+                    &[("store", runner.store_name())],
+                )))
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(theme.muted_foreground)
+                        .child(reason.clone()),
+                )
                 .into_any_element(),
             (_, true) => div()
                 .text_sm()
@@ -289,6 +310,33 @@ impl AccountsView {
                     .icon(IconName::Eye)
                     .label(t("manage.accounts.show"))
                     .on_click(set_shown(true))
+                    .into_any_element()
+            } else if !card_data.disabled && card_data.expired.is_some() {
+                h_flex()
+                    .flex_wrap()
+                    .gap_2()
+                    .child(
+                        Button::new("login-again")
+                            .primary()
+                            .icon(IconName::LogIn)
+                            .label(t("manage.accounts.login_again"))
+                            .disabled(!self.online)
+                            .on_click(move |_, window, cx| open_login_dialog(runner, window, cx)),
+                    )
+                    .when(card_data.user.is_some(), |row| {
+                        row.child(
+                            Button::new("logout")
+                                .ghost()
+                                .icon(IconName::LogOut)
+                                .label(t("manage.accounts.logout"))
+                                .loading(logging_out)
+                                .disabled(logging_out)
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    this.confirm_logout(runner, window, cx)
+                                })),
+                        )
+                    })
+                    .children(hide)
                     .into_any_element()
             } else if card_data.disabled {
                 Button::new("enable")

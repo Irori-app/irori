@@ -352,6 +352,7 @@ impl LoginDialog {
                     Ok(user) => {
                         this.close();
                         window.close_dialog(cx);
+                        ember_ui::backend(cx).forget_expired_login(runner);
                         let name = user.display_name.trim();
                         let store = runner.store_name();
                         let message = if name.is_empty() {

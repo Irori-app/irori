@@ -23,6 +23,8 @@ pub struct Notice {
     pub title: String,
     pub message: Option<String>,
     pub game: Option<GameId>,
+    /// The store account the notice is about; clicking it opens Accounts.
+    pub account: Option<Runner>,
     /// Translation keys for `title`/`message` and their `{placeholder}`
     /// values, resolved by the UI in the active language.
     pub title_key: Option<&'static str>,
@@ -37,6 +39,7 @@ impl Notice {
             title: title.into(),
             message: None,
             game: None,
+            account: None,
             title_key: None,
             message_key: None,
             args: Vec::new(),
@@ -66,6 +69,11 @@ impl Notice {
         self.game = Some(id);
         self
     }
+
+    pub fn account(mut self, runner: Runner) -> Self {
+        self.account = Some(runner);
+        self
+    }
 }
 
 /// Backend → UI change notifications. Events carry identities, not data: the
@@ -93,11 +101,14 @@ pub enum Event {
     GameSettingsChanged(GameId),
     Connectivity(bool),
     Notice(Notice),
-    /// A game process exited after `seconds` of play.
+    /// A game process exited after `seconds` of play. `crashed` means it
+    /// failed to start: it exited with an error within seconds, unasked.
     GameExited {
         id: GameId,
         seconds: u64,
         crashed: bool,
+        /// The process's exit code; `None` when a signal ended it.
+        exit_code: Option<i32>,
     },
 }
 

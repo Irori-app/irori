@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Cambiado hace {count} día",
+  "ui.saves.changed_days_other": "Cambiado hace {count} días",
+  "ui.saves.changed_hours_one": "Cambiado hace {count} hora",
+  "ui.saves.changed_hours_other": "Cambiado hace {count} horas",
+  "ui.saves.changed_just_now": "Cambiado hace un momento",
+  "ui.saves.changed_minutes_one": "Cambiado hace {count} minuto",
+  "ui.saves.changed_minutes_other": "Cambiado hace {count} minutos",
+  "ui.saves.cloud": "Nube",
+  "ui.saves.conflict_description": "Las partidas cambiaron en este dispositivo y en la nube desde la última sincronización. Las que no conserves se reemplazarán.",
+  "ui.saves.conflict_title": "¿Qué partidas guardadas de «{title}» quieres conservar?",
+  "ui.saves.keep_cloud": "Conservar las de la nube",
+  "ui.saves.keep_local": "Conservar las de este dispositivo",
+  "ui.saves.no_saves": "Sin partidas",
+  "ui.saves.not_now": "Ahora no",
+  "ui.saves.start_failed": "No se pudo iniciar {title}",
+  "ui.saves.this_device": "Este dispositivo",
   "ui.status.installing": "Instalando",
   "ui.status.importing": "Importando",
   "ui.status.updating": "Actualizando",
@@ -20,5 +36,7 @@
   "ui.progress.left": "quedan {time}",
   "ui.progress.file_lists": "Leyendo listas de archivos {done} / {total}",
   "ui.progress.checking_files": "Comprobando archivos {done} / {total}",
-  "ui.cover.no_art": "Sin imagen"
+  "ui.cover.no_art": "Sin imagen",
+  "ui.notify.failed_start": "«{title}» no se inició",
+  "ui.notify.failed_start_body": "Abre Ember para ver qué ha fallado."
 }

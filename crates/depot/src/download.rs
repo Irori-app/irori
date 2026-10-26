@@ -150,6 +150,13 @@ pub(crate) const STALL: Duration = if cfg!(test) {
 } else {
     Duration::from_secs(8)
 };
+/// How long one batch of chunk addresses may take to sign before it is
+/// retried like a dropped connection.
+const SIGN_TIMEOUT: Duration = if cfg!(test) {
+    Duration::from_millis(400)
+} else {
+    Duration::from_secs(30)
+};
 /// The first wait after a failure; it doubles per failure up to a minute.
 const BACKOFF: Duration = if cfg!(test) {
     Duration::from_millis(10)
@@ -246,6 +253,9 @@ pub async fn download(
         tokio::select! {
             biased;
             r = work => r,
+            // Dropping the work stops every request at once, including ones
+            // waiting for a free slot or for addresses to be signed.
+            () = cancel.cancelled() => Err(Error::Cancelled),
             () = tune(&ctx, tuner, limit) => unreachable!("tuning never ends"),
         }
     })
@@ -1264,7 +1274,10 @@ impl Signing {
                     .cloned(),
             );
         }
-        let signed = self.signer.sign(&batch).await.map_err(sign_error)?;
+        let signed = tokio::time::timeout(SIGN_TIMEOUT, self.signer.sign(&batch))
+            .await
+            .map_err(|_| Error::Interrupted("signing chunk addresses timed out".into()))?
+            .map_err(sign_error)?;
         let mut urls = self.urls.lock().unwrap_or_else(|e| e.into_inner());
         urls.extend(signed);
         urls.get(key).cloned().ok_or_else(|| {

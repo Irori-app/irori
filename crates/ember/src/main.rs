@@ -3,6 +3,7 @@
 
 mod actions;
 mod cli;
+mod crash;
 mod headless;
 mod import;
 mod instance;
@@ -88,10 +89,12 @@ fn main() -> Result<()> {
         return Ok(());
     };
     init_logging(true);
+    crash::install();
     tracing::info!("Ember {} starting", env!("CARGO_PKG_VERSION"));
     limit_malloc_arenas();
 
     let backend = Backend::start(stores::build)?;
+    crash::notice_last_crash(&backend.bus);
     let (tx, rx) = mpsc::unbounded::<ShellCommand>();
     {
         let tx = tx.clone();
@@ -136,6 +139,18 @@ fn main() -> Result<()> {
 
         let app = Arc::new(Mutex::new(AppHandles::default()));
         start_tray(&backend, tx.clone(), app.clone(), cx);
+        {
+            let app = app.clone();
+            ember_ui::system_notify::install(
+                move |route, cx| {
+                    open_main_window(&app, cx);
+                    if let Some(route) = route {
+                        nav::navigate(route, cx);
+                    }
+                },
+                cx,
+            );
+        }
 
         // Steam's Game Mode has no tray to come back from.
         let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)

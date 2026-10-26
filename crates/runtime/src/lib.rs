@@ -567,6 +567,16 @@ pub fn prefix_path(app: &AppSettings, settings: &GameSettings, game: &GameInfo) 
     }
 }
 
+/// Whether `prefix` is shared by several games: the root that holds every
+/// game's own prefix, or the prefix set for all games in the defaults.
+/// Deleting it with one game would take the others' saves with it.
+pub fn prefix_is_shared(app: &AppSettings, prefix: &Path) -> bool {
+    let same = |setting: &str| {
+        !setting.trim().is_empty() && ember_core::paths::expand_home(setting) == prefix
+    };
+    same(&app.default_wine_prefix_dir) || same(&app.game.wine_prefix)
+}
+
 /// Install (`enabled`) or remove a DLL tool in the game's prefix (the DXVK /
 /// VKD3D / NVAPI toggles). Only Wine prefixes are affected; Proton ships its
 /// own.
@@ -657,6 +667,24 @@ mod tests {
             }),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn knows_shared_prefixes() {
+        let root = ember_core::paths::expand_home("~/Games/Prefixes");
+        let mut app = AppSettings {
+            default_wine_prefix_dir: "~/Games/Prefixes".into(),
+            ..Default::default()
+        };
+        assert!(prefix_is_shared(&app, &root));
+        assert!(!prefix_is_shared(&app, &root.join("My Game")));
+        app.game.wine_prefix = "/data/shared".into();
+        assert!(prefix_is_shared(&app, Path::new("/data/shared")));
+        app.game.wine_prefix.clear();
+        assert!(
+            !prefix_is_shared(&app, Path::new("")),
+            "no setting, no match"
+        );
     }
 
     #[test]

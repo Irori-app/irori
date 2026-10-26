@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Изменено {count} день назад",
+  "ui.saves.changed_days_other": "Изменено {count} дн. назад",
+  "ui.saves.changed_hours_one": "Изменено {count} час назад",
+  "ui.saves.changed_hours_other": "Изменено {count} ч назад",
+  "ui.saves.changed_just_now": "Изменено только что",
+  "ui.saves.changed_minutes_one": "Изменено {count} минуту назад",
+  "ui.saves.changed_minutes_other": "Изменено {count} мин. назад",
+  "ui.saves.cloud": "Облако",
+  "ui.saves.conflict_description": "Сохранения изменились и на этом устройстве, и в облаке после последней синхронизации. Те, что вы не оставите, будут заменены.",
+  "ui.saves.conflict_title": "Какие сохранения «{title}» оставить?",
+  "ui.saves.keep_cloud": "Оставить облачные сохранения",
+  "ui.saves.keep_local": "Оставить сохранения с устройства",
+  "ui.saves.no_saves": "Нет сохранений",
+  "ui.saves.not_now": "Не сейчас",
+  "ui.saves.start_failed": "Не удалось запустить {title}",
+  "ui.saves.this_device": "Это устройство",
   "ui.status.installing": "Установка",
   "ui.status.importing": "Импорт",
   "ui.status.updating": "Обновление",
@@ -20,5 +36,7 @@
   "ui.progress.left": "осталось {time}",
   "ui.progress.file_lists": "Чтение списков файлов {done} / {total}",
   "ui.progress.checking_files": "Проверка файлов {done} / {total}",
-  "ui.cover.no_art": "Нет изображения"
+  "ui.cover.no_art": "Нет изображения",
+  "ui.notify.failed_start": "«{title}» не запустилась",
+  "ui.notify.failed_start_body": "Откройте Ember, чтобы узнать, что пошло не так."
 }

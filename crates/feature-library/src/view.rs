@@ -804,7 +804,10 @@ impl LibraryView {
             skip_version_check: self.skip_version_check.remove(id),
             ..Default::default()
         };
-        let task = ember_ui::run(cx, async move { b.launch_with(&launch_id, params).await });
+        let task = {
+            let params = params.clone();
+            ember_ui::run(cx, async move { b.launch_with(&launch_id, params).await })
+        };
         let id = id.clone();
         let title = self
             .game(&id, cx)
@@ -814,7 +817,9 @@ impl LibraryView {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {
                 this.launching.remove(&id);
-                if let Err(e) = result {
+                if let Err(e) = result
+                    && !ember_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx)
+                {
                     let failed = t_args("library.error.start", &[("title", &title)]);
                     crate::notify_error(failed, &e, window, cx);
                 }

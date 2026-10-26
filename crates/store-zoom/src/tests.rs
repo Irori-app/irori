@@ -437,7 +437,11 @@ async fn expired_token_logs_out() {
     .unwrap();
     store.init().await.unwrap();
     assert!(store.is_logged_in());
-    assert!(store.refresh(false).await.is_err());
+    let e = store.refresh(false).await.unwrap_err();
+    assert_eq!(
+        ember_core::SessionExpired::of(&e).map(|s| s.runner),
+        Some(Runner::Zoom)
+    );
     assert!(!store.is_logged_in());
     assert!(!store.layout().auth_file().exists());
 }

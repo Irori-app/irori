@@ -429,6 +429,7 @@ mod tests {
             started: started.into(),
             seconds: 60,
             crashed: false,
+            exit_code: None,
         }
     }
 

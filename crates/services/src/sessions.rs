@@ -21,6 +21,9 @@ pub struct Session {
     /// It exited with an error within seconds of starting.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub crashed: bool,
+    /// Exit code of a crashed session.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
 }
 
 fn file() -> PathBuf {
@@ -84,12 +87,14 @@ mod tests {
             started: "2026-10-23T10:00:00Z".into(),
             seconds: 3600,
             crashed: false,
+            exit_code: None,
         };
         let second = Session {
             game: "legendary:Fowl".into(),
             started: "2026-10-23T12:00:00Z".into(),
             seconds: 3,
             crashed: true,
+            exit_code: None,
         };
         append_to(&path, &first).unwrap();
         std::fs::OpenOptions::new()
