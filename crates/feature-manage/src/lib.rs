@@ -22,7 +22,7 @@ mod wine;
 
 pub use accounts::AccountsView;
 pub use downloads::DownloadsView;
-pub use login::open_login_dialog;
+pub use login::{open_account_login_dialog, open_login_dialog};
 pub use onboarding::{
     OnboardingEvent, OnboardingView, mark_onboarding_done, should_show_onboarding,
 };

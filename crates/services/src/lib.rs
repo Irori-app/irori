@@ -460,6 +460,23 @@ impl Backend {
         Ok(())
     }
 
+    /// Refresh one account of a store (`slot` from [`ember_core::Store::accounts`]).
+    pub async fn refresh_account(
+        &self,
+        runner: Runner,
+        slot: &str,
+        full: bool,
+    ) -> anyhow::Result<()> {
+        let store = self
+            .store(runner)
+            .ok_or_else(|| anyhow::anyhow!("{runner} is not available"))?;
+        let result = store.refresh_account(slot, full).await;
+        self.note_login(runner, result.as_ref().err());
+        result?;
+        self.rebuild_library();
+        Ok(())
+    }
+
     /// Tell the user about updates that appeared since the last check.
     fn notice_new_updates(&self, new: &[ember_core::GameId]) {
         let notice = match new {
