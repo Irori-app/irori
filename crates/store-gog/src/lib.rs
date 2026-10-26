@@ -96,6 +96,23 @@ impl GogStore {
         Self::with_paths(bus, settings, GogPaths::from_ember())
     }
 
+    /// The store of one more account, keeping its login, installs and
+    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// directories.
+    pub fn for_account(
+        bus: EventBus,
+        settings: SettingsFn,
+        config: std::path::PathBuf,
+        cache: std::path::PathBuf,
+    ) -> Arc<Self> {
+        let paths = GogPaths {
+            config,
+            cache,
+            ..GogPaths::from_ember()
+        };
+        Self::with_paths(bus, settings, paths)
+    }
+
     /// Create the store with an explicit directory layout.
     pub fn with_paths(bus: EventBus, settings: SettingsFn, paths: GogPaths) -> Arc<Self> {
         Self::with_endpoints(bus, settings, paths, Default::default())

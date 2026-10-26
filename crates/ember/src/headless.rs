@@ -83,15 +83,32 @@ fn flag_value<'a>(args: &'a [String], name: &str) -> Option<&'a String> {
 
 fn accounts(backend: &Backend) -> Result<i32> {
     for store in backend.stores() {
-        let state = match store.user() {
-            Some(u) => format!("logged in as {}", u.display_name),
-            None => "not logged in".into(),
-        };
-        let count = backend.library().count(store.runner());
-        println!(
-            "{:<16} {state} ({count} games)",
-            store.runner().store_name()
-        );
+        let name = store.runner().store_name();
+        let accounts = store.accounts();
+        if accounts.is_empty() || !store.runner().has_account() {
+            let state = match store.user() {
+                Some(u) => format!("logged in as {}", u.display_name),
+                None => "not logged in".into(),
+            };
+            let count = backend.library().count(store.runner());
+            println!("{name:<16} {state} ({count} games)");
+            continue;
+        }
+        for account in accounts {
+            let state = if account.expired.is_some() {
+                format!("{} must log in again", account.display_name)
+            } else if account.signed_in {
+                format!("logged in as {}", account.display_name)
+            } else {
+                format!("{} logged out", account.display_name)
+            };
+            let count = if account.signed_in {
+                format!("{} games", account.games)
+            } else {
+                format!("{} installed", account.installed)
+            };
+            println!("{name:<16} {state} ({count})");
+        }
     }
     Ok(0)
 }
@@ -183,7 +200,7 @@ async fn playtime(backend: &Backend, args: &[String]) -> Result<i32> {
     if id.runner == Runner::Gog
         && let Some(gog) = crate::stores::GOG.get()
     {
-        match gog.gog_playtime(&id.app_name).await {
+        match gog.store_for(&id.app_name).gog_playtime(&id.app_name).await {
             Some(m) => println!("GOG:    {m} min"),
             None => println!("GOG:    unavailable"),
         }

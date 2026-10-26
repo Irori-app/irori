@@ -40,6 +40,8 @@ and kept in a bounded GPU cache.
   login. Play opens them in Steam, and the playtime Steam recorded is shown in Ember;
   installing, updating and removing them stays in Steam. On Linux, Protontricks opens
   on a Steam game's Proton prefix from its menu.
+- Several accounts per store (Epic Games, GOG, Amazon Games, ZOOM Platform, itch.io) in
+  one library; each installed game launches with the account it was installed with.
 - One-click import of your Heroic accounts, installs, settings, favourites and categories.
 - Translated into 19 languages, switchable live; searchable settings.
 - Tray menu with recent games, desktop and Steam shortcuts, Discord Rich Presence,

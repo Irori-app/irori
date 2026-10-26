@@ -8,7 +8,9 @@
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
-use ember_core::{AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, UserInfo};
+use ember_core::{
+    AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, StoreAccount, UserInfo,
+};
 use ember_services::{DownloadQueueSnapshot, LibrarySnapshot, UserData};
 use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
 use tokio::sync::broadcast::error::{RecvError, TryRecvError};
@@ -105,6 +107,8 @@ pub struct DownloadsModel {
 /// Accounts of every store and connectivity.
 pub struct AccountsModel {
     pub users: BTreeMap<Runner, Option<UserInfo>>,
+    /// Every account of each store with accounts, in the store's order.
+    pub accounts: BTreeMap<Runner, Vec<StoreAccount>>,
     /// Stores whose saved login was refused, with the store's reason.
     pub expired: BTreeMap<Runner, String>,
     pub online: bool,
@@ -113,6 +117,11 @@ pub struct AccountsModel {
 impl AccountsModel {
     pub fn user(&self, runner: Runner) -> Option<&UserInfo> {
         self.users.get(&runner).and_then(Option::as_ref)
+    }
+
+    /// The store's accounts (signed in, or signed out with games installed).
+    pub fn accounts(&self, runner: Runner) -> &[StoreAccount] {
+        self.accounts.get(&runner).map_or(&[], Vec::as_slice)
     }
 
     pub fn is_logged_in(&self, runner: Runner) -> bool {
@@ -192,9 +201,20 @@ pub fn models(cx: &App) -> &Models {
     cx.global::<Models>()
 }
 
-fn accounts_now(cx: &App) -> BTreeMap<Runner, Option<UserInfo>> {
+type AccountsNow = (
+    BTreeMap<Runner, Option<UserInfo>>,
+    BTreeMap<Runner, Vec<StoreAccount>>,
+);
+
+fn accounts_now(cx: &App) -> AccountsNow {
     let b = backend(cx);
-    b.stores().map(|s| (s.runner(), s.user())).collect()
+    let users = b.stores().map(|s| (s.runner(), s.user())).collect();
+    let accounts = b
+        .stores()
+        .filter(|s| s.runner().has_account())
+        .map(|s| (s.runner(), s.accounts()))
+        .collect();
+    (users, accounts)
 }
 
 pub(crate) fn install(cx: &mut App) {
@@ -217,9 +237,10 @@ pub(crate) fn install(cx: &mut App) {
         queue: b.downloads(),
         files: b.file_downloads(),
     });
-    let users = accounts_now(cx);
+    let (users, accounts) = accounts_now(cx);
     let accounts = cx.new(|_| AccountsModel {
         users,
+        accounts,
         expired: b.expired_logins(),
         online: b.is_online(),
     });
@@ -287,7 +308,12 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
 
     for event in batch {
         match event {
-            Event::LibraryUpdated(_) | Event::GameChanged(_) => library = true,
+            Event::LibraryUpdated(_) => {
+                library = true;
+                // Each account's game counts.
+                accounts = true;
+            }
+            Event::GameChanged(_) => library = true,
             Event::LibraryChanged(_) => {}
             Event::Status(_) | Event::StatusCleared(_) => statuses.push(event),
             Event::AccountChanged(_) => {
@@ -372,12 +398,15 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
         });
     }
     if accounts {
-        let users = accounts_now(cx);
+        let (users, accounts) = accounts_now(cx);
         let expired = b.expired_logins();
         m.accounts.update(cx, |a, cx| {
-            a.users = users;
-            a.expired = expired;
-            cx.notify();
+            if a.users != users || a.accounts != accounts || a.expired != expired {
+                a.users = users;
+                a.accounts = accounts;
+                a.expired = expired;
+                cx.notify();
+            }
         });
     }
     if settings || changed_game.is_some() {

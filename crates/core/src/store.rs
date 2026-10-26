@@ -47,6 +47,28 @@ impl SessionExpired {
     }
 }
 
+/// The login slot every store has: its own config and cache directories.
+pub const MAIN_ACCOUNT: &str = "main";
+
+/// One account of a store, as the accounts page lists it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct StoreAccount {
+    /// Which login this is: [`MAIN_ACCOUNT`] or a store-chosen id. Pass it
+    /// back to [`Store::account_login`] and the other per-account calls.
+    pub slot: String,
+    pub account_id: String,
+    pub display_name: String,
+    /// False for an account that logged out while games installed with it
+    /// stayed; logging in to it again brings them back.
+    pub signed_in: bool,
+    /// Games (not DLC) the account owns.
+    pub games: usize,
+    /// Games installed with this account.
+    pub installed: usize,
+    /// The store refused the saved login, with its reason.
+    pub expired: Option<String>,
+}
+
 /// How a user logs in to a store.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoginFlow {
@@ -122,6 +144,64 @@ pub trait Store: Send + Sync + 'static {
     async fn login(&self, input: &str) -> Result<UserInfo>;
 
     async fn logout(&self) -> Result<()>;
+
+    /// Every account: the signed-in ones, and signed-out ones that games
+    /// installed with them still belong to. Stores with one login list
+    /// [`Store::user`].
+    fn accounts(&self) -> Vec<StoreAccount> {
+        let Some(user) = self.user() else {
+            return Vec::new();
+        };
+        let games = self.games();
+        let owned = || games.iter().filter(|g| !g.is_dlc);
+        vec![StoreAccount {
+            slot: MAIN_ACCOUNT.to_string(),
+            account_id: user.account_id,
+            display_name: user.display_name,
+            signed_in: true,
+            games: owned().count(),
+            installed: owned().filter(|g| g.is_installed).count(),
+            expired: None,
+        }]
+    }
+
+    /// Whether another account can log in beside the current ones.
+    fn can_add_account(&self) -> bool {
+        false
+    }
+
+    /// How to log in to the account in `slot` again, or to a new account
+    /// when `slot` is `None`.
+    fn account_login_flow(&self, _slot: Option<&str>) -> LoginFlow {
+        self.login_flow()
+    }
+
+    /// Complete [`Store::account_login_flow`] with what the user pasted.
+    async fn account_login(&self, _slot: Option<&str>, input: &str) -> Result<UserInfo> {
+        self.login(input).await
+    }
+
+    /// Log out of one account; the others stay.
+    async fn account_logout(&self, _slot: &str) -> Result<()> {
+        self.logout().await
+    }
+
+    /// Re-fetch one account's games.
+    async fn refresh_account(&self, _slot: &str, full: bool) -> Result<()> {
+        self.refresh(full).await
+    }
+
+    /// The account a game belongs to (the one it was installed with, else
+    /// the one owning it), when the store has more than one account.
+    fn game_account(&self, _app_name: &str) -> Option<UserInfo> {
+        None
+    }
+
+    /// Account ids of the signed-in accounts owning each game, by app name,
+    /// in account order. Empty unless more than one account is signed in.
+    fn game_owners(&self) -> std::collections::HashMap<String, Vec<String>> {
+        std::collections::HashMap::new()
+    }
 
     // ---- catalogue -----------------------------------------------------
 

@@ -627,6 +627,12 @@ impl GamePage {
                 .children(self.overlay.clone())
                 .into_any_element();
         }
+        if let Some(account) = b
+            .store(self.id.runner)
+            .and_then(|s| s.game_account(&self.id.app_name))
+        {
+            col = col.child(detail_row(t("game.info.account"), account.display_name, cx));
+        }
         col = col.child(detail_row(
             t("game.info.offline_play"),
             if game.can_run_offline {

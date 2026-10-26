@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} anni fa",
   "library.time.yesterday": "Ieri",
   "library.toolbar.all_stores": "Tutti",
+  "library.toolbar.all_accounts": "Tutti gli account",
   "library.toolbar.filters": "Filtri",
   "library.toolbar.filters_active": "Filtri · {count}",
   "library.toolbar.grid": "Griglia",

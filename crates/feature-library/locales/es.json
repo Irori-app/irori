@@ -322,6 +322,7 @@
   "library.time.years_other": "Hace {count} años",
   "library.time.yesterday": "Ayer",
   "library.toolbar.all_stores": "Todas",
+  "library.toolbar.all_accounts": "Todas las cuentas",
   "library.toolbar.filters": "Filtros",
   "library.toolbar.filters_active": "Filtros · {count}",
   "library.toolbar.grid": "Cuadrícula",

@@ -322,6 +322,7 @@
   "library.time.years_other": "Vor {count} Jahren",
   "library.time.yesterday": "Gestern",
   "library.toolbar.all_stores": "Alle",
+  "library.toolbar.all_accounts": "Alle Konten",
   "library.toolbar.filters": "Filter",
   "library.toolbar.filters_active": "Filter · {count}",
   "library.toolbar.grid": "Raster",

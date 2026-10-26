@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} 年前",
   "library.time.yesterday": "昨天",
   "library.toolbar.all_stores": "全部",
+  "library.toolbar.all_accounts": "全部账户",
   "library.toolbar.filters": "筛选",
   "library.toolbar.filters_active": "筛选 · {count}",
   "library.toolbar.grid": "网格",

@@ -124,6 +124,14 @@ where
     })
 }
 
+/// One account of a store, picked in the library's account switcher.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountFilter {
+    pub runner: Runner,
+    pub account_id: String,
+}
+
 /// Everything that decides which games the library shows and in which order.
 /// Persisted between sessions except for the search query.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -132,6 +140,8 @@ pub struct ViewFilter {
     #[serde(skip)]
     pub query: String,
     pub store: StoreFilter,
+    /// Only the games this account owns, while its store is the one shown.
+    pub account: Option<AccountFilter>,
     pub platform: Option<InstallPlatform>,
     pub install: InstallFilter,
     pub favourites_only: bool,
@@ -177,6 +187,7 @@ impl ViewFilter {
         *self = ViewFilter {
             query: std::mem::take(&mut self.query),
             store: self.store,
+            account: self.account.take(),
             sort: self.sort,
             descending: self.descending,
             ..Default::default()
@@ -188,11 +199,25 @@ impl ViewFilter {
         self.reset_filters();
         self.query.clear();
         self.store = StoreFilter::All;
+        self.account = None;
     }
 
     /// Whether anything narrows the list.
     pub fn is_narrowed(&self) -> bool {
-        !self.query.trim().is_empty() || self.store != StoreFilter::All || self.active_count() > 0
+        !self.query.trim().is_empty()
+            || self.store != StoreFilter::All
+            || self.account.is_some()
+            || self.active_count() > 0
+    }
+
+    /// The one store the list shows: the switcher's choice, or the only
+    /// store offered.
+    pub fn shown_store(&self, stores: &[Runner]) -> Option<Runner> {
+        match (self.store, stores) {
+            (StoreFilter::Store(r), _) if stores.contains(&r) => Some(r),
+            (_, [only]) => Some(*only),
+            _ => None,
+        }
     }
 
     /// Short descriptions of the active criteria, for the "no results" state.
@@ -388,6 +413,12 @@ pub fn apply(
         .apply(library, user, updates);
     if !filter.categories.is_empty() {
         games.retain(|g| in_categories(&filter.categories, user, &g.id().key()));
+    }
+    if let Some(account) = &filter.account
+        && filter.shown_store(stores) == Some(account.runner)
+        && library.owners.keys().any(|id| id.runner == account.runner)
+    {
+        games.retain(|g| library.owners(&g.id()).contains(&account.account_id));
     }
     if filter.hide_unavailable && !missing.is_empty() {
         games.retain(|g| !missing.contains(&g.id()));
@@ -653,6 +684,47 @@ pub(crate) mod tests {
             titles(&apply(&f, &stores, &lib, &user, &none, &none)),
             vec!["The Witcher 3", "Alan Wake", "Itch game"]
         );
+    }
+
+    #[test]
+    fn shows_one_accounts_games_while_its_store_is_shown() {
+        let mut lib = sample();
+        let id = |app: &str| GameId::new(Runner::Legendary, app);
+        lib.owners = [
+            (id("a"), vec!["alice".to_string(), "bob".to_string()]),
+            (id("b"), vec!["alice".to_string()]),
+        ]
+        .into();
+        let user = UserData::default();
+        let none = HashSet::new();
+        let stores = Runner::ALL.to_vec();
+        let mut f = ViewFilter {
+            store: StoreFilter::Store(Runner::Legendary),
+            account: Some(AccountFilter {
+                runner: Runner::Legendary,
+                account_id: "bob".into(),
+            }),
+            ..Default::default()
+        };
+        assert!(f.is_narrowed());
+        assert_eq!(
+            titles(&apply(&f, &stores, &lib, &user, &none, &none)),
+            vec!["Alan Wake"]
+        );
+        // Another store shown: the account does not apply.
+        f.store = StoreFilter::All;
+        assert_eq!(apply(&f, &stores, &lib, &user, &none, &none).len(), 4);
+        // The only store offered counts as shown.
+        assert_eq!(
+            titles(&apply(&f, &[Runner::Legendary], &lib, &user, &none, &none)),
+            vec!["Alan Wake"]
+        );
+        // The store no longer has several accounts: nothing to narrow by.
+        lib.owners.clear();
+        f.store = StoreFilter::Store(Runner::Legendary);
+        assert_eq!(apply(&f, &stores, &lib, &user, &none, &none).len(), 2);
+        f.clear_all();
+        assert_eq!(f.account, None);
     }
 
     #[test]

@@ -114,6 +114,29 @@ impl ZoomStore {
         Self::with_options(bus, settings, ZoomOptions::default())
     }
 
+    /// The store of one more account, keeping its login, installs and
+    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// directories.
+    pub fn for_account(
+        bus: EventBus,
+        settings: SettingsFn,
+        config: PathBuf,
+        cache: PathBuf,
+    ) -> Arc<Self> {
+        let layout = Layout {
+            config_dir: config,
+            cache_dir: cache,
+        };
+        Self::with_options(
+            bus,
+            settings,
+            ZoomOptions {
+                layout,
+                ..ZoomOptions::default()
+            },
+        )
+    }
+
     pub(crate) fn with_options(
         bus: EventBus,
         settings: SettingsFn,
