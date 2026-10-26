@@ -7,10 +7,11 @@ use std::path::Path;
 use std::sync::Arc;
 
 use ember_core::{
-    GameId, GameInfo, InstallInfo, InstallPlatform, InstallRequest, Runner, StatusKind,
+    BIG_PICTURE_SCALES, GameId, GameInfo, InstallInfo, InstallPlatform, InstallRequest, Runner,
+    StatusKind,
 };
 use ember_services::{LibrarySnapshot, UserData};
-use ember_ui::i18n::t;
+use ember_ui::i18n::{t, t_args};
 use gpui_kit::SharedString;
 use gpui_kit::assets::IconName;
 
@@ -251,6 +252,8 @@ pub fn disabled_reason(action: GameAction, state: GameState) -> Option<SharedStr
 pub enum MenuItem {
     PauseDownloads,
     ResumeDownloads,
+    /// Cycles Big Picture's interface size; carries the current percent.
+    InterfaceSize(u32),
     ToggleFullscreen,
     ExitBigPicture,
     QuitEmber,
@@ -259,7 +262,14 @@ pub enum MenuItem {
 impl MenuItem {
     /// Translated entry label.
     pub fn label(self) -> SharedString {
+        if let MenuItem::InterfaceSize(percent) = self {
+            return t_args(
+                "bigpicture.menu.interface_size",
+                &[("percent", percent.to_string().as_str())],
+            );
+        }
         t(match self {
+            MenuItem::InterfaceSize(_) => unreachable!("handled above"),
             MenuItem::PauseDownloads => "bigpicture.menu.pause_downloads",
             MenuItem::ResumeDownloads => "bigpicture.menu.resume_downloads",
             MenuItem::ToggleFullscreen => "bigpicture.menu.toggle_fullscreen",
@@ -272,6 +282,7 @@ impl MenuItem {
         match self {
             MenuItem::PauseDownloads => IconName::CircleStop,
             MenuItem::ResumeDownloads => IconName::Play,
+            MenuItem::InterfaceSize(_) => IconName::ZoomIn,
             MenuItem::ToggleFullscreen => IconName::Maximize,
             MenuItem::ExitBigPicture => IconName::LogOut,
             MenuItem::QuitEmber => IconName::Power,
@@ -282,6 +293,7 @@ impl MenuItem {
         match self {
             MenuItem::PauseDownloads => "bp-menu-pause",
             MenuItem::ResumeDownloads => "bp-menu-resume",
+            MenuItem::InterfaceSize(_) => "bp-menu-size",
             MenuItem::ToggleFullscreen => "bp-menu-fullscreen",
             MenuItem::ExitBigPicture => "bp-menu-exit",
             MenuItem::QuitEmber => "bp-menu-quit",
@@ -289,9 +301,10 @@ impl MenuItem {
     }
 }
 
-/// Quick menu entries given the download queue state.
-pub fn menu_items(has_downloads: bool, paused: bool) -> Vec<MenuItem> {
-    let mut out = Vec::with_capacity(5);
+/// Quick menu entries given the download queue state and the interface
+/// size in percent.
+pub fn menu_items(has_downloads: bool, paused: bool, scale: u32) -> Vec<MenuItem> {
+    let mut out = Vec::with_capacity(6);
     if has_downloads {
         out.push(if paused {
             MenuItem::ResumeDownloads
@@ -300,11 +313,22 @@ pub fn menu_items(has_downloads: bool, paused: bool) -> Vec<MenuItem> {
         });
     }
     out.extend([
+        MenuItem::InterfaceSize(scale),
         MenuItem::ToggleFullscreen,
         MenuItem::ExitBigPicture,
         MenuItem::QuitEmber,
     ]);
     out
+}
+
+/// The interface size after `current` in [`BIG_PICTURE_SCALES`], wrapping
+/// back to the smallest.
+pub fn next_scale(current: u32) -> u32 {
+    BIG_PICTURE_SCALES
+        .iter()
+        .copied()
+        .find(|s| *s > current)
+        .unwrap_or(BIG_PICTURE_SCALES[0])
 }
 
 /// Platform to install when the user picks no options (see
@@ -436,9 +460,22 @@ mod tests {
 
     #[test]
     fn menu_offers_download_control_only_with_downloads() {
-        assert_eq!(menu_items(false, false)[0], MenuItem::ToggleFullscreen);
-        assert_eq!(menu_items(true, false)[0], MenuItem::PauseDownloads);
-        assert_eq!(menu_items(true, true)[0], MenuItem::ResumeDownloads);
+        assert_eq!(
+            menu_items(false, false, 100)[0],
+            MenuItem::InterfaceSize(100)
+        );
+        assert_eq!(menu_items(true, false, 100)[0], MenuItem::PauseDownloads);
+        assert_eq!(menu_items(true, true, 150)[0], MenuItem::ResumeDownloads);
+        assert_eq!(menu_items(true, true, 150)[1], MenuItem::InterfaceSize(150));
+    }
+
+    #[test]
+    fn interface_size_cycles_through_the_offered_scales() {
+        assert_eq!(next_scale(100), 125);
+        assert_eq!(next_scale(175), 200);
+        assert_eq!(next_scale(200), 100);
+        assert_eq!(next_scale(130), 150);
+        assert_eq!(next_scale(0), 100);
     }
 
     #[test]

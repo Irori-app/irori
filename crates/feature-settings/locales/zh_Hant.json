@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "執行遊戲資料夾中的其他執行檔。",
   "settings.field.target_exe.label": "執行檔",
   "settings.field.target_exe.placeholder": "商店預設",
+  "settings.field.ui_big_picture_scale.help": "為電視放大 Big Picture。也可以在 Big Picture 的選單中變更。",
+  "settings.field.ui_big_picture_scale.label": "Big Picture 大小",
   "settings.field.ui_font_size.help": "同時縮放文字、間距和控制項。",
   "settings.field.ui_font_size.label": "介面大小",
   "settings.field.ui_language.help": "介面的顯示語言。",

@@ -547,6 +547,14 @@ const TRANSLUCENCY: &[ChoiceOption] = &[
     ),
 ];
 
+const BIG_PICTURE_SCALE: &[ChoiceOption] = &[
+    opt(ChoiceValue::Num(100), Verbatim("100%")),
+    opt(ChoiceValue::Num(125), Verbatim("125%")),
+    opt(ChoiceValue::Num(150), Verbatim("150%")),
+    opt(ChoiceValue::Num(175), Verbatim("175%")),
+    opt(ChoiceValue::Num(200), Verbatim("200%")),
+];
+
 const LIBRARY_LAYOUT: &[ChoiceOption] = &[
     opt(
         ChoiceValue::Str("grid"),
@@ -1072,6 +1080,22 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .help("settings.field.ui_tile_size.help")
     .keywords(&["tile", "grid", "cover", "library"]),
+    app(
+        "emberUi.bigPictureScale",
+        "settings.field.ui_big_picture_scale.label",
+        Appearance,
+        "settings.group.size",
+        Choice(BIG_PICTURE_SCALE),
+    )
+    .help("settings.field.ui_big_picture_scale.help")
+    .keywords(&[
+        "big picture",
+        "tv",
+        "console",
+        "zoom",
+        "scale",
+        "steam deck",
+    ]),
     app(
         "emberUi.libraryLayout",
         "settings.field.ui_library_layout.label",

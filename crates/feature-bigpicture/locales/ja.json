@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "アンインストール",
   "bigpicture.empty.loading": "ライブラリを読み込んでいます…",
   "bigpicture.empty.title": "ゲームがまだありません",
-  "bigpicture.empty.description": "ストアにログインするか、ライブラリからゲームを追加してから戻ってきてください。"
+  "bigpicture.empty.description": "ストアにログインするか、ライブラリからゲームを追加してから戻ってきてください。",
+  "bigpicture.menu.interface_size": "画面のサイズ：{percent}%"
 }

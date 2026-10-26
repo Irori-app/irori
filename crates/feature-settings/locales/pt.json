@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Executar outro executável da pasta do jogo.",
   "settings.field.target_exe.label": "Executável",
   "settings.field.target_exe.placeholder": "Predefinição da loja",
+  "settings.field.ui_big_picture_scale.help": "Aumenta o Big Picture para televisores. Também se altera no menu do Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Tamanho do Big Picture",
   "settings.field.ui_font_size.help": "Ajusta o texto, os espaçamentos e os controlos em conjunto.",
   "settings.field.ui_font_size.label": "Tamanho da interface",
   "settings.field.ui_language.help": "Idioma da interface.",

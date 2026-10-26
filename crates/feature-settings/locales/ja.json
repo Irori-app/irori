@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "ゲームのフォルダーにある別の実行ファイルを実行します。",
   "settings.field.target_exe.label": "実行ファイル",
   "settings.field.target_exe.placeholder": "ストアの既定",
+  "settings.field.ui_big_picture_scale.help": "テレビ向けに Big Picture を大きくします。Big Picture のメニューからも変更できます。",
+  "settings.field.ui_big_picture_scale.label": "Big Picture のサイズ",
   "settings.field.ui_font_size.help": "文字、余白、コントロールをまとめて拡大・縮小します。",
   "settings.field.ui_font_size.label": "インターフェースのサイズ",
   "settings.field.ui_language.help": "インターフェースの言語です。",

@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Esegue un altro eseguibile dalla cartella del gioco.",
   "settings.field.target_exe.label": "Eseguibile",
   "settings.field.target_exe.placeholder": "Predefinito dello store",
+  "settings.field.ui_big_picture_scale.help": "Ingrandisce Big Picture per i televisori. Si può cambiare anche dal menu di Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Dimensione di Big Picture",
   "settings.field.ui_font_size.help": "Ridimensiona insieme testo, spaziature e controlli.",
   "settings.field.ui_font_size.label": "Dimensione dell'interfaccia",
   "settings.field.ui_language.help": "Lingua dell'interfaccia.",

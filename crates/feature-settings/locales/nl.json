@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Voer een ander uitvoerbaar bestand uit de gamemap uit.",
   "settings.field.target_exe.label": "Uitvoerbaar bestand",
   "settings.field.target_exe.placeholder": "Standaard van de store",
+  "settings.field.ui_big_picture_scale.help": "Maakt Big Picture groter voor tv’s. Ook te wijzigen in het menu van Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Grootte van Big Picture",
   "settings.field.ui_font_size.help": "Schaalt tekst, witruimte en bedieningselementen samen.",
   "settings.field.ui_font_size.label": "Interfacegrootte",
   "settings.field.ui_language.help": "Taal van de interface.",

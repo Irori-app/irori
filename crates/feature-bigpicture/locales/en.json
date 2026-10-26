@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Uninstall",
   "bigpicture.empty.loading": "Loading your library…",
   "bigpicture.empty.title": "No games yet",
-  "bigpicture.empty.description": "Log in to a store or add a game from the library, then come back."
+  "bigpicture.empty.description": "Log in to a store or add a game from the library, then come back.",
+  "bigpicture.menu.interface_size": "Interface size: {percent}%"
 }

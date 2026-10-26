@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Kaldır",
   "bigpicture.empty.loading": "Kütüphaneniz yükleniyor…",
   "bigpicture.empty.title": "Henüz oyun yok",
-  "bigpicture.empty.description": "Bir mağazaya giriş yapın veya kütüphaneden bir oyun ekleyin, sonra geri dönün."
+  "bigpicture.empty.description": "Bir mağazaya giriş yapın veya kütüphaneden bir oyun ekleyin, sonra geri dönün.",
+  "bigpicture.menu.interface_size": "Arayüz boyutu: %{percent}"
 }

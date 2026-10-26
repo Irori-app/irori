@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Uruchom inny plik wykonywalny z folderu gry.",
   "settings.field.target_exe.label": "Plik wykonywalny",
   "settings.field.target_exe.placeholder": "Domyślny ze sklepu",
+  "settings.field.ui_big_picture_scale.help": "Powiększa Big Picture na telewizorach. Można to też zmienić w menu Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Rozmiar Big Picture",
   "settings.field.ui_font_size.help": "Skaluje jednocześnie tekst, odstępy i kontrolki.",
   "settings.field.ui_font_size.label": "Rozmiar interfejsu",
   "settings.field.ui_language.help": "Język interfejsu.",

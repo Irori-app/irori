@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Oyun klasöründen farklı bir yürütülebilir dosya çalıştır.",
   "settings.field.target_exe.label": "Yürütülebilir dosya",
   "settings.field.target_exe.placeholder": "Mağaza varsayılanı",
+  "settings.field.ui_big_picture_scale.help": "Big Picture’ı televizyonlar için büyütür. Big Picture menüsünden de değiştirilebilir.",
+  "settings.field.ui_big_picture_scale.label": "Big Picture boyutu",
   "settings.field.ui_font_size.help": "Metni, boşlukları ve denetimleri birlikte ölçekler.",
   "settings.field.ui_font_size.label": "Arayüz boyutu",
   "settings.field.ui_language.help": "Arayüzün dili.",

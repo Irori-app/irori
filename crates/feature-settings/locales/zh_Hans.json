@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "运行游戏文件夹中的其他可执行文件。",
   "settings.field.target_exe.label": "可执行文件",
   "settings.field.target_exe.placeholder": "商店默认",
+  "settings.field.ui_big_picture_scale.help": "为电视放大 Big Picture。也可以在 Big Picture 的菜单中更改。",
+  "settings.field.ui_big_picture_scale.label": "Big Picture 大小",
   "settings.field.ui_font_size.help": "同时缩放文字、间距和控件。",
   "settings.field.ui_font_size.label": "界面大小",
   "settings.field.ui_language.help": "界面的显示语言。",

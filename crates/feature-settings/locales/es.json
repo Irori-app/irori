@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Ejecuta otro ejecutable de la carpeta del juego.",
   "settings.field.target_exe.label": "Ejecutable",
   "settings.field.target_exe.placeholder": "Predeterminado de la tienda",
+  "settings.field.ui_big_picture_scale.help": "Agranda Big Picture para televisores. También se cambia desde el menú de Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Tamaño de Big Picture",
   "settings.field.ui_font_size.help": "Escala a la vez el texto, el espaciado y los controles.",
   "settings.field.ui_font_size.label": "Tamaño de la interfaz",
   "settings.field.ui_language.help": "Idioma de la interfaz.",

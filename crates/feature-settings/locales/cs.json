@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Spustit jiný spustitelný soubor ze složky hry.",
   "settings.field.target_exe.label": "Spustitelný soubor",
   "settings.field.target_exe.placeholder": "Výchozí podle obchodu",
+  "settings.field.ui_big_picture_scale.help": "Zvětší Big Picture pro televize. Změnit ji lze i v nabídce Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Velikost Big Picture",
   "settings.field.ui_font_size.help": "Mění velikost textu, mezer a ovládacích prvků najednou.",
   "settings.field.ui_font_size.label": "Velikost rozhraní",
   "settings.field.ui_language.help": "Jazyk rozhraní.",

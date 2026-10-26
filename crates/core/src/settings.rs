@@ -455,6 +455,18 @@ pub struct UiPrefs {
     pub window_maximized: bool,
     /// Open Big Picture at startup in Steam's Game Mode or Big Picture.
     pub big_picture_in_game_mode: bool,
+    /// Size of Big Picture's interface in percent, for TVs.
+    pub big_picture_scale: u32,
+}
+
+/// Sizes offered for Big Picture's interface, in percent.
+pub const BIG_PICTURE_SCALES: [u32; 5] = [100, 125, 150, 175, 200];
+
+impl UiPrefs {
+    /// Big Picture's scale factor, limited to the offered range.
+    pub fn big_picture_zoom(&self) -> f32 {
+        self.big_picture_scale.clamp(100, 200) as f32 / 100.0
+    }
 }
 
 impl Default for UiPrefs {
@@ -473,6 +485,7 @@ impl Default for UiPrefs {
             window_height: 900.0,
             window_maximized: false,
             big_picture_in_game_mode: true,
+            big_picture_scale: 100,
         }
     }
 }
@@ -485,7 +498,11 @@ mod tests {
     fn ui_prefs_from_older_files_keep_defaults() {
         let ui: UiPrefs = serde_json::from_str(r#"{"fontSize":18}"#).unwrap();
         assert!(ui.big_picture_in_game_mode);
-        let ui: UiPrefs = serde_json::from_str(r#"{"bigPictureInGameMode":false}"#).unwrap();
+        assert_eq!(ui.big_picture_zoom(), 1.0);
+        let ui: UiPrefs =
+            serde_json::from_str(r#"{"bigPictureScale":400,"bigPictureInGameMode":false}"#)
+                .unwrap();
+        assert_eq!(ui.big_picture_zoom(), 2.0);
         assert!(!ui.big_picture_in_game_mode);
     }
 

@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Kör en annan körbar fil från spelets mapp.",
   "settings.field.target_exe.label": "Körbar fil",
   "settings.field.target_exe.placeholder": "Butikens standard",
+  "settings.field.ui_big_picture_scale.help": "Gör Big Picture större för tv-apparater. Kan även ändras i Big Pictures meny.",
+  "settings.field.ui_big_picture_scale.label": "Storlek på Big Picture",
   "settings.field.ui_font_size.help": "Skalar text, avstånd och kontroller tillsammans.",
   "settings.field.ui_font_size.label": "Gränssnittsstorlek",
   "settings.field.ui_language.help": "Gränssnittets språk.",

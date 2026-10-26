@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Deïnstalleren",
   "bigpicture.empty.loading": "Je bibliotheek wordt geladen…",
   "bigpicture.empty.title": "Nog geen games",
-  "bigpicture.empty.description": "Log in bij een winkel of voeg een game toe vanuit de bibliotheek en kom dan terug."
+  "bigpicture.empty.description": "Log in bij een winkel of voeg een game toe vanuit de bibliotheek en kom dan terug.",
+  "bigpicture.menu.interface_size": "Grootte van de interface: {percent}%"
 }

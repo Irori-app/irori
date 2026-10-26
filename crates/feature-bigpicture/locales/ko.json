@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "설치 제거",
   "bigpicture.empty.loading": "라이브러리를 불러오는 중…",
   "bigpicture.empty.title": "아직 게임이 없습니다",
-  "bigpicture.empty.description": "스토어에 로그인하거나 라이브러리에서 게임을 추가한 다음 다시 오세요."
+  "bigpicture.empty.description": "스토어에 로그인하거나 라이브러리에서 게임을 추가한 다음 다시 오세요.",
+  "bigpicture.menu.interface_size": "인터페이스 크기: {percent}%"
 }

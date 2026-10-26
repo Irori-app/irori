@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Запускать другой исполняемый файл из папки игры.",
   "settings.field.target_exe.label": "Исполняемый файл",
   "settings.field.target_exe.placeholder": "Как задано магазином",
+  "settings.field.ui_big_picture_scale.help": "Увеличивает Big Picture для телевизоров. Размер можно изменить и в меню Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Размер Big Picture",
   "settings.field.ui_font_size.help": "Масштабирует текст, отступы и элементы управления вместе.",
   "settings.field.ui_font_size.label": "Размер интерфейса",
   "settings.field.ui_language.help": "Язык интерфейса.",

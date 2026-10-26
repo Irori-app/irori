@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Run a different executable from the game's folder.",
   "settings.field.target_exe.label": "Executable",
   "settings.field.target_exe.placeholder": "Store default",
+  "settings.field.ui_big_picture_scale.help": "Makes Big Picture larger for TVs. Big Picture’s menu changes it too.",
+  "settings.field.ui_big_picture_scale.label": "Big Picture size",
   "settings.field.ui_font_size.help": "Scales text, spacing and controls together.",
   "settings.field.ui_font_size.label": "Interface size",
   "settings.field.ui_language.help": "Language of the interface.",

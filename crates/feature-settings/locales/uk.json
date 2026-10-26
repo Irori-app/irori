@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Запускати інший виконуваний файл із теки гри.",
   "settings.field.target_exe.label": "Виконуваний файл",
   "settings.field.target_exe.placeholder": "Як задано крамницею",
+  "settings.field.ui_big_picture_scale.help": "Збільшує Big Picture для телевізорів. Розмір можна змінити й у меню Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Розмір Big Picture",
   "settings.field.ui_font_size.help": "Масштабує текст, відступи й елементи керування разом.",
   "settings.field.ui_font_size.label": "Розмір інтерфейсу",
   "settings.field.ui_language.help": "Мова інтерфейсу.",

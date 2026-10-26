@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Rulează alt executabil din folderul jocului.",
   "settings.field.target_exe.label": "Executabil",
   "settings.field.target_exe.placeholder": "Implicit din magazin",
+  "settings.field.ui_big_picture_scale.help": "Mărește Big Picture pentru televizoare. Se poate schimba și din meniul Big Picture.",
+  "settings.field.ui_big_picture_scale.label": "Dimensiunea Big Picture",
   "settings.field.ui_font_size.help": "Scalează împreună textul, spațierea și controalele.",
   "settings.field.ui_font_size.label": "Dimensiunea interfeței",
   "settings.field.ui_language.help": "Limba interfeței.",

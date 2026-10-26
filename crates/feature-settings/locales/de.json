@@ -245,6 +245,8 @@
   "settings.field.target_exe.help": "Eine andere ausführbare Datei aus dem Spielordner starten.",
   "settings.field.target_exe.label": "Ausführbare Datei",
   "settings.field.target_exe.placeholder": "Store-Standard",
+  "settings.field.ui_big_picture_scale.help": "Vergrößert Big Picture für Fernseher. Auch im Menü von Big Picture änderbar.",
+  "settings.field.ui_big_picture_scale.label": "Größe von Big Picture",
   "settings.field.ui_font_size.help": "Skaliert Text, Abstände und Bedienelemente gemeinsam.",
   "settings.field.ui_font_size.label": "Größe der Oberfläche",
   "settings.field.ui_language.help": "Sprache der Oberfläche.",
