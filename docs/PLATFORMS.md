@@ -110,6 +110,19 @@ Windows cancellation uses `taskkill /T /F`; games that deliberately escape their
 launcher process tree still require game-specific testing. External EA/Ubisoft
 launchers may reuse an existing process, which limits playtime tracking.
 
+### Steam Deck and Steam Input
+
+When Steam's controller interface starts Ember (`XDG_CURRENT_DESKTOP=gamescope`
+in the Deck's Game Mode, or `SteamGamepadUI=1` from Steam Big Picture), Ember
+opens in Big Picture and never starts hidden in the tray; Settings → General →
+"Open Big Picture in Steam's Game Mode" turns this off. Controllers listed in
+`SDL_GAMECONTROLLER_IGNORE_DEVICES` (or left out of
+`SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT`) are not read, because Steam Input
+drives them through its virtual controller, and arrow, Enter and Escape key
+presses that echo a controller press within 150 ms are dropped. Steam
+shortcuts carry an "Ember" collection tag and may point at games that aren't
+installed; `--launch` then shows the install options instead of failing.
+
 ## Window translucency
 
 Settings → Appearance → Translucency lets the desktop show through the title bar
