@@ -23,10 +23,12 @@ fn isolate_paths() {
     });
 }
 
-/// A GOG-like store whose saved login can be refused.
+/// A GOG-like store whose saved login can be refused and whose games can
+/// have updates.
 #[derive(Default)]
 struct LoginStore {
     refused: AtomicBool,
+    updates: parking_lot::Mutex<Vec<String>>,
 }
 
 #[async_trait]
@@ -77,7 +79,7 @@ impl Store for LoginStore {
         bail!("not supported")
     }
     async fn updatable_games(&self) -> Result<Vec<String>> {
-        Ok(Vec::new())
+        Ok(self.updates.lock().clone())
     }
     async fn install(&self, _: &str, _: &InstallRequest, _: OpContext) -> Result<Outcome> {
         bail!("not supported")
@@ -102,18 +104,17 @@ impl Store for LoginStore {
     }
 }
 
-/// Notices about logging in again that have been sent on `rx` so far.
-fn login_notices(rx: &mut tokio::sync::broadcast::Receiver<Event>) -> usize {
-    let mut n = 0;
+/// Title keys of the notices sent on `rx` so far.
+fn notices(rx: &mut tokio::sync::broadcast::Receiver<Event>) -> Vec<&'static str> {
+    let mut keys = Vec::new();
     while let Ok(event) = rx.try_recv() {
         if let Event::Notice(notice) = event
-            && notice.title_key == Some("shell.notice.login_expired")
+            && let Some(key) = notice.title_key
         {
-            assert_eq!(notice.account, Some(Runner::Gog));
-            n += 1;
+            keys.push(key);
         }
     }
-    n
+    keys
 }
 
 #[test]
@@ -136,11 +137,36 @@ fn asks_once_to_log_in_again_and_forgets_after_a_good_refresh() {
         b.expired_logins().get(&Runner::Gog).map(String::as_str),
         Some("GOG refused the login (401)")
     );
-    assert_eq!(login_notices(&mut rx), 1, "told once, not on every refresh");
+    assert_eq!(
+        notices(&mut rx),
+        ["shell.notice.login_expired"],
+        "told once, not on every refresh"
+    );
 
     store.refused.store(false, Ordering::SeqCst);
     b.runtime()
         .block_on(b.refresh_store(Runner::Gog, false))
         .unwrap();
     assert!(b.expired_logins().is_empty());
+}
+
+#[test]
+fn tells_about_updates_released_while_running() {
+    isolate_paths();
+    let store = Arc::new(LoginStore::default());
+    let dyn_store: ember_core::DynStore = store.clone();
+    let b = Backend::start_headless(move |_, _| vec![dyn_store]).unwrap();
+    let rt = b.runtime();
+    // The first check of a session only fills the badges.
+    *store.updates.lock() = vec!["a".into()];
+    rt.block_on(b.refresh_updates());
+    let mut rx = b.subscribe();
+    rt.block_on(b.refresh_updates());
+    assert!(notices(&mut rx).is_empty(), "nothing new");
+    *store.updates.lock() = vec!["a".into(), "b".into()];
+    rt.block_on(b.refresh_updates());
+    assert_eq!(notices(&mut rx), ["shell.notice.update_available"]);
+    *store.updates.lock() = vec!["a".into(), "b".into(), "c".into(), "d".into()];
+    rt.block_on(b.refresh_updates());
+    assert_eq!(notices(&mut rx), ["shell.notice.updates_available"]);
 }

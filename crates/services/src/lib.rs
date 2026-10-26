@@ -71,6 +71,8 @@ pub struct Inner {
     presence: discord::Presence,
     /// Stores whose saved login was refused, with the store's reason.
     expired_logins: RwLock<BTreeMap<Runner, String>>,
+    /// The update check ran at least once this session.
+    updates_checked: AtomicBool,
 }
 
 impl Deref for Backend {
@@ -137,6 +139,7 @@ impl Backend {
             auto_paused: AtomicBool::new(false),
             presence: discord::Presence::default(),
             expired_logins: RwLock::new(BTreeMap::new()),
+            updates_checked: AtomicBool::new(false),
             bus,
         }));
         ember_runtime::set_hooks(Arc::new(hooks::KnownFixHooks {
@@ -401,7 +404,21 @@ impl Backend {
             .flatten()
             .filter(|id| !self.settings.game(id).ignore_game_updates)
             .collect();
+        let new: Vec<ember_core::GameId> = {
+            let old = self.updates.read();
+            all.iter()
+                .filter(|id| !old.contains(*id))
+                .cloned()
+                .collect()
+        };
         *self.updates.write() = Arc::new(all);
+        // The first check of a session shows as badges in the library; later
+        // ones find updates released while Ember was running, which the user
+        // may not see unless told. Automatic updates queue them instead.
+        let first = !self.updates_checked.swap(true, Ordering::Relaxed);
+        if !first && !self.settings.app().auto_update_games {
+            self.notice_new_updates(&new);
+        }
         self.bus
             .emit(Event::LibraryUpdated(self.library().revision));
     }
@@ -415,6 +432,31 @@ impl Backend {
         result?;
         self.rebuild_library();
         Ok(())
+    }
+
+    /// Tell the user about updates that appeared since the last check.
+    fn notice_new_updates(&self, new: &[ember_core::GameId]) {
+        let notice = match new {
+            [] => return,
+            [id] => {
+                let title = self
+                    .game(id)
+                    .map(|g| g.title.clone())
+                    .unwrap_or_else(|| id.app_name.to_string());
+                Notice::new(NoticeLevel::Info, format!("Update available for {title}"))
+                    .keys("shell.notice.update_available", None, &[("title", &title)])
+                    .game(id.clone())
+            }
+            many => {
+                let count = many.len().to_string();
+                Notice::new(
+                    NoticeLevel::Info,
+                    format!("Updates available for {count} games"),
+                )
+                .keys("shell.notice.updates_available", None, &[("count", &count)])
+            }
+        };
+        self.bus.notice(notice);
     }
 
     /// Stores whose saved login was refused and needs logging in again, with

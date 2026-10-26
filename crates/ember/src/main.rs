@@ -3,6 +3,7 @@
 
 mod actions;
 mod cli;
+mod crash;
 mod headless;
 mod import;
 mod instance;
@@ -88,10 +89,12 @@ fn main() -> Result<()> {
         return Ok(());
     };
     init_logging(true);
+    crash::install();
     tracing::info!("Ember {} starting", env!("CARGO_PKG_VERSION"));
     limit_malloc_arenas();
 
     let backend = Backend::start(stores::build)?;
+    crash::notice_last_crash(&backend.bus);
     let (tx, rx) = mpsc::unbounded::<ShellCommand>();
     {
         let tx = tx.clone();

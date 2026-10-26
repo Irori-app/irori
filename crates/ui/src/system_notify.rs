@@ -1,11 +1,12 @@
 //! Desktop notifications for what happens while Ember is not in front: a
-//! download finished or failed, a game failed to start, a store needs signing
-//! in again. While Ember's window is active its own toasts are enough.
+//! download finished or failed, a game failed to start, a store needs logging
+//! in again, updates came out. While Ember's window is active its own toasts
+//! are enough.
 
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use ember_core::{GameId, Notice, NoticeLevel};
+use ember_core::{GameId, Notice};
 use gpui_kit::{App, BorrowAppContext as _, Global, SharedString, SystemNotification};
 
 use crate::i18n::{t, t_args};
@@ -103,10 +104,9 @@ fn post(title: SharedString, body: SharedString, route: Option<Route>, cx: &mut 
     });
 }
 
-/// Show `notice` on the desktop when Ember is in the background. Plain
-/// information stays in the window.
+/// Show `notice` on the desktop when Ember is in the background.
 pub(crate) fn notice(notice: &Notice, cx: &mut App) {
-    if notice.level == NoticeLevel::Info || !in_background(cx) {
+    if !in_background(cx) {
         return;
     }
     let (title, message) = notice_text(notice);
