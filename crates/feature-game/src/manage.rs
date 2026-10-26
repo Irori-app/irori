@@ -281,11 +281,9 @@ pub fn open_uninstall_dialog(id: GameId, window: &mut Window, cx: &mut App) {
         .unwrap_or(InstallPlatform::Windows)
         .needs_wine();
     let prefix = uses_wine.then(|| ember_runtime::prefix_path(&app, &settings, &game));
-    let prefix_is_shared = prefix.as_ref().is_some_and(|p| {
-        p.as_path() == std::path::Path::new(&app.default_wine_prefix_dir)
-            || (!app.game.wine_prefix.is_empty()
-                && *p == ember_core::paths::expand_home(&app.game.wine_prefix))
-    });
+    let prefix_is_shared = prefix
+        .as_ref()
+        .is_some_and(|p| ember_runtime::prefix_is_shared(&app, p));
     let is_dlc = game.is_dlc;
     let options = cx.new(|_| UninstallOptions {
         is_dlc,

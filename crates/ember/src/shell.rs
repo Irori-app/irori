@@ -99,6 +99,13 @@ impl AppShell {
         // The root view exists once this effect cycle ends, before the first
         // frame is drawn.
         cx.defer_in(window, |this, window, cx| this.sync_glass(window, cx));
+        // Notices and sessions that ended while no window was open (started
+        // in the tray, or closed to it).
+        cx.defer_in(window, |this, window, cx| {
+            let m = models(cx).clone();
+            this.show_notices(&m.notices, window, cx);
+            this.on_sessions(&m.sessions, window, cx);
+        });
         let collapsed = m.settings.read(cx).app.ui.sidebar_collapsed;
         let reduce = ember_ui::style::reduce_motion(cx);
         cx.set_reduce_motion(reduce);
@@ -125,16 +132,7 @@ impl AppShell {
     ) {
         let pending = notices.update(cx, |n, _| n.drain());
         for n in pending {
-            let args: Vec<(&str, &str)> = n.args.iter().map(|(k, v)| (*k, v.as_str())).collect();
-            let title = match n.title_key {
-                Some(key) => t_args(key, &args),
-                None => SharedString::from(n.title.clone()),
-            };
-            let message = match (n.message_key, &n.message) {
-                (Some(key), _) => Some(t_args(key, &args)),
-                (None, Some(m)) => Some(SharedString::from(m.clone())),
-                (None, None) => None,
-            };
+            let (title, message) = ember_ui::system_notify::notice_text(&n);
             let mut note = match n.level {
                 NoticeLevel::Info => Notification::info(title.clone()),
                 NoticeLevel::Success => Notification::success(title.clone()),
@@ -144,10 +142,8 @@ impl AppShell {
             if let Some(msg) = message {
                 note = note.title(title).message(msg);
             }
-            if let Some(id) = n.game.clone() {
-                note = note.on_click(move |_, _, cx| {
-                    nav::navigate(Route::Game(id.clone()), cx);
-                });
+            if let Some(route) = ember_ui::system_notify::notice_route(&n) {
+                note = note.on_click(move |_, _, cx| nav::navigate(route.clone(), cx));
             }
             window.push_notification(note, cx);
         }
@@ -171,12 +167,14 @@ impl AppShell {
         cx: &mut Context<Self>,
     ) {
         let exited: Vec<_> = sessions.update(cx, |s, _| s.exited.drain(..).collect());
-        for (id, seconds, crashed) in exited {
-            if self.minimized_for.as_ref() == Some(&id) {
+        for exit in exited {
+            if self.minimized_for.as_ref() == Some(&exit.id) {
                 self.minimized_for = None;
                 window.activate_window();
             }
-            if let Some(note) = crate::playing::session_note(&id, seconds, crashed, cx) {
+            if exit.crashed {
+                ember_game::open_launch_problem_sheet(exit.id, exit.exit_code, window, cx);
+            } else if let Some(note) = crate::playing::session_note(&exit.id, exit.seconds, cx) {
                 window.push_notification(note, cx);
             }
         }
@@ -659,6 +657,15 @@ pub fn launch_game(id: GameId, window: &mut Window, cx: &mut App) {
         .spawn(cx, async move |cx| {
             if let Err(e) = task.await {
                 let _ = cx.update(|window, cx| {
+                    if ember_ui::save_conflict::resolve_launch_error(
+                        &id,
+                        Default::default(),
+                        &e,
+                        window,
+                        cx,
+                    ) {
+                        return;
+                    }
                     window.push_notification(
                         Notification::error(format!("{e:#}")).title(t("shell.launch_failed")),
                         cx,

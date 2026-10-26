@@ -3,6 +3,7 @@
 //! continue partial downloads).
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use ember_core::process::CancellationToken;
 use ember_core::{
@@ -331,21 +332,30 @@ impl Backend {
         };
         self.statuses.set(&id, kind);
 
-        let ctx = self.op_context(&id, cancel);
-        let result = match self.store(id.runner) {
-            None => Err(anyhow::anyhow!("{} is not available", id.runner)),
-            Some(store) => match &item.kind {
-                DownloadKind::Install(_)
-                    if store.game(&id.app_name).is_some_and(|g| g.is_installed) =>
-                {
-                    Ok(Outcome::Error(format!(
-                        "{} is already installed",
-                        item.title
-                    )))
-                }
-                DownloadKind::Install(req) => store.install(&id.app_name, req, ctx).await,
-                DownloadKind::Update(req) => store.update(&id.app_name, req, ctx).await,
-            },
+        let ctx = self.op_context(&id, cancel.clone());
+        let work = async {
+            match self.store(id.runner) {
+                None => Err(anyhow::anyhow!("{} is not available", id.runner)),
+                Some(store) => match &item.kind {
+                    DownloadKind::Install(_)
+                        if store.game(&id.app_name).is_some_and(|g| g.is_installed) =>
+                    {
+                        Ok(Outcome::Error(format!(
+                            "{} is already installed",
+                            item.title
+                        )))
+                    }
+                    DownloadKind::Install(req) => store.install(&id.app_name, req, ctx).await,
+                    DownloadKind::Update(req) => store.update(&id.app_name, req, ctx).await,
+                },
+            }
+        };
+        let result = match stop_within(work, &cancel, STOP_GRACE).await {
+            Some(result) => result,
+            None => {
+                tracing::warn!("{id} did not stop within {STOP_GRACE:?} of being asked; dropped");
+                Ok(Outcome::Abort)
+            }
         };
 
         let stop = {
@@ -469,5 +479,47 @@ impl Backend {
                 .then(|| Paths::get().operation_log_file(id)),
             settings: Some(Arc::new(self.settings.game(id))),
         }
+    }
+}
+
+/// How long a pause or cancel waits for the store to stop on its own.
+const STOP_GRACE: Duration = Duration::from_secs(15);
+
+/// Run `work` until it finishes, or until `grace` after `cancel` fired. A
+/// store that misses the cancel (stuck fetching a manifest, a request with no
+/// timeout) must not hold up the whole queue; dropping the future stops it.
+async fn stop_within<T>(
+    work: impl Future<Output = T>,
+    cancel: &CancellationToken,
+    grace: Duration,
+) -> Option<T> {
+    tokio::select! {
+        biased;
+        result = work => Some(result),
+        () = async {
+            cancel.cancelled().await;
+            tokio::time::sleep(grace).await;
+        } => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn gives_up_on_work_that_ignores_a_stop() {
+        let cancel = CancellationToken::new();
+        let grace = Duration::from_millis(50);
+        let quick = stop_within(async { 7 }, &cancel, grace).await;
+        assert_eq!(quick, Some(7));
+        cancel.cancel();
+        let stuck = tokio::time::timeout(
+            Duration::from_secs(2),
+            stop_within(std::future::pending::<()>(), &cancel, grace),
+        )
+        .await
+        .expect("returns after the grace period");
+        assert_eq!(stuck, None);
     }
 }

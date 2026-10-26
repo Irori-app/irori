@@ -444,6 +444,71 @@ struct TestSigner {
     calls: Mutex<Vec<Vec<String>>>,
 }
 
+/// A signing service that never answers.
+struct HungSigner;
+
+impl UrlSigner for HungSigner {
+    fn sign<'a>(
+        &'a self,
+        _: &'a [String],
+    ) -> futures::future::BoxFuture<'a, anyhow::Result<std::collections::HashMap<String, String>>>
+    {
+        Box::pin(futures::future::pending())
+    }
+}
+
+#[tokio::test]
+async fn stops_at_once_when_cancelled_while_signing_hangs() {
+    let chunk = Arc::new(Chunk {
+        key: "k0".into(),
+        download_size: 100,
+        size: 100,
+        ..Default::default()
+    });
+    let files = [FileEntry {
+        path: "f".into(),
+        size: 100,
+        hash: None,
+        parts: vec![Part::new(chunk, 0, 100)],
+        executable: false,
+    }];
+    let dir = tempfile::tempdir().unwrap();
+    let cancel = CancellationToken::new();
+    let token = cancel.clone();
+    let task = {
+        let root = dir.path().to_path_buf();
+        tokio::spawn(async move {
+            let opts = Options {
+                signer: Some(Signer(Arc::new(HungSigner))),
+                ..Default::default()
+            };
+            download(
+                &client(),
+                Job {
+                    root: &root,
+                    files: &files,
+                    remove: &[],
+                },
+                &opts,
+                ignore_progress(),
+                &token,
+            )
+            .await
+        })
+    };
+    // Past one signing timeout: the hung batch is being retried.
+    tokio::time::sleep(STALL + STALL / 2).await;
+    assert!(!task.is_finished(), "a hung signer is retried, not fatal");
+    cancel.cancel();
+    // Well inside one signing timeout: the cancel itself ends the download.
+    let finished = tokio::time::timeout(STALL / 2, task)
+        .await
+        .expect("cancelling stops a download stuck on signing")
+        .unwrap()
+        .unwrap();
+    assert_eq!(finished, Finished::Cancelled);
+}
+
 impl UrlSigner for TestSigner {
     fn sign<'a>(
         &'a self,

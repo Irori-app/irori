@@ -20,6 +20,33 @@ use crate::launch::{LaunchPlan, LaunchRequest};
 use crate::process::CancellationToken;
 use crate::runner::{InstallPlatform, Runner};
 
+/// A store refused the saved login: the token was revoked or ran out, or the
+/// account needs attention on the store's website. Logging in again fixes
+/// it; retrying does not. Stores return it (anywhere in an `anyhow` chain)
+/// so the launcher can ask the user to log in again instead of failing
+/// quietly.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("{reason}")]
+pub struct SessionExpired {
+    pub runner: Runner,
+    /// The store's own explanation, in English.
+    pub reason: String,
+}
+
+impl SessionExpired {
+    pub fn new(runner: Runner, reason: impl Into<String>) -> Self {
+        Self {
+            runner,
+            reason: reason.into(),
+        }
+    }
+
+    /// The expired login behind `error`, if that is what it is.
+    pub fn of(error: &anyhow::Error) -> Option<&SessionExpired> {
+        error.downcast_ref()
+    }
+}
+
 /// How a user logs in to a store.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoginFlow {
@@ -243,3 +270,19 @@ pub type DynStore = Arc<dyn Store>;
 /// Read access to current application settings, handed to stores at
 /// construction (worker counts, speed limits, install paths).
 pub type SettingsFn = Arc<dyn Fn() -> Arc<crate::settings::AppSettings> + Send + Sync>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Context as _;
+
+    #[test]
+    fn finds_an_expired_login_under_context() {
+        let e = anyhow::Error::new(SessionExpired::new(Runner::Gog, "GOG answered 401"))
+            .context("Could not refresh the GOG library");
+        let found = SessionExpired::of(&e).expect("still visible under context");
+        assert_eq!(found.runner, Runner::Gog);
+        let other: anyhow::Result<()> = Err(anyhow::anyhow!("timed out")).context("refreshing");
+        assert!(SessionExpired::of(&other.unwrap_err()).is_none());
+    }
+}

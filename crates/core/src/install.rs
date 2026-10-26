@@ -248,6 +248,28 @@ pub struct RemoveArgs {
     pub remove_settings: bool,
 }
 
+/// The saves changed both on this device and in the cloud since the last
+/// sync, so syncing either way would lose one side. Stores return it
+/// (anywhere in an `anyhow` chain) for every direction but the forced ones;
+/// the user chooses which saves to keep.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error(
+    "The saves changed both on this device and in the cloud since the last sync. Choose which to keep."
+)]
+pub struct SaveConflict {
+    /// Unix time the newest save on this device changed.
+    pub local: Option<u64>,
+    /// Unix time the newest cloud save changed.
+    pub cloud: Option<u64>,
+}
+
+impl SaveConflict {
+    /// The save conflict behind `error`, if that is what it is.
+    pub fn of(error: &anyhow::Error) -> Option<&SaveConflict> {
+        error.downcast_ref()
+    }
+}
+
 /// Direction of a cloud-save sync.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SyncDirection {

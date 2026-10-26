@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "{count} 日前に変更",
+  "ui.saves.changed_days_other": "{count} 日前に変更",
+  "ui.saves.changed_hours_one": "{count} 時間前に変更",
+  "ui.saves.changed_hours_other": "{count} 時間前に変更",
+  "ui.saves.changed_just_now": "たった今変更",
+  "ui.saves.changed_minutes_one": "{count} 分前に変更",
+  "ui.saves.changed_minutes_other": "{count} 分前に変更",
+  "ui.saves.cloud": "クラウド",
+  "ui.saves.conflict_description": "前回の同期以降、このデバイスとクラウドの両方でセーブデータが変更されました。残さなかった方は置き換えられます。",
+  "ui.saves.conflict_title": "「{title}」のどちらのセーブデータを残しますか？",
+  "ui.saves.keep_cloud": "クラウドのデータを残す",
+  "ui.saves.keep_local": "このデバイスのデータを残す",
+  "ui.saves.no_saves": "セーブデータなし",
+  "ui.saves.not_now": "後で",
+  "ui.saves.start_failed": "{title} を起動できませんでした",
+  "ui.saves.this_device": "このデバイス",
   "ui.status.installing": "インストール中",
   "ui.status.importing": "インポート中",
   "ui.status.updating": "更新中",
@@ -20,5 +36,7 @@
   "ui.progress.left": "残り {time}",
   "ui.progress.file_lists": "ファイル一覧を読み込み中 {done} / {total}",
   "ui.progress.checking_files": "ファイルを確認中 {done} / {total}",
-  "ui.cover.no_art": "画像なし"
+  "ui.cover.no_art": "画像なし",
+  "ui.notify.failed_start": "「{title}」を起動できませんでした",
+  "ui.notify.failed_start_body": "Ember を開いて原因を確認してください。"
 }

@@ -204,6 +204,14 @@ and `launch.rs` before changing anything below the UI.
 - `OpContext` carries a progress sink, a `CancellationToken`, a step reporter, an
   optional operation log file and the game's effective settings.
   `OpContext::detached()` is the no-op version.
+- Two typed errors carry meaning across the `Store` boundary; return them anywhere in
+  the `anyhow` chain:
+  - `SessionExpired`: the store's token service refused the saved login (a 400 or 401,
+    not a network failure or a busy server). Services remember it, tell the user once
+    and offer to log in again.
+  - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
+    Return it for every direction except the forced ones; the launch stops and the UI
+    asks which saves to keep (`ember_ui::save_conflict`).
 - `Runner` values are Legendary, Gog, Nile, Zoom and Sideload. Their serialized ids
   are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts `epic` and
   `amazon`.
@@ -230,7 +238,8 @@ and `launch.rs` before changing anything below the UI.
   `store_cache_dir(runner)`, and Ember state (`library.json`, `downloads.json`,
   `sessions.jsonl`) under `state_dir()`.
 - Per-game settings are `config/games/<runner>/<app>.json`. Logs go under
-  `logs_dir()`; the app log is `data/logs/ember.log`.
+  `logs_dir()`; the app log is `data/logs/ember.log`, and a panic writes
+  `crash-<time>.txt` beside it (`crates/ember/src/crash.rs`).
 - Tests isolate themselves with `Paths::init(Paths::under(tempdir))`.
 
 **Persistence** (`json_store.rs`):

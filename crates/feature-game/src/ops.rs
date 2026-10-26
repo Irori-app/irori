@@ -96,15 +96,26 @@ pub fn play_with(
     cx: &mut App,
 ) -> Task<bool> {
     let b = backend(cx);
-    let title = title_of(id, cx);
+    let failure = t_args("game.ops.start_failed", &[("title", &title_of(id, cx))]);
     let id = id.clone();
-    run_reporting(
-        window,
-        cx,
-        t_args("game.ops.start_failed", &[("title", &title)]),
-        async move { b.launch_with(&id, params).await },
-        |_, _, _| {},
-    )
+    let task = {
+        let (id, params) = (id.clone(), params.clone());
+        ember_ui::run(cx, async move { b.launch_with(&id, params).await })
+    };
+    window.spawn(cx, async move |cx| {
+        let result = task.await;
+        cx.update(|window, cx| match result {
+            Ok(()) => true,
+            Err(e) => {
+                // Saves that changed in both places need the user's choice.
+                if !ember_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx) {
+                    notify_error(window, cx, failure, &e);
+                }
+                false
+            }
+        })
+        .unwrap_or(false)
+    })
 }
 
 /// Stop a running game and every process in its prefix.

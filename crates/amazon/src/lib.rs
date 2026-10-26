@@ -17,7 +17,7 @@ pub mod library;
 mod manifest;
 pub mod sdk;
 
-pub use api::{Client, Endpoints, FetchedManifest, GameDownload};
+pub use api::{Client, Endpoints, FetchedManifest, GameDownload, SignInRejected};
 pub use auth::{Credentials, LoginRequest};
 pub use library::Entitlement;
 #[cfg(any(test, feature = "test-support"))]

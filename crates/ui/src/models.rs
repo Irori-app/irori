@@ -105,6 +105,8 @@ pub struct DownloadsModel {
 /// Accounts of every store and connectivity.
 pub struct AccountsModel {
     pub users: BTreeMap<Runner, Option<UserInfo>>,
+    /// Stores whose saved login was refused, with the store's reason.
+    pub expired: BTreeMap<Runner, String>,
     pub online: bool,
 }
 
@@ -115,6 +117,11 @@ impl AccountsModel {
 
     pub fn is_logged_in(&self, runner: Runner) -> bool {
         self.user(runner).is_some()
+    }
+
+    /// The store refused the saved login; the user must log in again.
+    pub fn login_expired(&self, runner: Runner) -> Option<&str> {
+        self.expired.get(&runner).map(String::as_str)
     }
 
     pub fn any_logged_in(&self) -> bool {
@@ -149,11 +156,21 @@ impl NoticeModel {
     }
 }
 
-/// Game sessions that ended, for "minimize on launch" restore and crash
-/// prompts. Drained by the shell.
+/// A game session that ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExitedGame {
+    pub id: GameId,
+    pub seconds: u64,
+    /// It failed to start: it exited with an error within seconds, unasked.
+    pub crashed: bool,
+    pub exit_code: Option<i32>,
+}
+
+/// Game sessions that ended, for "minimize on launch" restore and help after
+/// a failed start. Drained by the shell.
 #[derive(Default)]
 pub struct SessionModel {
-    pub exited: VecDeque<(GameId, u64, bool)>,
+    pub exited: VecDeque<ExitedGame>,
 }
 
 /// Handles to every model, installed as a global.
@@ -203,6 +220,7 @@ pub(crate) fn install(cx: &mut App) {
     let users = accounts_now(cx);
     let accounts = cx.new(|_| AccountsModel {
         users,
+        expired: b.expired_logins(),
         online: b.is_online(),
     });
     let settings = cx.new(|_| SettingsModel {
@@ -287,15 +305,29 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
                     cx.notify();
                 });
             }
-            Event::Notice(n) => m.notices.update(cx, |model, cx| model.push(n, cx)),
+            Event::Notice(n) => {
+                crate::system_notify::notice(&n, cx);
+                m.notices.update(cx, |model, cx| model.push(n, cx));
+            }
             Event::GameExited {
                 id,
                 seconds,
                 crashed,
-            } => m.sessions.update(cx, |s, cx| {
-                s.exited.push_back((id, seconds, crashed));
-                cx.notify();
-            }),
+                exit_code,
+            } => {
+                if crashed && let Some(game) = b.game(&id) {
+                    crate::system_notify::failed_start(&id, &game.title, cx);
+                }
+                m.sessions.update(cx, |s, cx| {
+                    s.exited.push_back(ExitedGame {
+                        id,
+                        seconds,
+                        crashed,
+                        exit_code,
+                    });
+                    cx.notify();
+                });
+            }
             Event::WineVersionsChanged => settings = true,
         }
     }
@@ -341,8 +373,10 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
     }
     if accounts {
         let users = accounts_now(cx);
+        let expired = b.expired_logins();
         m.accounts.update(cx, |a, cx| {
             a.users = users;
+            a.expired = expired;
             cx.notify();
         });
     }

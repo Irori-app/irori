@@ -181,6 +181,10 @@ pub struct Report {
     pub uploaded: usize,
     pub downloaded: usize,
     pub deleted: usize,
+    /// Unix time the newest local file changed, if there is one.
+    pub local_newest: Option<u64>,
+    /// Unix time the newest cloud file changed, if there is one.
+    pub cloud_newest: Option<u64>,
 }
 
 fn encode(path: &str) -> String {
@@ -365,6 +369,8 @@ impl Storage {
             uploaded: 0,
             downloaded: 0,
             deleted: 0,
+            local_newest: local.iter().map(|f| f.modified).max(),
+            cloud_newest: live.iter().map(|f| f.modified).max(),
         };
         let force = matches!(pref, Preference::ForceDownload | Preference::ForceUpload);
         let first = local.is_empty() || live.is_empty();
@@ -436,6 +442,9 @@ mod tests {
         assert_eq!(k.only_cloud, ["c"]);
         assert_eq!(k.action(), Action::Conflict);
         assert_eq!(decide(&k, 2, 2, Preference::Auto), Action::Conflict);
+        // Syncing before or after play never skips a conflict quietly.
+        assert_eq!(decide(&k, 2, 2, Preference::Download), Action::Conflict);
+        assert_eq!(decide(&k, 2, 2, Preference::Upload), Action::Conflict);
         assert_eq!(decide(&k, 2, 2, Preference::ForceUpload), Action::Upload);
         let only_up = Classification::new(&l, &[cloud("a", 100)], 150);
         assert_eq!(decide(&only_up, 2, 1, Preference::Auto), Action::Upload);
@@ -483,6 +492,10 @@ mod tests {
         // Nothing local: everything is downloaded.
         let r = s.sync(dir.path(), 0, Preference::Auto).await.unwrap();
         assert_eq!((r.action, r.downloaded), (Action::Download, 1));
+        assert_eq!(
+            (r.local_newest, r.cloud_newest),
+            (None, Some(1_893_456_000))
+        );
         assert_eq!(
             std::fs::read(dir.path().join("slot 1.sav")).unwrap(),
             b"cloud data"

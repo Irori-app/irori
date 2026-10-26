@@ -10,7 +10,7 @@ use ember_core::log_cap;
 use ember_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
 use ember_core::{
     Event, GameId, GameInfo, InstallPlatform, InstallProgress, LaunchOption, LaunchRequest, Notice,
-    NoticeLevel, Outcome, Paths, RemoveArgs, StatusKind, SyncDirection, util,
+    NoticeLevel, Outcome, Paths, RemoveArgs, SaveConflict, StatusKind, SyncDirection, util,
 };
 use ember_runtime::Target;
 use serde_json::Value;
@@ -34,7 +34,26 @@ pub struct LaunchParams {
 pub struct RunningGame {
     pub pid: u32,
     pub started: Instant,
+    /// The user asked to stop it, so a quick non-zero exit is not a crash.
+    pub stopping: bool,
 }
+
+/// Whether a session counts as a failed start: the game exited with an error
+/// within seconds of starting and nobody asked it to stop. A clean exit is
+/// never one, since launchers (EA app, Ubisoft Connect) hand off and exit 0.
+pub(crate) fn failed_start(
+    status: Option<std::process::ExitStatus>,
+    seconds: u64,
+    stopped: bool,
+) -> bool {
+    if stopped {
+        return false;
+    }
+    status.is_none_or(|s| !s.success() && seconds < FAILED_START_SECONDS)
+}
+
+/// Sessions shorter than this that end in an error count as failed starts.
+const FAILED_START_SECONDS: u64 = 10;
 
 impl Backend {
     pub fn is_running(&self, id: &GameId) -> bool {
@@ -142,6 +161,11 @@ impl Backend {
         if settings.auto_sync_saves && store.supports_cloud_saves() && self.is_online() {
             ctx.step.as_ref()("Syncing saves");
             if let Err(e) = self.sync_saves_inner(id, SyncDirection::Download).await {
+                // Playing on would build on saves the next upload overwrites,
+                // or that overwrite the cloud's; the caller asks the user.
+                if SaveConflict::of(&e).is_some() {
+                    return Err(e);
+                }
                 tracing::warn!("pre-launch save sync of {id}: {e:#}");
             }
         }
@@ -190,9 +214,14 @@ impl Backend {
         let awake = self.spawn(Inhibitor::acquire_owned(format!("Playing {}", game.title)));
         let started = Instant::now();
         let started_at = util::now_rfc3339();
-        self.running
-            .lock()
-            .insert(id.clone(), RunningGame { pid, started });
+        self.running.lock().insert(
+            id.clone(),
+            RunningGame {
+                pid,
+                started,
+                stopping: false,
+            },
+        );
         drop(guard);
         self.statuses.set(id, StatusKind::Playing);
         self.userdata
@@ -210,7 +239,7 @@ impl Backend {
         let b = self.clone();
         let id = id.clone();
         self.spawn(async move {
-            let status = child.wait().await;
+            let status = child.wait().await.ok();
             if let Some(bound) = bound {
                 bound.abort();
                 let _ = log_cap::cut_back(&log_file, header, log_cap::GAME_LOG_CAP);
@@ -225,8 +254,9 @@ impl Backend {
                 let _ = ember_runtime::wait_prefix(&settings).await;
             }
             let seconds = started.elapsed().as_secs();
-            let crashed = status.map(|s| !s.success() && seconds < 10).unwrap_or(true);
-            b.running.lock().remove(&id);
+            let stopped = b.running.lock().remove(&id).is_some_and(|r| r.stopping);
+            let crashed = failed_start(status, seconds, stopped);
+            let exit_code = status.and_then(|s| s.code());
             b.statuses.clear(&id);
             b.userdata.record_session(&id, seconds);
             let session = crate::sessions::Session {
@@ -234,6 +264,7 @@ impl Backend {
                 started: started_at,
                 seconds,
                 crashed,
+                exit_code: exit_code.filter(|_| crashed),
             };
             if let Err(e) = crate::sessions::append(&session) {
                 tracing::warn!("recording the session of {id}: {e:#}");
@@ -251,26 +282,27 @@ impl Backend {
                 && let Err(e) = b.sync_saves(&id, SyncDirection::Upload).await
             {
                 tracing::warn!("post-exit save sync of {id}: {e:#}");
-            }
-            if crashed {
-                b.bus.notice(
-                    Notice::new(
-                        NoticeLevel::Error,
-                        format!("{} closed unexpectedly", game.title),
-                    )
-                    .message("Check the game log for details.")
-                    .keys(
-                        "shell.notice.crashed",
-                        Some("shell.notice.crashed_message"),
-                        &[("title", &game.title)],
-                    )
-                    .game(id.clone()),
-                );
+                if SaveConflict::of(&e).is_some() {
+                    b.bus.notice(
+                        Notice::new(
+                            NoticeLevel::Warning,
+                            format!("Saves of {} weren't uploaded", game.title),
+                        )
+                        .message(format!("{e:#}"))
+                        .keys(
+                            "shell.notice.saves_conflict",
+                            Some("shell.notice.saves_conflict_message"),
+                            &[("title", &game.title)],
+                        )
+                        .game(id.clone()),
+                    );
+                }
             }
             b.bus.emit(Event::GameExited {
                 id,
                 seconds,
                 crashed,
+                exit_code,
             });
         });
         Ok(())
@@ -308,7 +340,10 @@ impl Backend {
 
     /// Stop a running game and everything in its prefix.
     pub async fn stop(&self, id: &GameId) -> Result<()> {
-        let pid = self.running.lock().get(id).map(|r| r.pid);
+        let pid = self.running.lock().get_mut(id).map(|r| {
+            r.stopping = true;
+            r.pid
+        });
         if let Some(pid) = pid {
             process::kill_group(pid, false);
         }
@@ -361,6 +396,11 @@ impl Backend {
                 !prefix.join("cxbottle.conf").is_file(),
                 "This CrossOver bottle may be shared by other games. Keep the prefix when uninstalling, and manage bottles in CrossOver."
             );
+            anyhow::ensure!(
+                !ember_runtime::prefix_is_shared(&app, &prefix),
+                "{} is shared by other games. Keep the prefix when uninstalling.",
+                prefix.display()
+            );
         }
         store.uninstall(&id.app_name, args).await?;
         if args.remove_prefix && Self::target_platform(&game).needs_wine() {
@@ -400,9 +440,40 @@ impl Backend {
         let statuses = self.statuses.clone();
         let pid = id.clone();
         let (s, d) = (src.clone(), dst.clone());
-        self.spawn_blocking(move || move_dir(&s, &d, &|p| statuses.progress(&pid, p)))
+        let moved = self
+            .spawn_blocking(move || move_dir(&s, &d, &|p| statuses.progress(&pid, p)))
             .await??;
+        // Point the install at the complete copy before the original goes,
+        // so no failure from here on leaves the game pointing at a half
+        // deleted folder.
         store.set_install_path(&id.app_name, &dst).await?;
+        if moved == Moved::Copied {
+            let app = self.settings.app();
+            let old = src.clone();
+            let removed = self
+                .spawn_blocking(move || {
+                    ember_core::fs_guard::ensure_deletable(&old, &app)?;
+                    std::fs::remove_dir_all(&old)
+                        .with_context(|| format!("Could not delete {}", old.display()))
+                })
+                .await?;
+            if let Err(e) = removed {
+                tracing::warn!("removing the old copy of {id}: {e:#}");
+                let old = src.display().to_string();
+                self.bus.notice(
+                    Notice::new(
+                        NoticeLevel::Warning,
+                        format!("The old copy of {} is still at {old}", game.title),
+                    )
+                    .message(format!("{e:#}"))
+                    .keys(
+                        "shell.notice.move_leftover",
+                        None,
+                        &[("title", &game.title), ("path", &old)],
+                    ),
+                );
+            }
+        }
         self.bus.emit(Event::LibraryChanged(id.runner));
         let dest = new_base.display().to_string();
         self.bus.notice(
@@ -608,19 +679,53 @@ async fn remove_prefix_dir(prefix: &Path, app: &ember_core::AppSettings) -> Resu
         .with_context(|| format!("Could not delete {}", prefix.display()))
 }
 
-/// Move a directory: rename when on the same filesystem, else copy with
-/// progress and delete the source.
-fn move_dir(src: &Path, dst: &Path, progress: &dyn Fn(InstallProgress)) -> Result<()> {
+/// How [`move_dir`] moved a folder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Moved {
+    /// Renamed in place: same filesystem, nothing left behind.
+    Renamed,
+    /// Copied to another filesystem; the source is still there for the
+    /// caller to delete once the copy is in use.
+    Copied,
+}
+
+/// Move a directory: rename it on the same filesystem, else copy it with
+/// progress. A failed copy removes what it wrote and leaves the source as
+/// it was. Any rename error other than crossing filesystems (files in use,
+/// permissions) is reported rather than worked around with a copy.
+fn move_dir(src: &Path, dst: &Path, progress: &dyn Fn(InstallProgress)) -> Result<Moved> {
     if let Some(parent) = dst.parent() {
-        std::fs::create_dir_all(parent)?;
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("Could not create {}", parent.display()))?;
     }
-    if std::fs::rename(src, dst).is_ok() {
-        return Ok(());
+    match std::fs::rename(src, dst) {
+        Ok(()) => return Ok(Moved::Renamed),
+        Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {}
+        Err(e) => {
+            return Err(e)
+                .with_context(|| format!("Could not move {} to {}", src.display(), dst.display()));
+        }
     }
+    copy_dir(src, dst, progress)?;
+    Ok(Moved::Copied)
+}
+
+/// Copy `src` to `dst`, which must not exist yet, with progress. On failure
+/// remove what was written; `src` is never touched.
+fn copy_dir(src: &Path, dst: &Path, progress: &dyn Fn(InstallProgress)) -> Result<()> {
     let total = dir_size(src);
+    if let Some(free) = free_space(dst)
+        && free < total
+    {
+        bail!(
+            "Not enough space: moving needs {} but only {} is free",
+            util::format_bytes(total),
+            util::format_bytes(free)
+        );
+    }
     let mut done = 0u64;
     let started = Instant::now();
-    copy_tree(src, dst, &mut |n| {
+    let copied = copy_tree(src, dst, &mut |n| {
         done += n;
         let secs = started.elapsed().as_secs_f64().max(0.001);
         let speed = (done as f64 / secs) as u64;
@@ -632,9 +737,21 @@ fn move_dir(src: &Path, dst: &Path, progress: &dyn Fn(InstallProgress)) -> Resul
             disk_speed: Some(speed),
             ..Default::default()
         });
-    })?;
-    std::fs::remove_dir_all(src)?;
+    });
+    if let Err(e) = copied {
+        // `dst` did not exist before the copy, so everything in it is ours.
+        if let Err(cleanup) = std::fs::remove_dir_all(dst) {
+            tracing::warn!("removing the partial copy {}: {cleanup}", dst.display());
+        }
+        return Err(e);
+    }
     Ok(())
+}
+
+/// Free bytes on the filesystem that will hold `path`.
+fn free_space(path: &Path) -> Option<u64> {
+    let existing = path.ancestors().find(|p| p.exists())?;
+    fs4::available_space(existing).ok()
 }
 
 fn dir_size(path: &Path) -> u64 {
@@ -680,6 +797,51 @@ fn copy_tree(src: &Path, dst: &Path, on_bytes: &mut dyn FnMut(u64)) -> Result<()
 #[cfg(test)]
 mod platform_tests {
     use super::*;
+
+    #[test]
+    fn moves_by_renaming_on_the_same_filesystem() {
+        let dir = tempfile::tempdir().unwrap();
+        let (src, dst) = (dir.path().join("Game"), dir.path().join("to/Game"));
+        std::fs::create_dir_all(src.join("data")).unwrap();
+        std::fs::write(src.join("data/save.dat"), "x").unwrap();
+        assert_eq!(move_dir(&src, &dst, &|_| {}).unwrap(), Moved::Renamed);
+        assert!(!src.exists());
+        assert_eq!(std::fs::read(dst.join("data/save.dat")).unwrap(), b"x");
+    }
+
+    #[test]
+    fn a_failed_move_leaves_the_source_whole() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("Game");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("a.bin"), "a").unwrap();
+        // The destination's parent is a file, so the move cannot even start.
+        let file = dir.path().join("a-file");
+        std::fs::write(&file, "").unwrap();
+        assert!(move_dir(&src, &file.join("Game"), &|_| {}).is_err());
+        assert!(src.join("a.bin").is_file());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_copy_removes_what_it_wrote() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let (src, dst) = (dir.path().join("Game"), dir.path().join("to/Game"));
+        std::fs::create_dir_all(src.join("data")).unwrap();
+        std::fs::write(src.join("data/a.bin"), "a").unwrap();
+        let locked = src.join("data/z.bin");
+        std::fs::write(&locked, "z").unwrap();
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+        if std::fs::read(&locked).is_ok() {
+            return; // running as root: nothing is unreadable
+        }
+        assert!(copy_dir(&src, &dst, &|_| {}).is_err());
+        assert!(!dst.exists(), "the partial copy is gone");
+        assert!(src.join("data/a.bin").is_file(), "the source is untouched");
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+
     #[tokio::test]
     async fn uninstall_never_removes_shared_crossover_bottles() {
         let dir = tempfile::tempdir().unwrap();
@@ -690,5 +852,35 @@ mod platform_tests {
             .unwrap_err();
         assert!(error.to_string().contains("CrossOver"));
         assert!(dir.path().join("cxbottle.conf").exists());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::failed_start;
+    use std::process::ExitStatus;
+
+    fn exit(code: i32) -> ExitStatus {
+        #[cfg(unix)]
+        {
+            std::os::unix::process::ExitStatusExt::from_raw(code << 8)
+        }
+        #[cfg(windows)]
+        {
+            std::os::windows::process::ExitStatusExt::from_raw(code as u32)
+        }
+    }
+
+    #[test]
+    fn counts_only_unasked_quick_errors_as_failed_starts() {
+        assert!(failed_start(Some(exit(1)), 2, false));
+        assert!(failed_start(None, 30, false), "lost track of the process");
+        assert!(!failed_start(Some(exit(0)), 1, false), "launchers exit 0");
+        assert!(
+            !failed_start(Some(exit(1)), 600, false),
+            "played, then failed"
+        );
+        assert!(!failed_start(Some(exit(1)), 2, true), "the user stopped it");
+        assert!(!failed_start(None, 2, true));
     }
 }

@@ -23,7 +23,8 @@ use ember_core::process::{self, RunOptions};
 use ember_core::{
     Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
-    Runner, SettingsFn, Store, UpdateRequest, UserInfo, WineLaunch, json_store, util,
+    Runner, SessionExpired, SettingsFn, Store, UpdateRequest, UserInfo, WineLaunch, json_store,
+    util,
 };
 use once_cell::sync::OnceCell;
 use parking_lot::{Mutex, RwLock};
@@ -245,9 +246,15 @@ impl AmazonStore {
         if !creds.needs_refresh(util::unix_now()) {
             return Ok(creds);
         }
-        let fresh = self.client()?.refresh(&creds).await.context(
-            "Your Amazon session could not be renewed; sign out and sign in again if this persists",
-        )?;
+        let fresh = match self.client()?.refresh(&creds).await {
+            Ok(fresh) => fresh,
+            Err(e) => {
+                if let Some(rejected) = e.downcast_ref::<ember_amazon_api::SignInRejected>() {
+                    return Err(SessionExpired::new(Runner::Nile, rejected.0.clone()).into());
+                }
+                return Err(e.context("Your Amazon session could not be renewed"));
+            }
+        };
         let layout = self.layout.clone();
         let saved = fresh.clone();
         Self::blocking(move || layout.write_credentials(&saved)).await??;

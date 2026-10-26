@@ -115,7 +115,7 @@ pub(crate) fn uploaded_ago(uploaded_at: u64, now: u64) -> SharedString {
     }
 }
 
-async fn read_tail(path: PathBuf) -> anyhow::Result<Option<LogTail>> {
+pub(crate) async fn read_tail(path: PathBuf) -> anyhow::Result<Option<LogTail>> {
     use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
     let mut file = match tokio::fs::File::open(&path).await {
         Ok(f) => f,

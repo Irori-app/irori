@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "{count}일 전에 변경됨",
+  "ui.saves.changed_days_other": "{count}일 전에 변경됨",
+  "ui.saves.changed_hours_one": "{count}시간 전에 변경됨",
+  "ui.saves.changed_hours_other": "{count}시간 전에 변경됨",
+  "ui.saves.changed_just_now": "방금 변경됨",
+  "ui.saves.changed_minutes_one": "{count}분 전에 변경됨",
+  "ui.saves.changed_minutes_other": "{count}분 전에 변경됨",
+  "ui.saves.cloud": "클라우드",
+  "ui.saves.conflict_description": "마지막 동기화 이후 이 기기와 클라우드 모두에서 저장 데이터가 변경되었습니다. 유지하지 않은 쪽은 대체됩니다.",
+  "ui.saves.conflict_title": "‘{title}’의 어느 저장 데이터를 유지할까요?",
+  "ui.saves.keep_cloud": "클라우드 데이터 유지",
+  "ui.saves.keep_local": "이 기기의 데이터 유지",
+  "ui.saves.no_saves": "저장 데이터 없음",
+  "ui.saves.not_now": "나중에",
+  "ui.saves.start_failed": "{title}을(를) 시작할 수 없습니다",
+  "ui.saves.this_device": "이 기기",
   "ui.status.installing": "설치 중",
   "ui.status.importing": "가져오는 중",
   "ui.status.updating": "업데이트 중",
@@ -20,5 +36,7 @@
   "ui.progress.left": "{time} 남음",
   "ui.progress.file_lists": "파일 목록 읽는 중 {done} / {total}",
   "ui.progress.checking_files": "파일 확인 중 {done} / {total}",
-  "ui.cover.no_art": "이미지 없음"
+  "ui.cover.no_art": "이미지 없음",
+  "ui.notify.failed_start": "‘{title}’을(를) 시작하지 못했습니다",
+  "ui.notify.failed_start_body": "Ember를 열어 무엇이 잘못되었는지 확인하세요."
 }

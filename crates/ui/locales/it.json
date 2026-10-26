@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Modificato {count} giorno fa",
+  "ui.saves.changed_days_other": "Modificato {count} giorni fa",
+  "ui.saves.changed_hours_one": "Modificato {count} ora fa",
+  "ui.saves.changed_hours_other": "Modificato {count} ore fa",
+  "ui.saves.changed_just_now": "Modificato proprio ora",
+  "ui.saves.changed_minutes_one": "Modificato {count} minuto fa",
+  "ui.saves.changed_minutes_other": "Modificato {count} minuti fa",
+  "ui.saves.cloud": "Cloud",
+  "ui.saves.conflict_description": "I salvataggi sono cambiati su questo dispositivo e nel cloud dall’ultima sincronizzazione. Quelli che non tieni verranno sostituiti.",
+  "ui.saves.conflict_title": "Quali salvataggi di «{title}» vuoi tenere?",
+  "ui.saves.keep_cloud": "Tieni quelli del cloud",
+  "ui.saves.keep_local": "Tieni quelli di questo dispositivo",
+  "ui.saves.no_saves": "Nessun salvataggio",
+  "ui.saves.not_now": "Non ora",
+  "ui.saves.start_failed": "Impossibile avviare {title}",
+  "ui.saves.this_device": "Questo dispositivo",
   "ui.status.installing": "Installazione",
   "ui.status.importing": "Importazione",
   "ui.status.updating": "Aggiornamento",
@@ -20,5 +36,7 @@
   "ui.progress.left": "{time} rimanenti",
   "ui.progress.file_lists": "Lettura degli elenchi di file {done} / {total}",
   "ui.progress.checking_files": "Controllo dei file {done} / {total}",
-  "ui.cover.no_art": "Nessuna immagine"
+  "ui.cover.no_art": "Nessuna immagine",
+  "ui.notify.failed_start": "«{title}» non si è avviato",
+  "ui.notify.failed_start_body": "Apri Ember per vedere cosa è andato storto."
 }

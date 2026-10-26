@@ -219,6 +219,13 @@ fn parse_time(s: &str) -> Option<u64> {
         .map(|t| t.unix_timestamp().max(0) as u64)
 }
 
+/// Epic's account service refused the request: the saved sign-in is no
+/// longer valid, or the account needs attention on Epic's website. Signing in
+/// again fixes it; retrying does not.
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("{0}")]
+pub struct SignInRejected(pub String);
+
 /// The message of an Epic error body.
 fn epic_error(v: &Value) -> Option<String> {
     let msg = v.get("errorMessage").and_then(Value::as_str);
@@ -306,14 +313,22 @@ impl Client {
             .await?;
         let status = resp.status();
         let v: Value = resp.json().await.unwrap_or(Value::Null);
+        // A client error with Epic's own error body is a verdict on the
+        // credentials; a busy or failing server (429, 5xx) is not.
+        let refused = status.is_client_error() && status.as_u16() != 429;
         if let Some(reason) = epic_error(&v) {
-            if v.get("errorCode").and_then(Value::as_str)
+            let message = if v.get("errorCode").and_then(Value::as_str)
                 == Some("errors.com.epicgames.oauth.corrective_action_required")
                 && let Some(url) = v.get("continuationUrl").and_then(Value::as_str)
             {
-                bail!("{reason} Open {url} to take care of it, then sign in again.");
+                format!("{reason} Open {url} to take care of it, then sign in again.")
+            } else {
+                format!("Epic refused the sign-in: {reason}")
+            };
+            if refused {
+                return Err(SignInRejected(message).into());
             }
-            bail!("Epic refused the sign-in: {reason}");
+            bail!(message);
         }
         if !status.is_success() {
             bail!("Epic refused the sign-in ({status})");
@@ -1012,6 +1027,35 @@ pub(crate) mod tests {
             (Some("dep"), 3)
         );
         assert!(parse_manifest_info(&json!({"elements": []})).is_err());
+    }
+
+    #[tokio::test]
+    async fn tells_a_refused_refresh_from_a_failing_server() {
+        // The first refresh is refused, the second meets a failing server.
+        let calls = std::sync::atomic::AtomicUsize::new(0);
+        let server = TestServer::start(move |_| {
+            if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+                Resp {
+                    status: 400,
+                    ..Resp::json(json!({
+                        "errorCode": "errors.com.epicgames.account.auth_token.invalid_refresh_token",
+                        "errorMessage": "Sorry the refresh token is invalid"}))
+                }
+            } else {
+                Resp {
+                    status: 503,
+                    ..Resp::json(
+                        json!({"errorCode": "errors.com.epicgames.common.server_error",
+                                         "errorMessage": "Try again later"}),
+                    )
+                }
+            }
+        });
+        let client = Client::with_endpoints(Identity::default(), endpoints(&server)).unwrap();
+        let e = client.refresh(&session()).await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_some(), "{e:#}");
+        let e = client.refresh(&session()).await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_none(), "{e:#}");
     }
 
     #[tokio::test]

@@ -218,6 +218,7 @@ mod tests {
                 started: format!("{d}T12:00:00Z"),
                 seconds: minutes * 60,
                 crashed: false,
+                exit_code: None,
             },
         )
     }
@@ -267,6 +268,7 @@ mod tests {
                     started: "2026-10-20T12:00:00Z".into(),
                     seconds: 20,
                     crashed: false,
+                    exit_code: None,
                 },
             ),
         ];
@@ -299,6 +301,7 @@ mod tests {
                 started: "2026-10-23T12:00:00Z".into(),
                 seconds: 2,
                 crashed: true,
+                exit_code: None,
             },
         ));
         let stats = compute(&sessions, &playtime, |_| true, day("2026-10-23"));

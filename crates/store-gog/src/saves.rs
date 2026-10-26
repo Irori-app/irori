@@ -12,7 +12,9 @@ use anyhow::{Context as _, Result, bail};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use ember_core::{CloudSaveLocation, InstallPlatform, OpContext, SyncDirection, util};
+use ember_core::{
+    CloudSaveLocation, InstallPlatform, OpContext, SaveConflict, SyncDirection, util,
+};
 use ember_gog_api::saves::{Action, Preference, Storage};
 
 use crate::installed::InstalledRecord;
@@ -354,6 +356,7 @@ impl GogStore {
         let ts_path = self.paths.save_timestamps_file();
         let mut report = Vec::new();
         let mut failures = 0;
+        let mut conflict: Option<SaveConflict> = None;
         for loc in &targets {
             let _ = tokio::fs::create_dir_all(&loc.location).await;
             let last = {
@@ -378,10 +381,13 @@ impl GogStore {
             match result {
                 Ok(r) if r.action == Action::Conflict => {
                     failures += 1;
-                    report.push(format!(
-                        "{}: local and cloud saves both changed; choose force upload or force download",
-                        loc.name
-                    ));
+                    report.push(format!("{}: local and cloud saves both changed", loc.name));
+                    let c = conflict.get_or_insert(SaveConflict {
+                        local: None,
+                        cloud: None,
+                    });
+                    c.local = c.local.max(r.local_newest);
+                    c.cloud = c.cloud.max(r.cloud_newest);
                 }
                 Ok(r) => {
                     let mut all: Timestamps = load_json(ts_path.clone()).await;
@@ -404,6 +410,11 @@ impl GogStore {
             }
         }
         let text = report.join("\n");
+        if let Some(conflict) = conflict {
+            // The other locations synced; this one waits for the user.
+            tracing::info!("{text}");
+            return Err(conflict.into());
+        }
         if failures == targets.len() {
             bail!("{text}");
         }

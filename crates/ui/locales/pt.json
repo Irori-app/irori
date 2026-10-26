@@ -1,4 +1,20 @@
 {
+  "ui.saves.changed_days_one": "Alterado há {count} dia",
+  "ui.saves.changed_days_other": "Alterado há {count} dias",
+  "ui.saves.changed_hours_one": "Alterado há {count} hora",
+  "ui.saves.changed_hours_other": "Alterado há {count} horas",
+  "ui.saves.changed_just_now": "Alterado agora mesmo",
+  "ui.saves.changed_minutes_one": "Alterado há {count} minuto",
+  "ui.saves.changed_minutes_other": "Alterado há {count} minutos",
+  "ui.saves.cloud": "Nuvem",
+  "ui.saves.conflict_description": "As gravações mudaram neste dispositivo e na nuvem desde a última sincronização. As que não mantiver serão substituídas.",
+  "ui.saves.conflict_title": "Que gravações de «{title}» quer manter?",
+  "ui.saves.keep_cloud": "Manter as da nuvem",
+  "ui.saves.keep_local": "Manter as deste dispositivo",
+  "ui.saves.no_saves": "Sem gravações",
+  "ui.saves.not_now": "Agora não",
+  "ui.saves.start_failed": "Não foi possível iniciar {title}",
+  "ui.saves.this_device": "Este dispositivo",
   "ui.status.installing": "A instalar",
   "ui.status.importing": "A importar",
   "ui.status.updating": "A atualizar",
@@ -20,5 +36,7 @@
   "ui.progress.left": "faltam {time}",
   "ui.progress.file_lists": "A ler listas de ficheiros {done} / {total}",
   "ui.progress.checking_files": "A verificar ficheiros {done} / {total}",
-  "ui.cover.no_art": "Sem imagem"
+  "ui.cover.no_art": "Sem imagem",
+  "ui.notify.failed_start": "«{title}» não arrancou",
+  "ui.notify.failed_start_body": "Abra o Ember para ver o que correu mal."
 }

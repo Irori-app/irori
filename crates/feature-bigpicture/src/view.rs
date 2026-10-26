@@ -736,6 +736,15 @@ impl BigPictureView {
                             this.overlay = None;
                         }
                     }
+                    // Only Play can hit saves that changed in both places.
+                    Err(e)
+                        if ember_ui::save_conflict::resolve_launch_error(
+                            &id,
+                            Default::default(),
+                            &e,
+                            window,
+                            cx,
+                        ) => {}
                     Err(e) => window.push_notification(
                         Notification::error(format!("{e:#}")).title(error_title),
                         cx,
