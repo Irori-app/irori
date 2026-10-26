@@ -20,5 +20,7 @@
   "ui.progress.left": "残り {time}",
   "ui.progress.file_lists": "ファイル一覧を読み込み中 {done} / {total}",
   "ui.progress.checking_files": "ファイルを確認中 {done} / {total}",
-  "ui.cover.no_art": "画像なし"
+  "ui.cover.no_art": "画像なし",
+  "ui.notify.failed_start": "「{title}」を起動できませんでした",
+  "ui.notify.failed_start_body": "Ember を開いて原因を確認してください。"
 }

@@ -20,5 +20,7 @@
   "ui.progress.left": "zbývá {time}",
   "ui.progress.file_lists": "Načítání seznamů souborů {done} / {total}",
   "ui.progress.checking_files": "Kontrola souborů {done} / {total}",
-  "ui.cover.no_art": "Bez obrázku"
+  "ui.cover.no_art": "Bez obrázku",
+  "ui.notify.failed_start": "„{title}“ se nespustila",
+  "ui.notify.failed_start_body": "Otevřete Ember a zjistěte, co se pokazilo."
 }

@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} har avinstallerats",
   "shell.notice.moved": "{title} har flyttats till {path}",
   "shell.notice.repaired": "{title} har verifierats och reparerats",
-  "shell.notice.crashed": "{title} avslutades oväntat",
-  "shell.notice.crashed_message": "Se spelloggen för detaljer.",
   "shell.notice.downloads_paused": "Nedladdningar pausade",
   "shell.notice.downloads_paused_message": "Du är offline. Nedladdningarna fortsätter när anslutningen är tillbaka.",
   "shell.notice.already_installed": "{title} är redan installerat",

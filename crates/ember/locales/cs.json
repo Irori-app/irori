@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} odinstalováno",
   "shell.notice.moved": "{title} přesunuto do {path}",
   "shell.notice.repaired": "{title} ověřeno a opraveno",
-  "shell.notice.crashed": "{title} se neočekávaně ukončila",
-  "shell.notice.crashed_message": "Podrobnosti najdete v protokolu hry.",
   "shell.notice.downloads_paused": "Stahování pozastaveno",
   "shell.notice.downloads_paused_message": "Jste offline. Stahování bude pokračovat po obnovení připojení.",
   "shell.notice.already_installed": "{title} je již nainstalováno",

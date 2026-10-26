@@ -1,7 +1,7 @@
 //! Ember's shared UI layer. Feature crates depend on this crate for backend
 //! access ([`state`]), observable models ([`models`]), navigation ([`nav`]),
-//! game art ([`art`]), theming ([`theme`]), motion ([`motion`]) and domain
-//! components.
+//! game art ([`art`]), theming ([`theme`]), motion ([`motion`]), desktop
+//! notifications ([`system_notify`]) and domain components.
 
 pub mod art;
 pub mod components;
@@ -13,6 +13,7 @@ pub mod motion;
 pub mod nav;
 pub mod state;
 pub mod style;
+pub mod system_notify;
 pub mod theme;
 
 pub use models::{Models, models};

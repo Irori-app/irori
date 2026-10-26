@@ -20,5 +20,7 @@
   "ui.progress.left": "{time} kaldı",
   "ui.progress.file_lists": "Dosya listeleri okunuyor {done} / {total}",
   "ui.progress.checking_files": "Dosyalar denetleniyor {done} / {total}",
-  "ui.cover.no_art": "Görsel yok"
+  "ui.cover.no_art": "Görsel yok",
+  "ui.notify.failed_start": "“{title}” başlamadı",
+  "ui.notify.failed_start_body": "Neyin ters gittiğini görmek için Ember'ı açın."
 }

@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} kaldırıldı",
   "shell.notice.moved": "{title}, {path} konumuna taşındı",
   "shell.notice.repaired": "{title} doğrulandı ve onarıldı",
-  "shell.notice.crashed": "{title} beklenmedik şekilde kapandı",
-  "shell.notice.crashed_message": "Ayrıntılar için oyun günlüğüne bak.",
   "shell.notice.downloads_paused": "İndirmeler duraklatıldı",
   "shell.notice.downloads_paused_message": "Çevrimdışısın. Bağlantı geri geldiğinde indirmeler devam eder.",
   "shell.notice.already_installed": "{title} zaten yüklü",

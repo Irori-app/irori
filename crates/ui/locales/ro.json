@@ -20,5 +20,7 @@
   "ui.progress.left": "mai sunt {time}",
   "ui.progress.file_lists": "Se citesc listele de fișiere {done} / {total}",
   "ui.progress.checking_files": "Se verifică fișierele {done} / {total}",
-  "ui.cover.no_art": "Fără imagine"
+  "ui.cover.no_art": "Fără imagine",
+  "ui.notify.failed_start": "„{title}” nu a pornit",
+  "ui.notify.failed_start_body": "Deschide Ember ca să vezi ce nu a mers."
 }

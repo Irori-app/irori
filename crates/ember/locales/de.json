@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} deinstalliert",
   "shell.notice.moved": "{title} nach {path} verschoben",
   "shell.notice.repaired": "{title} überprüft und repariert",
-  "shell.notice.crashed": "{title} wurde unerwartet beendet",
-  "shell.notice.crashed_message": "Details stehen im Spielprotokoll.",
   "shell.notice.downloads_paused": "Downloads pausiert",
   "shell.notice.downloads_paused_message": "Du bist offline. Downloads werden fortgesetzt, sobald die Verbindung wieder da ist.",
   "shell.notice.already_installed": "{title} ist bereits installiert",

@@ -93,11 +93,14 @@ pub enum Event {
     GameSettingsChanged(GameId),
     Connectivity(bool),
     Notice(Notice),
-    /// A game process exited after `seconds` of play.
+    /// A game process exited after `seconds` of play. `crashed` means it
+    /// failed to start: it exited with an error within seconds, unasked.
     GameExited {
         id: GameId,
         seconds: u64,
         crashed: bool,
+        /// The process's exit code; `None` when a signal ended it.
+        exit_code: Option<i32>,
     },
 }
 

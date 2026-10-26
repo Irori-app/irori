@@ -20,5 +20,7 @@
   "ui.progress.left": "{time} 남음",
   "ui.progress.file_lists": "파일 목록 읽는 중 {done} / {total}",
   "ui.progress.checking_files": "파일 확인 중 {done} / {total}",
-  "ui.cover.no_art": "이미지 없음"
+  "ui.cover.no_art": "이미지 없음",
+  "ui.notify.failed_start": "‘{title}’을(를) 시작하지 못했습니다",
+  "ui.notify.failed_start_body": "Ember를 열어 무엇이 잘못되었는지 확인하세요."
 }

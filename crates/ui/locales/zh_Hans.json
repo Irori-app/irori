@@ -20,5 +20,7 @@
   "ui.progress.left": "剩余 {time}",
   "ui.progress.file_lists": "正在读取文件列表 {done} / {total}",
   "ui.progress.checking_files": "正在检查文件 {done} / {total}",
-  "ui.cover.no_art": "无图片"
+  "ui.cover.no_art": "无图片",
+  "ui.notify.failed_start": "“{title}”未能启动",
+  "ui.notify.failed_start_body": "打开 Ember 查看出了什么问题。"
 }

@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} verwijderd",
   "shell.notice.moved": "{title} verplaatst naar {path}",
   "shell.notice.repaired": "{title} gecontroleerd en hersteld",
-  "shell.notice.crashed": "{title} is onverwacht afgesloten",
-  "shell.notice.crashed_message": "Bekijk het gamelogboek voor details.",
   "shell.notice.downloads_paused": "Downloads gepauzeerd",
   "shell.notice.downloads_paused_message": "Je bent offline. Downloads gaan verder zodra de verbinding terug is.",
   "shell.notice.already_installed": "{title} is al geïnstalleerd",

@@ -136,6 +136,18 @@ fn main() -> Result<()> {
 
         let app = Arc::new(Mutex::new(AppHandles::default()));
         start_tray(&backend, tx.clone(), app.clone(), cx);
+        {
+            let app = app.clone();
+            ember_ui::system_notify::install(
+                move |game, cx| {
+                    open_main_window(&app, cx);
+                    if let Some(id) = game {
+                        nav::navigate(Route::Game(id), cx);
+                    }
+                },
+                cx,
+            );
+        }
 
         let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)
             && ((cfg!(target_os = "linux") && !backend.settings.app().no_tray_icon)

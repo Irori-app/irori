@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} をアンインストールしました",
   "shell.notice.moved": "{title} を {path} に移動しました",
   "shell.notice.repaired": "{title} を検証して修復しました",
-  "shell.notice.crashed": "{title} が予期せず終了しました",
-  "shell.notice.crashed_message": "詳細はゲームのログを確認してください。",
   "shell.notice.downloads_paused": "ダウンロードを一時停止しました",
   "shell.notice.downloads_paused_message": "オフラインです。接続が戻るとダウンロードを再開します。",
   "shell.notice.already_installed": "{title} はすでにインストールされています",

@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title}: видалено",
   "shell.notice.moved": "{title} переміщено до {path}",
   "shell.notice.repaired": "{title}: перевірено й виправлено",
-  "shell.notice.crashed": "{title} несподівано закрилася",
-  "shell.notice.crashed_message": "Подробиці дивіться в журналі гри.",
   "shell.notice.downloads_paused": "Завантаження призупинено",
   "shell.notice.downloads_paused_message": "Ви не в мережі. Завантаження продовжаться, коли з'єднання відновиться.",
   "shell.notice.already_installed": "{title} вже встановлено",

@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} desinstalado",
   "shell.notice.moved": "{title} movido para {path}",
   "shell.notice.repaired": "{title} verificado e reparado",
-  "shell.notice.crashed": "{title} fechou inesperadamente",
-  "shell.notice.crashed_message": "Consulte o registo do jogo para mais detalhes.",
   "shell.notice.downloads_paused": "Transferências em pausa",
   "shell.notice.downloads_paused_message": "Está offline. As transferências retomam quando a ligação voltar.",
   "shell.notice.already_installed": "{title} já está instalado",

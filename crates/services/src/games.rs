@@ -34,7 +34,26 @@ pub struct LaunchParams {
 pub struct RunningGame {
     pub pid: u32,
     pub started: Instant,
+    /// The user asked to stop it, so a quick non-zero exit is not a crash.
+    pub stopping: bool,
 }
+
+/// Whether a session counts as a failed start: the game exited with an error
+/// within seconds of starting and nobody asked it to stop. A clean exit is
+/// never one, since launchers (EA app, Ubisoft Connect) hand off and exit 0.
+pub(crate) fn failed_start(
+    status: Option<std::process::ExitStatus>,
+    seconds: u64,
+    stopped: bool,
+) -> bool {
+    if stopped {
+        return false;
+    }
+    status.is_none_or(|s| !s.success() && seconds < FAILED_START_SECONDS)
+}
+
+/// Sessions shorter than this that end in an error count as failed starts.
+const FAILED_START_SECONDS: u64 = 10;
 
 impl Backend {
     pub fn is_running(&self, id: &GameId) -> bool {
@@ -190,9 +209,14 @@ impl Backend {
         let awake = self.spawn(Inhibitor::acquire_owned(format!("Playing {}", game.title)));
         let started = Instant::now();
         let started_at = util::now_rfc3339();
-        self.running
-            .lock()
-            .insert(id.clone(), RunningGame { pid, started });
+        self.running.lock().insert(
+            id.clone(),
+            RunningGame {
+                pid,
+                started,
+                stopping: false,
+            },
+        );
         drop(guard);
         self.statuses.set(id, StatusKind::Playing);
         self.userdata
@@ -210,7 +234,7 @@ impl Backend {
         let b = self.clone();
         let id = id.clone();
         self.spawn(async move {
-            let status = child.wait().await;
+            let status = child.wait().await.ok();
             if let Some(bound) = bound {
                 bound.abort();
                 let _ = log_cap::cut_back(&log_file, header, log_cap::GAME_LOG_CAP);
@@ -225,8 +249,9 @@ impl Backend {
                 let _ = ember_runtime::wait_prefix(&settings).await;
             }
             let seconds = started.elapsed().as_secs();
-            let crashed = status.map(|s| !s.success() && seconds < 10).unwrap_or(true);
-            b.running.lock().remove(&id);
+            let stopped = b.running.lock().remove(&id).is_some_and(|r| r.stopping);
+            let crashed = failed_start(status, seconds, stopped);
+            let exit_code = status.and_then(|s| s.code());
             b.statuses.clear(&id);
             b.userdata.record_session(&id, seconds);
             let session = crate::sessions::Session {
@@ -234,6 +259,7 @@ impl Backend {
                 started: started_at,
                 seconds,
                 crashed,
+                exit_code: exit_code.filter(|_| crashed),
             };
             if let Err(e) = crate::sessions::append(&session) {
                 tracing::warn!("recording the session of {id}: {e:#}");
@@ -252,25 +278,11 @@ impl Backend {
             {
                 tracing::warn!("post-exit save sync of {id}: {e:#}");
             }
-            if crashed {
-                b.bus.notice(
-                    Notice::new(
-                        NoticeLevel::Error,
-                        format!("{} closed unexpectedly", game.title),
-                    )
-                    .message("Check the game log for details.")
-                    .keys(
-                        "shell.notice.crashed",
-                        Some("shell.notice.crashed_message"),
-                        &[("title", &game.title)],
-                    )
-                    .game(id.clone()),
-                );
-            }
             b.bus.emit(Event::GameExited {
                 id,
                 seconds,
                 crashed,
+                exit_code,
             });
         });
         Ok(())
@@ -308,7 +320,10 @@ impl Backend {
 
     /// Stop a running game and everything in its prefix.
     pub async fn stop(&self, id: &GameId) -> Result<()> {
-        let pid = self.running.lock().get(id).map(|r| r.pid);
+        let pid = self.running.lock().get_mut(id).map(|r| {
+            r.stopping = true;
+            r.pid
+        });
         if let Some(pid) = pid {
             process::kill_group(pid, false);
         }
@@ -690,5 +705,35 @@ mod platform_tests {
             .unwrap_err();
         assert!(error.to_string().contains("CrossOver"));
         assert!(dir.path().join("cxbottle.conf").exists());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::failed_start;
+    use std::process::ExitStatus;
+
+    fn exit(code: i32) -> ExitStatus {
+        #[cfg(unix)]
+        {
+            std::os::unix::process::ExitStatusExt::from_raw(code << 8)
+        }
+        #[cfg(windows)]
+        {
+            std::os::windows::process::ExitStatusExt::from_raw(code as u32)
+        }
+    }
+
+    #[test]
+    fn counts_only_unasked_quick_errors_as_failed_starts() {
+        assert!(failed_start(Some(exit(1)), 2, false));
+        assert!(failed_start(None, 30, false), "lost track of the process");
+        assert!(!failed_start(Some(exit(0)), 1, false), "launchers exit 0");
+        assert!(
+            !failed_start(Some(exit(1)), 600, false),
+            "played, then failed"
+        );
+        assert!(!failed_start(Some(exit(1)), 2, true), "the user stopped it");
+        assert!(!failed_start(None, 2, true));
     }
 }

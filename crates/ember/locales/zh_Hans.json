@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "已卸载 {title}",
   "shell.notice.moved": "已将 {title} 移动到 {path}",
   "shell.notice.repaired": "已验证并修复 {title}",
-  "shell.notice.crashed": "{title} 意外关闭",
-  "shell.notice.crashed_message": "请查看游戏日志了解详情。",
   "shell.notice.downloads_paused": "下载已暂停",
   "shell.notice.downloads_paused_message": "你当前处于离线状态。恢复连接后将继续下载。",
   "shell.notice.already_installed": "{title} 已安装",

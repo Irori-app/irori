@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} desinstalado",
   "shell.notice.moved": "{title} movido a {path}",
   "shell.notice.repaired": "{title} verificado y reparado",
-  "shell.notice.crashed": "{title} se cerró inesperadamente",
-  "shell.notice.crashed_message": "Consulta el registro del juego para ver los detalles.",
   "shell.notice.downloads_paused": "Descargas en pausa",
   "shell.notice.downloads_paused_message": "Estás sin conexión. Las descargas se reanudarán cuando vuelva la conexión.",
   "shell.notice.already_installed": "{title} ya está instalado",

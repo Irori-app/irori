@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "{title} désinstallé",
   "shell.notice.moved": "{title} déplacé vers {path}",
   "shell.notice.repaired": "{title} vérifié et réparé",
-  "shell.notice.crashed": "{title} s'est fermé de manière inattendue",
-  "shell.notice.crashed_message": "Consultez le journal du jeu pour plus de détails.",
   "shell.notice.downloads_paused": "Téléchargements en pause",
   "shell.notice.downloads_paused_message": "Vous êtes hors ligne. Les téléchargements reprendront dès le retour de la connexion.",
   "shell.notice.already_installed": "{title} est déjà installé",

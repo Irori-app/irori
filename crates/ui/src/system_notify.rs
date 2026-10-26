@@ -1,0 +1,116 @@
+//! Desktop notifications for what happens while Ember is not in front: a
+//! download finished or failed, a game failed to start, a store needs signing
+//! in again. While Ember's window is active its own toasts are enough.
+
+use std::collections::VecDeque;
+use std::rc::Rc;
+
+use ember_core::{GameId, Notice, NoticeLevel};
+use gpui_kit::{App, BorrowAppContext as _, Global, SharedString, SystemNotification};
+
+use crate::i18n::{t, t_args};
+
+/// Identity Ember's notifications are shown under. Matches the macOS bundle
+/// id in `packaging/package.py`; Windows toasts need it set to show at all.
+const APP_ID: &str = "org.ember.Ember";
+/// Notifications whose click target is remembered.
+const REMEMBERED: usize = 32;
+
+type OpenFn = Rc<dyn Fn(Option<GameId>, &mut App)>;
+
+struct SystemNotices {
+    next: u64,
+    /// Tag and the game a click opens, newest last.
+    targets: VecDeque<(SharedString, Option<GameId>)>,
+}
+
+impl Global for SystemNotices {}
+
+struct OnOpen(OpenFn);
+
+impl Global for OnOpen {}
+
+/// Register Ember with the desktop's notification service. `open` brings the
+/// window forward (reopening it from the tray) and shows the game, if any,
+/// when a notification is clicked.
+pub fn install(open: impl Fn(Option<GameId>, &mut App) + 'static, cx: &mut App) {
+    cx.set_app_identity(APP_ID, "Ember");
+    cx.set_global(SystemNotices {
+        next: 0,
+        targets: VecDeque::new(),
+    });
+    cx.set_global(OnOpen(Rc::new(open)));
+    cx.on_system_notification_response(|response, cx| {
+        let target = cx
+            .try_global::<SystemNotices>()
+            .and_then(|n| n.targets.iter().find(|(tag, _)| *tag == response.tag))
+            .map(|(_, game)| game.clone());
+        let open = cx.try_global::<OnOpen>().map(|o| o.0.clone());
+        if let (Some(game), Some(open)) = (target, open) {
+            open(game, cx);
+        }
+    });
+}
+
+/// The title and message of a notice in the interface language.
+pub fn notice_text(n: &Notice) -> (SharedString, Option<SharedString>) {
+    let args: Vec<(&str, &str)> = n.args.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let title = match n.title_key {
+        Some(key) => t_args(key, &args),
+        None => SharedString::from(n.title.clone()),
+    };
+    let message = match (n.message_key, &n.message) {
+        (Some(key), _) => Some(t_args(key, &args)),
+        (None, Some(m)) => Some(SharedString::from(m.clone())),
+        (None, None) => None,
+    };
+    (title, message)
+}
+
+/// Whether Ember is in the background: no window of it is active.
+fn in_background(cx: &App) -> bool {
+    cx.active_window().is_none()
+}
+
+fn post(title: SharedString, body: SharedString, game: Option<GameId>, cx: &mut App) {
+    let Some(state) = cx.try_global::<SystemNotices>() else {
+        return;
+    };
+    let tag = SharedString::from(format!("ember-{}", state.next));
+    cx.update_global::<SystemNotices, _>(|n, _| {
+        n.next += 1;
+        n.targets.push_back((tag.clone(), game));
+        while n.targets.len() > REMEMBERED {
+            n.targets.pop_front();
+        }
+    });
+    cx.show_system_notification(SystemNotification {
+        tag,
+        title,
+        body,
+        actions: Vec::new(),
+    });
+}
+
+/// Show `notice` on the desktop when Ember is in the background. Plain
+/// information stays in the window.
+pub(crate) fn notice(notice: &Notice, cx: &mut App) {
+    if notice.level == NoticeLevel::Info || !in_background(cx) {
+        return;
+    }
+    let (title, message) = notice_text(notice);
+    post(title, message.unwrap_or_default(), notice.game.clone(), cx);
+}
+
+/// Tell the user a game failed to start, when Ember is in the background.
+pub(crate) fn failed_start(id: &GameId, title: &str, cx: &mut App) {
+    if !in_background(cx) {
+        return;
+    }
+    post(
+        t_args("ui.notify.failed_start", &[("title", title)]),
+        t("ui.notify.failed_start_body"),
+        Some(id.clone()),
+        cx,
+    );
+}

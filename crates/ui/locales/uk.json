@@ -20,5 +20,7 @@
   "ui.progress.left": "залишилося {time}",
   "ui.progress.file_lists": "Читання списків файлів {done} / {total}",
   "ui.progress.checking_files": "Перевірка файлів {done} / {total}",
-  "ui.cover.no_art": "Немає зображення"
+  "ui.cover.no_art": "Немає зображення",
+  "ui.notify.failed_start": "«{title}» не запустилася",
+  "ui.notify.failed_start_body": "Відкрийте Ember, щоб дізнатися, що пішло не так."
 }

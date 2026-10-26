@@ -30,8 +30,6 @@
   "shell.notice.uninstalled": "Odinstalowano {title}",
   "shell.notice.moved": "Przeniesiono {title} do {path}",
   "shell.notice.repaired": "Zweryfikowano i naprawiono {title}",
-  "shell.notice.crashed": "{title} nieoczekiwanie się zamknęła",
-  "shell.notice.crashed_message": "Szczegóły znajdziesz w dzienniku gry.",
   "shell.notice.downloads_paused": "Pobieranie wstrzymane",
   "shell.notice.downloads_paused_message": "Jesteś offline. Pobieranie zostanie wznowione po przywróceniu połączenia.",
   "shell.notice.already_installed": "{title} jest już zainstalowana",
