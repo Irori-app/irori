@@ -233,6 +233,7 @@ mod tests {
             Some(GameId::new(Runner::Sideload, "a:b"))
         );
         assert_eq!(parse_key("nope"), None);
-        assert_eq!(parse_key("steam:1"), None);
+        assert_eq!(parse_key("steam:1"), Some(GameId::new(Runner::Steam, "1")));
+        assert_eq!(parse_key("uplay:1"), None);
     }
 }

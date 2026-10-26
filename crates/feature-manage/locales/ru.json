@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Скрыт",
   "manage.accounts.hidden_detail": "Его игры не показываются в библиотеке. Вход и установленные игры сохраняются.",
   "manage.accounts.hide": "Скрыть",
-  "manage.accounts.show": "Показать"
+  "manage.accounts.show": "Показать",
+  "manage.accounts.state.local": "На этом компьютере",
+  "manage.accounts.state.not_found": "Не найден",
+  "manage.accounts.installed_one": "1 установленная игра",
+  "manage.accounts.installed_other": "Установленных игр: {count}",
+  "manage.accounts.local_hint": "Прочитано из {store} на этом компьютере, без входа. Устанавливайте и обновляйте игры в {store}.",
+  "manage.accounts.local_missing": "{store} не найден на этом компьютере. Если он установлен в другом месте, укажите его папку в настройках.",
+  "manage.accounts.local_hidden_detail": "Его игры не показываются в библиотеке.",
+  "manage.accounts.rescan": "Найти снова"
 }

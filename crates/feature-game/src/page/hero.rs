@@ -479,14 +479,17 @@ impl GamePage {
                         }),
                 )
             })
-            .child(
-                Button::new("game-settings")
-                    .ghost()
-                    .icon(IconName::Settings2)
-                    .accessibility_label(t("game.hero.settings"))
-                    .tooltip(t("game.hero.settings"))
-                    .on_click(move |_, _, cx| ops::open_settings(&settings_id, "general", cx)),
-            )
+            // Steam applies its own launch settings to its games.
+            .when(self.id.runner.manages_installs(), |row| {
+                row.child(
+                    Button::new("game-settings")
+                        .ghost()
+                        .icon(IconName::Settings2)
+                        .accessibility_label(t("game.hero.settings"))
+                        .tooltip(t("game.hero.settings"))
+                        .on_click(move |_, _, cx| ops::open_settings(&settings_id, "general", cx)),
+                )
+            })
             .child(
                 Button::new("game-favourite")
                     .ghost()
@@ -789,6 +792,9 @@ impl GamePage {
         } else {
             Vec::new()
         };
+        if options.is_empty() && !self.id.runner.manages_installs() {
+            return play.into_any_element();
+        }
         let current = self.selected_option.clone();
         DropdownButton::new("play-split")
             .primary()

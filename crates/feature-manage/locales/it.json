@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Nascosto",
   "manage.accounts.hidden_detail": "I suoi giochi non compaiono nella libreria. L’accesso e i giochi installati vengono mantenuti.",
   "manage.accounts.hide": "Nascondi",
-  "manage.accounts.show": "Mostra"
+  "manage.accounts.show": "Mostra",
+  "manage.accounts.state.local": "Su questo computer",
+  "manage.accounts.state.not_found": "Non trovato",
+  "manage.accounts.installed_one": "1 gioco installato",
+  "manage.accounts.installed_other": "{count} giochi installati",
+  "manage.accounts.local_hint": "Letto da {store} su questo computer, senza accesso. Installa e aggiorna i giochi in {store}.",
+  "manage.accounts.local_missing": "{store} non è stato trovato su questo computer. Se è installato altrove, imposta la sua cartella nelle Impostazioni.",
+  "manage.accounts.local_hidden_detail": "I suoi giochi non compaiono nella tua libreria.",
+  "manage.accounts.rescan": "Cerca di nuovo"
 }

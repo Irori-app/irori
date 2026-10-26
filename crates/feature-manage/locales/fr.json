@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Masquée",
   "manage.accounts.hidden_detail": "Ses jeux n’apparaissent pas dans la bibliothèque. La connexion et les jeux installés sont conservés.",
   "manage.accounts.hide": "Masquer",
-  "manage.accounts.show": "Afficher"
+  "manage.accounts.show": "Afficher",
+  "manage.accounts.state.local": "Sur cet ordinateur",
+  "manage.accounts.state.not_found": "Introuvable",
+  "manage.accounts.installed_one": "1 jeu installé",
+  "manage.accounts.installed_other": "{count} jeux installés",
+  "manage.accounts.local_hint": "Lu depuis {store} sur cet ordinateur, sans connexion. Installez et mettez à jour les jeux dans {store}.",
+  "manage.accounts.local_missing": "{store} est introuvable sur cet ordinateur. S’il est installé ailleurs, indiquez son dossier dans les Paramètres.",
+  "manage.accounts.local_hidden_detail": "Ses jeux n’apparaissent pas dans votre bibliothèque.",
+  "manage.accounts.rescan": "Rechercher à nouveau"
 }

@@ -251,13 +251,13 @@ impl LibraryView {
         let removable: Vec<Arc<GameInfo>> = picked
             .iter()
             .zip(&states)
-            .filter(|(_, s)| s.installed && !s.is_playing() && !s.is_busy())
+            .filter(|(_, s)| s.installed && !s.external && !s.is_playing() && !s.is_busy())
             .map(|(g, _)| g.clone())
             .collect();
         let for_steam: Vec<Arc<GameInfo>> = picked
             .iter()
             .zip(&states)
-            .filter(|(_, s)| !s.browser && (s.installed || s.installable))
+            .filter(|(_, s)| !s.browser && !s.external && (s.installed || s.installable))
             .map(|(g, _)| g.clone())
             .collect();
         let ids: Vec<GameId> = picked.iter().map(|g| g.id()).collect();

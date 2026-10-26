@@ -123,7 +123,13 @@ pub(super) fn build_menu(
             )),
             PrimaryAction::Play | PrimaryAction::Update
         );
-        for (label, icon, params) in PLAY_VARIANTS {
+        // Steam starts its games itself: no Ember logs or update check.
+        let variants = if id.runner.manages_installs() {
+            &PLAY_VARIANTS[..]
+        } else {
+            &[]
+        };
+        for &(label, icon, params) in variants {
             let i = id.clone();
             let page = page.clone();
             menu = menu.item(item(label, icon).disabled(!playable).on_click(
@@ -139,7 +145,8 @@ pub(super) fn build_menu(
             ));
         }
         menu = menu.separator();
-        let store_managed = !sideload && game.third_party_managed_app.is_none();
+        let store_managed =
+            !sideload && game.third_party_managed_app.is_none() && id.runner.manages_installs();
         if store_managed {
             let i = id.clone();
             menu = menu.item(
@@ -193,11 +200,13 @@ pub(super) fn build_menu(
                 .disabled(game.install_path().is_none())
                 .on_click(move |_, window, cx| ops::open_install_folder(&i, window, cx)),
         );
-        let i = id.clone();
-        menu = menu.item(
-            item("game.menu.open_log", IconName::ScrollText)
-                .on_click(move |_, window, cx| crate::open_log_sheet(i.clone(), window, cx)),
-        );
+        if id.runner.manages_installs() {
+            let i = id.clone();
+            menu = menu.item(
+                item("game.menu.open_log", IconName::ScrollText)
+                    .on_click(move |_, window, cx| crate::open_log_sheet(i.clone(), window, cx)),
+            );
+        }
         let uses_wine = game
             .installed_platform()
             .unwrap_or(InstallPlatform::Windows)
@@ -244,11 +253,13 @@ pub(super) fn build_menu(
                     .on_click(move |_, window, cx| ops::remove_shortcuts(&i, window, cx).detach()),
             );
         }
-        let i = id.clone();
-        menu = menu.item(
-            item("game.menu.add_to_steam", IconName::Gamepad2)
-                .on_click(move |_, window, cx| ops::add_shortcuts(&i, true, window, cx).detach()),
-        );
+        if id.runner != Runner::Steam {
+            let i = id.clone();
+            menu =
+                menu.item(item("game.menu.add_to_steam", IconName::Gamepad2).on_click(
+                    move |_, window, cx| ops::add_shortcuts(&i, true, window, cx).detach(),
+                ));
+        }
     }
 
     if let Some(page) = page.clone() {
@@ -286,7 +297,7 @@ pub(super) fn build_menu(
         menu = menu
             .item(PopupMenuItem::link(t("game.menu.store_page"), url).icon(IconName::ExternalLink));
     }
-    if game.is_installed {
+    if game.is_installed && id.runner.manages_installs() {
         menu = menu.separator();
         let i = id.clone();
         menu = menu.item(

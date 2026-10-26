@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Ausgeblendet",
   "manage.accounts.hidden_detail": "Seine Spiele erscheinen nicht in der Bibliothek. Anmeldung und installierte Spiele bleiben erhalten.",
   "manage.accounts.hide": "Ausblenden",
-  "manage.accounts.show": "Einblenden"
+  "manage.accounts.show": "Einblenden",
+  "manage.accounts.state.local": "Auf diesem Computer",
+  "manage.accounts.state.not_found": "Nicht gefunden",
+  "manage.accounts.installed_one": "1 installiertes Spiel",
+  "manage.accounts.installed_other": "{count} installierte Spiele",
+  "manage.accounts.local_hint": "Aus {store} auf diesem Computer gelesen, ohne Anmeldung. Spiele installierst und aktualisierst du in {store}.",
+  "manage.accounts.local_missing": "{store} wurde auf diesem Computer nicht gefunden. Wenn es woanders installiert ist, lege seinen Ordner in den Einstellungen fest.",
+  "manage.accounts.local_hidden_detail": "Seine Spiele werden in deiner Bibliothek ausgeblendet.",
+  "manage.accounts.rescan": "Erneut suchen"
 }

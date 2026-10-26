@@ -439,6 +439,7 @@ impl LibraryView {
             sideload: id.runner == Runner::Sideload,
             browser: game.browser_url.is_some()
                 || game.installed_platform() == Some(InstallPlatform::Browser),
+            external: !id.runner.manages_installs(),
             status: m.statuses.read(cx).kind(&id),
             has_update: lib.has_update(&id),
             favourite: lib.is_favourite(&id),

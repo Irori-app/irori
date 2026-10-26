@@ -472,6 +472,7 @@ pub struct ShownStores {
     pub epic: bool,
     pub gog: bool,
     pub amazon: bool,
+    pub steam: bool,
 }
 
 impl Default for ShownStores {
@@ -480,6 +481,7 @@ impl Default for ShownStores {
             epic: true,
             gog: true,
             amazon: true,
+            steam: true,
         }
     }
 }
@@ -491,6 +493,7 @@ impl ShownStores {
             Runner::Legendary => self.epic,
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
+            Runner::Steam => self.steam,
             Runner::Zoom | Runner::Sideload => true,
         }
     }
@@ -502,13 +505,17 @@ impl ShownStores {
             Runner::Legendary => self.epic = shown,
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
+            Runner::Steam => self.steam = shown,
             Runner::Zoom | Runner::Sideload => {}
         }
     }
 
     /// Whether the store can be hidden with [`ShownStores::set`].
     pub fn can_hide(runner: Runner) -> bool {
-        matches!(runner, Runner::Legendary | Runner::Gog | Runner::Nile)
+        matches!(
+            runner,
+            Runner::Legendary | Runner::Gog | Runner::Nile | Runner::Steam
+        )
     }
 }
 

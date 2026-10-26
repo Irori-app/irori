@@ -99,7 +99,17 @@ unsigned validation packages using the small `ci` Cargo profile. It does not pub
 | Steam default | `~/.steam/steam` | `~/Library/Application Support/Steam` | ProgramFiles(x86) / `Steam` |
 
 `EMBER_HOME` relocates settings, data and cache under one root and is useful for
-isolated testing. Configured Steam paths take precedence over defaults.
+isolated testing. Configured Steam paths take precedence over defaults; on Linux,
+Flatpak Steam (`~/.var/app/com.valvesoftware.Steam/.steam/steam`) comes before
+`~/.steam/steam`.
+
+The read-only Steam library scans that Steam folder and every library in its
+`steamapps/libraryfolders.vdf` for `appmanifest_*.acf` files, skipping Proton, the
+Steam Linux Runtime and other tools. Playing opens `steam://rungameid/<id>` through
+`xdg-open`, `open` or the Windows URL handler, so Steam applies its own Proton version,
+launch options and overlay. The opener exits at once, so Ember records no session for
+these games; the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` are
+merged into Ember's playtime instead.
 
 Each configuration root has one running Ember instance, protected by an OS file
 lock. Subsequent invocations forward arguments over authenticated loopback IPC.

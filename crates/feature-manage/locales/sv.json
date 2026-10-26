@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Dold",
   "manage.accounts.hidden_detail": "Dess spel visas inte i biblioteket. Inloggningen och installerade spel finns kvar.",
   "manage.accounts.hide": "Dölj",
-  "manage.accounts.show": "Visa"
+  "manage.accounts.show": "Visa",
+  "manage.accounts.state.local": "På den här datorn",
+  "manage.accounts.state.not_found": "Hittades inte",
+  "manage.accounts.installed_one": "1 installerat spel",
+  "manage.accounts.installed_other": "{count} installerade spel",
+  "manage.accounts.local_hint": "Läses från {store} på den här datorn, utan inloggning. Installera och uppdatera spel i {store}.",
+  "manage.accounts.local_missing": "{store} hittades inte på den här datorn. Om det är installerat någon annanstans anger du mappen i Inställningar.",
+  "manage.accounts.local_hidden_detail": "Dess spel visas inte i ditt bibliotek.",
+  "manage.accounts.rescan": "Sök igen"
 }

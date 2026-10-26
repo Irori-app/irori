@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Verborgen",
   "manage.accounts.hidden_detail": "De games staan niet in je bibliotheek. Aanmelding en geïnstalleerde games blijven behouden.",
   "manage.accounts.hide": "Verbergen",
-  "manage.accounts.show": "Tonen"
+  "manage.accounts.show": "Tonen",
+  "manage.accounts.state.local": "Op deze computer",
+  "manage.accounts.state.not_found": "Niet gevonden",
+  "manage.accounts.installed_one": "1 geïnstalleerde game",
+  "manage.accounts.installed_other": "{count} geïnstalleerde games",
+  "manage.accounts.local_hint": "Gelezen uit {store} op deze computer, zonder inloggen. Installeer en werk games bij in {store}.",
+  "manage.accounts.local_missing": "{store} is niet gevonden op deze computer. Staat het ergens anders, stel dan de map in bij Instellingen.",
+  "manage.accounts.local_hidden_detail": "De games ervan staan niet in je bibliotheek.",
+  "manage.accounts.rescan": "Opnieuw zoeken"
 }

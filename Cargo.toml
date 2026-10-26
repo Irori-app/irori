@@ -19,6 +19,7 @@ ember-gog = { path = "crates/store-gog" }
 ember-amazon = { path = "crates/store-amazon" }
 ember-zoom = { path = "crates/store-zoom" }
 ember-sideload = { path = "crates/store-sideload" }
+ember-steam = { path = "crates/store-steam" }
 ember-sign-in = { path = "crates/sign-in" }
 ember-depot = { path = "crates/depot" }
 ember-amazon-api = { path = "crates/amazon" }

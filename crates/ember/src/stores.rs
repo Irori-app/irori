@@ -24,6 +24,7 @@ pub fn build(bus: EventBus, settings: SettingsFn) -> Vec<DynStore> {
     if settings().zoom_platform {
         stores.push(ember_zoom::ZoomStore::new(bus.clone(), settings.clone()));
     }
+    stores.push(ember_steam::SteamStore::new(bus.clone(), settings.clone()));
     let sideload = ember_sideload::SideloadStore::new(bus, settings);
     let _ = SIDELOAD.set(sideload.clone());
     stores.push(sideload);

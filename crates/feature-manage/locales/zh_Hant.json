@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "已隱藏",
   "manage.accounts.hidden_detail": "其遊戲不會顯示在遊戲庫中。登入狀態和已安裝的遊戲會保留。",
   "manage.accounts.hide": "隱藏",
-  "manage.accounts.show": "顯示"
+  "manage.accounts.show": "顯示",
+  "manage.accounts.state.local": "在此電腦上",
+  "manage.accounts.state.not_found": "找不到",
+  "manage.accounts.installed_one": "1 款已安裝的遊戲",
+  "manage.accounts.installed_other": "{count} 款已安裝的遊戲",
+  "manage.accounts.local_hint": "從此電腦上的 {store} 讀取，無需登入。請在 {store} 中安裝和更新遊戲。",
+  "manage.accounts.local_missing": "未在此電腦上找到 {store}。如果它安裝在其他位置，請在設定中指定其資料夾。",
+  "manage.accounts.local_hidden_detail": "其遊戲不會顯示在你的遊戲庫中。",
+  "manage.accounts.rescan": "重新尋找"
 }

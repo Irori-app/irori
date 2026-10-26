@@ -123,6 +123,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-gog` | `ember-gog` | GOG `Store` |
 | `crates/store-amazon` | `ember-amazon` | Amazon `Store` (`Runner::Nile`) |
 | `crates/store-zoom` | `ember-zoom` | ZOOM Platform `Store`, opt-in through a setting |
+| `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
 | `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import |
 | `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime |
@@ -212,9 +213,12 @@ and `launch.rs` before changing anything below the UI.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
     asks which saves to keep (`ember_ui::save_conflict`).
-- `Runner` values are Legendary, Gog, Nile, Zoom and Sideload. Their serialized ids
-  are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts `epic` and
-  `amazon`.
+- `Runner` values are Legendary, Gog, Nile, Zoom, Steam and Sideload. Their
+  serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
+  `epic` and `amazon`. Ember-only runners use their store's plain name (`steam`).
+- `Runner::manages_installs()` is false for Steam: its games are listed and launched,
+  never installed, moved, repaired or removed. UI code hides those commands and
+  services refuse them before touching files.
 - `GameId { runner, app_name: Arc<str> }` has `key() == "runner:app"`, which keys
   every user-data map.
 
@@ -320,7 +324,7 @@ Every store crate follows the same shape:
   `with_layout`), so tests run against temp dirs and in-process servers.
 
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
-GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), then Sideload. Adding a
+GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), Steam, then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.

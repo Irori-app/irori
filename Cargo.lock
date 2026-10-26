@@ -2061,6 +2061,7 @@ dependencies = [
  "ember-settings",
  "ember-sideload",
  "ember-sign-in",
+ "ember-steam",
  "ember-ui",
  "ember-zoom",
  "futures",
@@ -2524,6 +2525,20 @@ dependencies = [
  "tao",
  "webkit2gtk",
  "wry",
+]
+
+[[package]]
+name = "ember-steam"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "ember-core",
+ "ember-runtime",
+ "parking_lot",
+ "tempfile",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

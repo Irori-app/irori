@@ -230,5 +230,13 @@
   "manage.accounts.state.hidden": "Приховано",
   "manage.accounts.hidden_detail": "Його ігри не показуються в бібліотеці. Вхід і встановлені ігри зберігаються.",
   "manage.accounts.hide": "Приховати",
-  "manage.accounts.show": "Показати"
+  "manage.accounts.show": "Показати",
+  "manage.accounts.state.local": "На цьому комп’ютері",
+  "manage.accounts.state.not_found": "Не знайдено",
+  "manage.accounts.installed_one": "1 встановлена гра",
+  "manage.accounts.installed_other": "Встановлених ігор: {count}",
+  "manage.accounts.local_hint": "Прочитано з {store} на цьому комп’ютері, без входу. Встановлюйте й оновлюйте ігри в {store}.",
+  "manage.accounts.local_missing": "{store} не знайдено на цьому комп’ютері. Якщо його встановлено деінде, укажіть його теку в налаштуваннях.",
+  "manage.accounts.local_hidden_detail": "Його ігри не показуються в бібліотеці.",
+  "manage.accounts.rescan": "Шукати знову"
 }

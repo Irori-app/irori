@@ -16,16 +16,20 @@ pub enum Runner {
     Nile,
     /// ZOOM Platform, driven through its HTTP API.
     Zoom,
+    /// Games installed by the Steam client on this computer. Read-only:
+    /// Steam installs, updates and starts them.
+    Steam,
     /// Apps the user added manually.
     Sideload,
 }
 
 impl Runner {
-    pub const ALL: [Runner; 5] = [
+    pub const ALL: [Runner; 6] = [
         Runner::Legendary,
         Runner::Gog,
         Runner::Nile,
         Runner::Zoom,
+        Runner::Steam,
         Runner::Sideload,
     ];
 
@@ -36,6 +40,7 @@ impl Runner {
             Runner::Gog => "gog",
             Runner::Nile => "nile",
             Runner::Zoom => "zoom",
+            Runner::Steam => "steam",
             Runner::Sideload => "sideload",
         }
     }
@@ -47,6 +52,7 @@ impl Runner {
             Runner::Gog => "GOG",
             Runner::Nile => "Amazon Games",
             Runner::Zoom => "ZOOM Platform",
+            Runner::Steam => "Steam",
             Runner::Sideload => "Added manually",
         }
     }
@@ -58,6 +64,7 @@ impl Runner {
             Runner::Gog => "GOG",
             Runner::Nile => "Amazon",
             Runner::Zoom => "ZOOM",
+            Runner::Steam => "Steam",
             Runner::Sideload => "Other",
         }
     }
@@ -68,6 +75,7 @@ impl Runner {
             "gog" => Runner::Gog,
             "nile" | "amazon" => Runner::Nile,
             "zoom" => Runner::Zoom,
+            "steam" => Runner::Steam,
             "sideload" => Runner::Sideload,
             _ => return None,
         })
@@ -75,7 +83,14 @@ impl Runner {
 
     /// Whether this store has an account to log in to.
     pub fn has_account(self) -> bool {
-        !matches!(self, Runner::Sideload)
+        !matches!(self, Runner::Sideload | Runner::Steam)
+    }
+
+    /// Whether Ember installs, updates, repairs, moves and removes this
+    /// store's games. Steam's games belong to the Steam client: Ember lists
+    /// and starts them, nothing more.
+    pub fn manages_installs(self) -> bool {
+        !matches!(self, Runner::Steam)
     }
 }
 
