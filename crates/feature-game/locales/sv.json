@@ -207,6 +207,7 @@
   "game.install.looking_for_wine": "Letar efter Wine- och Proton-versioner…",
   "game.install.modify_title": "Ändra ”{title}”",
   "game.install.native": "{platform} (inbyggt)",
+  "game.install.account_hint": "Uppdateringar, molnsparningar och starter använder sedan också det här kontot.",
   "game.install.no_wine": "Ingen Wine- eller Proton-version hittades. Ladda ned en innan du spelar.",
   "game.install.not_in_library": "{id} finns inte i biblioteket.",
   "game.install.nothing_to_install": "Det finns inget att installera för det här objektet. Bonusinnehåll till GOG-spel finns på gog.com.",

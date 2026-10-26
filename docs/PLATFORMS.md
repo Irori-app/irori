@@ -132,8 +132,9 @@ and cache roots), exactly as a single login always has. Each further account get
 `stores/<store>/accounts/<n>/` for its login and installs and `accounts/<store>/<n>/`
 under the cache root; `stores/<store>/accounts.json` remembers which account each
 folder holds. A game installed with one account belongs to it: updates, repairs, cloud
-saves and launches use that account. A game owned by several accounts installs with
-the first one listed. GOG's Galaxy service listens on one port, so while a game of one
+saves and launches use that account. For a game several accounts own, the install
+sheet asks which account installs it (the first one listed by default), and the
+library's account switcher shows one account's games while its store is shown. GOG's Galaxy service listens on one port, so while a game of one
 GOG account runs, a game of another GOG account started alongside it gets no Galaxy
 achievements or overlay.
 

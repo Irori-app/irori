@@ -207,6 +207,7 @@
   "game.install.looking_for_wine": "Пошук версій Wine і Proton…",
   "game.install.modify_title": "Змінити «{title}»",
   "game.install.native": "{platform} (нативно)",
+  "game.install.account_hint": "Оновлення, хмарні збереження та запуск теж використовуватимуть цей обліковий запис.",
   "game.install.no_wine": "Не знайдено жодної версії Wine чи Proton. Завантажте її перед грою.",
   "game.install.not_in_library": "{id} немає в бібліотеці.",
   "game.install.nothing_to_install": "Для цього елемента нічого встановлювати. Бонусні матеріали ігор GOG доступні на gog.com.",

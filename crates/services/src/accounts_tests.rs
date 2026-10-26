@@ -398,3 +398,41 @@ async fn names_the_account_whose_login_was_refused() {
     store.refresh_account("2", false).await.unwrap();
     assert_eq!(store.accounts()[1].expired, None);
 }
+
+#[tokio::test]
+async fn lists_owners_and_installs_with_the_chosen_account() {
+    let setup = Setup::new();
+    let store = setup.open().await;
+    store.account_login(None, "a:Alice").await.unwrap();
+    assert!(
+        store.game_owners().is_empty(),
+        "one account: nothing to tell"
+    );
+    store.account_login(None, "b:Bob").await.unwrap();
+    let owners = store.game_owners();
+    assert_eq!(owners["shared"], ["a", "b"]);
+    assert_eq!(owners["only-b"], ["b"]);
+
+    // Bob installs the game both own; it is his from then on.
+    let request = InstallRequest {
+        account: Some("b".into()),
+        ..Default::default()
+    };
+    store
+        .install("shared", &request, OpContext::detached())
+        .await
+        .unwrap();
+    let bobs: Vec<String> =
+        json_store::read_or_default(&setup.config.join("accounts/2/installed.json"));
+    assert_eq!(bobs, ["shared"]);
+    assert_eq!(store.game_account("shared").unwrap().display_name, "Bob");
+    assert!(launch_error(&store, "shared").await.contains("as Bob"));
+
+    // An account that does not own the game is ignored.
+    store
+        .install("only-a", &request, OpContext::detached())
+        .await
+        .unwrap();
+    let alices: Vec<String> = json_store::read_or_default(&setup.config.join("installed.json"));
+    assert_eq!(alices, ["only-a"]);
+}

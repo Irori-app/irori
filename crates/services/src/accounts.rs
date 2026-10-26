@@ -613,6 +613,26 @@ impl<S: Store> Store for MultiAccountStore<S> {
         })
     }
 
+    fn game_owners(&self) -> HashMap<String, Vec<String>> {
+        let slots = self.signed_in();
+        let mut owners: HashMap<String, Vec<String>> = HashMap::new();
+        if slots.len() < 2 {
+            return owners;
+        }
+        for slot in &slots {
+            let Some(user) = slot.store.user() else {
+                continue;
+            };
+            for game in slot.store.games() {
+                owners
+                    .entry(game.app_name.clone())
+                    .or_default()
+                    .push(user.account_id.clone());
+            }
+        }
+        owners
+    }
+
     /// Refresh every signed-in account. A refused login wins over other
     /// errors, so the user is asked to log in again.
     async fn refresh(&self, full: bool) -> Result<()> {
@@ -708,6 +728,8 @@ impl<S: Store> Store for MultiAccountStore<S> {
         }
     }
 
+    /// Installs with the account the request names when it owns the game
+    /// and the game is not installed with another one.
     async fn install(
         &self,
         app_name: &str,
@@ -715,7 +737,19 @@ impl<S: Store> Store for MultiAccountStore<S> {
         ctx: OpContext,
     ) -> Result<Outcome> {
         let slots = self.slots();
-        let slot = owner(&slots, app_name).unwrap_or(&slots[0]);
+        let owning = owner(&slots, app_name).unwrap_or(&slots[0]);
+        let installed = owning.store.game(app_name).is_some_and(|g| g.is_installed);
+        let chosen = request
+            .account
+            .as_deref()
+            .filter(|_| !installed)
+            .and_then(|id| {
+                slots.iter().find(|s| {
+                    s.store.user().is_some_and(|u| u.account_id == id)
+                        && s.store.game(app_name).is_some()
+                })
+            });
+        let slot = chosen.unwrap_or(owning);
         let result = slot.store.install(app_name, request, ctx).await;
         self.track(slot, result)
     }

@@ -207,6 +207,7 @@
   "game.install.looking_for_wine": "Hledají se verze Wine a Protonu…",
   "game.install.modify_title": "Upravit „{title}“",
   "game.install.native": "{platform} (nativní)",
+  "game.install.account_hint": "Aktualizace, cloudová uložení i spouštění pak používají tento účet.",
   "game.install.no_wine": "Nebyla nalezena žádná verze Wine ani Protonu. Před hraním si nějakou stáhněte.",
   "game.install.not_in_library": "{id} není v knihovně.",
   "game.install.nothing_to_install": "Tato položka neobsahuje nic k instalaci. Bonusový obsah her z GOG je k dispozici na gog.com.",

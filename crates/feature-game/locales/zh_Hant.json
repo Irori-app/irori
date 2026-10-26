@@ -207,6 +207,7 @@
   "game.install.looking_for_wine": "正在尋找 Wine 和 Proton 版本…",
   "game.install.modify_title": "修改「{title}」",
   "game.install.native": "{platform}（原生）",
+  "game.install.account_hint": "更新、雲端存檔和啟動也會使用此帳號。",
   "game.install.no_wine": "找不到任何 Wine 或 Proton 版本。請在遊玩前下載一個。",
   "game.install.not_in_library": "{id} 不在遊戲庫中。",
   "game.install.nothing_to_install": "此項目沒有可安裝的內容。GOG 遊戲的額外內容可在 gog.com 取得。",

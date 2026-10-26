@@ -197,6 +197,12 @@ pub trait Store: Send + Sync + 'static {
         None
     }
 
+    /// Account ids of the signed-in accounts owning each game, by app name,
+    /// in account order. Empty unless more than one account is signed in.
+    fn game_owners(&self) -> std::collections::HashMap<String, Vec<String>> {
+        std::collections::HashMap::new()
+    }
+
     // ---- catalogue -----------------------------------------------------
 
     /// Re-fetch the owned games. `full` also refreshes per-game metadata that

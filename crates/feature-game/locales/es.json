@@ -207,6 +207,7 @@
   "game.install.looking_for_wine": "Buscando versiones de Wine y Proton…",
   "game.install.modify_title": "Modificar «{title}»",
   "game.install.native": "{platform} (nativo)",
+  "game.install.account_hint": "Las actualizaciones, las partidas en la nube y el inicio también usarán esta cuenta.",
   "game.install.no_wine": "No se encontró ninguna versión de Wine ni de Proton. Descarga una antes de jugar.",
   "game.install.not_in_library": "{id} no está en la biblioteca.",
   "game.install.nothing_to_install": "Este elemento no tiene nada que instalar. El contenido adicional de los juegos de GOG está disponible en gog.com.",

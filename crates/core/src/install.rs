@@ -86,6 +86,10 @@ pub struct InstallRequest {
     /// Install from this offline installer on disk instead of downloading
     /// (GOG; the installer's own platform applies).
     pub installer: Option<PathBuf>,
+    /// Account id to install with, when several accounts own the game (see
+    /// [`Store::game_owners`](crate::Store::game_owners)); `None` picks the
+    /// first account owning it.
+    pub account: Option<String>,
 }
 
 impl InstallRequest {

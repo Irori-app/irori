@@ -21,6 +21,9 @@ pub struct LibrarySnapshot {
     pub revision: u64,
     pub games: Vec<Arc<GameInfo>>,
     index: HashMap<GameId, usize>,
+    /// Account ids owning each game, for stores with several signed-in
+    /// accounts (see [`ember_core::Store::game_owners`]).
+    pub owners: HashMap<GameId, Vec<String>>,
 }
 
 impl LibrarySnapshot {
@@ -34,6 +37,12 @@ impl LibrarySnapshot {
 
     pub fn is_empty(&self) -> bool {
         self.games.is_empty()
+    }
+
+    /// Account ids of the signed-in accounts owning a game; empty when its
+    /// store has only one.
+    pub fn owners(&self, id: &GameId) -> &[String] {
+        self.owners.get(id).map_or(&[], Vec::as_slice)
     }
 
     pub fn count(&self, runner: Runner) -> usize {
@@ -353,16 +362,28 @@ impl Backend {
                 .cmp(&b.sort_title)
                 .then(a.runner().cmp(&b.runner()))
         });
-        let index = games
+        let index: HashMap<GameId, usize> = games
             .iter()
             .enumerate()
             .map(|(ix, g)| (g.id(), ix))
+            .collect();
+        let owners = self
+            .stores
+            .values()
+            .flat_map(|s| {
+                let runner = s.runner();
+                s.game_owners()
+                    .into_iter()
+                    .map(move |(app, ids)| (GameId::new(runner, app), ids))
+            })
+            .filter(|(id, _)| index.contains_key(id))
             .collect();
         let revision = REVISION.fetch_add(1, Ordering::Relaxed) + 1;
         *self.library.write() = Arc::new(LibrarySnapshot {
             revision,
             games,
             index,
+            owners,
         });
         self.bus.emit(Event::LibraryUpdated(revision));
     }
@@ -392,6 +413,7 @@ mod tests {
             revision: 1,
             games,
             index,
+            owners: HashMap::new(),
         }
     }
 
