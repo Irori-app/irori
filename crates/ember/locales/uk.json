@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "Завантаження призупинено",
   "shell.notice.downloads_paused_message": "Ви не в мережі. Завантаження продовжаться, коли з'єднання відновиться.",
   "shell.notice.already_installed": "{title} вже встановлено",
+  "shell.notice.login_expired": "Увійдіть у {store} знову",
+  "shell.notice.login_expired_message": "Збережений вхід більше не працює. Відкрийте «Облікові записи», щоб увійти знову.",
   "shell.duration.minutes": "{minutes} хв",
   "shell.duration.hours": "{hours} год",
   "shell.duration.hours_minutes": "{hours} год {minutes} хв",

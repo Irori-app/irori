@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "ダウンロードを一時停止しました",
   "shell.notice.downloads_paused_message": "オフラインです。接続が戻るとダウンロードを再開します。",
   "shell.notice.already_installed": "{title} はすでにインストールされています",
+  "shell.notice.login_expired": "{store} にもう一度ログインしてください",
+  "shell.notice.login_expired_message": "保存されたログインが使えなくなりました。［アカウント］を開いてもう一度ログインしてください。",
   "shell.duration.minutes": "{minutes} 分",
   "shell.duration.hours": "{hours} 時間",
   "shell.duration.hours_minutes": "{hours} 時間 {minutes} 分",

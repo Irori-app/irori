@@ -23,6 +23,8 @@ pub struct Notice {
     pub title: String,
     pub message: Option<String>,
     pub game: Option<GameId>,
+    /// The store account the notice is about; clicking it opens Accounts.
+    pub account: Option<Runner>,
     /// Translation keys for `title`/`message` and their `{placeholder}`
     /// values, resolved by the UI in the active language.
     pub title_key: Option<&'static str>,
@@ -37,6 +39,7 @@ impl Notice {
             title: title.into(),
             message: None,
             game: None,
+            account: None,
             title_key: None,
             message_key: None,
             args: Vec::new(),
@@ -64,6 +67,11 @@ impl Notice {
 
     pub fn game(mut self, id: GameId) -> Self {
         self.game = Some(id);
+        self
+    }
+
+    pub fn account(mut self, runner: Runner) -> Self {
+        self.account = Some(runner);
         self
     }
 }

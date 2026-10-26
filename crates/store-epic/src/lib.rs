@@ -33,7 +33,8 @@ use ember_core::{
     Achievement, Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallProgress, InstallRequest, LaunchOption, LaunchPlan, LaunchRequest,
     LoginFlow, Notice, NoticeLevel, OpContext, Outcome, Paths, RemoveArgs, Runner, SdlOption,
-    SettingsFn, Store, SyncDirection, UpdateRequest, UserInfo, WineLaunch, http, util,
+    SessionExpired, SettingsFn, Store, SyncDirection, UpdateRequest, UserInfo, WineLaunch, http,
+    util,
 };
 use ember_epic_api::library::GameRecord;
 use ember_epic_api::{Client, Endpoints, Identity, Manifest, ManifestInfo, Session, auth};
@@ -226,11 +227,9 @@ impl EpicStore {
         let fresh = match self.client().await?.refresh(&session).await {
             Ok(s) => s,
             Err(e) => {
-                if self.user.read().is_some() {
-                    self.bus.notice(
-                        Notice::new(NoticeLevel::Warning, "Epic Games login expired")
-                            .message("Log out and log in to your Epic Games account again."),
-                    );
+                // The launcher tells the user once and offers to log in again.
+                if let Some(rejected) = e.downcast_ref::<ember_epic_api::SignInRejected>() {
+                    return Err(SessionExpired::new(Runner::Legendary, rejected.0.clone()).into());
                 }
                 return Err(e.context("Your Epic Games session could not be renewed"));
             }

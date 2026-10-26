@@ -32,7 +32,8 @@ use anyhow::{Context as _, Result, bail};
 use ember_core::{
     Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, Notice, NoticeLevel, OpContext, Outcome,
-    RemoveArgs, Runner, SettingsFn, Store, UpdateRequest, UserInfo, async_trait, util,
+    RemoveArgs, Runner, SessionExpired, SettingsFn, Store, UpdateRequest, UserInfo, async_trait,
+    util,
 };
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
@@ -423,6 +424,9 @@ impl Store for ZoomStore {
             Ok(g) => g,
             Err(e) => {
                 self.expire_session_if_unauthorized(&e);
+                if e.chain().any(|c| c.is::<Unauthorized>()) {
+                    return Err(SessionExpired::new(Runner::Zoom, format!("{e}")).into());
+                }
                 return Err(e.context("Could not load the ZOOM Platform library"));
             }
         };
@@ -524,7 +528,7 @@ impl Store for ZoomStore {
                 Err(e) => {
                     self.expire_session_if_unauthorized(&e);
                     if e.chain().any(|c| c.is::<Unauthorized>()) {
-                        return Err(e);
+                        return Err(SessionExpired::new(Runner::Zoom, format!("{e}")).into());
                     }
                     tracing::warn!("checking ZOOM updates of {}: {e:#}", rec.app_name);
                     continue;

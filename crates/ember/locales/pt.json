@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "Transferências em pausa",
   "shell.notice.downloads_paused_message": "Está offline. As transferências retomam quando a ligação voltar.",
   "shell.notice.already_installed": "{title} já está instalado",
+  "shell.notice.login_expired": "Inicie sessão novamente na {store}",
+  "shell.notice.login_expired_message": "A sessão guardada já não funciona. Abra Contas para iniciar sessão novamente.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "Загрузки приостановлены",
   "shell.notice.downloads_paused_message": "Вы не в сети. Загрузки продолжатся, когда соединение восстановится.",
   "shell.notice.already_installed": "{title} уже установлено",
+  "shell.notice.login_expired": "Войдите в {store} снова",
+  "shell.notice.login_expired_message": "Сохранённый вход больше не работает. Откройте «Аккаунты», чтобы войти снова.",
   "shell.duration.minutes": "{minutes} мин",
   "shell.duration.hours": "{hours} ч",
   "shell.duration.hours_minutes": "{hours} ч {minutes} мин",

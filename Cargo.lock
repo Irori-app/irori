@@ -2393,8 +2393,11 @@ name = "ember-manage"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "ember-amazon-api",
  "ember-core",
+ "ember-epic-api",
  "ember-extras",
+ "ember-gog-api",
  "ember-runtime",
  "ember-services",
  "ember-ui",

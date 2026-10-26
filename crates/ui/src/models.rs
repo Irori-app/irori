@@ -105,6 +105,8 @@ pub struct DownloadsModel {
 /// Accounts of every store and connectivity.
 pub struct AccountsModel {
     pub users: BTreeMap<Runner, Option<UserInfo>>,
+    /// Stores whose saved login was refused, with the store's reason.
+    pub expired: BTreeMap<Runner, String>,
     pub online: bool,
 }
 
@@ -115,6 +117,11 @@ impl AccountsModel {
 
     pub fn is_logged_in(&self, runner: Runner) -> bool {
         self.user(runner).is_some()
+    }
+
+    /// The store refused the saved login; the user must log in again.
+    pub fn login_expired(&self, runner: Runner) -> Option<&str> {
+        self.expired.get(&runner).map(String::as_str)
     }
 
     pub fn any_logged_in(&self) -> bool {
@@ -213,6 +220,7 @@ pub(crate) fn install(cx: &mut App) {
     let users = accounts_now(cx);
     let accounts = cx.new(|_| AccountsModel {
         users,
+        expired: b.expired_logins(),
         online: b.is_online(),
     });
     let settings = cx.new(|_| SettingsModel {
@@ -365,8 +373,10 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
     }
     if accounts {
         let users = accounts_now(cx);
+        let expired = b.expired_logins();
         m.accounts.update(cx, |a, cx| {
             a.users = users;
+            a.expired = expired;
             cx.notify();
         });
     }

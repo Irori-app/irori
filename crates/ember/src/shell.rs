@@ -142,10 +142,8 @@ impl AppShell {
             if let Some(msg) = message {
                 note = note.title(title).message(msg);
             }
-            if let Some(id) = n.game.clone() {
-                note = note.on_click(move |_, _, cx| {
-                    nav::navigate(Route::Game(id.clone()), cx);
-                });
+            if let Some(route) = ember_ui::system_notify::notice_route(&n) {
+                note = note.on_click(move |_, _, cx| nav::navigate(route.clone(), cx));
             }
             window.push_notification(note, cx);
         }

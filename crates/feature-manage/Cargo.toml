@@ -27,3 +27,7 @@ tracing.workspace = true
 # lockfile; GPUI's own test support exposes the test harness through `gpui_kit::*`.
 gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
 tempfile = "3"
+# The stores' real login capture patterns, so the detection tests cannot drift from them.
+ember-amazon-api.workspace = true
+ember-epic-api.workspace = true
+ember-gog-api.workspace = true

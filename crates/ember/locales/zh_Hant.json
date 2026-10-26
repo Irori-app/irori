@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "下載已暫停",
   "shell.notice.downloads_paused_message": "你目前處於離線狀態。恢復連線後將繼續下載。",
   "shell.notice.already_installed": "{title} 已安裝",
+  "shell.notice.login_expired": "請重新登入 {store}",
+  "shell.notice.login_expired_message": "已儲存的登入已失效。請開啟「帳號」重新登入。",
   "shell.duration.minutes": "{minutes} 分鐘",
   "shell.duration.hours": "{hours} 小時",
   "shell.duration.hours_minutes": "{hours} 小時 {minutes} 分鐘",

@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "Downloads pausiert",
   "shell.notice.downloads_paused_message": "Du bist offline. Downloads werden fortgesetzt, sobald die Verbindung wieder da ist.",
   "shell.notice.already_installed": "{title} ist bereits installiert",
+  "shell.notice.login_expired": "Melde dich erneut bei {store} an",
+  "shell.notice.login_expired_message": "Deine gespeicherte Anmeldung funktioniert nicht mehr. Öffne Konten, um dich erneut anzumelden.",
   "shell.duration.minutes": "{minutes} Min.",
   "shell.duration.hours": "{hours} Std.",
   "shell.duration.hours_minutes": "{hours} Std. {minutes} Min.",

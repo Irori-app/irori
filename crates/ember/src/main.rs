@@ -139,10 +139,10 @@ fn main() -> Result<()> {
         {
             let app = app.clone();
             ember_ui::system_notify::install(
-                move |game, cx| {
+                move |route, cx| {
                     open_main_window(&app, cx);
-                    if let Some(id) = game {
-                        nav::navigate(Route::Game(id), cx);
+                    if let Some(route) = route {
+                        nav::navigate(route, cx);
                     }
                 },
                 cx,

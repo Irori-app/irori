@@ -9,6 +9,7 @@ use ember_core::{GameId, Notice, NoticeLevel};
 use gpui_kit::{App, BorrowAppContext as _, Global, SharedString, SystemNotification};
 
 use crate::i18n::{t, t_args};
+use crate::nav::Route;
 
 /// Identity Ember's notifications are shown under. Matches the macOS bundle
 /// id in `packaging/package.py`; Windows toasts need it set to show at all.
@@ -16,12 +17,12 @@ const APP_ID: &str = "org.ember.Ember";
 /// Notifications whose click target is remembered.
 const REMEMBERED: usize = 32;
 
-type OpenFn = Rc<dyn Fn(Option<GameId>, &mut App)>;
+type OpenFn = Rc<dyn Fn(Option<Route>, &mut App)>;
 
 struct SystemNotices {
     next: u64,
-    /// Tag and the game a click opens, newest last.
-    targets: VecDeque<(SharedString, Option<GameId>)>,
+    /// Tag and the page a click opens, newest last.
+    targets: VecDeque<(SharedString, Option<Route>)>,
 }
 
 impl Global for SystemNotices {}
@@ -31,9 +32,9 @@ struct OnOpen(OpenFn);
 impl Global for OnOpen {}
 
 /// Register Ember with the desktop's notification service. `open` brings the
-/// window forward (reopening it from the tray) and shows the game, if any,
+/// window forward (reopening it from the tray) and shows the page, if any,
 /// when a notification is clicked.
-pub fn install(open: impl Fn(Option<GameId>, &mut App) + 'static, cx: &mut App) {
+pub fn install(open: impl Fn(Option<Route>, &mut App) + 'static, cx: &mut App) {
     cx.set_app_identity(APP_ID, "Ember");
     cx.set_global(SystemNotices {
         next: 0,
@@ -44,10 +45,10 @@ pub fn install(open: impl Fn(Option<GameId>, &mut App) + 'static, cx: &mut App) 
         let target = cx
             .try_global::<SystemNotices>()
             .and_then(|n| n.targets.iter().find(|(tag, _)| *tag == response.tag))
-            .map(|(_, game)| game.clone());
+            .map(|(_, route)| route.clone());
         let open = cx.try_global::<OnOpen>().map(|o| o.0.clone());
-        if let (Some(game), Some(open)) = (target, open) {
-            open(game, cx);
+        if let (Some(route), Some(open)) = (target, open) {
+            open(route, cx);
         }
     });
 }
@@ -72,14 +73,24 @@ fn in_background(cx: &App) -> bool {
     cx.active_window().is_none()
 }
 
-fn post(title: SharedString, body: SharedString, game: Option<GameId>, cx: &mut App) {
+/// The page a click on `notice` opens: its game, or Accounts for a notice
+/// about a store account.
+pub fn notice_route(notice: &Notice) -> Option<Route> {
+    match (&notice.game, notice.account) {
+        (Some(id), _) => Some(Route::Game(id.clone())),
+        (None, Some(_)) => Some(Route::Accounts),
+        (None, None) => None,
+    }
+}
+
+fn post(title: SharedString, body: SharedString, route: Option<Route>, cx: &mut App) {
     let Some(state) = cx.try_global::<SystemNotices>() else {
         return;
     };
     let tag = SharedString::from(format!("ember-{}", state.next));
     cx.update_global::<SystemNotices, _>(|n, _| {
         n.next += 1;
-        n.targets.push_back((tag.clone(), game));
+        n.targets.push_back((tag.clone(), route));
         while n.targets.len() > REMEMBERED {
             n.targets.pop_front();
         }
@@ -99,7 +110,7 @@ pub(crate) fn notice(notice: &Notice, cx: &mut App) {
         return;
     }
     let (title, message) = notice_text(notice);
-    post(title, message.unwrap_or_default(), notice.game.clone(), cx);
+    post(title, message.unwrap_or_default(), notice_route(notice), cx);
 }
 
 /// Tell the user a game failed to start, when Ember is in the background.
@@ -110,7 +121,7 @@ pub(crate) fn failed_start(id: &GameId, title: &str, cx: &mut App) {
     post(
         t_args("ui.notify.failed_start", &[("title", title)]),
         t("ui.notify.failed_start_body"),
-        Some(id.clone()),
+        Some(Route::Game(id.clone())),
         cx,
     );
 }

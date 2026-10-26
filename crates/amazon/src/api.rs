@@ -50,6 +50,34 @@ pub struct FetchedManifest {
     pub bytes: Vec<u8>,
 }
 
+/// An error answer from an Amazon service.
+#[derive(Debug, Clone)]
+struct Answered {
+    status: u16,
+    reason: String,
+}
+
+impl std::fmt::Display for Answered {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Amazon answered: {}", self.reason)
+    }
+}
+
+impl std::error::Error for Answered {}
+
+/// Amazon refused the saved login: the device registration was revoked or
+/// ran out. Signing in again fixes it; retrying does not.
+#[derive(Debug, Clone)]
+pub struct SignInRejected(pub String);
+
+impl std::fmt::Display for SignInRejected {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for SignInRejected {}
+
 #[derive(Debug, Clone)]
 pub struct Client {
     http: reqwest::Client,
@@ -126,7 +154,11 @@ impl Client {
                 .or_else(|| str_at(&value, &["message"]))
                 .map(str::to_string)
                 .unwrap_or_else(|| status.to_string());
-            bail!("Amazon answered: {reason}");
+            return Err(Answered {
+                status: status.as_u16(),
+                reason,
+            }
+            .into());
         }
         Ok(value)
     }
@@ -175,10 +207,21 @@ impl Client {
             "app_version": APP_VERSION,
         });
         let url = format!("{}/auth/token", self.endpoints.auth);
-        let res = self
-            .post_json(&url, &body, None)
-            .await
-            .context("Could not renew the Amazon session")?;
+        let res = match self.post_json(&url, &body, None).await {
+            Ok(res) => res,
+            Err(e) => {
+                if let Some(answer) = e.downcast_ref::<Answered>()
+                    && matches!(answer.status, 400 | 401 | 403)
+                {
+                    return Err(SignInRejected(format!(
+                        "Amazon refused the saved login: {}",
+                        answer.reason
+                    ))
+                    .into());
+                }
+                return Err(e.context("Could not renew the Amazon session"));
+            }
+        };
         let access_token =
             str_at(&res, &["access_token"]).context("Amazon sent no access token")?;
         let expires_in = res.get("expires_in").and_then(seconds).unwrap_or(3600);
@@ -421,6 +464,28 @@ mod tests {
             entitlements: server.url("/ent"),
         })
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn tells_a_refused_refresh_from_a_failing_server() {
+        let refuse = std::sync::atomic::AtomicBool::new(true);
+        let server = TestServer::start(move |_| {
+            if refuse.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                Resp {
+                    status: 400,
+                    ..Resp::json(
+                        json!({"error_description": "The request has an invalid parameter"}),
+                    )
+                }
+            } else {
+                Resp::status(500)
+            }
+        });
+        let c = client(&server);
+        let e = c.refresh(&creds()).await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_some(), "{e:#}");
+        let e = c.refresh(&creds()).await.unwrap_err();
+        assert!(e.downcast_ref::<SignInRejected>().is_none(), "{e:#}");
     }
 
     #[test]

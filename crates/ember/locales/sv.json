@@ -33,6 +33,8 @@
   "shell.notice.downloads_paused": "Nedladdningar pausade",
   "shell.notice.downloads_paused_message": "Du är offline. Nedladdningarna fortsätter när anslutningen är tillbaka.",
   "shell.notice.already_installed": "{title} är redan installerat",
+  "shell.notice.login_expired": "Logga in på {store} igen",
+  "shell.notice.login_expired_message": "Din sparade inloggning fungerar inte längre. Öppna Konton för att logga in igen.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

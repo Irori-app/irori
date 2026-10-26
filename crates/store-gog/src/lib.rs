@@ -44,8 +44,8 @@ use serde::de::DeserializeOwned;
 use ember_core::{
     Achievement, Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, LaunchOption, LaunchPlan, LaunchRequest, LoginFlow, OpContext,
-    Outcome, RemoveArgs, Runner, SettingsFn, Store, SyncDirection, UpdateRequest, UserInfo,
-    json_store,
+    Outcome, RemoveArgs, Runner, SessionExpired, SettingsFn, Store, SyncDirection, UpdateRequest,
+    UserInfo, json_store,
 };
 
 pub use heroic_import::import_from_heroic;
@@ -388,6 +388,15 @@ pub(crate) async fn save_json<T: Serialize + Send + 'static>(
         .context("background write failed")?
 }
 
+/// A login GOG refused, as the launcher's [`SessionExpired`] so it can ask the
+/// user to log in again.
+fn expired_login(e: anyhow::Error) -> anyhow::Error {
+    match e.downcast_ref::<ember_gog_api::auth::SignInRejected>() {
+        Some(rejected) => SessionExpired::new(Runner::Gog, rejected.to_string()).into(),
+        None => e,
+    }
+}
+
 #[async_trait]
 impl Store for GogStore {
     fn runner(&self) -> Runner {
@@ -477,7 +486,7 @@ impl Store for GogStore {
     }
 
     async fn refresh(&self, full: bool) -> Result<()> {
-        self.refresh_library(full).await?;
+        self.refresh_library(full).await.map_err(expired_login)?;
         if let Some(me) = self.arc() {
             tokio::spawn(async move { me.flush_playtime().await });
         }
@@ -506,7 +515,7 @@ impl Store for GogStore {
     }
 
     async fn updatable_games(&self) -> Result<Vec<String>> {
-        self.list_updatable().await
+        self.list_updatable().await.map_err(expired_login)
     }
 
     async fn install(
