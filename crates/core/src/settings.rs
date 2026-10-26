@@ -453,6 +453,8 @@ pub struct UiPrefs {
     pub window_width: f32,
     pub window_height: f32,
     pub window_maximized: bool,
+    /// Open Big Picture at startup in Steam's Game Mode or Big Picture.
+    pub big_picture_in_game_mode: bool,
 }
 
 impl Default for UiPrefs {
@@ -470,6 +472,7 @@ impl Default for UiPrefs {
             window_width: 1440.0,
             window_height: 900.0,
             window_maximized: false,
+            big_picture_in_game_mode: true,
         }
     }
 }
@@ -477,6 +480,14 @@ impl Default for UiPrefs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ui_prefs_from_older_files_keep_defaults() {
+        let ui: UiPrefs = serde_json::from_str(r#"{"fontSize":18}"#).unwrap();
+        assert!(ui.big_picture_in_game_mode);
+        let ui: UiPrefs = serde_json::from_str(r#"{"bigPictureInGameMode":false}"#).unwrap();
+        assert!(!ui.big_picture_in_game_mode);
+    }
 
     #[test]
     fn overrides_layer_on_defaults() {

@@ -1,7 +1,9 @@
 //! Controller-independent input model: normalized inputs, controller families,
-//! directional repeat timing and cross-device de-duplication. Pure logic, no
-//! I/O, so it is unit-tested without hardware.
+//! directional repeat timing, cross-device and keyboard de-duplication, and
+//! the devices Steam asks other programs to ignore. Pure logic, no I/O, so it
+//! is unit-tested without hardware.
 
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use ember_ui::i18n::t;
@@ -340,9 +342,188 @@ impl Deduper {
     }
 }
 
+/// Controllers Steam asks the programs it starts to leave alone. While
+/// Steam Input drives a controller it offers a virtual one instead and lists
+/// the physical device in `SDL_GAMECONTROLLER_IGNORE_DEVICES` (or only the
+/// virtual one in `SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT`). Reading both
+/// would act on every press twice.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SteamIgnoreList {
+    ignore: Vec<(u16, u16)>,
+    /// When set, every device not listed is ignored.
+    only: Option<Vec<(u16, u16)>>,
+}
+
+impl SteamIgnoreList {
+    /// The lists from this process's environment.
+    pub fn from_env() -> Self {
+        let var = |key: &str| std::env::var(key).ok();
+        Self::parse(
+            var("SDL_GAMECONTROLLER_IGNORE_DEVICES").as_deref(),
+            var("SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT").as_deref(),
+        )
+    }
+
+    /// Parse SDL's `0xVVVV/0xPPPP,…` lists. An empty "except" list means no
+    /// restriction, as in SDL.
+    pub fn parse(ignore: Option<&str>, except: Option<&str>) -> Self {
+        let only = except.map(parse_ids).filter(|ids| !ids.is_empty());
+        Self {
+            ignore: ignore.map(parse_ids).unwrap_or_default(),
+            only,
+        }
+    }
+
+    /// Whether the device with these USB ids must be ignored. Devices that
+    /// report no ids are kept.
+    pub fn ignores(&self, vendor: Option<u16>, product: Option<u16>) -> bool {
+        let (Some(vendor), Some(product)) = (vendor, product) else {
+            return false;
+        };
+        let id = (vendor, product);
+        self.only.as_ref().is_some_and(|only| !only.contains(&id)) || self.ignore.contains(&id)
+    }
+}
+
+fn parse_ids(list: &str) -> Vec<(u16, u16)> {
+    let hex = |s: &str| {
+        let s = s.trim();
+        let s = s
+            .strip_prefix("0x")
+            .or_else(|| s.strip_prefix("0X"))
+            .unwrap_or(s);
+        u16::from_str_radix(s, 16).ok()
+    };
+    list.split(',')
+        .filter_map(|entry| {
+            let (vendor, product) = entry.split_once('/')?;
+            Some((hex(vendor)?, hex(product)?))
+        })
+        .collect()
+}
+
+/// The Guide button acts on a short press, when released: holding it is how
+/// many controllers switch off, which must not toggle Big Picture.
+#[derive(Debug, Default)]
+pub struct GuideTap {
+    pressed: Vec<(usize, Instant)>,
+}
+
+impl GuideTap {
+    /// Longest hold that still counts as a press.
+    pub const MAX_HOLD: Duration = Duration::from_millis(600);
+
+    pub fn press(&mut self, device: usize, now: Instant) {
+        self.pressed.retain(|(d, _)| *d != device);
+        self.pressed.push((device, now));
+    }
+
+    /// Whether the release at `now` ends a short press on `device`.
+    pub fn release(&mut self, device: usize, now: Instant) -> bool {
+        let Some(ix) = self.pressed.iter().position(|(d, _)| *d == device) else {
+            return false;
+        };
+        let (_, at) = self.pressed.swap_remove(ix);
+        now.saturating_duration_since(at) <= Self::MAX_HOLD
+    }
+}
+
+/// Where an input came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InputSource {
+    Controller,
+    Keyboard,
+}
+
+/// Steam Input can turn controller presses into key presses (its desktop
+/// layout sends arrows, Enter and Escape) while Ember reads the same
+/// controller. Whichever source reports an input first wins; the same input
+/// from the other source right after is an echo and dropped.
+#[derive(Debug, Default)]
+pub struct EchoFilter {
+    controller: HashMap<GamepadInput, Instant>,
+    keyboard: HashMap<GamepadInput, Instant>,
+}
+
+impl EchoFilter {
+    pub const WINDOW: Duration = Duration::from_millis(150);
+
+    /// Whether `input` from `source` at `now` is new rather than an echo.
+    pub fn accept(&mut self, source: InputSource, input: GamepadInput, now: Instant) -> bool {
+        let (mine, other) = match source {
+            InputSource::Controller => (&mut self.controller, &self.keyboard),
+            InputSource::Keyboard => (&mut self.keyboard, &self.controller),
+        };
+        if other
+            .get(&input)
+            .is_some_and(|at| now.saturating_duration_since(*at) < Self::WINDOW)
+        {
+            return false;
+        }
+        mine.insert(input, now);
+        true
+    }
+}
+
+/// The input an unmodified key press stands for, for the keys Steam Input's
+/// desktop layout sends.
+pub fn keyboard_equivalent(key: &str) -> Option<GamepadInput> {
+    Some(match key {
+        "up" => GamepadInput::Up,
+        "down" => GamepadInput::Down,
+        "left" => GamepadInput::Left,
+        "right" => GamepadInput::Right,
+        "enter" => GamepadInput::Confirm,
+        "escape" => GamepadInput::Back,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn steam_ignore_lists() {
+        let none = SteamIgnoreList::parse(None, None);
+        assert!(!none.ignores(Some(0x28de), Some(0x1205)));
+        let list = SteamIgnoreList::parse(Some("0x28de/0x1205, 0X045E/0x028e,junk"), Some(""));
+        assert!(list.ignores(Some(0x28de), Some(0x1205)));
+        assert!(list.ignores(Some(0x045e), Some(0x028e)));
+        assert!(!list.ignores(Some(0x28de), Some(0x11ff)));
+        assert!(!list.ignores(None, None));
+        let only = SteamIgnoreList::parse(None, Some("0x28de/0x11ff"));
+        assert!(!only.ignores(Some(0x28de), Some(0x11ff)));
+        assert!(only.ignores(Some(0x054c), Some(0x0ce6)));
+    }
+
+    #[test]
+    fn guide_acts_on_short_presses_only() {
+        let t0 = Instant::now();
+        let mut tap = GuideTap::default();
+        assert!(!tap.release(0, t0));
+        tap.press(0, t0);
+        assert!(tap.release(0, t0 + ms(200)));
+        assert!(!tap.release(0, t0 + ms(250)));
+        tap.press(1, t0);
+        assert!(!tap.release(0, t0 + ms(10)));
+        assert!(!tap.release(1, t0 + GuideTap::MAX_HOLD + ms(1)));
+    }
+
+    #[test]
+    fn key_echoes_of_controller_presses_are_dropped() {
+        use InputSource::{Controller, Keyboard};
+        let t0 = Instant::now();
+        let mut f = EchoFilter::default();
+        assert!(f.accept(Controller, GamepadInput::Confirm, t0));
+        assert!(!f.accept(Keyboard, GamepadInput::Confirm, t0 + ms(20)));
+        assert!(f.accept(Keyboard, GamepadInput::Back, t0 + ms(30)));
+        assert!(!f.accept(Controller, GamepadInput::Back, t0 + ms(40)));
+        assert!(f.accept(Controller, GamepadInput::Confirm, t0 + ms(60)));
+        assert!(f.accept(Keyboard, GamepadInput::Confirm, t0 + ms(300)));
+        assert_eq!(keyboard_equivalent("escape"), Some(GamepadInput::Back));
+        assert_eq!(keyboard_equivalent("a"), None);
+    }
 
     fn ms(n: u64) -> Duration {
         Duration::from_millis(n)

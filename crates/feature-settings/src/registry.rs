@@ -825,6 +825,21 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["console", "gamepad", "fullscreen", "big picture"]),
     app(
+        "emberUi.bigPictureInGameMode",
+        "settings.field.big_picture_in_game_mode.label",
+        General,
+        "settings.group.tray_and_window",
+        Toggle,
+    )
+    .help("settings.field.big_picture_in_game_mode.help")
+    .keywords(&[
+        "steam deck",
+        "game mode",
+        "gamescope",
+        "console",
+        "big picture",
+    ]),
+    app(
         "addDesktopShortcuts",
         "settings.field.add_desktop_shortcuts.label",
         General,

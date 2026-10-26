@@ -11,8 +11,8 @@ use futures::channel::mpsc::UnboundedSender;
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs, GilrsBuilder, PowerInfo};
 
 use super::input::{
-    AxisChange, ControllerKind, Deduper, GamepadInput, PadButton, Repeater, StickAxis,
-    is_ignored_device, map_button,
+    AxisChange, ControllerKind, Deduper, GamepadInput, GuideTap, PadButton, Repeater,
+    SteamIgnoreList, StickAxis, is_ignored_device, map_button,
 };
 use super::{Battery, ControllerInfo};
 
@@ -72,6 +72,8 @@ struct Reader {
     held: Vec<(GamepadId, Source, GamepadInput)>,
     repeater: Repeater,
     dedupe: Deduper,
+    guide: GuideTap,
+    steam_ignored: SteamIgnoreList,
     controllers: Vec<ControllerInfo>,
     last_battery: Instant,
 }
@@ -93,6 +95,8 @@ pub(crate) fn run(shared: Arc<SharedConfig>, tx: UnboundedSender<Message>) {
         held: Vec::new(),
         repeater: Repeater::new(initial, interval),
         dedupe: Deduper::default(),
+        guide: GuideTap::default(),
+        steam_ignored: SteamIgnoreList::from_env(),
         controllers: Vec::new(),
         last_battery: Instant::now(),
     };
@@ -196,7 +200,8 @@ impl Reader {
                 id,
                 Device {
                     kind: ControllerKind::detect(vendor, product, name),
-                    ignored: is_ignored_device(vendor, product, name),
+                    ignored: is_ignored_device(vendor, product, name)
+                        || self.steam_ignored.ignores(vendor, product),
                     stick_x: previous.as_ref().map(|d| d.stick_x).unwrap_or_default(),
                     stick_y: previous.as_ref().map(|d| d.stick_y).unwrap_or_default(),
                 },
@@ -244,6 +249,10 @@ impl Reader {
                     return;
                 }
                 let input = map_button(button, device.kind);
+                if input == GamepadInput::Guide {
+                    self.guide.press(usize::from(id), Instant::now());
+                    return;
+                }
                 self.press(id, Source::DPad, input);
             }
             EventType::ButtonReleased(button, _) => {
@@ -254,7 +263,11 @@ impl Reader {
                     return;
                 };
                 let input = map_button(button, device.kind);
-                if input.is_directional() {
+                if input == GamepadInput::Guide {
+                    if self.guide.release(usize::from(id), Instant::now()) {
+                        self.press(id, Source::DPad, input);
+                    }
+                } else if input.is_directional() {
                     self.release(id, Source::DPad, input);
                 }
             }

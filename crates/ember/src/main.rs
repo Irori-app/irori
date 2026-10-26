@@ -137,13 +137,18 @@ fn main() -> Result<()> {
         let app = Arc::new(Mutex::new(AppHandles::default()));
         start_tray(&backend, tx.clone(), app.clone(), cx);
 
+        // Steam's Game Mode has no tray to come back from.
         let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)
+            && !ember_core::platform::in_steam_gamepad_ui()
             && ((cfg!(target_os = "linux") && !backend.settings.app().no_tray_icon)
                 || app.lock().tray.is_some())
             && !cli.has_request();
         if !start_hidden {
             open_main_window(&app, cx);
-            if backend.settings.app().start_in_console_mode {
+            let app_settings = backend.settings.app();
+            let game_mode = app_settings.ui.big_picture_in_game_mode
+                && ember_core::platform::in_steam_gamepad_ui();
+            if app_settings.start_in_console_mode || game_mode {
                 nav::navigate(Route::BigPicture, cx);
             }
         }
