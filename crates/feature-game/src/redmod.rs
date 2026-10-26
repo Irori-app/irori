@@ -188,7 +188,7 @@ impl RedmodPanel {
 
     /// Re-read the available mods and the saved selection.
     pub fn reload(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(gog) = hooks::gog_store(cx) else {
+        let Some(gog) = hooks::gog_store_for(&self.id.app_name, cx) else {
             self.list = Load::Failed(t("game.redmod.gog_unavailable"));
             return;
         };
@@ -224,7 +224,10 @@ impl RedmodPanel {
     }
 
     fn save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let (Some(gog), Some(list)) = (hooks::gog_store(cx), self.list.ready()) else {
+        let (Some(gog), Some(list)) = (
+            hooks::gog_store_for(&self.id.app_name, cx),
+            self.list.ready(),
+        ) else {
             return;
         };
         let config = mods_config(list.mods_enabled, &list.entries);

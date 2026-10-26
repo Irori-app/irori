@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} 年前",
   "library.time.yesterday": "昨日",
   "library.toolbar.all_stores": "すべて",
+  "library.toolbar.all_accounts": "すべてのアカウント",
   "library.toolbar.filters": "フィルター",
   "library.toolbar.filters_active": "フィルター · {count}",
   "library.toolbar.grid": "グリッド",

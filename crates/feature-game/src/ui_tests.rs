@@ -13,12 +13,13 @@ use std::sync::{Arc, OnceLock};
 use ember_core::{
     DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
-    Runner, Store, UpdateRequest, UserInfo, async_trait,
+    Runner, Store, StoreAccount, UpdateRequest, UserInfo, async_trait,
 };
 use ember_services::Backend;
 use gpui_kit::component::WindowExt as _;
 use gpui_kit::{
-    AnyWindowHandle, AppContext as _, Entity, Keystroke, TestAppContext, WindowOptions,
+    AnyWindowHandle, AppContext as _, Entity, Keystroke, TestAppContext, VisualTestContext,
+    WindowOptions,
 };
 
 use crate::{GamePage, PrimaryAction};
@@ -40,6 +41,27 @@ impl Store for FakeStore {
     }
     fn login_flow(&self) -> LoginFlow {
         LoginFlow::None
+    }
+    /// Two accounts own the game, so installing it offers a choice.
+    fn accounts(&self) -> Vec<StoreAccount> {
+        ["Alice", "Bob"]
+            .into_iter()
+            .map(|name| StoreAccount {
+                slot: name.to_lowercase(),
+                account_id: name.to_lowercase(),
+                display_name: name.into(),
+                signed_in: true,
+                games: 1,
+                ..Default::default()
+            })
+            .collect()
+    }
+    fn game_owners(&self) -> std::collections::HashMap<String, Vec<String>> {
+        [(
+            self.game.app_name.clone(),
+            vec!["alice".to_string(), "bob".to_string()],
+        )]
+        .into()
     }
     async fn login(&self, _: &str) -> anyhow::Result<UserInfo> {
         anyhow::bail!("not supported")
@@ -200,6 +222,10 @@ fn ctrl_enter_opens_the_install_sheet(cx: &mut TestAppContext) {
     settle();
     cx.run_until_parked();
     assert!(has_sheet(cx));
+    // Both accounts own the game: the sheet asks which one installs it.
+    let mut vcx = VisualTestContext::from_window(handle, cx);
+    vcx.run_until_parked();
+    assert!(vcx.debug_bounds("install-account").is_some());
 
     // An unbound key leaves the page alone.
     cx.update_window(handle, |_, window, cx| window.close_sheet(cx))

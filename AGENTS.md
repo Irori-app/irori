@@ -200,6 +200,9 @@ and `launch.rs` before changing anything below the UI.
   `launch` → `LaunchPlan`.
 - Optional, with defaults: cloud saves, achievements, `remote_playtime` (minutes by
   app name), `after_exit`, extras, `forget_install`, `set_version_pinned`.
+- Accounts, with defaults for stores with one login: `accounts`, `can_add_account`,
+  `account_login_flow`/`account_login`/`account_logout`/`refresh_account` by slot,
+  and `game_account`.
 
 **Other types:**
 
@@ -329,6 +332,19 @@ Every store crate follows the same shape:
 - Test constructors take explicit paths or endpoints (`with_paths`, `with_endpoints`,
   `with_layout`), so tests run against temp dirs and in-process servers.
 
+**Several accounts.** A store crate never handles more than one login. The shell
+wraps Epic, GOG, Amazon, ZOOM and itch.io in `ember_services::MultiAccountStore`,
+which runs one instance per account ("slot") and merges them into one `Store`:
+
+- The main slot uses the store's usual directories, so single-account data needs no
+  migration. Extra slots use `Paths::account_config_dir`/`account_cache_dir`, built
+  through each store's `for_account(bus, settings, config, cache)` constructor.
+- Games stay keyed by app name. A game comes from the slot it is installed with, else
+  from the first slot owning it, and every per-game call goes to that slot.
+- Code that needs a concrete store for one game (GOG branch passwords, REDmod) asks
+  the wrapper with `store_for(app)`; store-wide tools (EOS overlay, EGL sync) use
+  `main()`.
+
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
 GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
 registered; empty and signed out while `settings.itch_io` is off, so its account card
@@ -336,8 +352,9 @@ can turn it on), Steam, then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.
-2. A store crate.
-3. Registration in `stores.rs`, plus its Heroic import in `HEROIC_IMPORTS`.
+2. A store crate, with `for_account` if the store has accounts.
+3. Registration in `stores.rs` (wrapped with `with_accounts` if it has accounts), plus
+   its Heroic import in `HEROIC_IMPORTS`.
 4. Its login flow.
 5. Its strings in every locale.
 

@@ -42,22 +42,43 @@ use crate::common::notify_success;
 const CLIPBOARD_POLL: Duration = Duration::from_millis(700);
 
 /// Open the login dialog for `runner`. On success the dialog closes, a
-/// notification names the account, and the library refreshes.
+/// notification names the account, and the library refreshes. Stores with
+/// several accounts sign in a new one when none is free.
 pub fn open_login_dialog(runner: Runner, window: &mut Window, cx: &mut App) {
+    open_account_login_dialog(runner, None, window, cx);
+}
+
+/// Open the login dialog for the account in `slot` (to log in to it again),
+/// or for another account when `slot` is `None`.
+pub fn open_account_login_dialog(
+    runner: Runner,
+    slot: Option<String>,
+    window: &mut Window,
+    cx: &mut App,
+) {
     crate::i18n::register();
-    let dialog = cx.new(|cx| LoginDialog::new(runner, window, cx));
+    let adding = slot.is_none()
+        && ember_ui::models(cx)
+            .accounts
+            .read(cx)
+            .accounts(runner)
+            .iter()
+            .any(|a| a.signed_in);
+    let dialog = cx.new(|cx| LoginDialog::new(runner, slot, adding, window, cx));
     let focus = dialog.read(cx).input.focus_handle(cx);
     focus.focus(window, cx);
     let width = window.rem_size() * 34.;
+    let title = if adding {
+        t_args("manage.login.add_title", &[("store", runner.store_name())])
+    } else {
+        t_args("manage.login.title", &[("store", runner.store_name())])
+    };
     window.open_dialog(cx, move |d, _, _| {
         let on_close = dialog.clone();
-        d.title(t_args(
-            "manage.login.title",
-            &[("store", runner.store_name())],
-        ))
-        .width(width)
-        .child(dialog.clone())
-        .on_close(move |_, _, cx| on_close.update(cx, |d, _| d.close()))
+        d.title(title.clone())
+            .width(width)
+            .child(dialog.clone())
+            .on_close(move |_, _, cx| on_close.update(cx, |d, _| d.close()))
     });
 }
 
@@ -101,6 +122,10 @@ enum SignInWindow {
 /// which end when the dialog closes.
 pub(crate) struct LoginDialog {
     runner: Runner,
+    /// The account to log in to again; `None` for a new one.
+    slot: Option<String>,
+    /// Other accounts of the store are signed in: this adds one more.
+    adding: bool,
     store: Option<DynStore>,
     flow: FlowState,
     input: Entity<InputState>,
@@ -116,7 +141,13 @@ pub(crate) struct LoginDialog {
 }
 
 impl LoginDialog {
-    fn new(runner: Runner, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    fn new(
+        runner: Runner,
+        slot: Option<String>,
+        adding: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let input = cx
             .new(|cx| InputState::new(window, cx).placeholder(t("manage.login.input_placeholder")));
         let subscriptions = vec![
@@ -133,6 +164,8 @@ impl LoginDialog {
         let store = backend(cx).store(runner);
         let mut this = Self {
             runner,
+            slot: slot.clone(),
+            adding,
             store: store.clone(),
             flow: FlowState::Loading,
             input,
@@ -155,7 +188,8 @@ impl LoginDialog {
             Some(store) => {
                 // `login_flow` may do blocking work (Amazon generates its sign-in
                 // request), so it runs on the backend's blocking pool.
-                let handle = backend(cx).spawn_blocking(move || store.login_flow());
+                let handle =
+                    backend(cx).spawn_blocking(move || store.account_login_flow(slot.as_deref()));
                 this._load = Some(cx.spawn_in(window, async move |this, cx| {
                     let flow = handle.await;
                     let _ = this.update_in(cx, |this, window, cx| {
@@ -343,7 +377,10 @@ impl LoginDialog {
         self.error = None;
         cx.notify();
         let runner = self.runner;
-        let task = ember_ui::run(cx, async move { store.login(&text).await });
+        let slot = self.slot.clone();
+        let task = ember_ui::run(cx, async move {
+            store.account_login(slot.as_deref(), &text).await
+        });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {
@@ -497,6 +534,17 @@ impl Render for LoginDialog {
                 .gap_4()
                 .when_some(self.fallback.clone(), |this, reason| {
                     this.child(Alert::info("login-fallback", reason))
+                })
+                .when(self.adding, |this| {
+                    // Unlike the sign-in window, the browser remembers who
+                    // last signed in to the store.
+                    this.child(Alert::info(
+                        "login-another",
+                        t_args(
+                            "manage.login.another_in_browser",
+                            &[("store", self.runner.store_name())],
+                        ),
+                    ))
                 })
                 .child(step(
                     1,

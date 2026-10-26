@@ -258,7 +258,7 @@ pub struct Achievement {
 }
 
 /// User account of a store.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UserInfo {
     pub account_id: String,

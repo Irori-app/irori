@@ -322,6 +322,7 @@
   "library.time.years_other": "Acum {count} ani",
   "library.time.yesterday": "Ieri",
   "library.toolbar.all_stores": "Toate",
+  "library.toolbar.all_accounts": "Toate conturile",
   "library.toolbar.filters": "Filtre",
   "library.toolbar.filters_active": "Filtre · {count}",
   "library.toolbar.grid": "Grilă",

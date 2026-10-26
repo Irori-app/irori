@@ -2,18 +2,28 @@
 //! no stores, under a temporary `EMBER_HOME`.
 
 use std::cell::RefCell;
+use std::path::Path;
 use std::rc::Rc;
-use std::sync::Once;
+use std::sync::{Arc, Once};
 
-use ember_core::{GameId, InstallRequest, Paths, Runner};
+use anyhow::{Result, bail};
+use ember_core::{
+    DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
+    InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, MAIN_ACCOUNT, OpContext, Outcome, Paths,
+    RemoveArgs, Runner, Store, StoreAccount, UpdateRequest, UserInfo, async_trait,
+};
 use ember_services::{Backend, DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
 use ember_ui::models;
 use gpui_kit::{AppContext as _, Modifiers, TestAppContext, VisualTestContext, WindowOptions};
 
 use crate::onboarding::OnboardingStep;
-use crate::{DownloadsView, OnboardingEvent, OnboardingView, should_show_onboarding};
+use crate::{AccountsView, DownloadsView, OnboardingEvent, OnboardingView, should_show_onboarding};
 
 fn setup(cx: &mut TestAppContext) {
+    setup_with(cx, Vec::new);
+}
+
+fn setup_with(cx: &mut TestAppContext, stores: impl FnOnce() -> Vec<DynStore>) {
     // This integration test receives events from the real Tokio backend.
     cx.executor().allow_parking();
     static PATHS: Once = Once::new();
@@ -21,7 +31,7 @@ fn setup(cx: &mut TestAppContext) {
         let dir = tempfile::tempdir().expect("temp dir").keep();
         Paths::init(Paths::under(&dir));
     });
-    let backend = Backend::start(|_, _| Vec::new()).expect("backend starts");
+    let backend = Backend::start(|_, _| stores()).expect("backend starts");
     cx.update(|cx| {
         gpui_kit::init(cx);
         ember_ui::init(backend, cx);
@@ -131,4 +141,120 @@ fn downloads_show_items_of_every_store_in_queue_order(cx: &mut TestAppContext) {
     assert!(zoom.top() < other.top());
     // The running item is the hero, not a queue row.
     assert!(vcx.debug_bounds("queue-gog:a").is_none());
+}
+
+/// A GOG with two accounts: one signed in, one logged out that still has a
+/// game installed with it.
+struct TwoAccounts;
+
+#[async_trait]
+impl Store for TwoAccounts {
+    fn runner(&self) -> Runner {
+        Runner::Gog
+    }
+    async fn init(&self) -> Result<()> {
+        Ok(())
+    }
+    fn user(&self) -> Option<UserInfo> {
+        Some(UserInfo {
+            account_id: "1".into(),
+            display_name: "Alice".into(),
+        })
+    }
+    fn accounts(&self) -> Vec<StoreAccount> {
+        vec![
+            StoreAccount {
+                slot: MAIN_ACCOUNT.into(),
+                account_id: "1".into(),
+                display_name: "Alice".into(),
+                signed_in: true,
+                games: 12,
+                ..Default::default()
+            },
+            StoreAccount {
+                slot: "2".into(),
+                account_id: "2".into(),
+                display_name: "Bob".into(),
+                installed: 1,
+                ..Default::default()
+            },
+        ]
+    }
+    fn can_add_account(&self) -> bool {
+        true
+    }
+    fn login_flow(&self) -> LoginFlow {
+        LoginFlow::None
+    }
+    async fn login(&self, _: &str) -> Result<UserInfo> {
+        bail!("unused")
+    }
+    async fn logout(&self) -> Result<()> {
+        Ok(())
+    }
+    async fn refresh(&self, _: bool) -> Result<()> {
+        Ok(())
+    }
+    fn games(&self) -> Vec<Arc<GameInfo>> {
+        Vec::new()
+    }
+    fn game(&self, _: &str) -> Option<Arc<GameInfo>> {
+        None
+    }
+    async fn extra_info(&self, _: &str) -> Result<ExtraInfo> {
+        Ok(ExtraInfo::default())
+    }
+    async fn install_info(
+        &self,
+        _: &str,
+        _: InstallPlatform,
+        _: &InstallInfoQuery,
+    ) -> Result<InstallInfo> {
+        bail!("unused")
+    }
+    async fn updatable_games(&self) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+    async fn install(&self, _: &str, _: &InstallRequest, _: OpContext) -> Result<Outcome> {
+        bail!("unused")
+    }
+    async fn update(&self, _: &str, _: &UpdateRequest, _: OpContext) -> Result<Outcome> {
+        bail!("unused")
+    }
+    async fn repair(&self, _: &str, _: OpContext) -> Result<Outcome> {
+        bail!("unused")
+    }
+    async fn uninstall(&self, _: &str, _: RemoveArgs) -> Result<()> {
+        bail!("unused")
+    }
+    async fn import(&self, _: &str, _: &Path, _: InstallPlatform) -> Result<()> {
+        bail!("unused")
+    }
+    async fn set_install_path(&self, _: &str, _: &Path) -> Result<()> {
+        bail!("unused")
+    }
+    async fn launch(&self, _: &str, _: &LaunchRequest, _: OpContext) -> Result<LaunchPlan> {
+        bail!("unused")
+    }
+}
+
+#[gpui_kit::test]
+fn accounts_page_lists_every_account_of_a_store(cx: &mut TestAppContext) {
+    setup_with(cx, || vec![Arc::new(TwoAccounts) as DynStore]);
+    let (handle, _view) = cx.update(|cx| {
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| AccountsView::new(window, cx))
+        })
+        .expect("window opens")
+    });
+    let mut vcx = VisualTestContext::from_window(handle, cx);
+    vcx.run_until_parked();
+    let alice = vcx
+        .debug_bounds("account-gog-main")
+        .expect("the signed-in account is listed");
+    let bob = vcx
+        .debug_bounds("account-gog-2")
+        .expect("the logged-out account with an install is listed");
+    assert!(alice.top() < bob.top(), "in the store's order");
+    assert!(vcx.debug_bounds("add-account").is_some());
 }

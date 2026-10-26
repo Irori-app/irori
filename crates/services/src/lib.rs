@@ -7,6 +7,7 @@
 //! accessors (`library`, `settings`, `status`…) are lock-protected snapshots and
 //! safe to call from render.
 
+pub mod accounts;
 pub mod backup;
 mod discord;
 mod downloads;
@@ -33,6 +34,7 @@ use parking_lot::{Mutex, RwLock};
 use tokio::runtime::Runtime;
 use tokio::sync::{Notify, broadcast};
 
+pub use accounts::{MakeSlot, MultiAccountStore, SlotDirs};
 pub use backup::{Backup, BackupParts, ExportFormat, RestoreSummary};
 pub use downloads::{DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
 pub use files::{FileDownload, FileState, key_of as file_download_key};
@@ -452,6 +454,23 @@ impl Backend {
             .store(runner)
             .ok_or_else(|| anyhow::anyhow!("{runner} is not available"))?;
         let result = store.refresh(full).await;
+        self.note_login(runner, result.as_ref().err());
+        result?;
+        self.rebuild_library();
+        Ok(())
+    }
+
+    /// Refresh one account of a store (`slot` from [`ember_core::Store::accounts`]).
+    pub async fn refresh_account(
+        &self,
+        runner: Runner,
+        slot: &str,
+        full: bool,
+    ) -> anyhow::Result<()> {
+        let store = self
+            .store(runner)
+            .ok_or_else(|| anyhow::anyhow!("{runner} is not available"))?;
+        let result = store.refresh_account(slot, full).await;
         self.note_login(runner, result.as_ref().err());
         result?;
         self.rebuild_library();

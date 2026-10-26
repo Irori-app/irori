@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} г. назад",
   "library.time.yesterday": "Вчера",
   "library.toolbar.all_stores": "Все",
+  "library.toolbar.all_accounts": "Все аккаунты",
   "library.toolbar.filters": "Фильтры",
   "library.toolbar.filters_active": "Фильтры · {count}",
   "library.toolbar.grid": "Сетка",

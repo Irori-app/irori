@@ -57,6 +57,10 @@ pub struct InstallSheet {
     mode: InstallMode,
     platforms: Vec<InstallPlatform>,
     platform: InstallPlatform,
+    /// Accounts owning the game (id, name), when more than one does.
+    owners: Vec<(String, String)>,
+    /// The account to install with; the first owner by default.
+    account: Option<String>,
     path: Entity<InputState>,
     info: Load<InstallInfo>,
     info_rev: u64,
@@ -165,6 +169,27 @@ impl InstallSheet {
         };
         let platform = platforms.first().copied().unwrap_or_default();
         let install = game.install.as_ref();
+        let owners: Vec<(String, String)> = if mode == InstallMode::Install && !game.is_installed {
+            let accounts = ember_ui::models(cx).accounts.read(cx);
+            let accounts = accounts.accounts(id.runner);
+            b.library()
+                .owners(&id)
+                .iter()
+                .map(|owner| {
+                    let name = accounts
+                        .iter()
+                        .find(|a| a.account_id == *owner)
+                        .map(|a| a.display_name.clone())
+                        .filter(|n| !n.trim().is_empty())
+                        .unwrap_or_else(|| owner.clone());
+                    (owner.clone(), name)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let owners = if owners.len() > 1 { owners } else { Vec::new() };
+        let account = owners.first().map(|(id, _)| id.clone());
 
         let default_path = app.default_install_path.clone();
         let path = cx.new(|cx| {
@@ -250,6 +275,8 @@ impl InstallSheet {
             mode,
             platforms,
             platform,
+            owners,
+            account,
             path,
             info: Load::Loading,
             info_rev: 0,
@@ -762,6 +789,7 @@ impl InstallSheet {
             build: self.build.clone().filter(|_| self.pin_build),
             dependencies: info.dependencies.clone(),
             installer: None,
+            account: self.account.clone(),
         };
         let title = self.game.title.clone();
         self.submitting = true;
@@ -999,6 +1027,43 @@ impl InstallSheet {
                                 this.set_platform(*p, window, cx);
                             }
                         })),
+                )
+                .into_any_element(),
+        )
+    }
+
+    /// Which account installs a game several accounts own. Updates and
+    /// launches use the same account afterwards.
+    fn render_account(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        if self.owners.is_empty() {
+            return None;
+        }
+        let selected = self
+            .owners
+            .iter()
+            .position(|(id, _)| Some(id) == self.account.as_ref());
+        let owners = self.owners.clone();
+        Some(
+            v_flex()
+                .debug_selector(|| "install-account".into())
+                .gap_2()
+                .child(Self::render_section(t("game.info.account"), cx))
+                .child(
+                    RadioGroup::vertical("install-account")
+                        .children(owners.iter().map(|(_, name)| name.clone()))
+                        .selected_index(selected)
+                        .on_change(cx.listener(move |this, ix: &usize, _, cx| {
+                            if let Some((id, _)) = owners.get(*ix) {
+                                this.account = Some(id.clone());
+                                cx.notify();
+                            }
+                        })),
+                )
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(cx.theme().muted_foreground)
+                        .child(t("game.install.account_hint")),
                 )
                 .into_any_element(),
         )
@@ -1361,6 +1426,7 @@ impl Render for InstallSheet {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let notices = self.render_notices(cx);
         let platform = self.render_platform(cx);
+        let account = self.render_account(cx);
         let location = self.render_location(cx);
         let sizes = self.render_sizes(cx);
         let options = self.render_options(cx);
@@ -1372,6 +1438,7 @@ impl Render for InstallSheet {
             .py_2()
             .children(notices)
             .children(platform)
+            .children(account)
             .children(location)
             .child(sizes)
             .children(options)

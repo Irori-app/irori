@@ -322,6 +322,7 @@
   "library.time.years_other": "För {count} år sedan",
   "library.time.yesterday": "I går",
   "library.toolbar.all_stores": "Alla",
+  "library.toolbar.all_accounts": "Alla konton",
   "library.toolbar.filters": "Filter",
   "library.toolbar.filters_active": "Filter · {count}",
   "library.toolbar.grid": "Rutnät",
