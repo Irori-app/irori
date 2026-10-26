@@ -164,6 +164,10 @@ pub struct GameSettings {
     pub verbose_logs: bool,
     pub advertise_avx_for_rosetta: bool,
     pub enable_quick_saves_menu: bool,
+    /// macOS: render at the display's full resolution (Wine's Mac driver
+    /// `RetinaMode`). Ember-only.
+    #[serde(rename = "emberRetinaMode")]
+    pub retina_mode: bool,
 }
 
 impl Default for GameSettings {
@@ -211,6 +215,7 @@ impl Default for GameSettings {
             verbose_logs: true,
             advertise_avx_for_rosetta: false,
             enable_quick_saves_menu: false,
+            retina_mode: false,
         }
     }
 }
@@ -346,6 +351,10 @@ pub struct AppSettings {
     /// folder inside).
     #[serde(rename = "emberExtrasPath")]
     pub extras_path: String,
+    /// macOS: where CrossOver keeps its bottles, when moved from
+    /// `~/Library/Application Support/CrossOver/Bottles` ("" = there).
+    #[serde(rename = "emberCrossoverBottlesPath")]
+    pub crossover_bottles_path: String,
 }
 
 impl Default for AppSettings {
@@ -357,6 +366,7 @@ impl Default for AppSettings {
             .join("Ember");
         Self {
             extras_path: extras.to_string_lossy().into_owned(),
+            crossover_bottles_path: String::new(),
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,

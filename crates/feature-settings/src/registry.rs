@@ -390,11 +390,19 @@ impl FieldSpec {
     pub fn supported_on_host(&self) -> bool {
         use ember_core::HostPlatform;
         let host = HostPlatform::current();
+        let mac_only = matches!(
+            self.path,
+            "enableMsync"
+                | "wineCrossoverBottle"
+                | "advertiseAvxForRosetta"
+                | "emberRetinaMode"
+                | "emberCrossoverBottlesPath"
+        );
+        if mac_only && host != HostPlatform::Mac {
+            return false;
+        }
         if host == HostPlatform::Linux {
-            return !matches!(
-                self.path,
-                "enableMsync" | "wineCrossoverBottle" | "advertiseAvxForRosetta"
-            );
+            return true;
         }
         if self.path.starts_with("gamescope.")
             || matches!(
@@ -740,6 +748,17 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .help("settings.field.default_steam_path.help")
     .keywords(&["steam", "proton", "path"]),
+    app(
+        "emberCrossoverBottlesPath",
+        "settings.field.crossover_bottles_path.label",
+        General,
+        "settings.group.folders",
+        Text(TextKind::Directory),
+    )
+    .tag(Verbatim("CrossOver"))
+    .help("settings.field.crossover_bottles_path.help")
+    .placeholder(Verbatim("~/Library/Application Support/CrossOver/Bottles"))
+    .keywords(&["crossover", "bottle", "bottles", "path", "mac"]),
     app(
         "checkForUpdatesOnStartup",
         "settings.field.check_for_updates_on_startup.label",
@@ -1291,6 +1310,16 @@ pub static FIELDS: &[FieldSpec] = &[
     .placeholder(Key("settings.field.wine_prefix.placeholder"))
     .keywords(&["prefix", "wineprefix", "path", "bottle"]),
     game(
+        "wineCrossoverBottle",
+        "settings.field.wine_crossover_bottle.label",
+        Wine,
+        "settings.group.compatibility_layer",
+        Text(TextKind::Plain),
+    )
+    .tag(Verbatim("CrossOver"))
+    .help("settings.field.wine_crossover_bottle.help")
+    .keywords(&["crossover", "bottle", "prefix", "mac"]),
+    game(
         "disableUMU",
         "settings.field.disable_umu.label",
         Wine,
@@ -1327,6 +1356,16 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .tag(Verbatim("macOS"))
     .keywords(&["msync", "sync", "mac"]),
+    game(
+        "emberRetinaMode",
+        "settings.field.retina_mode.label",
+        Wine,
+        "settings.group.display",
+        Toggle,
+    )
+    .tag(Verbatim("macOS"))
+    .help("settings.field.retina_mode.help")
+    .keywords(&["retina", "hidpi", "resolution", "scaling", "mac"]),
     game(
         "enableWineWayland",
         "settings.field.enable_wine_wayland.label",
@@ -1873,6 +1912,24 @@ mod tests {
             find("gamescope.fpsLimiter").unwrap().override_key(),
             "gamescope"
         );
+    }
+
+    #[test]
+    fn mac_options_show_on_macos_only() {
+        let mac = cfg!(target_os = "macos");
+        for path in [
+            "emberRetinaMode",
+            "wineCrossoverBottle",
+            "emberCrossoverBottlesPath",
+        ] {
+            assert_eq!(find(path).unwrap().supported_on_host(), mac, "{path}");
+        }
+        assert!(
+            !find("emberCrossoverBottlesPath")
+                .unwrap()
+                .applies_to_game(true)
+        );
+        assert!(find("emberRetinaMode").unwrap().applies_to_game(true));
     }
 
     #[test]

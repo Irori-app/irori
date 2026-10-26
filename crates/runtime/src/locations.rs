@@ -76,6 +76,17 @@ pub fn flatpak_home() -> PathBuf {
     home()
 }
 
+/// CrossOver's bottles folder: the configured one (`~` expanded), else
+/// CrossOver's default.
+pub fn crossover_bottles_dir(app: &AppSettings) -> PathBuf {
+    let configured = app.crossover_bottles_path.trim();
+    if configured.is_empty() {
+        home().join("Library/Application Support/CrossOver/Bottles")
+    } else {
+        ember_core::paths::expand_home(configured)
+    }
+}
+
 /// The Steam installation: the configured path (quotes removed, `~`
 /// expanded), else Flatpak Steam when present, else `~/.steam/steam`.
 pub fn steam_path(app: &AppSettings) -> PathBuf {

@@ -32,13 +32,18 @@ commercial CrossOver application and does not create CrossOver bottles.
 Discovery includes Ember/Heroic downloads, Wine app bundles, Homebrew paths,
 CrossOver and CrossOver Preview in `/Applications` and `~/Applications`, and
 Whisky's Wine installation. Custom paths may point to a runtime executable.
-CrossOver uses the bottle selected in settings, located under
-`~/Library/Application Support/CrossOver/Bottles`. Create the bottle in CrossOver
-first. Ember uses `CX_BOTTLE`, including for setup and wineserver commands, and
+CrossOver uses the bottle named in a game's Wine settings ("CrossOver bottle"),
+located under `~/Library/Application Support/CrossOver/Bottles` unless General ›
+Folders › "CrossOver bottles folder" points elsewhere (for bottles moved to another
+drive in CrossOver's preferences). Create the bottle in CrossOver first. Ember uses
+`CX_BOTTLE` and `CX_BOTTLE_PATH`, including for setup and wineserver commands, and
 does not initialize an external bottle. Uninstall refuses to delete a shared CrossOver bottle; keep the prefix and manage it in CrossOver. Whisky uses its runtime with an Ember
 prefix; existing Whisky bottles are not imported automatically.
 
-macOS settings include Msync, Metal HUD and Rosetta AVX advertisement. Linux
+macOS settings include Msync, Metal HUD, Rosetta AVX advertisement and Retina mode.
+Retina mode sets `HKCU\Software\Wine\Mac Driver\RetinaMode` in the prefix before
+launch, only when it differs from what `user.reg` already holds, so Wine, CrossOver
+and Game Porting Toolkit render at the display's full resolution. Linux
 wrappers, Fsync, GameMode, gamescope, MangoHud, Linux DXVK/VKD3D/NVAPI installation,
 umu, and Linux anticheat runtimes are not automatically applied on macOS or
 Windows, even when old settings enable them. Explicit custom environment variables
