@@ -51,5 +51,7 @@
   "shell.playing.open": "Otevřít {title}",
   "shell.playing.stop": "Ukončit",
   "shell.playing.stop_failed": "{title} se nepodařilo ukončit",
-  "shell.nav.stats": "Statistiky"
+  "shell.nav.stats": "Statistiky",
+  "shell.palette.random": "Vybrat náhodnou hru",
+  "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta"
 }

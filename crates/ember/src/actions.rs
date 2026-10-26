@@ -19,6 +19,7 @@ actions!(
         ToggleSidebar,
         ToggleFullscreen,
         EnterBigPicture,
+        PickRandomGame,
         Quit
     ]
 );
@@ -53,6 +54,7 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new(&primary("ctrl-b"), ToggleSidebar, ctx),
         KeyBinding::new("f11", ToggleFullscreen, ctx),
         KeyBinding::new(&primary("ctrl-shift-b"), EnterBigPicture, ctx),
+        KeyBinding::new(&primary("ctrl-shift-g"), PickRandomGame, ctx),
         KeyBinding::new(&primary("ctrl-q"), Quit, None),
     ]);
     #[cfg(target_os = "macos")]

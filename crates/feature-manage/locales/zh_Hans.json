@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "正在下载",
   "manage.downloads.files.cancel": "取消",
   "manage.downloads.files.show": "在文件夹中显示",
-  "manage.downloads.files.clear": "清除已完成"
+  "manage.downloads.files.clear": "清除已完成",
+  "manage.accounts.state.hidden": "已隐藏",
+  "manage.accounts.hidden_detail": "其游戏不会显示在游戏库中。登录状态和已安装的游戏会保留。",
+  "manage.accounts.hide": "隐藏",
+  "manage.accounts.show": "显示"
 }

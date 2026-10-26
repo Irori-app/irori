@@ -51,5 +51,7 @@
   "shell.playing.open": "Открыть {title}",
   "shell.playing.stop": "Остановить",
   "shell.playing.stop_failed": "Не удалось остановить {title}",
-  "shell.nav.stats": "Статистика"
+  "shell.nav.stats": "Статистика",
+  "shell.palette.random": "Выбрать случайную игру",
+  "shell.palette.random_keywords": "случайно сюрприз перемешать рулетка"
 }

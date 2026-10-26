@@ -547,6 +547,14 @@ const TRANSLUCENCY: &[ChoiceOption] = &[
     ),
 ];
 
+const BIG_PICTURE_SCALE: &[ChoiceOption] = &[
+    opt(ChoiceValue::Num(100), Verbatim("100%")),
+    opt(ChoiceValue::Num(125), Verbatim("125%")),
+    opt(ChoiceValue::Num(150), Verbatim("150%")),
+    opt(ChoiceValue::Num(175), Verbatim("175%")),
+    opt(ChoiceValue::Num(200), Verbatim("200%")),
+];
+
 const LIBRARY_LAYOUT: &[ChoiceOption] = &[
     opt(
         ChoiceValue::Str("grid"),
@@ -825,6 +833,21 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["console", "gamepad", "fullscreen", "big picture"]),
     app(
+        "emberUi.bigPictureInGameMode",
+        "settings.field.big_picture_in_game_mode.label",
+        General,
+        "settings.group.tray_and_window",
+        Toggle,
+    )
+    .help("settings.field.big_picture_in_game_mode.help")
+    .keywords(&[
+        "steam deck",
+        "game mode",
+        "gamescope",
+        "console",
+        "big picture",
+    ]),
+    app(
         "addDesktopShortcuts",
         "settings.field.add_desktop_shortcuts.label",
         General,
@@ -858,6 +881,33 @@ pub static FIELDS: &[FieldSpec] = &[
         Choice(TOP_SECTION),
     )
     .keywords(&["recent", "favourites", "top"]),
+    app(
+        "emberUi.stores.epic",
+        "settings.field.show_store_epic.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "epic", "legendary"]),
+    app(
+        "emberUi.stores.gog",
+        "settings.field.show_store_gog.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "gog"]),
+    app(
+        "emberUi.stores.amazon",
+        "settings.field.show_store_amazon.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "amazon", "prime", "nile"]),
     app(
         "maxRecentGames",
         "settings.field.max_recent_games.label",
@@ -1057,6 +1107,22 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .help("settings.field.ui_tile_size.help")
     .keywords(&["tile", "grid", "cover", "library"]),
+    app(
+        "emberUi.bigPictureScale",
+        "settings.field.ui_big_picture_scale.label",
+        Appearance,
+        "settings.group.size",
+        Choice(BIG_PICTURE_SCALE),
+    )
+    .help("settings.field.ui_big_picture_scale.help")
+    .keywords(&[
+        "big picture",
+        "tv",
+        "console",
+        "zoom",
+        "scale",
+        "steam deck",
+    ]),
     app(
         "emberUi.libraryLayout",
         "settings.field.ui_library_layout.label",

@@ -29,6 +29,7 @@ mod format;
 mod grid;
 mod i18n;
 mod launch;
+mod random;
 mod selection;
 mod stats;
 mod top;
@@ -46,6 +47,7 @@ pub use dialogs::edit_game::open_edit_game_dialog;
 pub use dialogs::sideload::open_add_game_dialog;
 pub use filter::{CategoryFilter, HiddenMode, InstallFilter, ViewFilter};
 pub use i18n::CATALOGS;
+pub use random::open_random_game;
 pub use stats::StatsView;
 pub use view::LibraryView;
 

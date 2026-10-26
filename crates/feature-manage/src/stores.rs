@@ -149,7 +149,7 @@ impl Render for StoresView {
             .cards
             .clone()
             .iter()
-            .filter(|c| ACCOUNT_STORES.contains(&c.runner))
+            .filter(|c| ACCOUNT_STORES.contains(&c.runner) && !c.hidden)
             .filter_map(|c| self.render_store(c, cx))
             .collect();
         v_flex()

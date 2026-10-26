@@ -179,6 +179,8 @@ pub struct NewShortcut {
     pub launch_options: String,
     /// Unix seconds.
     pub last_play_time: i32,
+    /// Steam collections to file the shortcut under (written as `tags`).
+    pub tags: Vec<String>,
 }
 
 impl NewShortcut {
@@ -203,7 +205,17 @@ impl NewShortcut {
             .with("Devkit", Value::Int32(0))
             .with("DevkitOverrideAppID", Value::Int32(0))
             .with("LastPlayTime", Value::Int32(self.last_play_time))
+            .with("tags", Value::Map(tags_map(&self.tags)))
     }
+}
+
+/// Steam's list form: keys `"0"`, `"1"`, … in order.
+fn tags_map(tags: &[String]) -> Map {
+    let mut m = Map::new();
+    for (i, tag) in tags.iter().enumerate() {
+        m.push(i.to_string(), Value::String(tag.clone()));
+    }
+    m
 }
 
 /// CRC-32 (IEEE, as zlib).
@@ -278,6 +290,7 @@ mod tests {
             icon: Some("/icons/x.png".into()),
             launch_options: "--launch \"gog/123\"".into(),
             last_play_time: 1_700_000_000,
+            tags: vec!["Ember".into()],
         }
     }
 
@@ -329,6 +342,18 @@ mod tests {
         let removed = reparsed.remove_where(|e| e.launch_options().contains("gog/123"));
         assert_eq!(removed.len(), 1);
         assert_eq!(reparsed.to_bytes(), before);
+    }
+
+    #[test]
+    fn entries_carry_their_collections() {
+        let entry = sample("Test Game").to_entry();
+        let tags = entry.get_ci("tags").and_then(Value::as_map).unwrap();
+        assert_eq!(tags.0, [("0".into(), Value::String("Ember".into()))]);
+        let bytes = vdf::write(&Map::new().with(
+            "shortcuts",
+            Value::Map(Map::new().with("0", Value::Map(entry))),
+        ));
+        assert!(ShortcutsFile::parse(&bytes).is_ok());
     }
 
     #[test]

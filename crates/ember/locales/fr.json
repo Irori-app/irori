@@ -51,5 +51,7 @@
   "shell.playing.open": "Ouvrir {title}",
   "shell.playing.stop": "Arrêter",
   "shell.playing.stop_failed": "Impossible d’arrêter {title}",
-  "shell.nav.stats": "Statistiques"
+  "shell.nav.stats": "Statistiques",
+  "shell.palette.random": "Choisir un jeu au hasard",
+  "shell.palette.random_keywords": "hasard surprise mélanger roulette"
 }

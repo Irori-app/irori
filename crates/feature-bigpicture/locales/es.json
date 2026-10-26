@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Desinstalar",
   "bigpicture.empty.loading": "Cargando tu biblioteca…",
   "bigpicture.empty.title": "Aún no hay juegos",
-  "bigpicture.empty.description": "Inicia sesión en una tienda o añade un juego desde la biblioteca y vuelve."
+  "bigpicture.empty.description": "Inicia sesión en una tienda o añade un juego desde la biblioteca y vuelve.",
+  "bigpicture.menu.interface_size": "Tamaño de la interfaz: {percent} %"
 }

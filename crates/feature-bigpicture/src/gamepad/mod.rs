@@ -21,13 +21,23 @@
 //! Input is ignored while `disable_controller` is set. When Ember is not the
 //! active window only Guide is honoured, and only while no game is running:
 //! it brings Ember to the front in Big Picture instead of acting on input
-//! meant for a game.
+//! meant for a game. Guide acts on a short press, so holding it to switch a
+//! controller off does nothing.
+//!
+//! Steam Input must not make a press count twice: controllers Steam lists in
+//! `SDL_GAMECONTROLLER_IGNORE_DEVICES` (it drives them through a virtual
+//! controller) are not read, and an arrow, Enter or Escape key press that
+//! echoes a controller press just handled (Steam's desktop layout types
+//! them) is dropped, as is a controller press echoing such a key.
 
 mod input;
 mod reader;
 
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::time::Instant;
 
 use ember_ui::Route;
 use ember_ui::i18n::{t, t_args};
@@ -40,8 +50,8 @@ use gpui_kit::{
 use parking_lot::RwLock;
 
 pub use input::{
-    ControllerKind, Deduper, GamepadInput, PadButton, Repeater, StickAxis, is_ignored_device,
-    map_button,
+    ControllerKind, Deduper, EchoFilter, GamepadInput, GuideTap, InputSource, PadButton, Repeater,
+    SteamIgnoreList, StickAxis, is_ignored_device, keyboard_equivalent, map_button,
 };
 use reader::{Message, SharedConfig};
 
@@ -244,16 +254,46 @@ pub fn install(cx: &mut App) {
         tracing::warn!("starting the controller reader: {e}");
         return;
     }
+    let echoes = Rc::new(RefCell::new(EchoFilter::default()));
+    {
+        let echoes = echoes.clone();
+        cx.intercept_keystrokes(move |event, _, cx| {
+            let keystroke = &event.keystroke;
+            if SYNTHESIZING.get() || keystroke.modifiers.modified() {
+                return;
+            }
+            if let Some(input) = keyboard_equivalent(&keystroke.key)
+                && !echoes
+                    .borrow_mut()
+                    .accept(InputSource::Keyboard, input, Instant::now())
+            {
+                cx.stop_propagation();
+            }
+        })
+        .detach();
+    }
     cx.spawn(async move |cx| {
         while let Some(message) = rx.next().await {
             let disabled = shared.disabled.load(Ordering::Relaxed);
-            cx.update(|cx| on_message(message, disabled, &model, cx));
+            cx.update(|cx| on_message(message, disabled, &model, &echoes, cx));
         }
     })
     .detach();
 }
 
-fn on_message(message: Message, disabled: bool, model: &Entity<GamepadModel>, cx: &mut App) {
+thread_local! {
+    /// Set while Ember types a key itself for a controller input, so the
+    /// echo filter lets it through.
+    static SYNTHESIZING: Cell<bool> = const { Cell::new(false) };
+}
+
+fn on_message(
+    message: Message,
+    disabled: bool,
+    model: &Entity<GamepadModel>,
+    echoes: &RefCell<EchoFilter>,
+    cx: &mut App,
+) {
     match message {
         Message::Controllers(list) => model.update(cx, |m, cx| {
             if list.is_empty() {
@@ -263,7 +303,11 @@ fn on_message(message: Message, disabled: bool, model: &Entity<GamepadModel>, cx
             cx.notify();
         }),
         Message::Input { input, kind } => {
-            if disabled {
+            if disabled
+                || !echoes
+                    .borrow_mut()
+                    .accept(InputSource::Controller, input, Instant::now())
+            {
                 return;
             }
             model.update(cx, |m, cx| {
@@ -382,9 +426,17 @@ pub fn route_in_window(input: GamepadInput, window: &mut Window, cx: &mut App) {
 /// Press a key as if typed; returns whether something handled it.
 fn press(window: &mut Window, key: &str, cx: &mut App) -> bool {
     match Keystroke::parse(key) {
-        Ok(keystroke) => window.dispatch_keystroke(keystroke, cx),
+        Ok(keystroke) => synthesize(|| window.dispatch_keystroke(keystroke, cx)),
         Err(_) => false,
     }
+}
+
+/// Run `f`, which types keys for a controller input, past the echo filter.
+fn synthesize<R>(f: impl FnOnce() -> R) -> R {
+    let previous = SYNTHESIZING.replace(true);
+    let result = f();
+    SYNTHESIZING.set(previous);
+    result
 }
 
 /// Press and release Enter, which activates the focused control (GPUI
@@ -393,7 +445,7 @@ fn activate(window: &mut Window, cx: &mut App) {
     let Ok(keystroke) = Keystroke::parse("enter") else {
         return;
     };
-    if window.dispatch_keystroke(keystroke.clone(), cx) {
+    if synthesize(|| window.dispatch_keystroke(keystroke.clone(), cx)) {
         return;
     }
     window.dispatch_event(PlatformInput::KeyUp(KeyUpEvent { keystroke }), cx);

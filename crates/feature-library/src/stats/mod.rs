@@ -6,8 +6,11 @@
 //! The weekly chart and streaks come from the session history, which starts
 //! with the first game exited after it was introduced; store and game totals
 //! come from the playtime records, which reach further back.
+//!
+//! Below them, the storage section shows the installed games by drive.
 
 pub(crate) mod model;
+pub(crate) mod storage;
 
 use std::sync::Arc;
 
@@ -23,6 +26,7 @@ use gpui_kit::component::chart::BarChart;
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{ActiveTheme as _, StyledExt as _, h_flex, v_flex};
+use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, Corners, ElementId, Entity, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
@@ -30,15 +34,20 @@ use gpui_kit::{
 };
 
 use model::{GameTotal, Stats, StoreTotal, Week};
+use storage::{DriveUsage, InstalledGame};
 
 /// Height of the weekly chart, in rem.
 const CHART_REM: f32 = 14.0;
 /// Width of the label column of the store and game lists, in rem.
 const LABEL_REM: f32 = 12.0;
+/// Games listed under each drive, largest first.
+const DRIVE_GAMES: usize = 5;
 
 pub struct StatsView {
     /// `None` until the first computation finishes.
     stats: Option<Stats>,
+    /// Installed games by drive; `None` until first read.
+    storage: Option<Vec<DriveUsage>>,
     /// Library revision and user data the stats were computed from.
     seen: Option<(u64, Arc<ember_services::UserData>)>,
     images: Entity<LruImageCache>,
@@ -67,6 +76,7 @@ impl StatsView {
         let mut view = Self {
             seen: None,
             stats: None,
+            storage: None,
             images: LruImageCache::new(32, cx),
             _subscriptions: subscriptions,
         };
@@ -98,6 +108,48 @@ impl StatsView {
             if let Some(stats) = task.await {
                 let _ = this.update(cx, |this, cx| {
                     this.stats = Some(stats);
+                    cx.notify();
+                });
+            }
+        })
+        .detach();
+        self.reload_storage(cx);
+    }
+
+    /// Read the drives and where the installed games are (off the UI thread).
+    fn reload_storage(&mut self, cx: &mut Context<Self>) {
+        let b = backend(cx);
+        let installed: Vec<(ember_core::GameId, std::path::PathBuf, u64)> = models(cx)
+            .library
+            .read(cx)
+            .snapshot
+            .games
+            .iter()
+            .filter(|g| g.is_installed)
+            .filter_map(|g| {
+                let bytes = g.install.as_ref().map_or(0, |i| i.install_size_bytes);
+                Some((g.id(), g.install_path()?, bytes))
+            })
+            .collect();
+        let task = ember_ui::state::run_infallible(cx, async move {
+            b.spawn_blocking(move || {
+                let games: Vec<InstalledGame> = installed
+                    .into_iter()
+                    .map(|(id, path, bytes)| InstalledGame {
+                        id,
+                        path: storage::resolve(&path),
+                        bytes,
+                    })
+                    .collect();
+                storage::group(&games, &storage::read_drives())
+            })
+            .await
+            .ok()
+        });
+        cx.spawn(async move |this, cx| {
+            if let Some(Some(drives)) = task.await {
+                let _ = this.update(cx, |this, cx| {
+                    this.storage = Some(drives);
                     cx.notify();
                 });
             }
@@ -267,6 +319,162 @@ impl StatsView {
     }
 }
 
+impl StatsView {
+    fn render_storage(&self, drives: &[DriveUsage], cx: &mut Context<Self>) -> AnyElement {
+        let rows: Vec<AnyElement> = drives
+            .iter()
+            .enumerate()
+            .map(|(ix, usage)| self.render_drive(ix, usage, cx))
+            .collect();
+        let theme = cx.theme();
+        let legend = |color, label: SharedString| {
+            h_flex()
+                .gap_1p5()
+                .child(div().size_2p5().rounded_full().bg(color))
+                .child(label)
+        };
+        panel(cx)
+            .gap_4()
+            .child(
+                h_flex()
+                    .flex_wrap()
+                    .justify_between()
+                    .gap_2()
+                    .child(SectionTitle::new(t("library.stats.storage")))
+                    .child(
+                        h_flex()
+                            .gap_4()
+                            .text_xs()
+                            .text_color(theme.muted_foreground)
+                            .child(legend(
+                                theme.chart_1,
+                                t("library.stats.storage_legend_games"),
+                            ))
+                            .child(legend(
+                                theme.chart_3,
+                                t("library.stats.storage_legend_other"),
+                            )),
+                    ),
+            )
+            .children(rows)
+            .into_any_element()
+    }
+
+    fn render_drive(&self, ix: usize, usage: &DriveUsage, cx: &mut Context<Self>) -> AnyElement {
+        let theme = cx.theme();
+        let (muted_fg, track, games_color, other_color) = (
+            theme.muted_foreground,
+            theme.muted,
+            theme.chart_1,
+            theme.chart_3,
+        );
+        let (radius, hover_bg) = (theme.radius, theme.list_hover);
+        let size = |bytes: u64| ember_core::util::format_bytes(bytes);
+        let (label, summary) = match &usage.drive {
+            Some(d) => (
+                SharedString::from(d.label()),
+                t_args(
+                    "library.stats.storage_summary",
+                    &[
+                        ("games", &size(usage.used)),
+                        ("free", &size(d.free)),
+                        ("total", &size(d.total)),
+                    ],
+                ),
+            ),
+            None => (
+                t("library.stats.storage_unknown"),
+                t_args(
+                    "library.stats.storage_games",
+                    &[("games", &size(usage.used))],
+                ),
+            ),
+        };
+        let bar = usage.drive.as_ref().filter(|d| d.total > 0).map(|d| {
+            let total = d.total as f32;
+            let games = (usage.used as f32 / total).clamp(0.0, 1.0);
+            let taken = d.total.saturating_sub(d.free) as f32 / total;
+            let other = (taken - games).clamp(0.0, 1.0 - games);
+            h_flex()
+                .w_full()
+                .h(px(10.))
+                .rounded(px(5.))
+                .overflow_hidden()
+                .bg(track)
+                .child(div().h_full().w(relative(games)).bg(games_color))
+                .child(div().h_full().w(relative(other)).bg(other_color))
+        });
+        let library = models(cx).library.read(cx).snapshot.clone();
+        let games: Vec<AnyElement> = usage
+            .games
+            .iter()
+            .take(DRIVE_GAMES)
+            .map(|(id, bytes)| {
+                let title = library
+                    .get(id)
+                    .map(|g| g.title.clone())
+                    .unwrap_or_else(|| id.app_name.to_string());
+                let id = id.clone();
+                h_flex()
+                    .id(ElementId::Name(format!("storage-game:{}", id.key()).into()))
+                    .keyboard_focusable(cx)
+                    .w_full()
+                    .gap_3()
+                    .px_2()
+                    .py_1()
+                    .text_sm()
+                    .rounded(radius)
+                    .cursor_pointer()
+                    .hover(move |s| s.bg(hover_bg))
+                    .child(div().flex_1().min_w_0().truncate().child(title))
+                    .child(
+                        div()
+                            .flex_shrink_0()
+                            .text_color(muted_fg)
+                            .child(if *bytes > 0 {
+                                SharedString::from(size(*bytes))
+                            } else {
+                                t("library.stats.storage_size_unknown")
+                            }),
+                    )
+                    .on_click(move |_, _, cx| navigate(Route::Game(id.clone()), cx))
+                    .into_any_element()
+            })
+            .collect();
+        let more = usage.games.len().saturating_sub(DRIVE_GAMES);
+        v_flex()
+            .id(ElementId::Name(format!("storage-drive:{ix}").into()))
+            .gap_2()
+            .child(
+                h_flex()
+                    .flex_wrap()
+                    .justify_between()
+                    .gap_x_4()
+                    .child(div().min_w_0().font_semibold().truncate().child(label))
+                    .child(div().text_sm().text_color(muted_fg).child(summary)),
+            )
+            .children(bar)
+            .child(v_flex().children(games))
+            .when(more > 0, |d| {
+                d.child(
+                    div()
+                        .px_2()
+                        .text_xs()
+                        .text_color(muted_fg)
+                        .child(if more == 1 {
+                            t("library.stats.storage_more_one")
+                        } else {
+                            t_args(
+                                "library.stats.storage_more_other",
+                                &[("count", &more.to_string())],
+                            )
+                        }),
+                )
+            })
+            .into_any_element()
+    }
+}
+
 impl Render for StatsView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let body: AnyElement = match self.stats.clone() {
@@ -311,7 +519,14 @@ impl Render for StatsView {
                     .flex_1()
                     .min_h_0()
                     .overflow_y_scrollbar()
-                    .child(div().px_6().pb_6().child(body)),
+                    .child(
+                        v_flex().px_6().pb_6().gap_6().child(body).children(
+                            self.storage
+                                .clone()
+                                .filter(|d| !d.is_empty())
+                                .map(|d| self.render_storage(&d, cx)),
+                        ),
+                    ),
             )
     }
 }

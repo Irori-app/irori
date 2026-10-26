@@ -152,13 +152,18 @@ fn main() -> Result<()> {
             );
         }
 
+        // Steam's Game Mode has no tray to come back from.
         let start_hidden = (cli.minimized || backend.settings.app().start_in_tray)
+            && !ember_core::platform::in_steam_gamepad_ui()
             && ((cfg!(target_os = "linux") && !backend.settings.app().no_tray_icon)
                 || app.lock().tray.is_some())
             && !cli.has_request();
         if !start_hidden {
             open_main_window(&app, cx);
-            if backend.settings.app().start_in_console_mode {
+            let app_settings = backend.settings.app();
+            let game_mode = app_settings.ui.big_picture_in_game_mode
+                && ember_core::platform::in_steam_gamepad_ui();
+            if app_settings.start_in_console_mode || game_mode {
                 nav::navigate(Route::BigPicture, cx);
             }
         }
@@ -288,6 +293,15 @@ fn handle_cli(cli: &Cli, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
 
 /// Launch requested by a URL, shortcut or the tray.
 fn launch_from_outside(id: GameId, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
+    // Steam shortcuts may name a game that isn't installed yet: offer the
+    // install instead of failing to launch.
+    if ember_ui::backend(cx)
+        .game(&id)
+        .is_some_and(|g| !g.is_installed && g.installable)
+    {
+        offer_install(id, app, cx);
+        return;
+    }
     let hide = ember_ui::backend(cx)
         .settings
         .app()
@@ -307,6 +321,23 @@ fn launch_from_outside(id: GameId, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
             })
             .detach();
         }
+    }
+}
+
+/// Show a game that isn't installed with its install options: its commands
+/// in Big Picture, else its page with the install sheet.
+fn offer_install(id: GameId, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
+    open_main_window(app, cx);
+    if nav::navigator(cx).read(cx).current() == &Route::BigPicture {
+        ember_bigpicture::show_game(id, cx);
+        return;
+    }
+    nav::navigate(Route::Game(id.clone()), cx);
+    let window = app.lock().window;
+    if let Some(handle) = window {
+        let _ = handle.update(cx, |_, window, cx| {
+            ember_game::open_install_sheet(id, window, cx)
+        });
     }
 }
 

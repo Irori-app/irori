@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "Wird heruntergeladen",
   "manage.downloads.files.cancel": "Abbrechen",
   "manage.downloads.files.show": "Im Ordner zeigen",
-  "manage.downloads.files.clear": "Abgeschlossene entfernen"
+  "manage.downloads.files.clear": "Abgeschlossene entfernen",
+  "manage.accounts.state.hidden": "Ausgeblendet",
+  "manage.accounts.hidden_detail": "Seine Spiele erscheinen nicht in der Bibliothek. Anmeldung und installierte Spiele bleiben erhalten.",
+  "manage.accounts.hide": "Ausblenden",
+  "manage.accounts.show": "Einblenden"
 }

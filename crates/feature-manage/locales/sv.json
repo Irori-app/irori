@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "Laddar ned",
   "manage.downloads.files.cancel": "Avbryt",
   "manage.downloads.files.show": "Visa i mapp",
-  "manage.downloads.files.clear": "Rensa klara"
+  "manage.downloads.files.clear": "Rensa klara",
+  "manage.accounts.state.hidden": "Dold",
+  "manage.accounts.hidden_detail": "Dess spel visas inte i biblioteket. Inloggningen och installerade spel finns kvar.",
+  "manage.accounts.hide": "Dölj",
+  "manage.accounts.show": "Visa"
 }

@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Видалити",
   "bigpicture.empty.loading": "Завантаження вашої бібліотеки…",
   "bigpicture.empty.title": "Ігор поки немає",
-  "bigpicture.empty.description": "Увійдіть у магазин або додайте гру в бібліотеці, а потім поверніться."
+  "bigpicture.empty.description": "Увійдіть у магазин або додайте гру в бібліотеці, а потім поверніться.",
+  "bigpicture.menu.interface_size": "Розмір інтерфейсу: {percent}%"
 }

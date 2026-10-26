@@ -14,7 +14,8 @@ use crate::userdata::UserData;
 
 static REVISION: AtomicU64 = AtomicU64::new(0);
 
-/// All visible (non-DLC) games of every store, sorted by title.
+/// All visible (non-DLC) games of every store the user shows, sorted by
+/// title.
 #[derive(Default)]
 pub struct LibrarySnapshot {
     pub revision: u64,
@@ -334,6 +335,9 @@ impl Backend {
             })
             .collect();
         self.userdata.sync_library(&games);
+        // After syncing, so a store shown again keeps its games' "date added".
+        let shown = self.settings.app().ui.stores;
+        games.retain(|g| shown.shows(g.runner()));
         // Learn missing release dates and scores in the background; the
         // library is rebuilt once they arrive.
         if self.is_online() {

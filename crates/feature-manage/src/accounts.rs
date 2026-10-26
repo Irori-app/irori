@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ember_core::Runner;
+use ember_core::{Runner, ShownStores};
 use ember_ui::components::PageHeader;
 use ember_ui::i18n::{t, t_args};
 use ember_ui::{backend, models};
@@ -48,6 +48,8 @@ pub(crate) struct StoreCard {
     pub games: usize,
     /// ZOOM support is turned off in the settings.
     pub disabled: bool,
+    /// The user hid the store: its games and pages are left out.
+    pub hidden: bool,
     /// The store refused the saved login, with its reason.
     pub expired: Option<String>,
 }
@@ -58,7 +60,9 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
     let m = models(cx);
     let accounts = m.accounts.read(cx);
     let library = m.library.read(cx);
-    let zoom_enabled = m.settings.read(cx).app.zoom_platform;
+    let app = &m.settings.read(cx).app;
+    let zoom_enabled = app.zoom_platform;
+    let shown = app.ui.stores;
     let mut counts: BTreeMap<Runner, usize> = BTreeMap::new();
     for g in &library.snapshot.games {
         *counts.entry(g.runner()).or_default() += 1;
@@ -78,6 +82,7 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
             }),
             games: counts.get(&runner).copied().unwrap_or(0),
             disabled: runner == Runner::Zoom && !zoom_enabled,
+            hidden: !shown.shows(runner),
             expired: accounts.login_expired(runner).map(str::to_string),
         })
         .collect()
@@ -221,7 +226,11 @@ impl AccountsView {
         let runner = card_data.runner;
         let refreshing = self.refreshing.contains(&runner);
         let logging_out = self.logging_out.contains(&runner);
-        let state_tag = if card_data.disabled {
+        let state_tag = if card_data.hidden {
+            Tag::secondary()
+                .small()
+                .child(t("manage.accounts.state.hidden"))
+        } else if card_data.disabled {
             Tag::secondary()
                 .small()
                 .child(t("manage.accounts.state.turned_off"))
@@ -239,6 +248,11 @@ impl AccountsView {
                 .child(t("manage.accounts.state.signed_out"))
         };
         let detail: AnyElement = match (&card_data.user, card_data.disabled) {
+            _ if card_data.hidden => div()
+                .text_sm()
+                .text_color(theme.muted_foreground)
+                .child(t("manage.accounts.hidden_detail"))
+                .into_any_element(),
             (_, false) if let Some(reason) = &card_data.expired => v_flex()
                 .gap_0p5()
                 .child(div().text_sm().child(t_args(
@@ -276,8 +290,28 @@ impl AccountsView {
                 ))
                 .into_any_element(),
         };
+        let set_shown = move |shown: bool| {
+            move |_: &gpui_kit::ClickEvent, _: &mut Window, cx: &mut gpui_kit::App| {
+                backend_op(cx, move |b| {
+                    b.settings.update_app(|s| s.ui.stores.set(runner, shown))
+                })
+            }
+        };
+        let hide = ShownStores::can_hide(runner).then(|| {
+            Button::new("hide")
+                .ghost()
+                .icon(IconName::EyeOff)
+                .label(t("manage.accounts.hide"))
+                .on_click(set_shown(false))
+        });
         let actions: AnyElement =
-            if !card_data.disabled && card_data.expired.is_some() {
+            if card_data.hidden {
+                Button::new("show")
+                    .icon(IconName::Eye)
+                    .label(t("manage.accounts.show"))
+                    .on_click(set_shown(true))
+                    .into_any_element()
+            } else if !card_data.disabled && card_data.expired.is_some() {
                 h_flex()
                     .flex_wrap()
                     .gap_2()
@@ -302,6 +336,7 @@ impl AccountsView {
                                 })),
                         )
                     })
+                    .children(hide)
                     .into_any_element()
             } else if card_data.disabled {
                 Button::new("enable")
@@ -335,14 +370,21 @@ impl AccountsView {
                                 this.confirm_logout(runner, window, cx)
                             })),
                     )
+                    .children(hide)
                     .into_any_element()
             } else {
-                Button::new("login")
-                    .primary()
-                    .icon(IconName::LogIn)
-                    .label(t("manage.accounts.login"))
-                    .disabled(!self.online)
-                    .on_click(move |_, window, cx| open_login_dialog(runner, window, cx))
+                h_flex()
+                    .flex_wrap()
+                    .gap_2()
+                    .child(
+                        Button::new("login")
+                            .primary()
+                            .icon(IconName::LogIn)
+                            .label(t("manage.accounts.login"))
+                            .disabled(!self.online)
+                            .on_click(move |_, window, cx| open_login_dialog(runner, window, cx)),
+                    )
+                    .children(hide)
                     .into_any_element()
             };
         card(cx)

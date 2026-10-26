@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "Téléchargement",
   "manage.downloads.files.cancel": "Annuler",
   "manage.downloads.files.show": "Afficher dans le dossier",
-  "manage.downloads.files.clear": "Effacer les terminés"
+  "manage.downloads.files.clear": "Effacer les terminés",
+  "manage.accounts.state.hidden": "Masquée",
+  "manage.accounts.hidden_detail": "Ses jeux n’apparaissent pas dans la bibliothèque. La connexion et les jeux installés sont conservés.",
+  "manage.accounts.hide": "Masquer",
+  "manage.accounts.show": "Afficher"
 }

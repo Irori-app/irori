@@ -12,7 +12,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, InstallPlatform, Paths, Runner, json_store};
+use ember_core::{GameId, GameInfo, InstallPlatform, Paths, Runner, ShownStores, json_store};
 use ember_services::{LibraryFilter, LibrarySnapshot, LibrarySort, StoreFilter, UserData};
 use ember_ui::i18n::{t, t_args};
 use serde::{Deserialize, Serialize};
@@ -346,10 +346,12 @@ pub fn save(filter: &ViewFilter) -> anyhow::Result<()> {
 }
 
 /// Stores the store switcher offers: stores with games in the library, plus
-/// stores the user is logged in to. Ordered like [`Runner::ALL`].
+/// stores the user is logged in to, leaving out stores the user hid.
+/// Ordered like [`Runner::ALL`].
 pub fn offered_stores(
     library: &LibrarySnapshot,
     logged_in: &dyn Fn(Runner) -> bool,
+    shown: &ShownStores,
 ) -> Vec<Runner> {
     let mut with_games = HashSet::new();
     for g in &library.games {
@@ -358,6 +360,7 @@ pub fn offered_stores(
     Runner::ALL
         .into_iter()
         .filter(|r| with_games.contains(r) || (r.has_account() && logged_in(*r)))
+        .filter(|r| shown.shows(*r))
         .collect()
 }
 
@@ -671,7 +674,8 @@ pub(crate) mod tests {
     #[test]
     fn offered_stores_include_logged_in_and_non_empty() {
         let lib = sample();
-        let stores = offered_stores(&lib, &|r| r == Runner::Zoom);
+        let shown = ShownStores::default();
+        let stores = offered_stores(&lib, &|r| r == Runner::Zoom, &shown);
         assert_eq!(
             stores,
             vec![
@@ -681,6 +685,14 @@ pub(crate) mod tests {
                 Runner::Sideload
             ]
         );
+        let shown = ShownStores {
+            epic: false,
+            ..shown
+        };
+        let stores = offered_stores(&lib, &|r| r != Runner::Gog, &shown);
+        assert!(!stores.contains(&Runner::Legendary));
+        assert!(stores.contains(&Runner::Nile));
+        assert!(stores.contains(&Runner::Gog));
     }
 
     #[test]

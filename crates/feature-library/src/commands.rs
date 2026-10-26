@@ -27,6 +27,9 @@ pub enum GameCommand {
     RemoveFromRecent,
     AddShortcut,
     RemoveShortcut,
+    /// Add a Steam shortcut, installed or not (Steam starts Ember, which
+    /// offers to install a game that isn't installed yet).
+    AddToSteam,
     OpenFolder,
     Verify,
     /// Open the uninstall confirmation (owned by the game feature).
@@ -129,6 +132,9 @@ pub fn menu(state: &GameState) -> Vec<Vec<GameCommand>> {
             None => files.extend([AddShortcut, RemoveShortcut]),
         }
     }
+    if !state.browser && (state.installed || state.installable) {
+        files.push(AddToSteam);
+    }
     if state.installed && state.has_install_path && !state.browser {
         files.push(OpenFolder);
     }
@@ -172,6 +178,7 @@ impl GameCommand {
             RemoveFromRecent => "library.command.remove_from_recent",
             AddShortcut => "library.command.add_shortcut",
             RemoveShortcut => "library.command.remove_shortcut",
+            AddToSteam => "library.command.add_to_steam",
             OpenFolder => "library.command.open_folder",
             Verify => "library.command.verify",
             Uninstall if state.sideload => "library.command.remove_app",
@@ -201,6 +208,7 @@ impl GameCommand {
             RemoveFromRecent => IconName::Minus,
             AddShortcut => IconName::Link2,
             RemoveShortcut => IconName::Link2Off,
+            AddToSteam => IconName::Gamepad2,
             OpenFolder => IconName::FolderOpen,
             Verify => IconName::ShieldCheck,
             Uninstall => IconName::Trash,
@@ -319,6 +327,21 @@ mod tests {
         assert_eq!(shortcut_items(&s), vec![AddShortcut]);
         s.installed = false;
         assert!(shortcut_items(&s).is_empty());
+    }
+
+    #[test]
+    fn steam_shortcuts_need_no_install() {
+        let mut s = GameState {
+            installable: true,
+            ..Default::default()
+        };
+        assert!(flat(&s).contains(&AddToSteam));
+        s.installed = true;
+        assert!(flat(&s).contains(&AddToSteam));
+        s.browser = true;
+        assert!(!flat(&s).contains(&AddToSteam));
+        let not_installable = GameState::default();
+        assert!(!flat(&not_installable).contains(&AddToSteam));
     }
 
     #[test]

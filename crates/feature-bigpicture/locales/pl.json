@@ -96,5 +96,6 @@
   "bigpicture.uninstall.confirm": "Odinstaluj",
   "bigpicture.empty.loading": "Wczytywanie biblioteki…",
   "bigpicture.empty.title": "Nie masz jeszcze gier",
-  "bigpicture.empty.description": "Zaloguj się do sklepu lub dodaj grę w bibliotece, a potem wróć tutaj."
+  "bigpicture.empty.description": "Zaloguj się do sklepu lub dodaj grę w bibliotece, a potem wróć tutaj.",
+  "bigpicture.menu.interface_size": "Rozmiar interfejsu: {percent}%"
 }

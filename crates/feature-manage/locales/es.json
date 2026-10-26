@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "Descargando",
   "manage.downloads.files.cancel": "Cancelar",
   "manage.downloads.files.show": "Mostrar en la carpeta",
-  "manage.downloads.files.clear": "Borrar terminados"
+  "manage.downloads.files.clear": "Borrar terminados",
+  "manage.accounts.state.hidden": "Oculta",
+  "manage.accounts.hidden_detail": "Sus juegos no aparecen en la biblioteca. La sesión y los juegos instalados se conservan.",
+  "manage.accounts.hide": "Ocultar",
+  "manage.accounts.show": "Mostrar"
 }

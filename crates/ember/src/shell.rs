@@ -593,6 +593,9 @@ impl Render for AppShell {
             .on_action(
                 cx.listener(|_, _: &EnterBigPicture, _, cx| nav::navigate(Route::BigPicture, cx)),
             )
+            .on_action(cx.listener(|_, _: &PickRandomGame, window, cx| {
+                ember_library::open_random_game(window, cx)
+            }))
             .when(!fullscreen_mode, |this| {
                 this.child(self.render_title_bar(window, cx))
             })

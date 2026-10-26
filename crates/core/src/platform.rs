@@ -62,6 +62,19 @@ pub fn steam_dir() -> PathBuf {
     }
 }
 
+/// Whether Ember runs inside Steam's controller interface: the Steam Deck's
+/// Game Mode (a gamescope session) or Steam Big Picture, which marks the
+/// programs it starts with `SteamGamepadUI=1`.
+pub fn in_steam_gamepad_ui() -> bool {
+    steam_gamepad_ui_from(|key| std::env::var(key).ok())
+}
+
+/// [`in_steam_gamepad_ui`] over an environment lookup.
+pub fn steam_gamepad_ui_from(var: impl Fn(&str) -> Option<String>) -> bool {
+    var("XDG_CURRENT_DESKTOP").is_some_and(|v| v.eq_ignore_ascii_case("gamescope"))
+        || var("SteamGamepadUI").is_some_and(|v| v.trim() == "1")
+}
+
 pub fn null_device() -> &'static str {
     if cfg!(windows) { "NUL" } else { "/dev/null" }
 }
@@ -93,6 +106,29 @@ pub fn bundle_executable(bundle: &Path) -> anyhow::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_steam_gamepad_ui() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |key: &str| {
+                pairs
+                    .iter()
+                    .find(|(k, _)| *k == key)
+                    .map(|(_, v)| v.to_string())
+            }
+        };
+        assert!(steam_gamepad_ui_from(env(&[(
+            "XDG_CURRENT_DESKTOP",
+            "gamescope"
+        )])));
+        assert!(steam_gamepad_ui_from(env(&[("SteamGamepadUI", "1")])));
+        assert!(!steam_gamepad_ui_from(env(&[("SteamGamepadUI", "0")])));
+        assert!(!steam_gamepad_ui_from(env(&[(
+            "XDG_CURRENT_DESKTOP",
+            "KDE"
+        )])));
+        assert!(!steam_gamepad_ui_from(env(&[])));
+    }
     #[test]
     fn host_build_matrix() {
         for host in [

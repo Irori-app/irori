@@ -12,9 +12,10 @@ mod model;
 mod text;
 mod view;
 
+use ember_core::GameId;
 use ember_ui::Route;
 use ember_ui::nav::{self, navigator};
-use gpui_kit::{App, KeyBinding};
+use gpui_kit::{App, Global, KeyBinding};
 
 pub use grid::{FocusGrid, GridMove};
 pub use view::BigPictureView;
@@ -91,6 +92,26 @@ pub fn toggle_big_picture(cx: &mut App) {
     } else {
         nav::navigate(Route::BigPicture, cx);
     }
+}
+
+/// A game Big Picture should show next (see [`show_game`]).
+#[derive(Default)]
+pub(crate) struct ShowGame(pub Option<GameId>);
+
+impl Global for ShowGame {}
+
+/// Focus `id` in Big Picture and open its commands (Install for a game that
+/// isn't installed yet). Big Picture picks it up when it is open, or when it
+/// opens next.
+pub fn show_game(id: GameId, cx: &mut App) {
+    cx.set_global(ShowGame(Some(id)));
+}
+
+/// The game requested through [`show_game`], once.
+pub(crate) fn take_shown_game(cx: &mut App) -> Option<GameId> {
+    let id = cx.try_global::<ShowGame>()?.0.clone()?;
+    cx.set_global(ShowGame(None));
+    Some(id)
 }
 
 /// Leave Big Picture: back to where the user came from, or the library when

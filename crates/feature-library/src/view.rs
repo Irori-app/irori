@@ -329,11 +329,11 @@ impl LibraryView {
             let lib = m.library.read(cx);
             (lib.snapshot.clone(), lib.user.clone(), lib.updates.clone())
         };
+        let app = m.settings.read(cx).app.clone();
         let stores = {
             let accounts = m.accounts.read(cx);
-            filter::offered_stores(&snapshot, &|r| accounts.is_logged_in(r))
+            filter::offered_stores(&snapshot, &|r| accounts.is_logged_in(r), &app.ui.stores)
         };
-        let app = m.settings.read(cx).app.clone();
         let filter = self.filters.read(cx).filter().clone();
         self.check_availability(&snapshot, cx);
         let missing = self.availability.missing().clone();
@@ -623,6 +623,30 @@ impl LibraryView {
                             this.shortcuts.remove(&id);
                             crate::notify_error(failed, &e, window, cx);
                         }
+                    })
+                    .ok();
+                })
+                .detach();
+            }
+            GameCommand::AddToSteam => {
+                let app = b.settings.app();
+                let task = ember_ui::run(cx, async move {
+                    let targets = ember_extras::shortcuts::ShortcutTargets {
+                        steam: true,
+                        ..Default::default()
+                    };
+                    ember_extras::shortcuts::add(&game, &app, targets).await
+                });
+                let failed = t_args("library.error.add_to_steam", &[("title", &title)]);
+                let done = t_args("library.steam_added", &[("title", &title)]);
+                cx.spawn_in(window, async move |_, cx| {
+                    let result = task.await;
+                    cx.update(|window, cx| match result {
+                        Ok(()) => window.push_notification(
+                            gpui_kit::component::notification::Notification::success(done),
+                            cx,
+                        ),
+                        Err(e) => crate::notify_error(failed, &e, window, cx),
                     })
                     .ok();
                 })
@@ -1327,6 +1351,14 @@ impl LibraryView {
                         ),
                 )
             })
+            .child(
+                Button::new("library-random")
+                    .small()
+                    .outline()
+                    .icon(IconName::Dices)
+                    .tooltip(t("library.random.tooltip"))
+                    .on_click(|_, window, cx| crate::random::open_random_game(window, cx)),
+            )
             .child(
                 Button::new("library-select")
                     .small()

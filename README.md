@@ -14,6 +14,8 @@ and kept in a bounded GPU cache.
 
 - One library across stores: fuzzy search, filters, sorting, categories, favourites,
   hidden games, "Continue playing", grid and list views — virtualized for large libraries.
+  Hide the stores you don't use, see installed games by drive, or let Ember pick a
+  random game (Ctrl+Shift+G).
 - One-click play from anywhere: library tiles, the game page, the Ctrl+K command palette,
   the tray menu, desktop/Steam shortcuts and `ember://launch/<runner>/<app>` links
   (Heroic's `heroic://` links work too).
@@ -25,7 +27,11 @@ and kept in a bounded GPU cache.
 - Cloud saves (Epic, GOG), GOG achievements and playtime, EOS overlay, ProtonDB, Steam
   Deck, anticheat and HowLongToBeat info.
 - Big Picture mode and full controller navigation (Xbox, PlayStation incl. DualSense,
-  Switch Pro, Steam Deck), with hotplug and battery display.
+  Switch Pro, Steam Deck), with hotplug and battery display. It opens by itself in the
+  Steam Deck's Game Mode, reads each press once alongside Steam Input, and scales up to
+  200 % for TVs.
+- "Add to Steam" for any game, installed or not, filed under an "Ember" collection;
+  Steam starts Ember, which offers to install a game that isn't installed yet.
 - One-click import of your Heroic accounts, installs, settings, favourites and categories.
 - Translated into 19 languages, switchable live; searchable settings.
 - Tray menu with recent games, desktop and Steam shortcuts, Discord Rich Presence,

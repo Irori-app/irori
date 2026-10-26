@@ -51,5 +51,7 @@
   "shell.playing.open": "{title} を開く",
   "shell.playing.stop": "停止",
   "shell.playing.stop_failed": "{title} を停止できませんでした",
-  "shell.nav.stats": "統計"
+  "shell.nav.stats": "統計",
+  "shell.palette.random": "ランダムにゲームを選ぶ",
+  "shell.palette.random_keywords": "ランダム おまかせ シャッフル ルーレット"
 }

@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "Se descarcă",
   "manage.downloads.files.cancel": "Anulează",
   "manage.downloads.files.show": "Arată în dosar",
-  "manage.downloads.files.clear": "Șterge cele terminate"
+  "manage.downloads.files.clear": "Șterge cele terminate",
+  "manage.accounts.state.hidden": "Ascuns",
+  "manage.accounts.hidden_detail": "Jocurile sale nu apar în bibliotecă. Autentificarea și jocurile instalate se păstrează.",
+  "manage.accounts.hide": "Ascunde",
+  "manage.accounts.show": "Afișează"
 }

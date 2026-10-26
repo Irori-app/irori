@@ -216,10 +216,12 @@ impl Backend {
             }
         });
 
-        // Rebuild the aggregated library when stores or user data change.
+        // Rebuild the aggregated library when stores or user data change, or
+        // the user shows or hides a store.
         let b = self.clone();
         self.spawn(async move {
             let mut rx = b.subscribe();
+            let mut shown = b.settings.app().ui.stores;
             loop {
                 match rx.recv().await {
                     Ok(Event::LibraryChanged(_) | Event::GameChanged(_)) => {
@@ -227,6 +229,13 @@ impl Backend {
                         tokio::time::sleep(Duration::from_millis(30)).await;
                         while rx.try_recv().is_ok() {}
                         b.rebuild_library();
+                    }
+                    Ok(Event::SettingsChanged) => {
+                        let now = b.settings.app().ui.stores;
+                        if now != shown {
+                            shown = now;
+                            b.rebuild_library();
+                        }
                     }
                     Ok(_) => {}
                     Err(broadcast::error::RecvError::Lagged(_)) => b.rebuild_library(),
@@ -351,10 +360,12 @@ impl Backend {
     }
 
     pub async fn refresh_all(&self, full: bool) {
+        let shown = self.settings.app().ui.stores;
         let jobs = self
             .stores
             .values()
             .filter(|s| s.is_logged_in() || s.runner() == Runner::Sideload)
+            .filter(|s| shown.shows(s.runner()))
             .map(|s| {
                 let s = s.clone();
                 let b = self.clone();

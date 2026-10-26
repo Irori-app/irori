@@ -54,6 +54,36 @@ struct Applied {
 
 impl Global for Applied {}
 
+/// Extra zoom on top of the interface size while a screen asks for it
+/// (Big Picture on a TV). Absent means 1.
+#[derive(Clone, Copy, PartialEq)]
+struct Zoom(f32);
+
+impl Global for Zoom {}
+
+fn zoom(cx: &App) -> f32 {
+    cx.try_global::<Zoom>().map_or(1.0, |z| z.0)
+}
+
+/// Scale the whole interface by `zoom` on top of the interface size the user
+/// picked (1 = none). Big Picture sets its TV size with this while it shows
+/// and resets it to 1 when it closes.
+pub fn set_zoom(zoom: f32, cx: &mut App) {
+    let zoom = zoom.clamp(0.5, 3.0);
+    if self::zoom(cx) == zoom {
+        return;
+    }
+    cx.set_global(Zoom(zoom));
+    let Some(base) = cx
+        .try_global::<Applied>()
+        .map(|a| f32::from_bits(a.font_size))
+    else {
+        return;
+    };
+    Theme::update(cx, |theme| theme.font_size = px(base * zoom));
+    cx.refresh_windows();
+}
+
 pub(crate) fn install(cx: &mut App) {
     let fonts = FONTS
         .iter()
@@ -188,8 +218,9 @@ pub fn apply(prefs: &UiPrefs, window: Option<&mut Window>, cx: &mut App) {
         } == next
     });
     cx.set_global(next);
+    let zoomed = font_size * zoom(cx);
     if only_size {
-        Theme::update(cx, |theme| theme.font_size = px(font_size));
+        Theme::update(cx, |theme| theme.font_size = px(zoomed));
         return;
     }
 
@@ -200,7 +231,7 @@ pub fn apply(prefs: &UiPrefs, window: Option<&mut Window>, cx: &mut App) {
         if let Some(d) = &dark {
             theme.apply_config(d);
         }
-        theme.font_size = px(font_size);
+        theme.font_size = px(zoomed);
         // The typeface is part of Ember's identity, whatever the colours.
         theme.font_family = FONT_FAMILY.into();
     });
@@ -335,6 +366,20 @@ mod tests {
             assert_eq!(cx.theme().theme_name().as_ref(), "Tokyo Storm");
             assert_eq!(cx.theme().font_size, px(20.0));
         });
+    }
+
+    #[gpui_kit::test]
+    fn zoom_scales_the_interface_size(cx: &mut TestAppContext) {
+        setup(cx);
+        let mut p = prefs(ThemePreference::Dark, "");
+        cx.update(|cx| apply(&p, None, cx));
+        cx.update(|cx| set_zoom(1.5, cx));
+        cx.read(|cx| assert_eq!(cx.theme().font_size, px(24.0)));
+        p.font_size = 20.0;
+        cx.update(|cx| apply(&p, None, cx));
+        cx.read(|cx| assert_eq!(cx.theme().font_size, px(30.0)));
+        cx.update(|cx| set_zoom(1.0, cx));
+        cx.read(|cx| assert_eq!(cx.theme().font_size, px(20.0)));
     }
 
     #[gpui_kit::test]

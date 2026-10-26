@@ -226,5 +226,9 @@
   "manage.downloads.files.running": "İndiriliyor",
   "manage.downloads.files.cancel": "İptal",
   "manage.downloads.files.show": "Klasörde göster",
-  "manage.downloads.files.clear": "Bitenleri temizle"
+  "manage.downloads.files.clear": "Bitenleri temizle",
+  "manage.accounts.state.hidden": "Gizli",
+  "manage.accounts.hidden_detail": "Oyunları kitaplıkta gösterilmez. Oturum ve yüklü oyunlar korunur.",
+  "manage.accounts.hide": "Gizle",
+  "manage.accounts.show": "Göster"
 }

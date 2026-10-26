@@ -41,7 +41,7 @@ use crate::gamepad::{self, GamepadInput};
 use crate::grid::{FocusGrid, GridMove};
 use crate::model::{
     GameAction, GameState, MenuItem, Row, RowKind, build_rows, default_install_request,
-    default_platform, disabled_reason, game_actions, menu_items,
+    default_platform, disabled_reason, game_actions, menu_items, next_scale,
 };
 use crate::text::{self, status_label, status_with_percent, store_name};
 
@@ -155,18 +155,26 @@ impl BigPictureView {
                 this.refresh_rows(cx);
                 cx.notify();
             }),
-            cx.observe(&m.settings, |this, _, cx| {
+            cx.observe(&m.settings, |this, settings, cx| {
+                let zoom = settings.read(cx).app.ui.big_picture_zoom();
+                ember_ui::theme::set_zoom(zoom, cx);
                 this.refresh_rows(cx);
                 cx.notify();
             }),
             cx.observe(&m.statuses, |_, _, cx| cx.notify()),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
             cx.observe(&art_store(cx), |_, _, cx| cx.notify()),
+            cx.observe_global::<crate::ShowGame>(|this, cx| this.show_requested_game(cx)),
             cx.on_focus_lost(window, |this, window, cx| this.focus.focus(window, cx)),
         ];
         if let Some(pad) = gamepad::model(cx) {
             subscriptions.push(cx.observe(&pad, |_, _, cx| cx.notify()));
         }
+
+        // Big Picture's own interface size, for TVs, while it shows.
+        ember_ui::theme::set_zoom(m.settings.read(cx).app.ui.big_picture_zoom(), cx);
+        cx.on_release(|_, cx| ember_ui::theme::set_zoom(1.0, cx))
+            .detach();
 
         let restore_fullscreen = window.is_fullscreen();
         if !restore_fullscreen {
@@ -212,8 +220,34 @@ impl BigPictureView {
             _subscriptions: subscriptions,
         };
         this.refresh_rows(cx);
+        this.show_requested_game(cx);
         this.hero = this.focused_game().cloned();
         this
+    }
+
+    /// Focus the game asked for through [`crate::show_game`] and open its
+    /// commands.
+    fn show_requested_game(&mut self, cx: &mut Context<Self>) {
+        let Some(id) = crate::take_shown_game(cx) else {
+            return;
+        };
+        let found = self.rows.iter().enumerate().find_map(|(row, r)| {
+            r.games
+                .iter()
+                .position(|g| g.id() == id)
+                .map(|col| (row, col))
+        });
+        if let Some((row, col)) = found {
+            let lens = self.lens();
+            self.grid.set(row, col, &lens);
+            self.after_focus_change(cx);
+        }
+        self.overlay = Some(Overlay::Game {
+            id,
+            ix: 0,
+            confirm: None,
+        });
+        cx.notify();
     }
 
     /// The focused game, if any shelf has games.
@@ -757,8 +791,10 @@ impl BigPictureView {
     }
 
     fn menu(&self, cx: &App) -> Vec<MenuItem> {
-        let queue = &models(cx).downloads.read(cx).queue;
-        menu_items(!queue.active.is_empty(), queue.paused)
+        let m = models(cx);
+        let queue = &m.downloads.read(cx).queue;
+        let scale = m.settings.read(cx).app.ui.big_picture_scale;
+        menu_items(!queue.active.is_empty(), queue.paused, scale)
     }
 
     fn activate_menu_item(&mut self, item: MenuItem, window: &mut Window, cx: &mut Context<Self>) {
@@ -786,6 +822,14 @@ impl BigPictureView {
                     }
                 })
                 .detach();
+            }
+            MenuItem::InterfaceSize(current) => {
+                let next = next_scale(current);
+                let task = ember_ui::run(cx, async move {
+                    b.settings.update_app(|app| app.ui.big_picture_scale = next);
+                    Ok::<_, anyhow::Error>(())
+                });
+                task.detach();
             }
             MenuItem::ToggleFullscreen => window.toggle_fullscreen(),
             MenuItem::ExitBigPicture => {
