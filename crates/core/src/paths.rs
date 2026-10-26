@@ -83,6 +83,23 @@ impl Paths {
         self.cache.join("stores").join(runner.id())
     }
 
+    /// Credentials and installs of a store account other than the first
+    /// (see `ember_services::accounts`).
+    pub fn account_config_dir(&self, runner: Runner, slot: &str) -> PathBuf {
+        self.store_config_dir(runner)
+            .join("accounts")
+            .join(sanitize(slot))
+    }
+
+    /// Caches of a store account other than the first. Kept apart from
+    /// [`Paths::store_cache_dir`], which stores clear when logging out.
+    pub fn account_cache_dir(&self, runner: Runner, slot: &str) -> PathBuf {
+        self.cache
+            .join("accounts")
+            .join(runner.id())
+            .join(sanitize(slot))
+    }
+
     pub fn images_dir(&self) -> PathBuf {
         self.cache.join("images")
     }

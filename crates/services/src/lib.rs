@@ -7,6 +7,7 @@
 //! accessors (`library`, `settings`, `status`…) are lock-protected snapshots and
 //! safe to call from render.
 
+pub mod accounts;
 pub mod backup;
 mod discord;
 mod downloads;
@@ -33,6 +34,7 @@ use parking_lot::{Mutex, RwLock};
 use tokio::runtime::Runtime;
 use tokio::sync::{Notify, broadcast};
 
+pub use accounts::{MakeSlot, MultiAccountStore, SlotDirs};
 pub use backup::{Backup, BackupParts, ExportFormat, RestoreSummary};
 pub use downloads::{DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
 pub use files::{FileDownload, FileState, key_of as file_download_key};

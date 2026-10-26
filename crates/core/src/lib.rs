@@ -28,7 +28,8 @@ pub use runner::{GameId, InstallPlatform, Runner};
 pub use settings::*;
 pub use status::{GameStatus, StatusKind};
 pub use store::{
-    DynStore, InstallInfoQuery, LoginFlow, OpContext, SessionExpired, SettingsFn, Store,
+    DynStore, InstallInfoQuery, LoginFlow, MAIN_ACCOUNT, OpContext, SessionExpired, SettingsFn,
+    Store, StoreAccount,
 };
 
 pub use anyhow;
