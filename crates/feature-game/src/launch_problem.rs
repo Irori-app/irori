@@ -90,6 +90,18 @@ impl LaunchHint {
     ];
 }
 
+/// Index of the first line the game itself wrote: Ember's log header (game,
+/// paths, the settings as JSON) ends with the launch command. The header
+/// would otherwise feed the hints, e.g. `"battlEyeRuntime":true`.
+pub fn game_output_start<'a>(lines: impl IntoIterator<Item = &'a str>) -> usize {
+    lines
+        .into_iter()
+        .enumerate()
+        .filter(|(_, l)| l.starts_with("Launch command:"))
+        .last()
+        .map_or(0, |(i, _)| i + 1)
+}
+
 /// The likely causes found in `lines`, most telling first.
 pub fn launch_hints<'a>(lines: impl IntoIterator<Item = &'a str>) -> Vec<LaunchHint> {
     let mut found = Vec::new();
@@ -131,6 +143,8 @@ pub struct LaunchProblem {
     exit_code: Option<i32>,
     needs_wine: bool,
     tail: Load<Option<Arc<LogTail>>>,
+    /// Where the game's own output starts in `tail`.
+    output_start: usize,
     hints: Vec<LaunchHint>,
     fix: Option<KnownFix>,
     wines: Load<Vec<WineInstallation>>,
@@ -168,6 +182,7 @@ impl LaunchProblem {
             exit_code,
             needs_wine,
             tail: Load::Loading,
+            output_start: 0,
             hints: Vec::new(),
             fix: None,
             wines: Load::Idle,
@@ -193,7 +208,9 @@ impl LaunchProblem {
             let _ = this.update(cx, |this, cx| {
                 this.tail = Load::from_result(tail.map(|t| t.map(Arc::new)));
                 if let Some(Some(tail)) = this.tail.ready() {
-                    this.hints = launch_hints(tail.lines.iter().map(|(_, l)| l.as_ref()));
+                    let start = game_output_start(tail.lines.iter().map(|(_, l)| l.as_ref()));
+                    this.output_start = start;
+                    this.hints = launch_hints(tail.lines[start..].iter().map(|(_, l)| l.as_ref()));
                 }
                 this.fix = fix;
                 cx.notify();
@@ -315,8 +332,16 @@ impl LaunchProblem {
     fn render_log(&self, cx: &App) -> AnyElement {
         let theme = cx.theme();
         let body = match &self.tail {
-            Load::Ready(Some(tail)) if !tail.lines.is_empty() => {
-                let start = tail.lines.len().saturating_sub(SHOWN_LINES);
+            Load::Ready(Some(tail))
+                if tail.lines[self.output_start..]
+                    .iter()
+                    .any(|(_, l)| !l.trim().is_empty()) =>
+            {
+                let start = tail
+                    .lines
+                    .len()
+                    .saturating_sub(SHOWN_LINES)
+                    .max(self.output_start);
                 v_flex()
                     .children(tail.lines[start..].iter().map(|(level, text)| {
                         let color = match level {
@@ -485,5 +510,21 @@ mod tests {
             vec![LaunchHint::PermissionDenied]
         );
         assert!(launch_hints(["Started", "fixme:d3d:stub"]).is_empty());
+    }
+
+    #[test]
+    fn reads_only_what_the_game_wrote() {
+        let log = [
+            "Ember 0.1.0 - Game (sideload:game)",
+            r#"Settings: {"battlEyeRuntime":true,"eacRuntime":true}"#,
+            "",
+            "Launch command: /games/start.sh",
+            "",
+            "Starting",
+        ];
+        let start = game_output_start(log);
+        assert_eq!(start, 4);
+        assert!(launch_hints(log[start..].iter().copied()).is_empty());
+        assert_eq!(game_output_start(["no header", "at all"]), 0);
     }
 }

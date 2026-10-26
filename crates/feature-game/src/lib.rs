@@ -44,7 +44,7 @@ pub use install::{
     InstallFooter, InstallMode, InstallSheet, installable_platforms, open_install_sheet,
     open_modify_sheet,
 };
-pub use launch_problem::{LaunchHint, launch_hints, open_launch_problem_sheet};
+pub use launch_problem::{LaunchHint, game_output_start, launch_hints, open_launch_problem_sheet};
 pub use logs::{LineLevel, LogTail, LogViewer, open_log_sheet, parse_tail};
 pub use manage::{
     ImportForm, UninstallOptions, open_cancel_download_dialog, open_import_dialog,
