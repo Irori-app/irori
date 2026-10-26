@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Dosarul pentru joc",
   "game.install.pin": "Păstrează jocul la o anumită versiune",
   "game.install.pin_failed": "Fixarea versiunii nu a putut fi modificată",
+  "game.install.skip_updates": "Nu actualiza acest joc",
   "game.install.size_on_disk": "Dimensiune pe disc",
   "game.install.start_failed": "Instalarea nu a putut fi pornită",
   "game.install.third_party": "Acest joc se instalează prin {app}. Ember pornește {app} pentru a finaliza instalarea.",

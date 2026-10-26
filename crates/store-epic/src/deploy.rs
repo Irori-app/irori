@@ -439,6 +439,7 @@ impl EpicStore {
             save_timestamp: previous.save_timestamp,
             egl_guid: previous.egl_guid,
             manifest_secrets: secrets.into_iter().collect(),
+            pinned_version: previous.pinned_version,
             third_party: false,
         };
         let export = !entry.is_dlc && entry.platform.starts_with("Win");

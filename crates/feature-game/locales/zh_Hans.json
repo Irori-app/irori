@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "游戏安装文件夹",
   "game.install.pin": "将游戏保持在特定版本",
   "game.install.pin_failed": "无法更改版本固定",
+  "game.install.skip_updates": "不更新此游戏",
   "game.install.size_on_disk": "占用空间",
   "game.install.start_failed": "无法开始安装",
   "game.install.third_party": "此游戏通过 {app} 安装。Ember 会启动 {app} 来完成安装。",

@@ -80,6 +80,7 @@ impl EpicStore {
         }
         if !offline
             && !request.skip_version_check
+            && !installed.pinned_version
             && let Some(latest) = self
                 .record(&launch_app)
                 .and_then(|r| r.version(installed.platform_arg()).map(str::to_string))

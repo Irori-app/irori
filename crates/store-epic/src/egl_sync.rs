@@ -209,6 +209,7 @@ impl EpicStore {
             save_path: previous.save_path,
             save_timestamp: previous.save_timestamp,
             prereq: previous.prereq,
+            pinned_version: previous.pinned_version,
             ..Default::default()
         };
         let app = item.app_name().to_string();

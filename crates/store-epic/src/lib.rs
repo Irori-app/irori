@@ -1124,7 +1124,7 @@ impl Store for EpicStore {
         let mut out: Vec<String> = state
             .installed
             .values()
-            .filter(|g| !g.third_party)
+            .filter(|g| !g.third_party && !g.pinned_version)
             .filter(|g| {
                 state
                     .records
@@ -1277,6 +1277,16 @@ impl Store for EpicStore {
         self.update_installed(|map| {
             if let Some(g) = map.get_mut(app_name) {
                 g.install_path = want;
+            }
+        })
+        .await
+    }
+
+    async fn set_version_pinned(&self, app_name: &str, pinned: bool) -> Result<()> {
+        self.require_installed(app_name)?;
+        self.update_installed(|map| {
+            if let Some(g) = map.get_mut(app_name) {
+                g.pinned_version = pinned;
             }
         })
         .await

@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "게임을 설치할 폴더",
   "game.install.pin": "게임을 특정 버전으로 유지",
   "game.install.pin_failed": "버전 고정을 변경할 수 없습니다",
+  "game.install.skip_updates": "이 게임 업데이트 안 함",
   "game.install.size_on_disk": "디스크 사용량",
   "game.install.start_failed": "설치를 시작할 수 없습니다",
   "game.install.third_party": "이 게임은 {app}을(를) 통해 설치됩니다. Ember가 설치를 마치기 위해 {app}을(를) 실행합니다.",

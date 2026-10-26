@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Folder for the game",
   "game.install.pin": "Keep the game at a specific version",
   "game.install.pin_failed": "Couldn't change the version pin",
+  "game.install.skip_updates": "Don’t update this game",
   "game.install.size_on_disk": "Size on disk",
   "game.install.start_failed": "Couldn't start the install",
   "game.install.third_party": "This game is installed through {app}. Ember starts {app} to finish the installation.",

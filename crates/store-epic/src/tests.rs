@@ -344,6 +344,28 @@ async fn installs_updates_repairs_launches_and_uninstalls() {
         .await
         .unwrap_err();
     assert!(err.to_string().contains("has an update"), "{err:#}");
+
+    // A pinned version is neither offered an update nor refused at launch,
+    // and the pin survives a restart.
+    f.store.set_version_pinned(APP, true).await.unwrap();
+    assert!(f.store.updatable_games().await.unwrap().is_empty());
+    f.store
+        .launch(APP, &request, OpContext::detached())
+        .await
+        .unwrap();
+    let reread = new_store(&f.root, &f.server).await;
+    reread.init().await.unwrap();
+    assert!(
+        reread
+            .game(APP)
+            .unwrap()
+            .install
+            .as_ref()
+            .unwrap()
+            .pinned_version
+    );
+    f.store.set_version_pinned(APP, false).await.unwrap();
+    assert_eq!(f.store.updatable_games().await.unwrap(), [APP]);
     let before = fetches(&f, "ChunksV4/01/");
     let outcome = f
         .store

@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Тека для гри",
   "game.install.pin": "Залишити гру на певній версії",
   "game.install.pin_failed": "Не вдалося змінити закріплення версії",
+  "game.install.skip_updates": "Не оновлювати цю гру",
   "game.install.size_on_disk": "Розмір на диску",
   "game.install.start_failed": "Не вдалося почати встановлення",
   "game.install.third_party": "Ця гра встановлюється через {app}. Ember запустить {app}, щоб завершити встановлення.",

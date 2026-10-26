@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Map voor de game",
   "game.install.pin": "De game op een specifieke versie houden",
   "game.install.pin_failed": "De versievastzetting kon niet worden gewijzigd",
+  "game.install.skip_updates": "Deze game niet bijwerken",
   "game.install.size_on_disk": "Grootte op schijf",
   "game.install.start_failed": "De installatie kon niet worden gestart",
   "game.install.third_party": "Deze game wordt geïnstalleerd via {app}. Ember start {app} om de installatie te voltooien.",

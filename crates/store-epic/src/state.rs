@@ -150,6 +150,10 @@ pub(crate) struct InstalledGame {
     /// Decryption keys of the installed build.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub manifest_secrets: BTreeMap<String, String>,
+    /// The user keeps this version: no update checks. Ember's own key;
+    /// legendary ignores it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub pinned_version: bool,
     #[serde(skip)]
     pub third_party: bool,
 }
@@ -182,6 +186,7 @@ impl InstalledGame {
             platform: self.install_platform(),
             is_dlc: self.is_dlc,
             sdl: self.install_tags.clone(),
+            pinned_version: self.pinned_version,
             ..Default::default()
         }
     }

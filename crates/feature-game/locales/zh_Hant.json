@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "遊戲安裝資料夾",
   "game.install.pin": "將遊戲維持在特定版本",
   "game.install.pin_failed": "無法變更版本固定",
+  "game.install.skip_updates": "不更新此遊戲",
   "game.install.size_on_disk": "磁碟佔用空間",
   "game.install.start_failed": "無法開始安裝",
   "game.install.third_party": "此遊戲透過 {app} 安裝。Ember 會啟動 {app} 以完成安裝。",

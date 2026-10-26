@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Папка для игры",
   "game.install.pin": "Оставить игру на определённой версии",
   "game.install.pin_failed": "Не удалось изменить закрепление версии",
+  "game.install.skip_updates": "Не обновлять эту игру",
   "game.install.size_on_disk": "Размер на диске",
   "game.install.start_failed": "Не удалось начать установку",
   "game.install.third_party": "Эта игра устанавливается через {app}. Ember запустит {app}, чтобы завершить установку.",

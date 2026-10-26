@@ -218,6 +218,7 @@
   "game.install.path_placeholder": "Carpeta para el juego",
   "game.install.pin": "Mantener el juego en una versión concreta",
   "game.install.pin_failed": "No se pudo cambiar la fijación de versión",
+  "game.install.skip_updates": "No actualizar este juego",
   "game.install.size_on_disk": "Tamaño en disco",
   "game.install.start_failed": "No se pudo iniciar la instalación",
   "game.install.third_party": "Este juego se instala a través de {app}. Ember inicia {app} para terminar la instalación.",

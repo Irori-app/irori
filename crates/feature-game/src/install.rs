@@ -1162,6 +1162,24 @@ impl InstallSheet {
                 );
             }
             out.push(col.into_any_element());
+        } else if self.is_modify() && self.id.runner == Runner::Legendary {
+            // Epic offers only its latest build, but an installed game can
+            // stay at the version it has.
+            out.push(
+                v_flex()
+                    .gap_2()
+                    .child(Self::render_section(t("game.common.version"), cx))
+                    .child(
+                        Checkbox::new("skip-updates")
+                            .label(t("game.install.skip_updates"))
+                            .checked(self.pin_build)
+                            .on_change(cx.listener(|this, v: &bool, _, cx| {
+                                this.pin_build = *v;
+                                cx.notify();
+                            })),
+                    )
+                    .into_any_element(),
+            );
         }
         // Optional components are chosen at install time only.
         if !info.sdl.is_empty() && !self.is_modify() {
