@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "게임을 시작하는 프로그램으로, 가장 바깥쪽부터 순서대로 입력합니다.",
   "settings.field.wrapper_options.label": "래퍼 명령어",
   "settings.field.zoom_platform.label": "ZOOM Platform 스토어",
+  "settings.field.itch_io.label": "itch.io 스토어",
+  "settings.field.itch_io.help": "itch.io API 키로 로그인하면 보유한 게임을 설치, 업데이트, 실행할 수 있습니다.",
   "settings.game.back": "게임으로 돌아가기",
   "settings.game.native_note": "이 게임은 네이티브로 실행되므로 Wine 및 Proton 설정이 적용되지 않습니다.",
   "settings.game.open_defaults": "게임 기본값",

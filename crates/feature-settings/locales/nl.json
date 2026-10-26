@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Programma’s die de game starten, buitenste eerst.",
   "settings.field.wrapper_options.label": "Wrapper-opdrachten",
   "settings.field.zoom_platform.label": "ZOOM Platform-store",
+  "settings.field.itch_io.label": "itch.io-winkel",
+  "settings.field.itch_io.help": "Log in met een API-sleutel van itch.io om je games daar te installeren, bij te werken en te spelen.",
   "settings.game.back": "Terug naar game",
   "settings.game.native_note": "Deze game draait native, dus Wine- en Proton-instellingen zijn niet van toepassing.",
   "settings.game.open_defaults": "Gamestandaarden",

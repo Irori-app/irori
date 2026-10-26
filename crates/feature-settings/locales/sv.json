@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Program som startar spelet, det yttersta först.",
   "settings.field.wrapper_options.label": "Wrapperkommandon",
   "settings.field.zoom_platform.label": "ZOOM Platform-butiken",
+  "settings.field.itch_io.label": "itch.io-butiken",
+  "settings.field.itch_io.help": "Logga in med en API-nyckel från itch.io för att installera, uppdatera och spela spelen du äger där.",
   "settings.game.back": "Tillbaka till spelet",
   "settings.game.native_note": "Det här spelet körs inbyggt, så inställningar för Wine och Proton gäller inte för det.",
   "settings.game.open_defaults": "Standardinställningar för spel",

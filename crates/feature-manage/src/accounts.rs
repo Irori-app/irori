@@ -27,11 +27,12 @@ use crate::login::open_login_dialog;
 
 /// Stores with a card on the accounts page, in display order. Steam has no
 /// login: its card reports what Ember found on this computer.
-pub(crate) const ACCOUNT_STORES: [Runner; 5] = [
+pub(crate) const ACCOUNT_STORES: [Runner; 6] = [
     Runner::Legendary,
     Runner::Gog,
     Runner::Nile,
     Runner::Zoom,
+    Runner::Itch,
     Runner::Steam,
 ];
 
@@ -42,8 +43,26 @@ pub(crate) fn store_icon(runner: Runner) -> IconName {
         Runner::Gog => IconName::Store,
         Runner::Nile => IconName::ShoppingBag,
         Runner::Zoom => IconName::Package,
+        Runner::Itch => IconName::Gem,
         Runner::Steam => IconName::Joystick,
         Runner::Sideload => IconName::FolderOpen,
+    }
+}
+
+/// Whether an opt-in store is turned on (stores without a switch always are).
+pub(crate) fn store_enabled(app: &ember_core::AppSettings, runner: Runner) -> bool {
+    match runner {
+        Runner::Zoom => app.zoom_platform,
+        Runner::Itch => app.itch_io,
+        _ => true,
+    }
+}
+
+fn set_store_enabled(app: &mut ember_core::AppSettings, runner: Runner, on: bool) {
+    match runner {
+        Runner::Zoom => app.zoom_platform = on,
+        Runner::Itch => app.itch_io = on,
+        _ => {}
     }
 }
 
@@ -53,7 +72,7 @@ pub(crate) struct StoreCard {
     pub runner: Runner,
     pub user: Option<String>,
     pub games: usize,
-    /// ZOOM support is turned off in the settings.
+    /// The store (ZOOM Platform, itch.io) is turned off in the settings.
     pub disabled: bool,
     /// The user hid the store: its games and pages are left out.
     pub hidden: bool,
@@ -70,7 +89,6 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
     let accounts = m.accounts.read(cx);
     let library = m.library.read(cx);
     let app = &m.settings.read(cx).app;
-    let zoom_enabled = app.zoom_platform;
     let shown = app.ui.stores;
     let mut counts: BTreeMap<Runner, usize> = BTreeMap::new();
     for g in &library.snapshot.games {
@@ -90,7 +108,7 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
                 }
             }),
             games: counts.get(&runner).copied().unwrap_or(0),
-            disabled: runner == Runner::Zoom && !zoom_enabled,
+            disabled: !store_enabled(app, runner),
             hidden: !shown.shows(runner),
             expired: accounts.login_expired(runner).map(str::to_string),
             local: !runner.has_account(),
@@ -282,7 +300,10 @@ impl AccountsView {
             (_, true) => div()
                 .text_sm()
                 .text_color(theme.muted_foreground)
-                .child(t("manage.accounts.zoom_turned_off"))
+                .child(t_args(
+                    "manage.accounts.turned_off",
+                    &[("store", runner.store_name())],
+                ))
                 .into_any_element(),
             (Some(user), _) => v_flex()
                 .gap_0p5()
@@ -354,8 +375,11 @@ impl AccountsView {
             } else if card_data.disabled {
                 Button::new("enable")
                     .label(t("manage.accounts.turn_on"))
-                    .on_click(|_, _, cx| {
-                        backend_op(cx, |b| b.settings.update_app(|s| s.zoom_platform = true))
+                    .on_click(move |_, _, cx| {
+                        backend_op(cx, move |b| {
+                            b.settings
+                                .update_app(|s| set_store_enabled(s, runner, true))
+                        })
                     })
                     .into_any_element()
             } else if card_data.user.is_some() {

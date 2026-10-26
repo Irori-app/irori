@@ -342,6 +342,9 @@ pub struct AppSettings {
     pub steam_grid_db_api_key: String,
     pub comet_support: bool,
     pub zoom_platform: bool,
+    /// The itch.io store (off until turned on). Ember-only.
+    #[serde(rename = "emberItchIo")]
+    pub itch_io: bool,
     /// UI language code ("en", "de", …).
     #[serde(rename = "uiLanguage")]
     pub ui_language: String,
@@ -407,6 +410,7 @@ impl Default for AppSettings {
             steam_grid_db_api_key: String::new(),
             comet_support: true,
             zoom_platform: true,
+            itch_io: false,
             ui_language: "en".into(),
             ui: UiPrefs::default(),
         }
@@ -474,8 +478,8 @@ pub struct UiPrefs {
 
 /// Which stores Ember shows. A hidden store keeps its sign-in and installed
 /// games on disk; its games, account card and store page are left out.
-/// ZOOM Platform follows `zoomPlatform`, and apps the user added are always
-/// shown.
+/// ZOOM Platform follows `zoomPlatform`, itch.io follows `emberItchIo`, and
+/// apps the user added are always shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShownStores {
@@ -504,19 +508,19 @@ impl ShownStores {
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
             Runner::Steam => self.steam,
-            Runner::Zoom | Runner::Sideload => true,
+            Runner::Zoom | Runner::Itch | Runner::Sideload => true,
         }
     }
 
-    /// Show or hide a store. ZOOM Platform and added apps have no switch
-    /// here, so they are left as they are.
+    /// Show or hide a store. ZOOM Platform, itch.io and added apps have no
+    /// switch here, so they are left as they are.
     pub fn set(&mut self, runner: Runner, shown: bool) {
         match runner {
             Runner::Legendary => self.epic = shown,
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
             Runner::Steam => self.steam = shown,
-            Runner::Zoom | Runner::Sideload => {}
+            Runner::Zoom | Runner::Itch | Runner::Sideload => {}
         }
     }
 

@@ -160,7 +160,7 @@ pub(super) fn build_menu(
                     .disabled(!idle || id.runner == Runner::Zoom)
                     .on_click(move |_, _, cx| ops::queue_update(&i, cx)),
             );
-            if matches!(id.runner, Runner::Legendary | Runner::Gog) {
+            if matches!(id.runner, Runner::Legendary | Runner::Gog | Runner::Itch) {
                 let i = id.clone();
                 menu = menu.item(
                     item("game.menu.modify", IconName::Layers)

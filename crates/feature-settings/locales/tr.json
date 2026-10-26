@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Oyunu başlatan programlar; en dıştaki önce gelir.",
   "settings.field.wrapper_options.label": "Sarmalayıcı komutlar",
   "settings.field.zoom_platform.label": "ZOOM Platform mağazası",
+  "settings.field.itch_io.label": "itch.io mağazası",
+  "settings.field.itch_io.help": "Oradaki oyunlarınızı yüklemek, güncellemek ve oynamak için bir itch.io API anahtarıyla giriş yapın.",
   "settings.game.back": "Oyuna dön",
   "settings.game.native_note": "Bu oyun yerel olarak çalıştığı için Wine ve Proton ayarları ona uygulanmaz.",
   "settings.game.open_defaults": "Oyun varsayılanları",

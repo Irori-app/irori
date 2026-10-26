@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "用于启动游戏的程序，最外层的在前。",
   "settings.field.wrapper_options.label": "封装器命令",
   "settings.field.zoom_platform.label": "ZOOM Platform 商店",
+  "settings.field.itch_io.label": "itch.io 商店",
+  "settings.field.itch_io.help": "使用 itch.io API 密钥登录后，即可安装、更新和游玩你在那里拥有的游戏。",
   "settings.game.back": "返回游戏",
   "settings.game.native_note": "此游戏以原生方式运行，因此 Wine 和 Proton 设置对其无效。",
   "settings.game.open_defaults": "游戏默认设置",

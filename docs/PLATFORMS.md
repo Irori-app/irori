@@ -116,6 +116,16 @@ launch options and overlay. The opener exits at once, so Ember records no sessio
 these games; the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` are
 merged into Ember's playtime instead.
 
+itch.io (turned on in Settings › General › Integrations, or from its account card)
+signs in with an API key from `https://itch.io/user/settings/api-keys`, kept owner-only
+in the store's config folder. Installs download the upload that fits the platform into
+`<install folder>/.itch-download/<game id>/` (resumable), then unpack zip and tar
+archives (gzip, xz, bzip2) into the game folder; other single files such as AppImages
+or portable `.exe` files are copied as they are, and disk images, 7-Zip and RAR files
+are refused. Updates unpack next to the game and swap folders, so a failed update leaves
+the old files in place. The program to start comes from the game's `.itch.toml` when it
+has one, else from a search of the folder.
+
 On Linux a Steam game's menu offers Protontricks once Steam has made its Proton prefix
 (`steamapps/compatdata/<id>/pfx`). Ember runs `protontricks` from `PATH`, or the Flathub
 app `com.github.Matoking.protontricks`, with `STEAM_DIR` set to the Steam folder it reads.

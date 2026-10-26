@@ -26,6 +26,8 @@ ember-amazon-api = { path = "crates/amazon" }
 ember-epic-api = { path = "crates/epic" }
 ember-gog-api = { path = "crates/gog" }
 ember-gog-galaxy = { path = "crates/gog-galaxy" }
+ember-itch-api = { path = "crates/itch" }
+ember-itch = { path = "crates/store-itch" }
 ember-services = { path = "crates/services" }
 ember-extras = { path = "crates/extras" }
 ember-ui = { path = "crates/ui" }

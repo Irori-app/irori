@@ -2054,6 +2054,7 @@ dependencies = [
  "ember-extras",
  "ember-game",
  "ember-gog",
+ "ember-itch",
  "ember-library",
  "ember-manage",
  "ember-runtime",
@@ -2366,6 +2367,49 @@ dependencies = [
  "reqwest",
  "tokio",
  "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "ember-itch"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "ember-core",
+ "ember-depot",
+ "ember-itch-api",
+ "flate2",
+ "fs4",
+ "futures",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "xz2",
+ "zip",
+]
+
+[[package]]
+name = "ember-itch-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ember-depot",
+ "once_cell",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
  "tracing",
 ]
 

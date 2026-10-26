@@ -1162,9 +1162,9 @@ impl InstallSheet {
                 );
             }
             out.push(col.into_any_element());
-        } else if self.is_modify() && self.id.runner == Runner::Legendary {
-            // Epic offers only its latest build, but an installed game can
-            // stay at the version it has.
+        } else if self.is_modify() && matches!(self.id.runner, Runner::Legendary | Runner::Itch) {
+            // Epic and itch.io offer only their latest build, but an
+            // installed game can stay at the version it has.
             out.push(
                 v_flex()
                     .gap_2()

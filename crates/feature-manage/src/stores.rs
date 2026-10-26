@@ -51,6 +51,11 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
             host: "zoom-platform.com",
             blurb: t("manage.stores.blurb.zoom"),
         },
+        Runner::Itch => StoreSite {
+            url: "https://itch.io/",
+            host: "itch.io",
+            blurb: t("manage.stores.blurb.itch"),
+        },
         // Steam's games come from its own client; Ember has nothing to
         // offer there beyond the library.
         Runner::Steam | Runner::Sideload => return None,

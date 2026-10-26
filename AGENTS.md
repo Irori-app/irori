@@ -38,7 +38,8 @@ Wine, Proton or umu, and on macOS through Wine, CrossOver or Game Porting Toolki
   is **not a fork or port of Heroic's code**. Heroic is a reference for behaviour only
   (`docs/parity/*.md`). Its bugs, marked `[QUIRK]` in the parity docs, are fixed, not
   copied.
-- Store protocols are Rust ports of legendary (Epic), gogdl (GOG) and nile (Amazon).
+- Store protocols are Rust ports of legendary (Epic), gogdl (GOG) and nile (Amazon);
+  itch.io uses its public API directly.
   GOG Galaxy's comet runs as a library. Ember never shells out to those tools.
 - Product goals, in order: correct, fast, calm, one click to play. It runs as one
   process, renders on the GPU, uses no CPU when idle, keeps memory bounded, and
@@ -118,11 +119,13 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/epic` | `ember-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
 | `crates/gog` | `ember-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
 | `crates/amazon` | `ember-amazon-api` | Amazon Games protocol (port of nile): device sign-in, library, signed manifests |
+| `crates/itch` | `ember-itch-api` | itch.io protocol (its public API): API-key login, owned keys, uploads, download links |
 | `crates/gog-galaxy` | `ember-gog-galaxy` | Hosts comet (Galaxy service for games: overlay, achievements) on `127.0.0.1:9977` |
 | `crates/store-epic` | `ember-epic` | Epic `Store` (`Runner::Legendary`) |
 | `crates/store-gog` | `ember-gog` | GOG `Store` |
 | `crates/store-amazon` | `ember-amazon` | Amazon `Store` (`Runner::Nile`) |
 | `crates/store-zoom` | `ember-zoom` | ZOOM Platform `Store`, opt-in through a setting |
+| `crates/store-itch` | `ember-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `emberItchIo` |
 | `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
 | `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import |
@@ -156,8 +159,10 @@ The crates form a strict hierarchy. Never add a dependency that points upward.
 ```text
 ember-core                        (depends on nothing internal)
   ├─ ember-runtime, ember-depot, ember-extras
-  ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api  (depot only, not core)
-  ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-sideload
+  ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
+  │                   (depot only, not core)
+  ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
+  │                   ember-steam, ember-sideload
   └─ ember-services   (core, depot, runtime, extras; stores reach it as `DynStore`)
 ember-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
@@ -213,9 +218,10 @@ and `launch.rs` before changing anything below the UI.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
     asks which saves to keep (`ember_ui::save_conflict`).
-- `Runner` values are Legendary, Gog, Nile, Zoom, Steam and Sideload. Their
+- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam and Sideload. Their
   serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
-  `epic` and `amazon`. Ember-only runners use their store's plain name (`steam`).
+  `epic` and `amazon`. Ember-only runners use their store's plain name (`itch`,
+  `steam`).
 - `Runner::manages_installs()` is false for Steam: its games are listed and launched,
   never installed, moved, repaired or removed. UI code hides those commands and
   services refuse them before touching files.
@@ -324,7 +330,9 @@ Every store crate follows the same shape:
   `with_layout`), so tests run against temp dirs and in-process servers.
 
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
-GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), Steam, then Sideload. Adding a
+GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
+registered; empty and signed out while `settings.itch_io` is off, so its account card
+can turn it on), Steam, then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.

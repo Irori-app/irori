@@ -16,6 +16,8 @@ pub enum Runner {
     Nile,
     /// ZOOM Platform, driven through its HTTP API.
     Zoom,
+    /// itch.io, driven through its public API with the user's API key.
+    Itch,
     /// Games installed by the Steam client on this computer. Read-only:
     /// Steam installs, updates and starts them.
     Steam,
@@ -24,11 +26,12 @@ pub enum Runner {
 }
 
 impl Runner {
-    pub const ALL: [Runner; 6] = [
+    pub const ALL: [Runner; 7] = [
         Runner::Legendary,
         Runner::Gog,
         Runner::Nile,
         Runner::Zoom,
+        Runner::Itch,
         Runner::Steam,
         Runner::Sideload,
     ];
@@ -40,6 +43,7 @@ impl Runner {
             Runner::Gog => "gog",
             Runner::Nile => "nile",
             Runner::Zoom => "zoom",
+            Runner::Itch => "itch",
             Runner::Steam => "steam",
             Runner::Sideload => "sideload",
         }
@@ -52,6 +56,7 @@ impl Runner {
             Runner::Gog => "GOG",
             Runner::Nile => "Amazon Games",
             Runner::Zoom => "ZOOM Platform",
+            Runner::Itch => "itch.io",
             Runner::Steam => "Steam",
             Runner::Sideload => "Added manually",
         }
@@ -64,6 +69,7 @@ impl Runner {
             Runner::Gog => "GOG",
             Runner::Nile => "Amazon",
             Runner::Zoom => "ZOOM",
+            Runner::Itch => "itch.io",
             Runner::Steam => "Steam",
             Runner::Sideload => "Other",
         }
@@ -75,6 +81,7 @@ impl Runner {
             "gog" => Runner::Gog,
             "nile" | "amazon" => Runner::Nile,
             "zoom" => Runner::Zoom,
+            "itch" | "itchio" => Runner::Itch,
             "steam" => Runner::Steam,
             "sideload" => Runner::Sideload,
             _ => return None,

@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "ゲームを起動するプログラムです。外側のものから順に指定します。",
   "settings.field.wrapper_options.label": "ラッパーコマンド",
   "settings.field.zoom_platform.label": "ZOOM Platformストア",
+  "settings.field.itch_io.label": "itch.io ストア",
+  "settings.field.itch_io.help": "itch.io の API キーでログインすると、そこで所有しているゲームをインストール、更新、プレイできます。",
   "settings.game.back": "ゲームに戻る",
   "settings.game.native_note": "このゲームはネイティブで動作するため、WineとProtonの設定は適用されません。",
   "settings.game.open_defaults": "ゲームの既定設定",

@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Programs that start the game, outermost first.",
   "settings.field.wrapper_options.label": "Wrapper commands",
   "settings.field.zoom_platform.label": "ZOOM Platform store",
+  "settings.field.itch_io.label": "itch.io store",
+  "settings.field.itch_io.help": "Log in with an itch.io API key to install, update and play the games you own there.",
   "settings.game.back": "Back to game",
   "settings.game.native_note": "This game runs natively, so Wine and Proton settings don't apply to it.",
   "settings.game.open_defaults": "Game defaults",

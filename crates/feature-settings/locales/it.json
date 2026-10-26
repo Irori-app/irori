@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Programmi che avviano il gioco, dal più esterno al più interno.",
   "settings.field.wrapper_options.label": "Comandi wrapper",
   "settings.field.zoom_platform.label": "Store ZOOM Platform",
+  "settings.field.itch_io.label": "Negozio itch.io",
+  "settings.field.itch_io.help": "Accedi con una chiave API di itch.io per installare, aggiornare e giocare i giochi che possiedi lì.",
   "settings.game.back": "Torna al gioco",
   "settings.game.native_note": "Questo gioco viene eseguito in modo nativo, quindi le impostazioni di Wine e Proton non si applicano.",
   "settings.game.open_defaults": "Predefiniti dei giochi",

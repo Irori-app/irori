@@ -222,6 +222,9 @@ impl Backend {
         self.spawn(async move {
             let mut rx = b.subscribe();
             let mut shown = b.settings.app().ui.stores;
+            // Opt-in stores show their account and games only while on.
+            let switches = |a: &ember_core::AppSettings| [a.zoom_platform, a.itch_io];
+            let mut on = switches(&b.settings.app());
             loop {
                 match rx.recv().await {
                     Ok(Event::LibraryChanged(_) | Event::GameChanged(_)) => {
@@ -231,9 +234,19 @@ impl Backend {
                         b.rebuild_library();
                     }
                     Ok(Event::SettingsChanged) => {
-                        let now = b.settings.app().ui.stores;
-                        if now != shown {
-                            shown = now;
+                        let app = b.settings.app();
+                        let now = switches(&app);
+                        for (runner, (was, is)) in [Runner::Zoom, Runner::Itch]
+                            .into_iter()
+                            .zip(on.iter().zip(now))
+                        {
+                            if *was != is {
+                                b.bus.emit(Event::AccountChanged(runner));
+                            }
+                        }
+                        if app.ui.stores != shown || now != on {
+                            shown = app.ui.stores;
+                            on = now;
                             b.rebuild_library();
                         }
                     }

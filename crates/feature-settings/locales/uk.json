@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Програми, через які запускається гра, починаючи із зовнішньої.",
   "settings.field.wrapper_options.label": "Команди-обгортки",
   "settings.field.zoom_platform.label": "Крамниця ZOOM Platform",
+  "settings.field.itch_io.label": "Крамниця itch.io",
+  "settings.field.itch_io.help": "Увійдіть з API-ключем itch.io, щоб встановлювати, оновлювати й запускати придбані там ігри.",
   "settings.game.back": "Назад до гри",
   "settings.game.native_note": "Ця гра працює нативно, тому налаштування Wine і Proton до неї не застосовуються.",
   "settings.game.open_defaults": "Типові налаштування ігор",

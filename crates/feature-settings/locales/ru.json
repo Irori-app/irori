@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Программы, через которые запускается игра, начиная с внешней.",
   "settings.field.wrapper_options.label": "Команды-обёртки",
   "settings.field.zoom_platform.label": "Магазин ZOOM Platform",
+  "settings.field.itch_io.label": "Магазин itch.io",
+  "settings.field.itch_io.help": "Войдите с API-ключом itch.io, чтобы устанавливать, обновлять и запускать купленные там игры.",
   "settings.game.back": "Назад к игре",
   "settings.game.native_note": "Эта игра работает нативно, поэтому настройки Wine и Proton к ней не применяются.",
   "settings.game.open_defaults": "Настройки игр по умолчанию",

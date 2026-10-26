@@ -998,6 +998,15 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["zoom", "store"]),
     app(
+        "emberItchIo",
+        "settings.field.itch_io.label",
+        General,
+        "settings.group.integrations",
+        Toggle,
+    )
+    .help("settings.field.itch_io.help")
+    .keywords(&["itch", "itch.io", "store", "indie"]),
+    app(
         "maxWorkers",
         "settings.field.max_workers.label",
         General,

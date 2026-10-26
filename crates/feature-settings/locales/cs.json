@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Programy, které spouštějí hru, od nejvnějšího.",
   "settings.field.wrapper_options.label": "Příkazy wrapperů",
   "settings.field.zoom_platform.label": "Obchod ZOOM Platform",
+  "settings.field.itch_io.label": "Obchod itch.io",
+  "settings.field.itch_io.help": "Přihlaste se klíčem API z itch.io a instalujte, aktualizujte a hrajte hry, které tam vlastníte.",
   "settings.game.back": "Zpět ke hře",
   "settings.game.native_note": "Tato hra běží nativně, takže se na ni nastavení Wine a Protonu nevztahují.",
   "settings.game.open_defaults": "Výchozí nastavení her",

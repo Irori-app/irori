@@ -283,6 +283,8 @@
   "settings.field.wrapper_options.help": "Programe care pornesc jocul, începând cu cel mai exterior.",
   "settings.field.wrapper_options.label": "Comenzi wrapper",
   "settings.field.zoom_platform.label": "Magazinul ZOOM Platform",
+  "settings.field.itch_io.label": "Magazinul itch.io",
+  "settings.field.itch_io.help": "Autentifică-te cu o cheie API itch.io ca să instalezi, să actualizezi și să joci jocurile pe care le ai acolo.",
   "settings.game.back": "Înapoi la joc",
   "settings.game.native_note": "Acest joc rulează nativ, așa că setările Wine și Proton nu i se aplică.",
   "settings.game.open_defaults": "Setări implicite pentru jocuri",
