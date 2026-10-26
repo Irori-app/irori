@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} a fost actualizat",
   "shell.notice.download_failed": "Descărcarea {title} a eșuat",
   "shell.notice.uninstalled": "{title} a fost dezinstalat",
+  "shell.notice.move_leftover": "{title} a fost mutat, dar folderul vechi este încă în {path}",
   "shell.notice.moved": "{title} a fost mutat în {path}",
   "shell.notice.repaired": "{title} a fost verificat și reparat",
   "shell.notice.downloads_paused": "Descărcări în pauză",

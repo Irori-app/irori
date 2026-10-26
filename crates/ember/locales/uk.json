@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title}: оновлено",
   "shell.notice.download_failed": "Не вдалося завантажити {title}",
   "shell.notice.uninstalled": "{title}: видалено",
+  "shell.notice.move_leftover": "{title} переміщено, але стара тека залишилася в {path}",
   "shell.notice.moved": "{title} переміщено до {path}",
   "shell.notice.repaired": "{title}: перевірено й виправлено",
   "shell.notice.downloads_paused": "Завантаження призупинено",

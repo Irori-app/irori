@@ -28,6 +28,7 @@
   "shell.notice.updated": "Zaktualizowano {title}",
   "shell.notice.download_failed": "Nie udało się pobrać {title}",
   "shell.notice.uninstalled": "Odinstalowano {title}",
+  "shell.notice.move_leftover": "Przeniesiono {title}, ale stary folder nadal jest w {path}",
   "shell.notice.moved": "Przeniesiono {title} do {path}",
   "shell.notice.repaired": "Zweryfikowano i naprawiono {title}",
   "shell.notice.downloads_paused": "Pobieranie wstrzymane",

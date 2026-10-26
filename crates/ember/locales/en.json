@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} updated",
   "shell.notice.download_failed": "{title} failed to download",
   "shell.notice.uninstalled": "{title} uninstalled",
+  "shell.notice.move_leftover": "{title} moved, but its old folder is still at {path}",
   "shell.notice.moved": "{title} moved to {path}",
   "shell.notice.repaired": "{title} verified and repaired",
   "shell.notice.downloads_paused": "Downloads paused",

@@ -2456,6 +2456,7 @@ dependencies = [
  "ember-depot",
  "ember-extras",
  "ember-runtime",
+ "fs4",
  "futures",
  "fuzzy-matcher",
  "once_cell",

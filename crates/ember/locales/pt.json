@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} atualizado",
   "shell.notice.download_failed": "Falha ao transferir {title}",
   "shell.notice.uninstalled": "{title} desinstalado",
+  "shell.notice.move_leftover": "{title} movido, mas a pasta antiga continua em {path}",
   "shell.notice.moved": "{title} movido para {path}",
   "shell.notice.repaired": "{title} verificado e reparado",
   "shell.notice.downloads_paused": "Transferências em pausa",

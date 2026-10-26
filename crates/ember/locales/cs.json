@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} aktualizováno",
   "shell.notice.download_failed": "Stažení {title} se nezdařilo",
   "shell.notice.uninstalled": "{title} odinstalováno",
+  "shell.notice.move_leftover": "{title} přesunuto, ale stará složka zůstala v {path}",
   "shell.notice.moved": "{title} přesunuto do {path}",
   "shell.notice.repaired": "{title} ověřeno a opraveno",
   "shell.notice.downloads_paused": "Stahování pozastaveno",

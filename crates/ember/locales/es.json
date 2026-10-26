@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} actualizado",
   "shell.notice.download_failed": "Error al descargar {title}",
   "shell.notice.uninstalled": "{title} desinstalado",
+  "shell.notice.move_leftover": "{title} movido, pero su carpeta antigua sigue en {path}",
   "shell.notice.moved": "{title} movido a {path}",
   "shell.notice.repaired": "{title} verificado y reparado",
   "shell.notice.downloads_paused": "Descargas en pausa",

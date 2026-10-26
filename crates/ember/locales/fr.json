@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} mis à jour",
   "shell.notice.download_failed": "Échec du téléchargement de {title}",
   "shell.notice.uninstalled": "{title} désinstallé",
+  "shell.notice.move_leftover": "{title} déplacé, mais son ancien dossier est toujours dans {path}",
   "shell.notice.moved": "{title} déplacé vers {path}",
   "shell.notice.repaired": "{title} vérifié et réparé",
   "shell.notice.downloads_paused": "Téléchargements en pause",

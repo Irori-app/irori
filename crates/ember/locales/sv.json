@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} har uppdaterats",
   "shell.notice.download_failed": "Nedladdningen av {title} misslyckades",
   "shell.notice.uninstalled": "{title} har avinstallerats",
+  "shell.notice.move_leftover": "{title} har flyttats, men den gamla mappen finns kvar i {path}",
   "shell.notice.moved": "{title} har flyttats till {path}",
   "shell.notice.repaired": "{title} har verifierats och reparerats",
   "shell.notice.downloads_paused": "Nedladdningar pausade",

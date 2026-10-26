@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} bijgewerkt",
   "shell.notice.download_failed": "Downloaden van {title} mislukt",
   "shell.notice.uninstalled": "{title} verwijderd",
+  "shell.notice.move_leftover": "{title} verplaatst, maar de oude map staat nog in {path}",
   "shell.notice.moved": "{title} verplaatst naar {path}",
   "shell.notice.repaired": "{title} gecontroleerd en hersteld",
   "shell.notice.downloads_paused": "Downloads gepauzeerd",

@@ -28,6 +28,7 @@
   "shell.notice.updated": "已更新 {title}",
   "shell.notice.download_failed": "{title} 下载失败",
   "shell.notice.uninstalled": "已卸载 {title}",
+  "shell.notice.move_leftover": "已移动 {title}，但旧文件夹仍在 {path}",
   "shell.notice.moved": "已将 {title} 移动到 {path}",
   "shell.notice.repaired": "已验证并修复 {title}",
   "shell.notice.downloads_paused": "下载已暂停",

@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title}: обновлено",
   "shell.notice.download_failed": "Не удалось загрузить {title}",
   "shell.notice.uninstalled": "{title}: удалено",
+  "shell.notice.move_leftover": "{title} перемещено, но старая папка осталась в {path}",
   "shell.notice.moved": "{title} перемещено в {path}",
   "shell.notice.repaired": "{title}: проверено и исправлено",
   "shell.notice.downloads_paused": "Загрузки приостановлены",

@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} 업데이트 완료",
   "shell.notice.download_failed": "{title} 다운로드 실패",
   "shell.notice.uninstalled": "{title} 제거 완료",
+  "shell.notice.move_leftover": "{title}을(를) 이동했지만 이전 폴더가 {path}에 남아 있습니다",
   "shell.notice.moved": "{title}을(를) {path}(으)로 이동했습니다",
   "shell.notice.repaired": "{title} 검사 및 복구 완료",
   "shell.notice.downloads_paused": "다운로드 일시 중지됨",

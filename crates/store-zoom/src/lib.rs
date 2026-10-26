@@ -245,11 +245,16 @@ impl ZoomStore {
 
     /// Delete a directory tree unless it is obviously not a game folder.
     pub(crate) async fn remove_dir_if_safe(&self, path: &Path) {
-        let protected = [ember_core::paths::expand_home(
-            &(self.settings)().default_install_path,
-        )];
+        let app = (self.settings)();
+        let protected = [ember_core::paths::expand_home(&app.default_install_path)];
         if !is_safe_to_delete(path, &protected) {
             tracing::warn!("refusing to delete {}", path.display());
+            return;
+        }
+        // The launcher-wide guard as well: system folders, Ember's own
+        // folders and anything holding them, after resolving symlinks.
+        if let Err(e) = ember_core::fs_guard::ensure_deletable(path, &app) {
+            tracing::warn!("refusing to delete {}: {e:#}", path.display());
             return;
         }
         if let Err(e) = tokio::fs::remove_dir_all(path).await

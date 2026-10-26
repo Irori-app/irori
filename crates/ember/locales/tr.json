@@ -28,6 +28,7 @@
   "shell.notice.updated": "{title} güncellendi",
   "shell.notice.download_failed": "{title} indirilemedi",
   "shell.notice.uninstalled": "{title} kaldırıldı",
+  "shell.notice.move_leftover": "{title} taşındı ancak eski klasörü hâlâ {path} konumunda",
   "shell.notice.moved": "{title}, {path} konumuna taşındı",
   "shell.notice.repaired": "{title} doğrulandı ve onarıldı",
   "shell.notice.downloads_paused": "İndirmeler duraklatıldı",
