@@ -14,6 +14,7 @@ use ember_core::{AppSettings, GameId, GameInfo};
 use ember_epic::EpicStore;
 use ember_extras::anticheat::{self, AntiCheatInfo, AntiCheatStatus, InstallGate};
 use ember_gog::GogStore;
+use ember_services::MultiAccountStore;
 use ember_ui::i18n::t;
 use gpui_kit::{App, Global, SharedString, Task};
 
@@ -212,18 +213,18 @@ pub fn install_hooks(hooks: GameHooks, cx: &mut App) {
 #[derive(Clone, Default)]
 struct StoreHandles {
     epic: Option<Arc<EpicStore>>,
-    gog: Option<Arc<GogStore>>,
+    gog: Option<Arc<MultiAccountStore<GogStore>>>,
 }
 
 impl Global for StoreHandles {}
 
 /// Give the game page the concrete Epic and GOG stores (the same instances
-/// the backend drives). Enables the EOS overlay section on Epic games and
-/// REDmod management for Cyberpunk 2077 on GOG. Call once at startup; later
-/// calls replace the handles.
+/// the backend drives; Epic's main account, every GOG account). Enables the
+/// EOS overlay section on Epic games and REDmod management for Cyberpunk
+/// 2077 on GOG. Call once at startup; later calls replace the handles.
 pub fn install_store_handles(
     epic: Option<Arc<EpicStore>>,
-    gog: Option<Arc<GogStore>>,
+    gog: Option<Arc<MultiAccountStore<GogStore>>>,
     cx: &mut App,
 ) {
     cx.set_global(StoreHandles { epic, gog });
@@ -233,8 +234,18 @@ pub(crate) fn epic_store(cx: &App) -> Option<Arc<EpicStore>> {
     cx.try_global::<StoreHandles>().and_then(|h| h.epic.clone())
 }
 
+/// GOG's main account, for work not tied to a game.
 pub(crate) fn gog_store(cx: &App) -> Option<Arc<GogStore>> {
-    cx.try_global::<StoreHandles>().and_then(|h| h.gog.clone())
+    cx.try_global::<StoreHandles>()
+        .and_then(|h| h.gog.as_ref())
+        .map(|gog| gog.main())
+}
+
+/// The GOG account `app_name` belongs to.
+pub(crate) fn gog_store_for(app_name: &str, cx: &App) -> Option<Arc<GogStore>> {
+    cx.try_global::<StoreHandles>()
+        .and_then(|h| h.gog.as_ref())
+        .map(|gog| gog.store_for(app_name))
 }
 
 /// Compatibility data of a game: from the installed provider, else from

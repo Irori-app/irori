@@ -123,12 +123,9 @@ fn main() -> Result<()> {
         ember_settings::init(cx);
         ember_game::init(cx);
         ember_game::install_hooks(stores::game_hooks(), cx);
-        ember_settings::install_store_handles(stores::EPIC.get().cloned(), cx);
-        ember_game::install_store_handles(
-            stores::EPIC.get().cloned(),
-            stores::GOG.get().cloned(),
-            cx,
-        );
+        let epic = stores::EPIC.get().map(|epic| epic.main());
+        ember_settings::install_store_handles(epic.clone(), cx);
+        ember_game::install_store_handles(epic, stores::GOG.get().cloned(), cx);
         if let Some(sideload) = stores::SIDELOAD.get() {
             ember_library::install_sideload_store(sideload.clone(), cx);
         }

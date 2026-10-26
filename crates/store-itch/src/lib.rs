@@ -187,6 +187,23 @@ impl ItchStore {
         )
     }
 
+    /// The store of one more account, keeping its login, installs and
+    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// directories.
+    pub fn for_account(
+        bus: EventBus,
+        settings: SettingsFn,
+        config: PathBuf,
+        cache: PathBuf,
+    ) -> Arc<Self> {
+        Self::with_layout(
+            bus,
+            settings,
+            Layout { config, cache },
+            ember_itch_api::API_BASE,
+        )
+    }
+
     /// A store keeping its files in `layout` and talking to `api_base`.
     pub fn with_layout(
         bus: EventBus,
