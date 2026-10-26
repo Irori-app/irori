@@ -44,5 +44,7 @@
   "shell.playing.open": "Deschide {title}",
   "shell.playing.stop": "Oprește",
   "shell.playing.stop_failed": "Nu s-a putut opri {title}",
-  "shell.nav.stats": "Statistici"
+  "shell.nav.stats": "Statistici",
+  "shell.palette.random": "Alege un joc la întâmplare",
+  "shell.palette.random_keywords": "aleatoriu surpriză amestecă ruletă"
 }

@@ -44,5 +44,7 @@
   "shell.playing.open": "Abrir {title}",
   "shell.playing.stop": "Parar",
   "shell.playing.stop_failed": "Não foi possível parar {title}",
-  "shell.nav.stats": "Estatísticas"
+  "shell.nav.stats": "Estatísticas",
+  "shell.palette.random": "Escolher um jogo aleatório",
+  "shell.palette.random_keywords": "aleatório surpresa embaralhar roleta"
 }

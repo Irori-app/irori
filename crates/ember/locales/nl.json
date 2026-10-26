@@ -44,5 +44,7 @@
   "shell.playing.open": "{title} openen",
   "shell.playing.stop": "Stoppen",
   "shell.playing.stop_failed": "Kan {title} niet stoppen",
-  "shell.nav.stats": "Statistieken"
+  "shell.nav.stats": "Statistieken",
+  "shell.palette.random": "Willekeurige game kiezen",
+  "shell.palette.random_keywords": "willekeurig verrassing shuffle roulette"
 }

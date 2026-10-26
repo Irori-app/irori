@@ -44,5 +44,7 @@
   "shell.playing.open": "{title} sayfasını aç",
   "shell.playing.stop": "Durdur",
   "shell.playing.stop_failed": "{title} durdurulamadı",
-  "shell.nav.stats": "İstatistikler"
+  "shell.nav.stats": "İstatistikler",
+  "shell.palette.random": "Rastgele bir oyun seç",
+  "shell.palette.random_keywords": "rastgele sürpriz karıştır rulet"
 }

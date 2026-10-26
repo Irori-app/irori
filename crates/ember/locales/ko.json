@@ -44,5 +44,7 @@
   "shell.playing.open": "{title} 열기",
   "shell.playing.stop": "중지",
   "shell.playing.stop_failed": "{title}을(를) 중지하지 못했습니다",
-  "shell.nav.stats": "통계"
+  "shell.nav.stats": "통계",
+  "shell.palette.random": "무작위 게임 고르기",
+  "shell.palette.random_keywords": "무작위 랜덤 셔플 룰렛"
 }

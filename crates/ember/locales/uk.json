@@ -44,5 +44,7 @@
   "shell.playing.open": "Відкрити {title}",
   "shell.playing.stop": "Зупинити",
   "shell.playing.stop_failed": "Не вдалося зупинити {title}",
-  "shell.nav.stats": "Статистика"
+  "shell.nav.stats": "Статистика",
+  "shell.palette.random": "Вибрати випадкову гру",
+  "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка"
 }

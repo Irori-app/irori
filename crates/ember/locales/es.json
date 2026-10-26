@@ -44,5 +44,7 @@
   "shell.playing.open": "Abrir {title}",
   "shell.playing.stop": "Detener",
   "shell.playing.stop_failed": "No se pudo detener {title}",
-  "shell.nav.stats": "Estadísticas"
+  "shell.nav.stats": "Estadísticas",
+  "shell.palette.random": "Elegir un juego al azar",
+  "shell.palette.random_keywords": "aleatorio sorpresa mezclar ruleta"
 }

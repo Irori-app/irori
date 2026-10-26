@@ -44,5 +44,7 @@
   "shell.playing.open": "Otwórz {title}",
   "shell.playing.stop": "Zatrzymaj",
   "shell.playing.stop_failed": "Nie udało się zatrzymać {title}",
-  "shell.nav.stats": "Statystyki"
+  "shell.nav.stats": "Statystyki",
+  "shell.palette.random": "Wylosuj grę",
+  "shell.palette.random_keywords": "losowo niespodzianka losuj ruletka"
 }

@@ -44,5 +44,7 @@
   "shell.playing.open": "開啟 {title}",
   "shell.playing.stop": "停止",
   "shell.playing.stop_failed": "無法停止 {title}",
-  "shell.nav.stats": "統計"
+  "shell.nav.stats": "統計",
+  "shell.palette.random": "隨機挑選一款遊戲",
+  "shell.palette.random_keywords": "隨機 驚喜 打亂 輪盤"
 }

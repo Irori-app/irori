@@ -44,5 +44,7 @@
   "shell.playing.open": "Apri {title}",
   "shell.playing.stop": "Interrompi",
   "shell.playing.stop_failed": "Impossibile interrompere {title}",
-  "shell.nav.stats": "Statistiche"
+  "shell.nav.stats": "Statistiche",
+  "shell.palette.random": "Scegli un gioco a caso",
+  "shell.palette.random_keywords": "casuale sorpresa mescola roulette"
 }

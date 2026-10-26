@@ -44,5 +44,7 @@
   "shell.playing.open": "{title} öffnen",
   "shell.playing.stop": "Beenden",
   "shell.playing.stop_failed": "{title} konnte nicht beendet werden",
-  "shell.nav.stats": "Statistik"
+  "shell.nav.stats": "Statistik",
+  "shell.palette.random": "Zufälliges Spiel auswählen",
+  "shell.palette.random_keywords": "zufall überraschung mischen roulette"
 }

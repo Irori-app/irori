@@ -44,5 +44,7 @@
   "shell.playing.open": "Öppna {title}",
   "shell.playing.stop": "Stoppa",
   "shell.playing.stop_failed": "Det gick inte att stoppa {title}",
-  "shell.nav.stats": "Statistik"
+  "shell.nav.stats": "Statistik",
+  "shell.palette.random": "Välj ett slumpmässigt spel",
+  "shell.palette.random_keywords": "slump överraskning blanda roulette"
 }

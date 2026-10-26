@@ -1347,6 +1347,14 @@ impl LibraryView {
                 )
             })
             .child(
+                Button::new("library-random")
+                    .small()
+                    .outline()
+                    .icon(IconName::Dices)
+                    .tooltip(t("library.random.tooltip"))
+                    .on_click(|_, window, cx| crate::random::open_random_game(window, cx)),
+            )
+            .child(
                 Button::new("library-select")
                     .small()
                     .outline()

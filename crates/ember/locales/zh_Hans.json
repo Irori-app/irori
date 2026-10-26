@@ -44,5 +44,7 @@
   "shell.playing.open": "打开 {title}",
   "shell.playing.stop": "停止",
   "shell.playing.stop_failed": "无法停止 {title}",
-  "shell.nav.stats": "统计"
+  "shell.nav.stats": "统计",
+  "shell.palette.random": "随机挑选一款游戏",
+  "shell.palette.random_keywords": "随机 惊喜 打乱 轮盘"
 }

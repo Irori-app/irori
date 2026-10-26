@@ -1,5 +1,5 @@
-//! Command palette (Ctrl+K): jump to any game, play installed games, and run
-//! window commands, all from the keyboard.
+//! Command palette (Ctrl+K): jump to any game, play installed games, pick a
+//! random one, and run window commands, all from the keyboard.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -20,6 +20,7 @@ enum PaletteTarget {
     Play(GameId),
     Route(Route),
     Refresh,
+    Random,
 }
 
 /// Retained palette state, owned by the shell.
@@ -88,6 +89,14 @@ impl Palette {
                 .label(t("shell.palette.refresh"))
                 .icon(IconName::RefreshCw),
             PaletteTarget::Refresh,
+            targets,
+        );
+        push(
+            CommandItem::new()
+                .label(t("shell.palette.random"))
+                .keywords([t("shell.palette.random_keywords")])
+                .icon(IconName::Dices),
+            PaletteTarget::Random,
             targets,
         );
         for g in games.iter().filter(|g| g.is_installed) {
@@ -173,6 +182,7 @@ fn run_target(target: PaletteTarget, window: &mut Window, cx: &mut App) {
         PaletteTarget::Open(id) => ember_ui::navigate(Route::Game(id), cx),
         PaletteTarget::Route(r) => ember_ui::navigate(r, cx),
         PaletteTarget::Refresh => ember_ui::models::refresh_library(false, cx),
+        PaletteTarget::Random => ember_library::open_random_game(window, cx),
         PaletteTarget::Play(id) => crate::shell::launch_game(id, window, cx),
     }
 }
