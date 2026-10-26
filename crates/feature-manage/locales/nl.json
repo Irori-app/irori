@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Bezig met downloaden",
   "manage.downloads.files.cancel": "Annuleren",
   "manage.downloads.files.show": "In map tonen",
-  "manage.downloads.files.clear": "Voltooide wissen"
+  "manage.downloads.files.clear": "Voltooide wissen",
+  "manage.accounts.state.hidden": "Verborgen",
+  "manage.accounts.hidden_detail": "De games staan niet in je bibliotheek. Aanmelding en geïnstalleerde games blijven behouden.",
+  "manage.accounts.hide": "Verbergen",
+  "manage.accounts.show": "Tonen"
 }

@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Завантажується",
   "manage.downloads.files.cancel": "Скасувати",
   "manage.downloads.files.show": "Показати в теці",
-  "manage.downloads.files.clear": "Очистити завершені"
+  "manage.downloads.files.clear": "Очистити завершені",
+  "manage.accounts.state.hidden": "Приховано",
+  "manage.accounts.hidden_detail": "Його ігри не показуються в бібліотеці. Вхід і встановлені ігри зберігаються.",
+  "manage.accounts.hide": "Приховати",
+  "manage.accounts.show": "Показати"
 }

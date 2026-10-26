@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Download in corso",
   "manage.downloads.files.cancel": "Annulla",
   "manage.downloads.files.show": "Mostra nella cartella",
-  "manage.downloads.files.clear": "Cancella completati"
+  "manage.downloads.files.clear": "Cancella completati",
+  "manage.accounts.state.hidden": "Nascosto",
+  "manage.accounts.hidden_detail": "I suoi giochi non compaiono nella libreria. L’accesso e i giochi installati vengono mantenuti.",
+  "manage.accounts.hide": "Nascondi",
+  "manage.accounts.show": "Mostra"
 }

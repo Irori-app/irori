@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "ダウンロード中",
   "manage.downloads.files.cancel": "キャンセル",
   "manage.downloads.files.show": "フォルダーで表示",
-  "manage.downloads.files.clear": "完了したものを消去"
+  "manage.downloads.files.clear": "完了したものを消去",
+  "manage.accounts.state.hidden": "非表示",
+  "manage.accounts.hidden_detail": "このストアのゲームはライブラリに表示されません。サインインとインストール済みのゲームは保持されます。",
+  "manage.accounts.hide": "非表示にする",
+  "manage.accounts.show": "表示する"
 }

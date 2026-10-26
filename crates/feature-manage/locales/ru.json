@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Загружается",
   "manage.downloads.files.cancel": "Отмена",
   "manage.downloads.files.show": "Показать в папке",
-  "manage.downloads.files.clear": "Очистить завершённые"
+  "manage.downloads.files.clear": "Очистить завершённые",
+  "manage.accounts.state.hidden": "Скрыт",
+  "manage.accounts.hidden_detail": "Его игры не показываются в библиотеке. Вход и установленные игры сохраняются.",
+  "manage.accounts.hide": "Скрыть",
+  "manage.accounts.show": "Показать"
 }

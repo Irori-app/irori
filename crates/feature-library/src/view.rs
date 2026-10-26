@@ -329,11 +329,11 @@ impl LibraryView {
             let lib = m.library.read(cx);
             (lib.snapshot.clone(), lib.user.clone(), lib.updates.clone())
         };
+        let app = m.settings.read(cx).app.clone();
         let stores = {
             let accounts = m.accounts.read(cx);
-            filter::offered_stores(&snapshot, &|r| accounts.is_logged_in(r))
+            filter::offered_stores(&snapshot, &|r| accounts.is_logged_in(r), &app.ui.stores)
         };
-        let app = m.settings.read(cx).app.clone();
         let filter = self.filters.read(cx).filter().clone();
         self.check_availability(&snapshot, cx);
         let missing = self.availability.missing().clone();

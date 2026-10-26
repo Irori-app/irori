@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Stahuje se",
   "manage.downloads.files.cancel": "Zrušit",
   "manage.downloads.files.show": "Zobrazit ve složce",
-  "manage.downloads.files.clear": "Vymazat dokončené"
+  "manage.downloads.files.clear": "Vymazat dokončené",
+  "manage.accounts.state.hidden": "Skryto",
+  "manage.accounts.hidden_detail": "Jeho hry se v knihovně nezobrazují. Přihlášení i nainstalované hry zůstávají.",
+  "manage.accounts.hide": "Skrýt",
+  "manage.accounts.show": "Zobrazit"
 }

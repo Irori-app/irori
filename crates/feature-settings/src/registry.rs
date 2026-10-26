@@ -882,6 +882,33 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["recent", "favourites", "top"]),
     app(
+        "emberUi.stores.epic",
+        "settings.field.show_store_epic.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "epic", "legendary"]),
+    app(
+        "emberUi.stores.gog",
+        "settings.field.show_store_gog.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "gog"]),
+    app(
+        "emberUi.stores.amazon",
+        "settings.field.show_store_amazon.label",
+        General,
+        "settings.group.stores",
+        Toggle,
+    )
+    .help("settings.field.show_stores.help")
+    .keywords(&["store", "hide", "amazon", "prime", "nile"]),
+    app(
         "maxRecentGames",
         "settings.field.max_recent_games.label",
         General,

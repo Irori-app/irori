@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
+use crate::Runner;
 use crate::game::{CloudSaveLocation, LaunchOption};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -453,10 +454,62 @@ pub struct UiPrefs {
     pub window_width: f32,
     pub window_height: f32,
     pub window_maximized: bool,
+    /// Stores the library, accounts and store pages show.
+    pub stores: ShownStores,
     /// Open Big Picture at startup in Steam's Game Mode or Big Picture.
     pub big_picture_in_game_mode: bool,
     /// Size of Big Picture's interface in percent, for TVs.
     pub big_picture_scale: u32,
+}
+
+/// Which stores Ember shows. A hidden store keeps its sign-in and installed
+/// games on disk; its games, account card and store page are left out.
+/// ZOOM Platform follows `zoomPlatform`, and apps the user added are always
+/// shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ShownStores {
+    pub epic: bool,
+    pub gog: bool,
+    pub amazon: bool,
+}
+
+impl Default for ShownStores {
+    fn default() -> Self {
+        Self {
+            epic: true,
+            gog: true,
+            amazon: true,
+        }
+    }
+}
+
+impl ShownStores {
+    /// Whether the store's games and pages are shown.
+    pub fn shows(&self, runner: Runner) -> bool {
+        match runner {
+            Runner::Legendary => self.epic,
+            Runner::Gog => self.gog,
+            Runner::Nile => self.amazon,
+            Runner::Zoom | Runner::Sideload => true,
+        }
+    }
+
+    /// Show or hide a store. ZOOM Platform and added apps have no switch
+    /// here, so they are left as they are.
+    pub fn set(&mut self, runner: Runner, shown: bool) {
+        match runner {
+            Runner::Legendary => self.epic = shown,
+            Runner::Gog => self.gog = shown,
+            Runner::Nile => self.amazon = shown,
+            Runner::Zoom | Runner::Sideload => {}
+        }
+    }
+
+    /// Whether the store can be hidden with [`ShownStores::set`].
+    pub fn can_hide(runner: Runner) -> bool {
+        matches!(runner, Runner::Legendary | Runner::Gog | Runner::Nile)
+    }
 }
 
 /// Sizes offered for Big Picture's interface, in percent.
@@ -484,6 +537,7 @@ impl Default for UiPrefs {
             window_width: 1440.0,
             window_height: 900.0,
             window_maximized: false,
+            stores: ShownStores::default(),
             big_picture_in_game_mode: true,
             big_picture_scale: 100,
         }
@@ -497,11 +551,20 @@ mod tests {
     #[test]
     fn ui_prefs_from_older_files_keep_defaults() {
         let ui: UiPrefs = serde_json::from_str(r#"{"fontSize":18}"#).unwrap();
+        assert_eq!(ui.stores, ShownStores::default());
         assert!(ui.big_picture_in_game_mode);
         assert_eq!(ui.big_picture_zoom(), 1.0);
-        let ui: UiPrefs =
-            serde_json::from_str(r#"{"bigPictureScale":400,"bigPictureInGameMode":false}"#)
-                .unwrap();
+        let ui: UiPrefs = serde_json::from_str(
+            r#"{"stores":{"epic":false},"bigPictureScale":400,"bigPictureInGameMode":false}"#,
+        )
+        .unwrap();
+        assert!(!ui.stores.shows(Runner::Legendary));
+        assert!(ui.stores.shows(Runner::Gog));
+        assert!(ui.stores.shows(Runner::Sideload));
+        let mut stores = ui.stores;
+        stores.set(Runner::Legendary, true);
+        stores.set(Runner::Sideload, false);
+        assert_eq!(stores, ShownStores::default());
         assert_eq!(ui.big_picture_zoom(), 2.0);
         assert!(!ui.big_picture_in_game_mode);
     }

@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Pobieranie",
   "manage.downloads.files.cancel": "Anuluj",
   "manage.downloads.files.show": "Pokaż w folderze",
-  "manage.downloads.files.clear": "Wyczyść zakończone"
+  "manage.downloads.files.clear": "Wyczyść zakończone",
+  "manage.accounts.state.hidden": "Ukryty",
+  "manage.accounts.hidden_detail": "Jego gry nie są wyświetlane w bibliotece. Logowanie i zainstalowane gry zostają.",
+  "manage.accounts.hide": "Ukryj",
+  "manage.accounts.show": "Pokaż"
 }

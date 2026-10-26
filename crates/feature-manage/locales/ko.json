@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "다운로드 중",
   "manage.downloads.files.cancel": "취소",
   "manage.downloads.files.show": "폴더에서 보기",
-  "manage.downloads.files.clear": "완료된 항목 지우기"
+  "manage.downloads.files.clear": "완료된 항목 지우기",
+  "manage.accounts.state.hidden": "숨김",
+  "manage.accounts.hidden_detail": "이 스토어의 게임은 라이브러리에 표시되지 않습니다. 로그인과 설치된 게임은 유지됩니다.",
+  "manage.accounts.hide": "숨기기",
+  "manage.accounts.show": "표시"
 }

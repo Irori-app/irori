@@ -223,5 +223,9 @@
   "manage.downloads.files.running": "Downloading",
   "manage.downloads.files.cancel": "Cancel",
   "manage.downloads.files.show": "Show in folder",
-  "manage.downloads.files.clear": "Clear finished"
+  "manage.downloads.files.clear": "Clear finished",
+  "manage.accounts.state.hidden": "Hidden",
+  "manage.accounts.hidden_detail": "Its games are left out of your library. The sign-in and installed games are kept.",
+  "manage.accounts.hide": "Hide",
+  "manage.accounts.show": "Show"
 }
