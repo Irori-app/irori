@@ -194,8 +194,14 @@ impl<S: Store> MultiAccountStore<S> {
     }
 
     /// More than one account is listed, so games and errors name theirs.
+    /// Cheap enough for render: no game lists are built.
     fn several(&self) -> bool {
-        self.accounts().len() > 1
+        let index = self.index.lock();
+        self.slots()
+            .iter()
+            .filter(|s| s.store.user().is_some() || index.accounts.contains_key(&s.id))
+            .count()
+            > 1
     }
 
     fn name_of(&self, slot: &Slot<S>) -> Option<String> {
