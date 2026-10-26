@@ -198,8 +198,13 @@ async fn fixture() -> Fixture {
     }
 }
 
+/// Install folder of the fixtures. Non-Latin on purpose: install, update,
+/// repair and launch must work under such names on every platform
+/// (Heroic #5418 broke them on Windows).
+const INSTALL_BASE: &str = "ゲーム 游戏";
+
 async fn new_store(root: &Path, server: &TestServer) -> Arc<EpicStore> {
-    let install_base = root.join("games");
+    let install_base = root.join(INSTALL_BASE);
     let settings: SettingsFn = Arc::new(move || {
         Arc::new(AppSettings {
             default_install_path: install_base.to_string_lossy().into_owned(),
@@ -276,7 +281,7 @@ async fn installs_updates_repairs_launches_and_uninstalls() {
         .await
         .unwrap();
     assert_eq!(outcome, Outcome::Done);
-    let dir = f.root.join("games/SugarDir");
+    let dir = f.root.join(INSTALL_BASE).join("SugarDir");
     assert_eq!(std::fs::read(dir.join("Bin/Game.exe")).unwrap(), exe());
     assert_eq!(std::fs::read(dir.join("Data/a.pak")).unwrap(), pak(1));
     let g = f.store.game(APP).unwrap();
