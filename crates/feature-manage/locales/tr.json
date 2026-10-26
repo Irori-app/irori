@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Giriş penceresini aç",
   "manage.login.use_browser": "Bunun yerine tarayıcıyı kullan",
   "manage.login.window.finishing": "Giriş tamamlanıyor…",
+  "manage.login.window.missing": "Ember'in oturum açma penceresi yüklü değil, bu yüzden sayfa tarayıcıda açıldı.",
+  "manage.login.window.failed": "Oturum açma penceresi açılamadı, bu yüzden sayfa tarayıcıda açıldı.",
   "manage.wine.title": "Wine yöneticisi",
   "manage.wine.description_macos": "Windows oyunları için Wine indirin veya kurulu CrossOver ya da Whisky ortamını kullanın.",
   "manage.wine.description": "Windows oyunları için Proton ve Wine sürümleri indir ve bu sistemdeki tüm sürümleri gör.",

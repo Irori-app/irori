@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Öppna inloggningsfönstret",
   "manage.login.use_browser": "Använd webbläsaren i stället",
   "manage.login.window.finishing": "Slutför inloggningen…",
+  "manage.login.window.missing": "Embers inloggningsfönster är inte installerat, så sidan öppnades i webbläsaren.",
+  "manage.login.window.failed": "Inloggningsfönstret kunde inte öppnas, så sidan öppnades i webbläsaren.",
   "manage.wine.title": "Wine-hanterare",
   "manage.wine.description_macos": "Hämta Wine för Windows-spel eller använd en installerad CrossOver- eller Whisky-miljö.",
   "manage.wine.description": "Ladda ned Proton- och Wine-versioner för Windows-spel och se alla versioner på det här systemet.",

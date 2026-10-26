@@ -2060,6 +2060,7 @@ dependencies = [
  "ember-services",
  "ember-settings",
  "ember-sideload",
+ "ember-sign-in",
  "ember-ui",
  "ember-zoom",
  "futures",

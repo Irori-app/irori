@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Deschide fereastra de autentificare",
   "manage.login.use_browser": "Folosește browserul",
   "manage.login.window.finishing": "Se finalizează autentificarea…",
+  "manage.login.window.missing": "Fereastra de conectare Ember nu este instalată, așa că pagina s-a deschis în browser.",
+  "manage.login.window.failed": "Fereastra de conectare nu s-a putut deschide, așa că pagina s-a deschis în browser.",
   "manage.wine.title": "Manager Wine",
   "manage.wine.description_macos": "Descarcă Wine pentru jocuri Windows sau folosește o instalare existentă de CrossOver ori Whisky.",
   "manage.wine.description": "Descarcă versiuni Proton și Wine pentru jocurile Windows și vezi toate versiunile de pe acest sistem.",

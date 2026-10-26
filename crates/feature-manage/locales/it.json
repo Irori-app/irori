@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Apri la finestra di accesso",
   "manage.login.use_browser": "Usa invece il browser",
   "manage.login.window.finishing": "Completamento dell’accesso…",
+  "manage.login.window.missing": "La finestra di accesso di Ember non è installata, quindi la pagina si è aperta nel browser.",
+  "manage.login.window.failed": "Non è stato possibile aprire la finestra di accesso, quindi la pagina si è aperta nel browser.",
   "manage.wine.title": "Gestore di Wine",
   "manage.wine.description_macos": "Scarica Wine per i giochi Windows oppure usa un’installazione di CrossOver o Whisky.",
   "manage.wine.description": "Scarica versioni di Proton e Wine per i giochi Windows e vedi tutte quelle presenti su questo sistema.",

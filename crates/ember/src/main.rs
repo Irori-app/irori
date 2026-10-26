@@ -50,6 +50,11 @@ pub enum ShellCommand {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // Started by the login dialog to show a store's sign-in page.
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    if args.first().map(String::as_str) == Some(ember_sign_in::SIGN_IN_FLAG) {
+        std::process::exit(i32::from(ember_sign_in::main(args.into_iter().skip(1))));
+    }
     let cli = Cli::parse(args.clone());
     if cli.help {
         println!("{}\n\n{}", cli::HELP, headless::HELP);

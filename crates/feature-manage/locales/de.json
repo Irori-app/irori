@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Anmeldefenster öffnen",
   "manage.login.use_browser": "Stattdessen den Browser verwenden",
   "manage.login.window.finishing": "Anmeldung wird abgeschlossen…",
+  "manage.login.window.missing": "Embers Anmeldefenster ist nicht installiert, daher wurde die Seite im Browser geöffnet.",
+  "manage.login.window.failed": "Das Anmeldefenster konnte nicht geöffnet werden, daher wurde die Seite im Browser geöffnet.",
   "manage.wine.title": "Wine-Manager",
   "manage.wine.description_macos": "Lade Wine für Windows-Spiele herunter oder verwende eine installierte CrossOver- oder Whisky-Laufzeit.",
   "manage.wine.description": "Lade Proton- und Wine-Builds für Windows-Spiele herunter und sieh dir alle Builds auf diesem System an.",

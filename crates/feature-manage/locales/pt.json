@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Abrir a janela de início de sessão",
   "manage.login.use_browser": "Usar antes o navegador",
   "manage.login.window.finishing": "A concluir o início de sessão…",
+  "manage.login.window.missing": "A janela de início de sessão do Ember não está instalada, por isso a página abriu no navegador.",
+  "manage.login.window.failed": "Não foi possível abrir a janela de início de sessão, por isso a página abriu no navegador.",
   "manage.wine.title": "Gestor do Wine",
   "manage.wine.description_macos": "Transfira o Wine para jogos Windows ou utilize uma instalação do CrossOver ou Whisky.",
   "manage.wine.description": "Transfira versões do Proton e do Wine para jogos do Windows e veja todas as versões neste sistema.",

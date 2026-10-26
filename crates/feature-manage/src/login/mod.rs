@@ -1,9 +1,9 @@
 //! Store login.
 //!
 //! The store's sign-in page opens in Ember's sign-in window (`window`), a
-//! helper process that reports what the login returned, so signing in needs
-//! nothing copied. Without the helper, or on request, the page opens in the
-//! default browser instead: the dialog shows the store's (English)
+//! process of its own that reports what the login returned, so signing in needs
+//! nothing copied. When that window can't open, or on request, the page opens
+//! in the default browser instead: the dialog shows the store's (English)
 //! instructions on what to copy, accepts the pasted code or address, and
 //! watches the clipboard, signing in as soon as the user copies something
 //! matching the store's capture pattern.
@@ -105,6 +105,8 @@ pub(crate) struct LoginDialog {
     flow: FlowState,
     input: Entity<InputState>,
     window: SignInWindow,
+    /// Why the browser is used although the user didn't ask for it.
+    fallback: Option<SharedString>,
     watcher: ClipboardWatcher,
     submitting: bool,
     error: Option<SharedString>,
@@ -135,6 +137,7 @@ impl LoginDialog {
             flow: FlowState::Loading,
             input,
             window: SignInWindow::None,
+            fallback: None,
             watcher: ClipboardWatcher::new(initial.as_deref()),
             submitting: false,
             error: None,
@@ -194,7 +197,7 @@ impl LoginDialog {
                 let capture = compile_capture(&capture);
                 // The sign-in window can only finish by itself with a pattern to
                 // recognise the result by.
-                let use_window = capture.is_some() && window::helper_path().is_some();
+                let use_window = capture.is_some();
                 self.flow = FlowState::Ready {
                     url,
                     instructions,
@@ -221,11 +224,14 @@ impl LoginDialog {
             return;
         };
         let (url, pattern) = (url.clone(), re.as_str().to_string());
-        let Some(helper) = window::helper_path() else {
+        let Some(helper) = window::helper() else {
+            tracing::warn!("No sign-in window (ember-sign-in is not installed), using the browser");
+            self.fallback = Some(t("manage.login.window.missing"));
             self.use_browser(window, cx);
             return;
         };
         self.close_window();
+        self.fallback = None;
         let cancel = CancellationToken::new();
         let title = t_args("manage.login.title", &[("store", self.runner.store_name())]);
         let task = ember_ui::run(
@@ -246,6 +252,7 @@ impl LoginDialog {
                     Ok(WindowOutcome::Closed) => this.window = SignInWindow::Closed,
                     Err(e) => {
                         tracing::warn!("Sign-in window unavailable, using the browser: {e:#}");
+                        this.fallback = Some(t("manage.login.window.failed"));
                         this.use_browser(window, cx);
                     }
                 }
@@ -487,6 +494,9 @@ impl Render for LoginDialog {
                 ..
             } => v_flex()
                 .gap_4()
+                .when_some(self.fallback.clone(), |this, reason| {
+                    this.child(Alert::info("login-fallback", reason))
+                })
                 .child(step(
                     1,
                     t("manage.login.step.sign_in"),

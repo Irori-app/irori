@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Відкрити вікно входу",
   "manage.login.use_browser": "Використати браузер",
   "manage.login.window.finishing": "Завершення входу…",
+  "manage.login.window.missing": "Вікно входу Ember не встановлено, тому сторінка відкрилася в браузері.",
+  "manage.login.window.failed": "Не вдалося відкрити вікно входу, тому сторінка відкрилася в браузері.",
   "manage.wine.title": "Менеджер Wine",
   "manage.wine.description_macos": "Завантажте Wine для ігор Windows або використовуйте встановлений CrossOver чи Whisky.",
   "manage.wine.description": "Завантажуйте збірки Proton і Wine для ігор Windows та переглядайте всі збірки в цій системі.",

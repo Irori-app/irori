@@ -51,3 +51,6 @@ ksni = { version = "0.3", default-features = false, features = ["tokio"] }
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 tray-icon = "0.21"
 resvg = "0.45"
+# Ember runs the sign-in window itself when the helper is missing: these
+# systems ship their web engines, so it adds no runtime dependency.
+ember-sign-in.workspace = true

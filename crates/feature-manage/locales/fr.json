@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Ouvrir la fenêtre de connexion",
   "manage.login.use_browser": "Utiliser plutôt le navigateur",
   "manage.login.window.finishing": "Finalisation de la connexion…",
+  "manage.login.window.missing": "La fenêtre de connexion d'Ember n'est pas installée : la page s'est ouverte dans votre navigateur.",
+  "manage.login.window.failed": "La fenêtre de connexion n'a pas pu s'ouvrir : la page s'est ouverte dans votre navigateur.",
   "manage.wine.title": "Gestionnaire Wine",
   "manage.wine.description_macos": "Téléchargez Wine pour les jeux Windows ou utilisez une installation de CrossOver ou Whisky.",
   "manage.wine.description": "Téléchargez des versions de Proton et de Wine pour les jeux Windows, et consultez toutes celles présentes sur ce système.",

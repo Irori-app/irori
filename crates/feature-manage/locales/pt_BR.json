@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Abrir a janela de login",
   "manage.login.use_browser": "Usar o navegador",
   "manage.login.window.finishing": "Concluindo o login…",
+  "manage.login.window.missing": "A janela de login do Ember não está instalada, então a página foi aberta no navegador.",
+  "manage.login.window.failed": "Não foi possível abrir a janela de login, então a página foi aberta no navegador.",
   "manage.wine.title": "Gerenciador do Wine",
   "manage.wine.description_macos": "Baixe o Wine para jogos Windows ou use uma instalação do CrossOver ou Whisky.",
   "manage.wine.description": "Baixe versões do Proton e do Wine para jogos de Windows e veja todas as versões deste sistema.",

@@ -1,6 +1,8 @@
-//! The sign-in window: the store's page in `ember-sign-in`, a helper process of
-//! its own, which reports what the store's login returned. Ember itself never
-//! embeds a web engine; without the helper the dialog uses the browser.
+//! The sign-in window: the store's page in a process of its own, which reports
+//! what the store's login returned. Ember's window never embeds a web engine.
+//! The process is the `ember-sign-in` helper or, on macOS and Windows, Ember
+//! started in its sign-in mode; on Linux without the helper the dialog uses the
+//! browser.
 
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -27,32 +29,54 @@ pub(super) enum WindowOutcome {
     Closed,
 }
 
-/// The helper installed next to Ember, or on `PATH`.
-pub(super) fn helper_path() -> Option<PathBuf> {
-    let beside = std::env::current_exe()
-        .ok()
+/// Ember's first argument for its sign-in mode (`ember_sign_in::SIGN_IN_FLAG`).
+const SIGN_IN_FLAG: &str = "--sign-in-window";
+
+/// The program that shows the sign-in window.
+#[derive(Debug, Clone)]
+pub(super) struct Helper {
+    program: PathBuf,
+    /// Arguments before the window's own.
+    args: &'static [&'static str],
+}
+
+/// The helper installed next to Ember or on `PATH`; otherwise, on macOS and
+/// Windows, Ember itself (which a plain `cargo run -p ember` leaves without the
+/// helper).
+pub(super) fn helper() -> Option<Helper> {
+    let exe = std::env::current_exe().ok();
+    let beside = exe
+        .as_ref()
         .map(|exe| exe.with_file_name(HELPER))
         .filter(|p| p.is_file());
-    beside.or_else(|| which::which(HELPER).ok())
+    if let Some(program) = beside.or_else(|| which::which(HELPER).ok()) {
+        return Some(Helper { program, args: &[] });
+    }
+    exe.filter(|_| cfg!(any(target_os = "macos", target_os = "windows")))
+        .map(|program| Helper {
+            program,
+            args: &[SIGN_IN_FLAG],
+        })
 }
 
 /// Show `url` in the sign-in window until the page yields a match of `capture`,
 /// the window closes, or `cancel` fires (which closes the window).
 pub(super) async fn sign_in(
-    helper: PathBuf,
+    helper: Helper,
     url: String,
     capture: String,
     title: String,
     cancel: CancellationToken,
 ) -> Result<WindowOutcome> {
-    let mut child = tokio::process::Command::new(&helper)
+    let mut child = tokio::process::Command::new(&helper.program)
+        .args(helper.args)
         .args(["--url", &url, "--capture", &capture, "--title", &title])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true)
         .spawn()
-        .with_context(|| format!("starting {}", helper.display()))?;
+        .with_context(|| format!("starting {}", helper.program.display()))?;
     let mut stdout = child
         .stdout
         .take()

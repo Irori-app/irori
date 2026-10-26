@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Aanmeldvenster openen",
   "manage.login.use_browser": "In plaats daarvan de browser gebruiken",
   "manage.login.window.finishing": "Aanmelding wordt afgerond…",
+  "manage.login.window.missing": "Het aanmeldvenster van Ember is niet geïnstalleerd, dus de pagina is in je browser geopend.",
+  "manage.login.window.failed": "Het aanmeldvenster kon niet worden geopend, dus de pagina is in je browser geopend.",
   "manage.wine.title": "Wine-beheer",
   "manage.wine.description_macos": "Download Wine voor Windows-games of gebruik een geïnstalleerde CrossOver- of Whisky-runtime.",
   "manage.wine.description": "Download Proton- en Wine-builds voor Windows-games en bekijk alle builds op dit systeem.",

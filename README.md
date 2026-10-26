@@ -80,9 +80,10 @@ packaging/install.sh
 ## Notes
 
 - Store logins open in Ember's sign-in window (`ember-sign-in`, a small helper process
-  using WebKitGTK on Linux, WKWebView on macOS, and WebView2 on Windows) and finish on their own: Ember never needs anything copied. Without
-  the helper, or with "Use the browser instead", the page opens in your browser and Ember
-  watches the clipboard for the code or redirect URL.
+  using WebKitGTK on Linux, WKWebView on macOS, and WebView2 on Windows) and finish on their own: Ember never needs anything copied. On macOS
+  and Windows, Ember shows the window itself when the helper isn't built (as after
+  `cargo run -p ember`). On Linux without the helper, or with "Use the browser instead",
+  the page opens in your browser and Ember watches the clipboard for the code or redirect URL.
 - Discord Rich Presence needs a Discord application ID (Settings → General → Integrations).
 - Data uses each operating system’s application-data and cache directories;
   `EMBER_HOME` relocates all of it. See [platform paths](docs/PLATFORMS.md#paths-and-desktop-behavior).

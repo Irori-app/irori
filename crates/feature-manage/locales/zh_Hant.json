@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "開啟登入視窗",
   "manage.login.use_browser": "改用瀏覽器",
   "manage.login.window.finishing": "正在完成登入…",
+  "manage.login.window.missing": "未安裝 Ember 的登入視窗，因此已在瀏覽器中開啟頁面。",
+  "manage.login.window.failed": "無法開啟登入視窗，因此已在瀏覽器中開啟頁面。",
   "manage.wine.title": "Wine 管理員",
   "manage.wine.description_macos": "下載適用於 Windows 遊戲的 Wine，或使用已安裝的 CrossOver 或 Whisky 執行環境。",
   "manage.wine.description": "為 Windows 遊戲下載 Proton 和 Wine 版本，並查看此系統上的所有版本。",
