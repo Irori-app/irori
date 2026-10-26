@@ -328,7 +328,9 @@ impl Backend {
         for store in self.stores.values().filter(|s| s.is_logged_in()) {
             match store.remote_playtime().await {
                 Ok(totals) if !totals.is_empty() => {
-                    let grown = self.userdata.merge_store_playtime(store.runner(), &totals);
+                    let grown =
+                        self.userdata
+                            .merge_store_playtime(store.runner(), &store.games(), &totals);
                     if grown > 0 {
                         tracing::info!(
                             "{} playtime: {grown} games had more time recorded there",
