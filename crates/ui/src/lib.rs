@@ -5,6 +5,7 @@
 
 pub mod art;
 pub mod components;
+pub mod glass;
 pub mod hooks;
 pub mod i18n;
 pub mod models;

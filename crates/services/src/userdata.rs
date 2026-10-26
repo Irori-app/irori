@@ -31,6 +31,39 @@ pub struct UserData {
     pub store_hidden_imported: BTreeSet<String>,
 }
 
+/// Which of a store's playtime totals name games, and which stored records
+/// name DLC instead. Epic reports playtime per DLC as well, each repeating
+/// the base game's time; counted as games they doubled the totals and showed
+/// up under raw app names. Totals for app names the store does not list are
+/// dropped too, as nothing in the library could show them.
+fn split_store_playtime(
+    games: &[Arc<GameInfo>],
+    totals: &std::collections::HashMap<String, u64>,
+) -> (std::collections::HashMap<String, u64>, BTreeSet<String>) {
+    let playable: BTreeSet<&str> = games
+        .iter()
+        .filter(|g| !g.is_dlc)
+        .map(|g| g.app_name.as_str())
+        .collect();
+    let dlc = games
+        .iter()
+        .flat_map(|g| {
+            g.dlcs
+                .iter()
+                .map(|d| d.app_name.as_str())
+                .chain(g.is_dlc.then_some(g.app_name.as_str()))
+        })
+        .filter(|app| !playable.contains(app))
+        .map(str::to_string)
+        .collect();
+    let totals = totals
+        .iter()
+        .filter(|(app, _)| playable.contains(app.as_str()))
+        .map(|(app, minutes)| (app.clone(), *minutes))
+        .collect();
+    (totals, dlc)
+}
+
 /// Store totals larger than Ember's, by game key.
 fn grown_totals(
     data: &UserData,
@@ -284,16 +317,30 @@ impl UserDataService {
     /// each game keeps the larger of Ember's total and the store's, so time
     /// played in the store's launcher shows here and nothing is counted
     /// twice. Writes only when a total grew.
+    ///
+    /// Only the store's games count (see [`split_store_playtime`]); records
+    /// an earlier sync kept for its DLC are removed.
     pub fn merge_store_playtime(
         &self,
         runner: ember_core::Runner,
+        games: &[Arc<GameInfo>],
         totals: &std::collections::HashMap<String, u64>,
     ) -> usize {
-        let grown = grown_totals(&self.snapshot(), runner, totals);
-        if !grown.is_empty() {
+        let (totals, dlc) = split_store_playtime(games, totals);
+        let data = self.snapshot();
+        let grown = grown_totals(&data, runner, &totals);
+        let stale: Vec<String> = dlc
+            .iter()
+            .map(|app| GameId::new(runner, app.as_str()).key())
+            .filter(|key| data.playtime.contains_key(key))
+            .collect();
+        if !grown.is_empty() || !stale.is_empty() {
             self.update(None, |d| {
                 for (key, minutes) in &grown {
                     d.playtime.entry(key.clone()).or_default().total_minutes = *minutes;
+                }
+                for key in &stale {
+                    d.playtime.remove(key);
                 }
             });
         }
@@ -358,6 +405,41 @@ mod tests {
         plan.apply(&mut data, "later");
         assert!(!data.hidden.contains("gog:1"));
         assert!(data.store_hidden_imported.is_empty());
+    }
+
+    #[test]
+    fn store_playtime_counts_games_not_their_dlc() {
+        // Epic reports Civilization VI's DLC with the base game's time.
+        let base = Arc::new(GameInfo {
+            app_name: "Kinglet".into(),
+            dlcs: vec![ember_core::game::DlcInfo {
+                app_name: "KingletAztec".into(),
+                title: "Aztec".into(),
+                is_installed: true,
+                owned: true,
+            }],
+            ..Default::default()
+        });
+        let dlc = Arc::new(GameInfo {
+            app_name: "KingletNubia".into(),
+            is_dlc: true,
+            ..Default::default()
+        });
+        let totals = std::collections::HashMap::from([
+            ("Kinglet".to_string(), 2283u64),
+            ("KingletAztec".to_string(), 2283),
+            ("KingletNubia".to_string(), 248),
+            ("Gone".to_string(), 10),
+        ]);
+        let (kept, dlc) = split_store_playtime(&[base, dlc], &totals);
+        assert_eq!(
+            kept,
+            std::collections::HashMap::from([("Kinglet".to_string(), 2283)])
+        );
+        assert_eq!(
+            dlc.into_iter().collect::<Vec<_>>(),
+            ["KingletAztec", "KingletNubia"]
+        );
     }
 
     #[test]

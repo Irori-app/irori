@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Otevřít přihlašovací okno",
   "manage.login.use_browser": "Použít raději prohlížeč",
   "manage.login.window.finishing": "Dokončování přihlášení…",
+  "manage.login.window.missing": "Přihlašovací okno Emberu není nainstalované, proto se stránka otevřela v prohlížeči.",
+  "manage.login.window.failed": "Přihlašovací okno se nepodařilo otevřít, proto se stránka otevřela v prohlížeči.",
   "manage.wine.title": "Správce Wine",
   "manage.wine.description_macos": "Stáhněte Wine pro hry pro Windows nebo použijte nainstalovaný CrossOver či Whisky.",
   "manage.wine.description": "Stahujte sestavení Proton a Wine pro hry z Windows a prohlédněte si všechna sestavení v tomto systému.",

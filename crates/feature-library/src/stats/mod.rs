@@ -39,6 +39,8 @@ const LABEL_REM: f32 = 12.0;
 pub struct StatsView {
     /// `None` until the first computation finishes.
     stats: Option<Stats>,
+    /// Library revision and user data the stats were computed from.
+    seen: Option<(u64, Arc<ember_services::UserData>)>,
     images: Entity<LruImageCache>,
     _subscriptions: Vec<Subscription>,
 }
@@ -46,10 +48,24 @@ pub struct StatsView {
 impl StatsView {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let sessions = models(cx).sessions.clone();
-        // A finished session changes every number on the page.
-        let subscriptions =
-            vec![cx.observe_in(&sessions, window, |this, _, _, cx| this.reload(cx))];
+        let library = models(cx).library.clone();
+        let subscriptions = vec![
+            // A finished session changes every number on the page.
+            cx.observe_in(&sessions, window, |this, _, _, cx| this.reload(cx)),
+            // So do a library refresh (which games count) and playtime
+            // synced from the stores; the model notifies for much else too.
+            cx.observe_in(&library, window, |this, library, _, cx| {
+                let l = library.read(cx);
+                let same = this.seen.as_ref().is_some_and(|(revision, user)| {
+                    *revision == l.snapshot.revision && Arc::ptr_eq(user, &l.user)
+                });
+                if !same {
+                    this.reload(cx);
+                }
+            }),
+        ];
         let mut view = Self {
+            seen: None,
             stats: None,
             images: LruImageCache::new(32, cx),
             _subscriptions: subscriptions,
@@ -61,14 +77,22 @@ impl StatsView {
     /// Read the history (off the UI thread) and recompute.
     fn reload(&mut self, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let playtime = models(cx).library.read(cx).user.playtime.clone();
+        let library = models(cx).library.read(cx);
+        let (snapshot, user) = (library.snapshot.clone(), library.user.clone());
+        let playtime = user.playtime.clone();
+        self.seen = Some((snapshot.revision, user));
         let task = ember_ui::state::run_infallible(cx, async move {
             let sessions: Vec<_> = b
                 .sessions()
                 .into_iter()
                 .filter_map(|s| Some((model::local_day(&s)?, s)))
                 .collect();
-            model::compute(&sessions, &playtime, Local::now().date_naive())
+            model::compute(
+                &sessions,
+                &playtime,
+                |id| snapshot.get(id).is_some(),
+                Local::now().date_naive(),
+            )
         });
         cx.spawn(async move |this, cx| {
             if let Some(stats) = task.await {

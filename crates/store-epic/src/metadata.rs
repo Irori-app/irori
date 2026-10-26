@@ -169,16 +169,30 @@ pub(crate) fn build_entry(app_name: &str, meta: &GameMetadata) -> Option<Catalog
     let tall = image(&["DieselGameBoxTall", "OfferImageTall"]);
     let tall_front = image(&["DieselStoreFrontTall"]);
 
-    let metadata_platforms = m
+    // Every release counts: a port added later (Cyberpunk 2077 on Mac) can
+    // arrive as a release of its own beside the original Windows one.
+    let mut metadata_platforms: Vec<String> = Vec::new();
+    let listed = m
         .release_info
-        .first()
-        .and_then(|r| r.platform.clone())
-        .or_else(|| {
-            let main = m.main_game_item.as_ref()?;
-            let p = main.get("releaseInfo")?.get(0)?.get("platform")?;
-            serde_json::from_value(p.clone()).ok()
-        })
-        .unwrap_or_default();
+        .iter()
+        .filter_map(|r| r.platform.clone())
+        .flatten()
+        .chain(
+            m.main_game_item
+                .as_ref()
+                .and_then(|main| main.get("releaseInfo")?.as_array().cloned())
+                .into_iter()
+                .flatten()
+                .filter_map(|r| {
+                    serde_json::from_value::<Vec<String>>(r.get("platform")?.clone()).ok()
+                })
+                .flatten(),
+        );
+    for p in listed {
+        if !metadata_platforms.contains(&p) {
+            metadata_platforms.push(p);
+        }
+    }
 
     let mut platforms: Vec<InstallPlatform> = Vec::new();
     let names: Vec<&String> = if meta.asset_infos.is_empty() {
@@ -302,9 +316,17 @@ pub(crate) fn compose(
     g.save_path = info
         .and_then(|i| i.save_path.clone())
         .filter(|p| !p.is_empty());
+    // Not installed: native when Epic offers a Mac build, whether its
+    // catalogue says so or only the Mac asset list does.
     g.is_mac_native = match info {
         Some(i) => i.platform == "Mac",
-        None => entry.metadata_platforms.iter().any(|p| p == "Mac"),
+        None => {
+            entry.metadata_platforms.iter().any(|p| p == "Mac")
+                || g.platforms.contains(&InstallPlatform::Mac)
+                || assets
+                    .get("Mac")
+                    .is_some_and(|m| m.contains_key(&g.app_name))
+        }
     };
     g.is_linux_native = false;
     for d in &mut g.dlcs {
@@ -418,6 +440,32 @@ mod tests {
             not_installed.save_folder.as_deref(),
             Some("{AppData}/Sugar/Saved")
         );
+    }
+
+    #[test]
+    fn a_mac_port_released_separately_is_native() {
+        // The Windows release first, the Mac port added as its own release.
+        let json = META.replace(
+            r#""releaseInfo": [{"appId":"Sugar","id":"r1","platform":["Windows","Mac"]}]"#,
+            r#""releaseInfo": [{"appId":"Sugar","id":"r1","platform":["Windows"]},
+                              {"appId":"Sugar","id":"r3","platform":["Mac"]}]"#,
+        );
+        let e = entry(&json).unwrap();
+        let owned: HashSet<String> = ["Sugar".to_string()].into();
+        let g = compose(&e, &InstalledMap::new(), &owned, &Assets::default());
+        assert!(g.is_mac_native);
+    }
+
+    #[test]
+    fn a_mac_asset_alone_makes_it_native() {
+        let json = META.replace(r#","Mac"]"#, "]");
+        let e = entry(&json).unwrap();
+        let owned: HashSet<String> = ["Sugar".to_string()].into();
+        let none = compose(&e, &InstalledMap::new(), &owned, &Assets::default());
+        assert!(!none.is_mac_native);
+        let assets = parse_assets(r#"{"Mac":{"Sugar":"1.1"}}"#);
+        let g = compose(&e, &InstalledMap::new(), &owned, &assets);
+        assert!(g.is_mac_native);
     }
 
     #[test]

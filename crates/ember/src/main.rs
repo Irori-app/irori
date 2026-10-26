@@ -50,6 +50,11 @@ pub enum ShellCommand {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // Started by the login dialog to show a store's sign-in page.
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    if args.first().map(String::as_str) == Some(ember_sign_in::SIGN_IN_FLAG) {
+        std::process::exit(i32::from(ember_sign_in::main(args.into_iter().skip(1))));
+    }
     let cli = Cli::parse(args.clone());
     if cli.help {
         println!("{}\n\n{}", cli::HELP, headless::HELP);
@@ -210,6 +215,7 @@ fn open_main_window(app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
         return;
     }
     let prefs = models(cx).settings.read(cx).app.ui.clone();
+    let route = shell::initial_route(cx);
     let bounds = Bounds::centered(
         None,
         size(
@@ -228,9 +234,11 @@ fn open_main_window(app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
         app_id: Some("ember".into()),
         // Ember draws its own title bar; ask Wayland compositors not to add one.
         window_decorations: Some(WindowDecorations::Client),
+        // The backdrop from the first frame, so a translucent window never
+        // flashes opaque. The shell keeps it in step from here on.
+        window_background: ember_ui::glass::window_background(shell::initial_glass(&route, cx)),
         ..TitleBar::window_options()
     };
-    let route = shell::initial_route(cx);
     nav::navigator(cx).update(cx, |n, cx| n.replace(route, cx));
     match gpui_kit::open_window(options, cx, |window, cx| {
         let shell = cx.new(|cx| AppShell::new(window, cx));

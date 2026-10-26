@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "Otwórz okno logowania",
   "manage.login.use_browser": "Użyj zamiast tego przeglądarki",
   "manage.login.window.finishing": "Kończenie logowania…",
+  "manage.login.window.missing": "Okno logowania Embera nie jest zainstalowane, więc strona otworzyła się w przeglądarce.",
+  "manage.login.window.failed": "Nie udało się otworzyć okna logowania, więc strona otworzyła się w przeglądarce.",
   "manage.wine.title": "Menedżer Wine",
   "manage.wine.description_macos": "Pobierz Wine do gier Windows albo użyj zainstalowanego CrossOver lub Whisky.",
   "manage.wine.description": "Pobieraj wersje Proton i Wine dla gier na Windows i przeglądaj wszystkie wersje w tym systemie.",

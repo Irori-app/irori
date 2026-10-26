@@ -1,0 +1,33 @@
+name: PR rules
+
+# Branch, title and base conventions from AGENTS.md. Renaming the title
+# re-runs the check; a misnamed branch needs a new pull request.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-rules-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  names:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rule tests
+        run: python -m unittest discover -s .github/scripts -p "test_*.py"
+      - name: Branch, title and base
+        # Passed through the environment, never interpolated into the script:
+        # titles and branch names are untrusted input.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: python .github/scripts/pr_rules.py

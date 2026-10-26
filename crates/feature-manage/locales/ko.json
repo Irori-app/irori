@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "로그인 창 열기",
   "manage.login.use_browser": "대신 브라우저 사용",
   "manage.login.window.finishing": "로그인을 마무리하는 중…",
+  "manage.login.window.missing": "Ember 로그인 창이 설치되어 있지 않아 브라우저에서 페이지를 열었습니다.",
+  "manage.login.window.failed": "로그인 창을 열 수 없어 브라우저에서 페이지를 열었습니다.",
   "manage.wine.title": "Wine 관리자",
   "manage.wine.description_macos": "Windows 게임용 Wine을 다운로드하거나 설치된 CrossOver 또는 Whisky를 사용하세요.",
   "manage.wine.description": "Windows 게임용 Proton 및 Wine 빌드를 다운로드하고 이 시스템의 모든 빌드를 확인하세요.",

@@ -110,6 +110,26 @@ Windows cancellation uses `taskkill /T /F`; games that deliberately escape their
 launcher process tree still require game-specific testing. External EA/Ubisoft
 launchers may reuse an existing process, which limits playtime tracking.
 
+## Window translucency
+
+Settings → Appearance → Translucency lets the desktop show through the title bar
+and sidebar (Subtle), or the pages too (Strong). The blur is the system's, so
+Ember draws exactly what it draws when opaque; only some colours carry alpha.
+
+| Host | Backdrop | Automatic |
+| --- | --- | --- |
+| macOS | Native vibrancy (blur only, untinted) | On |
+| Windows 11 22H2+ | Mica | On |
+| Windows 10 / 11 21H2 | Acrylic (lags while dragging) | Off |
+| Linux, KDE Plasma on Wayland | KWin blur | On |
+| Linux, other desktops / X11 | See-through, no blur unless the compositor adds it (match app id `ember`) | Off |
+| gamescope | None | Off |
+
+The window is opaque in Big Picture and fullscreen, where nothing behind it is
+worth showing, which also spares the compositor the blur. Views take their
+surface colours from `ember_ui::glass` (`chrome`, `page`, `solid_pages`) rather
+than adding alpha themselves.
+
 ## Verification and remaining machine tests
 
 The regression suite checks the host/build matrix, unsupported runtime families,

@@ -159,6 +159,9 @@ pub struct SettingsForm {
     pairs: HashMap<&'static str, PairEditor>,
     sliders: HashMap<&'static str, Entity<SliderState>>,
     slider_writes: HashMap<&'static str, Task<()>>,
+    /// The last value each slider reported. A drag reports every pointer
+    /// move, mostly with an unchanged value.
+    slider_seen: HashMap<&'static str, f32>,
     wine: Option<WinePicker>,
     errors: HashMap<&'static str, SharedString>,
     filter: FormFilter,
@@ -210,6 +213,7 @@ impl SettingsForm {
             pairs: HashMap::new(),
             sliders: HashMap::new(),
             slider_writes: HashMap::new(),
+            slider_seen: HashMap::new(),
             wine: None,
             errors: HashMap::new(),
             filter: FormFilter::Sections(sections),
@@ -587,12 +591,7 @@ impl SettingsForm {
                     window,
                     |this, _, event: &SelectEvent<Vec<ChoiceItem>>, window, cx| {
                         if let SelectEvent::Confirm(Some(name)) = event {
-                            this.write(
-                                "emberUi.themeName",
-                                Value::String(name.to_string()),
-                                window,
-                                cx,
-                            );
+                            this.pick_theme(name, window, cx);
                         }
                     },
                 ));
@@ -620,10 +619,11 @@ impl SettingsForm {
                     &state,
                     window,
                     move |this, _, event: &SliderEvent, window, cx| {
-                        let v = match event {
-                            SliderEvent::Change(v) | SliderEvent::Release(v) => v.start(),
+                        let (v, released) = match event {
+                            SliderEvent::Change(v) => (v.start(), false),
+                            SliderEvent::Release(v) => (v.start(), true),
                         };
-                        this.slider_changed(path, v, window, cx);
+                        this.slider_changed(path, v, released, window, cx);
                     },
                 ));
                 self.sliders.insert(spec.path, state);
@@ -912,17 +912,32 @@ impl SettingsForm {
         .detach();
     }
 
+    /// A slider moved (`released` once the drag ends, or for a reset).
     fn slider_changed(
         &mut self,
         path: &'static str,
         v: f32,
+        released: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if !released && self.slider_seen.get(path) == Some(&v) {
+            return;
+        }
+        self.slider_seen.insert(path, v);
         if path == "emberUi.fontSize" {
-            let mut prefs = backend(cx).settings.app().ui.clone();
-            prefs.font_size = v;
-            ember_ui::theme::apply(&prefs, Some(window), cx);
+            // The interface size rescales this page, slider included: applied
+            // mid-drag, the track would move under the pointer and fight it.
+            // The percentage follows the drag; the size applies on release.
+            if released {
+                self.slider_writes.remove(path);
+                self.write(path, Value::from(v as f64), window, cx);
+            } else {
+                // Keeps `reload` from snapping the slider back meanwhile.
+                self.slider_writes.insert(path, Task::ready(()));
+                cx.notify();
+            }
+            return;
         }
         let task = cx.spawn_in(window, async move |this, cx| {
             cx.background_executor()
@@ -936,6 +951,23 @@ impl SettingsForm {
         });
         self.slider_writes.insert(path, task);
         cx.notify();
+    }
+
+    /// Use the theme called `name`. A theme for the other colour mode than
+    /// the one showing switches the mode too, so picking it always shows it.
+    fn pick_theme(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(dark) = ember_ui::theme::is_dark_theme(name, cx)
+            && dark != cx.theme().mode.is_dark()
+        {
+            let mode = if dark { "dark" } else { "light" };
+            self.write("emberUi.theme", Value::from(mode), window, cx);
+        }
+        self.write(
+            "emberUi.themeName",
+            Value::String(name.to_string()),
+            window,
+            cx,
+        );
     }
 
     fn rows(&self, path: &str) -> Vec<(String, String)> {
@@ -1459,7 +1491,7 @@ impl SettingsForm {
                                 if let Some(s) = this.sliders.get(path) {
                                     s.update(cx, |s, cx| s.set_value(reset_value, window, cx));
                                 }
-                                this.slider_changed(path, reset_value, window, cx);
+                                this.slider_changed(path, reset_value, true, window, cx);
                             })),
                     )
                     .into_any_element()

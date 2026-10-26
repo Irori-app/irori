@@ -87,9 +87,15 @@ fn week_start(day: NaiveDate) -> NaiveDate {
 /// Compute the stats. `sessions` pairs each recorded session with its local
 /// start day; `playtime` holds the all-time totals by game key (they include
 /// time played before the history existed, such as imports from Heroic).
+///
+/// Playtime counts only for what `is_game` accepts: records can name DLC
+/// (Epic reports its playtime per DLC too, each repeating the base game's)
+/// or games no longer in the library, which would double the totals and show
+/// up as raw app names.
 pub fn compute(
     sessions: &[(NaiveDate, Session)],
     playtime: &BTreeMap<String, PlaytimeRecord>,
+    is_game: impl Fn(&GameId) -> bool,
     today: NaiveDate,
 ) -> Stats {
     let this_week = week_start(today);
@@ -129,7 +135,7 @@ pub fn compute(
     let mut games: Vec<GameTotal> = Vec::new();
     for (key, record) in playtime {
         let Some(id) = game_id(key) else { continue };
-        if record.total_minutes == 0 {
+        if record.total_minutes == 0 || !is_game(&id) {
             continue;
         }
         *stores.entry(id.runner).or_default() += record.total_minutes;
@@ -234,7 +240,7 @@ mod tests {
             // Older than the chart: ignored by it.
             session("gog:1", "2026-01-05", 600),
         ];
-        let stats = compute(&sessions, &BTreeMap::new(), today);
+        let stats = compute(&sessions, &BTreeMap::new(), |_| true, today);
         assert_eq!(stats.weeks.len(), WEEKS);
         let last = stats.weeks.last().unwrap();
         assert_eq!((last.start, last.minutes), (day("2026-10-19"), 45));
@@ -264,12 +270,12 @@ mod tests {
                 },
             ),
         ];
-        let stats = compute(&sessions, &BTreeMap::new(), today);
+        let stats = compute(&sessions, &BTreeMap::new(), |_| true, today);
         // Today has no play yet, so yesterday's run is still current.
         assert_eq!((stats.current_streak, stats.longest_streak), (2, 4));
         let tomorrow = day("2026-10-25");
         assert_eq!(
-            compute(&sessions, &BTreeMap::new(), tomorrow).current_streak,
+            compute(&sessions, &BTreeMap::new(), |_| true, tomorrow).current_streak,
             0
         );
     }
@@ -295,7 +301,7 @@ mod tests {
                 crashed: true,
             },
         ));
-        let stats = compute(&sessions, &playtime, day("2026-10-23"));
+        let stats = compute(&sessions, &playtime, |_| true, day("2026-10-23"));
         assert_eq!(stats.total_minutes, 240);
         assert_eq!(
             stats.stores,
@@ -317,7 +323,27 @@ mod tests {
     }
 
     #[test]
+    fn dlc_and_unknown_games_are_left_out() {
+        // Epic reports Civilization VI's DLC with the base game's time.
+        let mut playtime = BTreeMap::new();
+        playtime.insert("legendary:Kinglet".to_string(), record(2283));
+        playtime.insert("legendary:KingletAztec".to_string(), record(2283));
+        playtime.insert("legendary:KingletNubia".to_string(), record(248));
+        let games = ["legendary:Kinglet"];
+        let stats = compute(
+            &[],
+            &playtime,
+            |id| games.contains(&id.key().as_str()),
+            day("2026-10-23"),
+        );
+        let names: Vec<_> = stats.games.iter().map(|g| g.id.key()).collect();
+        assert_eq!(names, ["legendary:Kinglet"]);
+        assert_eq!(stats.total_minutes, 2283);
+        assert_eq!(stats.stores[0].minutes, 2283);
+    }
+
+    #[test]
     fn nothing_played_is_empty() {
-        assert!(compute(&[], &BTreeMap::new(), day("2026-10-23")).is_empty());
+        assert!(compute(&[], &BTreeMap::new(), |_| true, day("2026-10-23")).is_empty());
     }
 }

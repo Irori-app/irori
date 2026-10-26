@@ -130,6 +130,8 @@
   "manage.login.window.reopen": "サインイン ウィンドウを開く",
   "manage.login.use_browser": "代わりにブラウザーを使う",
   "manage.login.window.finishing": "サインインを完了しています…",
+  "manage.login.window.missing": "Ember のサインインウィンドウがインストールされていないため、ブラウザーでページを開きました。",
+  "manage.login.window.failed": "サインインウィンドウを開けなかったため、ブラウザーでページを開きました。",
   "manage.wine.title": "Wine マネージャー",
   "manage.wine.description_macos": "Windows ゲーム用の Wine をダウンロードするか、インストール済みの CrossOver または Whisky を使用します。",
   "manage.wine.description": "Windows ゲーム用の Proton と Wine のビルドをダウンロードし、このシステムにあるすべてのビルドを確認できます。",

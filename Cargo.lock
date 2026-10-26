@@ -2060,6 +2060,7 @@ dependencies = [
  "ember-services",
  "ember-settings",
  "ember-sideload",
+ "ember-sign-in",
  "ember-ui",
  "ember-zoom",
  "futures",
@@ -2529,6 +2530,7 @@ dependencies = [
  "ember-services",
  "futures",
  "gpui-kit",
+ "gpui-pre",
  "hex",
  "image",
  "libc",
@@ -2538,6 +2540,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "sysinfo 0.39.6",
  "tokio",
  "tracing",
 ]

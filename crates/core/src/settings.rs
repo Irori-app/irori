@@ -419,6 +419,21 @@ pub enum LibraryLayout {
     List,
 }
 
+/// How much of the desktop shows through Ember's window chrome.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Translucency {
+    /// On where the system blurs what is behind the window (macOS,
+    /// Windows 11, KDE Plasma on Wayland), off elsewhere.
+    #[default]
+    Auto,
+    Off,
+    /// Translucent title bar and sidebar; pages stay solid.
+    Subtle,
+    /// Clearer chrome, and pages let a little of the desktop through too.
+    Strong,
+}
+
 /// Ember-only presentation preferences.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -426,6 +441,7 @@ pub struct UiPrefs {
     pub theme: ThemePreference,
     /// Theme name from the bundled/user theme registry ("" = default).
     pub theme_name: String,
+    pub translucency: Translucency,
     /// Base font size in px; drives the rem scale (application zoom).
     pub font_size: f32,
     pub library_layout: LibraryLayout,
@@ -444,6 +460,7 @@ impl Default for UiPrefs {
         Self {
             theme: ThemePreference::System,
             theme_name: String::new(),
+            translucency: Translucency::Auto,
             font_size: 16.0,
             library_layout: LibraryLayout::Grid,
             tile_size: 11.0,
