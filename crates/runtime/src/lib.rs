@@ -11,8 +11,10 @@ pub mod download;
 pub mod env;
 pub mod hooks;
 pub mod locations;
+pub mod mac_driver;
 pub mod manager;
 pub mod prefix;
+pub mod protontricks;
 pub mod runtimes;
 pub mod sysinfo;
 pub mod tools;
@@ -161,12 +163,12 @@ pub async fn wine_context(
             !bottle.is_empty() && !bottle.contains(['/', '\\']) && bottle != "." && bottle != "..",
             "Choose a valid CrossOver bottle name"
         );
-        let prefix = locations::home()
-            .join("Library/Application Support/CrossOver/Bottles")
-            .join(bottle);
+        let bottles = locations::crossover_bottles_dir(app);
+        let prefix = bottles.join(bottle);
         anyhow::ensure!(
             prefix.join("cxbottle.conf").is_file(),
-            "CrossOver bottle {bottle} was not found. Create it in CrossOver first."
+            "CrossOver bottle {bottle} was not found in {}. Create it in CrossOver first, or set CrossOver's bottles folder in Settings.",
+            bottles.display()
         );
         prefix
     } else {
@@ -335,6 +337,15 @@ pub async fn prepare_launch(
         .insert(fingerprint(settings), (wc.wine.clone(), wc.prefix.clone()));
 
     prefix::verify_prefix(app, &effective, &wc, ctx).await?;
+    if cfg!(target_os = "macos")
+        && let Err(e) =
+            mac_driver::apply_retina_mode(app, &effective, &wc, settings.retina_mode, ctx).await
+    {
+        if is_cancelled(&e) {
+            return Err(e);
+        }
+        note(ctx, &format!("Could not change Retina mode: {e:#}"));
+    }
     match prefix::register_game(&wc.prefix, &target.id.app_name).await {
         Ok(true) => {
             tracing::info!("Created/Updated Wineprefix at {}", wc.prefix.display());
@@ -555,9 +566,7 @@ pub fn prefix_path(app: &AppSettings, settings: &GameSettings, game: &GameInfo) 
     if cfg!(target_os = "macos") && wine.kind == WineKind::Crossover {
         let bottle = settings.wine_crossover_bottle.trim();
         if !bottle.is_empty() && !bottle.contains(['/', '\\']) && bottle != "." && bottle != ".." {
-            return locations::home()
-                .join("Library/Application Support/CrossOver/Bottles")
-                .join(bottle);
+            return locations::crossover_bottles_dir(app).join(bottle);
         }
     }
     if settings.wine_prefix.is_empty() {
@@ -700,6 +709,36 @@ mod tests {
         );
         gs.wine_prefix = "/x/y".into();
         assert_eq!(prefix_path(&app, &gs, &game()), PathBuf::from("/x/y"));
+    }
+
+    #[test]
+    fn crossover_bottles_can_live_elsewhere() {
+        let mut app = AppSettings::default();
+        assert!(
+            locations::crossover_bottles_dir(&app)
+                .ends_with("Library/Application Support/CrossOver/Bottles")
+        );
+        app.crossover_bottles_path = " /Volumes/Games/Bottles ".into();
+        assert_eq!(
+            locations::crossover_bottles_dir(&app),
+            PathBuf::from("/Volumes/Games/Bottles")
+        );
+        if cfg!(target_os = "macos") {
+            let gs = GameSettings {
+                wine_version: WineInstallation {
+                    bin: "/Applications/CrossOver.app/wine".into(),
+                    name: "CrossOver".into(),
+                    kind: WineKind::Crossover,
+                    ..Default::default()
+                },
+                wine_crossover_bottle: "Steam".into(),
+                ..Default::default()
+            };
+            assert_eq!(
+                prefix_path(&app, &gs, &game()),
+                PathBuf::from("/Volumes/Games/Bottles/Steam")
+            );
+        }
     }
 
     #[tokio::test]

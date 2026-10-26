@@ -164,6 +164,10 @@ pub struct GameSettings {
     pub verbose_logs: bool,
     pub advertise_avx_for_rosetta: bool,
     pub enable_quick_saves_menu: bool,
+    /// macOS: render at the display's full resolution (Wine's Mac driver
+    /// `RetinaMode`). Ember-only.
+    #[serde(rename = "emberRetinaMode")]
+    pub retina_mode: bool,
 }
 
 impl Default for GameSettings {
@@ -211,6 +215,7 @@ impl Default for GameSettings {
             verbose_logs: true,
             advertise_avx_for_rosetta: false,
             enable_quick_saves_menu: false,
+            retina_mode: false,
         }
     }
 }
@@ -337,6 +342,9 @@ pub struct AppSettings {
     pub steam_grid_db_api_key: String,
     pub comet_support: bool,
     pub zoom_platform: bool,
+    /// The itch.io store (off until turned on). Ember-only.
+    #[serde(rename = "emberItchIo")]
+    pub itch_io: bool,
     /// UI language code ("en", "de", …).
     #[serde(rename = "uiLanguage")]
     pub ui_language: String,
@@ -346,6 +354,10 @@ pub struct AppSettings {
     /// folder inside).
     #[serde(rename = "emberExtrasPath")]
     pub extras_path: String,
+    /// macOS: where CrossOver keeps its bottles, when moved from
+    /// `~/Library/Application Support/CrossOver/Bottles` ("" = there).
+    #[serde(rename = "emberCrossoverBottlesPath")]
+    pub crossover_bottles_path: String,
 }
 
 impl Default for AppSettings {
@@ -357,6 +369,7 @@ impl Default for AppSettings {
             .join("Ember");
         Self {
             extras_path: extras.to_string_lossy().into_owned(),
+            crossover_bottles_path: String::new(),
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,
@@ -397,6 +410,7 @@ impl Default for AppSettings {
             steam_grid_db_api_key: String::new(),
             comet_support: true,
             zoom_platform: true,
+            itch_io: false,
             ui_language: "en".into(),
             ui: UiPrefs::default(),
         }
@@ -464,14 +478,15 @@ pub struct UiPrefs {
 
 /// Which stores Ember shows. A hidden store keeps its sign-in and installed
 /// games on disk; its games, account card and store page are left out.
-/// ZOOM Platform follows `zoomPlatform`, and apps the user added are always
-/// shown.
+/// ZOOM Platform follows `zoomPlatform`, itch.io follows `emberItchIo`, and
+/// apps the user added are always shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShownStores {
     pub epic: bool,
     pub gog: bool,
     pub amazon: bool,
+    pub steam: bool,
 }
 
 impl Default for ShownStores {
@@ -480,6 +495,7 @@ impl Default for ShownStores {
             epic: true,
             gog: true,
             amazon: true,
+            steam: true,
         }
     }
 }
@@ -491,24 +507,29 @@ impl ShownStores {
             Runner::Legendary => self.epic,
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
-            Runner::Zoom | Runner::Sideload => true,
+            Runner::Steam => self.steam,
+            Runner::Zoom | Runner::Itch | Runner::Sideload => true,
         }
     }
 
-    /// Show or hide a store. ZOOM Platform and added apps have no switch
-    /// here, so they are left as they are.
+    /// Show or hide a store. ZOOM Platform, itch.io and added apps have no
+    /// switch here, so they are left as they are.
     pub fn set(&mut self, runner: Runner, shown: bool) {
         match runner {
             Runner::Legendary => self.epic = shown,
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
-            Runner::Zoom | Runner::Sideload => {}
+            Runner::Steam => self.steam = shown,
+            Runner::Zoom | Runner::Itch | Runner::Sideload => {}
         }
     }
 
     /// Whether the store can be hidden with [`ShownStores::set`].
     pub fn can_hide(runner: Runner) -> bool {
-        matches!(runner, Runner::Legendary | Runner::Gog | Runner::Nile)
+        matches!(
+            runner,
+            Runner::Legendary | Runner::Gog | Runner::Nile | Runner::Steam
+        )
     }
 }
 

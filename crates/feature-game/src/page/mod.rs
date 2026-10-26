@@ -557,7 +557,9 @@ impl GamePage {
     }
 
     fn on_open_log(&mut self, _: &OpenGameLog, window: &mut Window, cx: &mut Context<Self>) {
-        crate::open_log_sheet(self.id.clone(), window, cx);
+        if self.id.runner.manages_installs() {
+            crate::open_log_sheet(self.id.clone(), window, cx);
+        }
     }
 
     fn on_open_settings(
@@ -566,7 +568,9 @@ impl GamePage {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        ops::open_settings(&self.id, "general", cx);
+        if self.id.runner.manages_installs() {
+            ops::open_settings(&self.id, "general", cx);
+        }
     }
 }
 

@@ -147,6 +147,8 @@ pub struct GameState {
     pub in_queue: bool,
     pub has_update: bool,
     pub favourite: bool,
+    /// Another launcher (Steam) installs and removes it.
+    pub external: bool,
 }
 
 /// A command in the game overlay.
@@ -227,7 +229,7 @@ pub fn game_actions(state: GameState) -> Vec<GameAction> {
     } else {
         GameAction::AddFavourite
     });
-    if state.installed && !state.playing {
+    if state.installed && !state.playing && !state.external {
         out.push(GameAction::Uninstall);
     }
     out
@@ -454,6 +456,11 @@ mod tests {
         };
         assert!(disabled_reason(GameAction::Play, verifying).is_some());
         assert!(disabled_reason(GameAction::AddFavourite, verifying).is_none());
+        let steam = GameState {
+            external: true,
+            ..installed
+        };
+        assert!(!game_actions(steam).contains(&GameAction::Uninstall));
         let browser_only = GameState::default();
         assert!(disabled_reason(GameAction::Install, browser_only).is_some());
     }

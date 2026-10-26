@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Вхід виконано",
   "manage.accounts.state.signed_out": "Вхід не виконано",
   "manage.accounts.state.turned_off": "Вимкнено",
-  "manage.accounts.zoom_turned_off": "Підтримку ZOOM Platform вимкнено.",
+  "manage.accounts.turned_off": "Підтримку {store} вимкнено.",
   "manage.accounts.games_one": "1 гра",
   "manage.accounts.games_other": "Ігор: {count}",
   "manage.accounts.login_again": "Увійти знову",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Ігри без DRM, зокрема класика.",
   "manage.stores.blurb.amazon": "Prime Gaming і Amazon Games.",
   "manage.stores.blurb.zoom": "Інді та ретроігри без DRM.",
+  "manage.stores.blurb.itch": "Інді-ігри, геймджеми та релізи за принципом «плати скільки хочеш».",
   "manage.stores.login_hint": "Покупки з’являться після входу.",
   "manage.stores.login": "Увійти",
   "manage.deals.title": "Знижки",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Приховано",
   "manage.accounts.hidden_detail": "Його ігри не показуються в бібліотеці. Вхід і встановлені ігри зберігаються.",
   "manage.accounts.hide": "Приховати",
-  "manage.accounts.show": "Показати"
+  "manage.accounts.show": "Показати",
+  "manage.accounts.state.local": "На цьому комп’ютері",
+  "manage.accounts.state.not_found": "Не знайдено",
+  "manage.accounts.installed_one": "1 встановлена гра",
+  "manage.accounts.installed_other": "Встановлених ігор: {count}",
+  "manage.accounts.local_hint": "Прочитано з {store} на цьому комп’ютері, без входу. Встановлюйте й оновлюйте ігри в {store}.",
+  "manage.accounts.local_missing": "{store} не знайдено на цьому комп’ютері. Якщо його встановлено деінде, укажіть його теку в налаштуваннях.",
+  "manage.accounts.local_hidden_detail": "Його ігри не показуються в бібліотеці.",
+  "manage.accounts.rescan": "Шукати знову"
 }

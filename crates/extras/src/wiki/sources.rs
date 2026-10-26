@@ -121,7 +121,8 @@ pub fn gamesdb_store(runner: Runner) -> Option<&'static str> {
         Runner::Gog => Some("gog"),
         Runner::Nile => Some("amazon"),
         Runner::Zoom => Some("zoom"),
-        Runner::Sideload => None,
+        Runner::Itch => Some("itch"),
+        Runner::Steam | Runner::Sideload => None,
     }
 }
 
@@ -140,8 +141,12 @@ pub fn parse_gamesdb(json: &serde_json::Value) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// Steam app ID of a store game according to GOG's GamesDB.
+/// Steam app ID of a store game according to GOG's GamesDB. A Steam game's
+/// app name is its Steam app ID.
 pub async fn gamesdb_steam_id(runner: Runner, app_name: &str) -> Result<Option<String>> {
+    if runner == Runner::Steam {
+        return Ok(Some(app_name.to_string()));
+    }
     let Some(store) = gamesdb_store(runner) else {
         return Ok(None);
     };
@@ -168,7 +173,8 @@ pub fn umu_store(runner: Runner) -> Option<&'static str> {
         Runner::Legendary => Some("egs"),
         Runner::Nile => Some("amazon"),
         Runner::Zoom => Some("zoomplatform"),
-        Runner::Sideload => None,
+        Runner::Itch => Some("itchio"),
+        Runner::Steam | Runner::Sideload => None,
     }
 }
 

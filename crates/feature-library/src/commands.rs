@@ -44,6 +44,9 @@ pub struct GameState {
     pub sideload: bool,
     /// A web app: no settings, logs or files.
     pub browser: bool,
+    /// Another launcher (Steam) installs and runs it: Play, page, library
+    /// and folder commands only.
+    pub external: bool,
     pub status: Option<StatusKind>,
     pub has_update: bool,
     pub favourite: bool,
@@ -114,7 +117,7 @@ pub fn menu(state: &GameState) -> Vec<Vec<GameCommand>> {
         main.push(RemoveFromQueue);
     }
     main.push(OpenPage);
-    if state.installed && !state.browser {
+    if state.installed && !state.browser && !state.external {
         main.push(Settings);
         main.push(Logs);
     }
@@ -132,18 +135,18 @@ pub fn menu(state: &GameState) -> Vec<Vec<GameCommand>> {
             None => files.extend([AddShortcut, RemoveShortcut]),
         }
     }
-    if !state.browser && (state.installed || state.installable) {
+    if !state.browser && !state.external && (state.installed || state.installable) {
         files.push(AddToSteam);
     }
     if state.installed && state.has_install_path && !state.browser {
         files.push(OpenFolder);
     }
-    if state.installed && !state.sideload && !busy && !playing {
+    if state.installed && !state.sideload && !state.external && !busy && !playing {
         files.push(Verify);
     }
 
     let mut danger = Vec::new();
-    if state.installed && !busy && !playing {
+    if state.installed && !state.external && !busy && !playing {
         danger.push(Uninstall);
     }
 
@@ -280,6 +283,16 @@ mod tests {
         assert!(!flat(&s).contains(&Uninstall));
         assert!(!flat(&s).contains(&Verify));
         assert_eq!(flat(&s)[0], Stop);
+        s.status = None;
+        s.external = true;
+        s.has_install_path = true;
+        let steam = flat(&s);
+        assert_eq!(steam[0], Play);
+        for gone in [Settings, Logs, AddToSteam, Verify, Uninstall] {
+            assert!(!steam.contains(&gone), "{gone:?}");
+        }
+        assert!(steam.contains(&OpenFolder));
+        s.status = Some(StatusKind::Playing);
         s.status = Some(StatusKind::Repairing);
         assert!(!flat(&s).contains(&Uninstall));
         s.status = Some(StatusKind::Queued);

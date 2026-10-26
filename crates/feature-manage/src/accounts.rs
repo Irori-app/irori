@@ -25,9 +25,16 @@ use gpui_kit::{
 use crate::common::{backend_op, card, notify_error, notify_success};
 use crate::login::open_login_dialog;
 
-/// Stores with an account, in display order.
-pub(crate) const ACCOUNT_STORES: [Runner; 4] =
-    [Runner::Legendary, Runner::Gog, Runner::Nile, Runner::Zoom];
+/// Stores with a card on the accounts page, in display order. Steam has no
+/// login: its card reports what Ember found on this computer.
+pub(crate) const ACCOUNT_STORES: [Runner; 6] = [
+    Runner::Legendary,
+    Runner::Gog,
+    Runner::Nile,
+    Runner::Zoom,
+    Runner::Itch,
+    Runner::Steam,
+];
 
 /// Icon used for a store across the management screens.
 pub(crate) fn store_icon(runner: Runner) -> IconName {
@@ -36,7 +43,26 @@ pub(crate) fn store_icon(runner: Runner) -> IconName {
         Runner::Gog => IconName::Store,
         Runner::Nile => IconName::ShoppingBag,
         Runner::Zoom => IconName::Package,
+        Runner::Itch => IconName::Gem,
+        Runner::Steam => IconName::Joystick,
         Runner::Sideload => IconName::FolderOpen,
+    }
+}
+
+/// Whether an opt-in store is turned on (stores without a switch always are).
+pub(crate) fn store_enabled(app: &ember_core::AppSettings, runner: Runner) -> bool {
+    match runner {
+        Runner::Zoom => app.zoom_platform,
+        Runner::Itch => app.itch_io,
+        _ => true,
+    }
+}
+
+fn set_store_enabled(app: &mut ember_core::AppSettings, runner: Runner, on: bool) {
+    match runner {
+        Runner::Zoom => app.zoom_platform = on,
+        Runner::Itch => app.itch_io = on,
+        _ => {}
     }
 }
 
@@ -46,12 +72,14 @@ pub(crate) struct StoreCard {
     pub runner: Runner,
     pub user: Option<String>,
     pub games: usize,
-    /// ZOOM support is turned off in the settings.
+    /// The store (ZOOM Platform, itch.io) is turned off in the settings.
     pub disabled: bool,
     /// The user hid the store: its games and pages are left out.
     pub hidden: bool,
     /// The store refused the saved login, with its reason.
     pub expired: Option<String>,
+    /// The store reads games installed on this computer; it has no login.
+    pub local: bool,
 }
 
 /// Cards for the stores this build has, in display order.
@@ -61,7 +89,6 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
     let accounts = m.accounts.read(cx);
     let library = m.library.read(cx);
     let app = &m.settings.read(cx).app;
-    let zoom_enabled = app.zoom_platform;
     let shown = app.ui.stores;
     let mut counts: BTreeMap<Runner, usize> = BTreeMap::new();
     for g in &library.snapshot.games {
@@ -81,9 +108,10 @@ pub(crate) fn store_cards(cx: &App) -> Vec<StoreCard> {
                 }
             }),
             games: counts.get(&runner).copied().unwrap_or(0),
-            disabled: runner == Runner::Zoom && !zoom_enabled,
+            disabled: !store_enabled(app, runner),
             hidden: !shown.shows(runner),
             expired: accounts.login_expired(runner).map(str::to_string),
+            local: !runner.has_account(),
         })
         .collect()
 }
@@ -222,6 +250,9 @@ impl AccountsView {
     }
 
     fn render_card(&self, card_data: &StoreCard, cx: &mut Context<Self>) -> AnyElement {
+        if card_data.local {
+            return self.render_local_card(card_data, cx);
+        }
         let theme = cx.theme();
         let runner = card_data.runner;
         let refreshing = self.refreshing.contains(&runner);
@@ -269,7 +300,10 @@ impl AccountsView {
             (_, true) => div()
                 .text_sm()
                 .text_color(theme.muted_foreground)
-                .child(t("manage.accounts.zoom_turned_off"))
+                .child(t_args(
+                    "manage.accounts.turned_off",
+                    &[("store", runner.store_name())],
+                ))
                 .into_any_element(),
             (Some(user), _) => v_flex()
                 .gap_0p5()
@@ -341,8 +375,11 @@ impl AccountsView {
             } else if card_data.disabled {
                 Button::new("enable")
                     .label(t("manage.accounts.turn_on"))
-                    .on_click(|_, _, cx| {
-                        backend_op(cx, |b| b.settings.update_app(|s| s.zoom_platform = true))
+                    .on_click(move |_, _, cx| {
+                        backend_op(cx, move |b| {
+                            b.settings
+                                .update_app(|s| set_store_enabled(s, runner, true))
+                        })
                     })
                     .into_any_element()
             } else if card_data.user.is_some() {
@@ -387,6 +424,17 @@ impl AccountsView {
                     .children(hide)
                     .into_any_element()
             };
+        Self::card_frame(runner, state_tag, detail, actions, cx)
+    }
+
+    fn card_frame(
+        runner: Runner,
+        state_tag: Tag,
+        detail: AnyElement,
+        actions: AnyElement,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let theme = cx.theme();
         card(cx)
             .id(ElementId::Name(format!("account-{}", runner.id()).into()))
             .w(rems(20.))
@@ -407,6 +455,98 @@ impl AccountsView {
             .child(div().min_h_10().child(detail))
             .child(actions)
             .into_any_element()
+    }
+
+    /// A store without login (Steam): what Ember found on this computer,
+    /// a rescan and the hide switch. Rescanning needs no connection.
+    fn render_local_card(&self, card_data: &StoreCard, cx: &mut Context<Self>) -> AnyElement {
+        let runner = card_data.runner;
+        let found = card_data.user.is_some();
+        let refreshing = self.refreshing.contains(&runner);
+        let muted = cx.theme().muted_foreground;
+        let state_tag = if card_data.hidden {
+            Tag::secondary()
+                .small()
+                .child(t("manage.accounts.state.hidden"))
+        } else if found {
+            Tag::success()
+                .small()
+                .child(t("manage.accounts.state.local"))
+        } else {
+            Tag::secondary()
+                .small()
+                .child(t("manage.accounts.state.not_found"))
+        };
+        let detail = if card_data.hidden {
+            div()
+                .text_sm()
+                .text_color(muted)
+                .child(t("manage.accounts.local_hidden_detail"))
+                .into_any_element()
+        } else if found {
+            v_flex()
+                .gap_0p5()
+                .child(div().font_medium().child(match card_data.games {
+                    1 => t("manage.accounts.installed_one"),
+                    n => t_args(
+                        "manage.accounts.installed_other",
+                        &[("count", &n.to_string())],
+                    ),
+                }))
+                .child(div().text_sm().text_color(muted).child(t_args(
+                    "manage.accounts.local_hint",
+                    &[("store", runner.store_name())],
+                )))
+                .into_any_element()
+        } else {
+            div()
+                .text_sm()
+                .text_color(muted)
+                .child(t_args(
+                    "manage.accounts.local_missing",
+                    &[("store", runner.store_name())],
+                ))
+                .into_any_element()
+        };
+        let actions =
+            if card_data.hidden {
+                Button::new("show")
+                    .icon(IconName::Eye)
+                    .label(t("manage.accounts.show"))
+                    .on_click(move |_, _, cx| {
+                        backend_op(cx, move |b| {
+                            b.settings.update_app(|s| s.ui.stores.set(runner, true))
+                        })
+                    })
+                    .into_any_element()
+            } else {
+                h_flex()
+                    .flex_wrap()
+                    .gap_2()
+                    .child(
+                        Button::new("rescan")
+                            .icon(IconName::RefreshCw)
+                            .label(t("manage.accounts.rescan"))
+                            .loading(refreshing)
+                            .disabled(refreshing)
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.refresh(runner, window, cx)
+                            })),
+                    )
+                    .child(
+                        Button::new("hide")
+                            .ghost()
+                            .icon(IconName::EyeOff)
+                            .label(t("manage.accounts.hide"))
+                            .on_click(move |_, _, cx| {
+                                backend_op(cx, move |b| {
+                                    b.settings.update_app(|s| s.ui.stores.set(runner, false))
+                                })
+                            }),
+                    )
+                    .into_any_element()
+            };
+        Self::card_frame(runner, state_tag, detail, actions, cx)
     }
 }
 

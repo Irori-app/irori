@@ -536,13 +536,18 @@ impl GamePage {
                 ));
             }
         }
+        // Steam picks the build and Proton, syncs saves and decides about
+        // offline play for its games; Ember only knows where they are.
+        let managed = self.id.runner.manages_installs();
         match &game.install {
             Some(install) if game.is_installed => {
-                col = col.child(detail_row(
-                    t("game.common.platform"),
-                    platform_label(install.platform),
-                    cx,
-                ));
+                if managed {
+                    col = col.child(detail_row(
+                        t("game.common.platform"),
+                        platform_label(install.platform),
+                        cx,
+                    ));
+                }
                 let mut version = install.version.clone();
                 if let Some(branch) = install.branch.as_ref().filter(|b| !b.is_empty()) {
                     version = format!("{version} ({branch})");
@@ -609,6 +614,18 @@ impl GamePage {
                     .join(", ");
                 col = col.child(detail_row(t("game.info.platforms"), platforms, cx));
             }
+        }
+        if !managed {
+            col = col.child(detail_row(
+                t("game.info.launcher"),
+                self.id.runner.store_name(),
+                cx,
+            ));
+            return v_flex()
+                .gap_6()
+                .child(col)
+                .children(self.overlay.clone())
+                .into_any_element();
         }
         col = col.child(detail_row(
             t("game.info.offline_play"),

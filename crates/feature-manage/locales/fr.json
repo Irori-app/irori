@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Connecté",
   "manage.accounts.state.signed_out": "Non connecté",
   "manage.accounts.state.turned_off": "Désactivé",
-  "manage.accounts.zoom_turned_off": "La prise en charge de ZOOM Platform est désactivée.",
+  "manage.accounts.turned_off": "La prise en charge de {store} est désactivée.",
   "manage.accounts.games_one": "1 jeu",
   "manage.accounts.games_other": "{count} jeux",
   "manage.accounts.login_again": "Se reconnecter",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Des jeux sans DRM, classiques compris.",
   "manage.stores.blurb.amazon": "Prime Gaming et Amazon Games.",
   "manage.stores.blurb.zoom": "Des jeux indés et rétro sans DRM.",
+  "manage.stores.blurb.itch": "Jeux indés, game jams et titres à prix libre.",
   "manage.stores.login_hint": "Vos achats apparaissent une fois connecté.",
   "manage.stores.login": "Se connecter",
   "manage.deals.title": "Promotions",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Masquée",
   "manage.accounts.hidden_detail": "Ses jeux n’apparaissent pas dans la bibliothèque. La connexion et les jeux installés sont conservés.",
   "manage.accounts.hide": "Masquer",
-  "manage.accounts.show": "Afficher"
+  "manage.accounts.show": "Afficher",
+  "manage.accounts.state.local": "Sur cet ordinateur",
+  "manage.accounts.state.not_found": "Introuvable",
+  "manage.accounts.installed_one": "1 jeu installé",
+  "manage.accounts.installed_other": "{count} jeux installés",
+  "manage.accounts.local_hint": "Lu depuis {store} sur cet ordinateur, sans connexion. Installez et mettez à jour les jeux dans {store}.",
+  "manage.accounts.local_missing": "{store} est introuvable sur cet ordinateur. S’il est installé ailleurs, indiquez son dossier dans les Paramètres.",
+  "manage.accounts.local_hidden_detail": "Ses jeux n’apparaissent pas dans votre bibliothèque.",
+  "manage.accounts.rescan": "Rechercher à nouveau"
 }

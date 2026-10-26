@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Přihlášeno",
   "manage.accounts.state.signed_out": "Nepřihlášeno",
   "manage.accounts.state.turned_off": "Vypnuto",
-  "manage.accounts.zoom_turned_off": "Podpora ZOOM Platform je vypnutá.",
+  "manage.accounts.turned_off": "Podpora obchodu {store} je vypnutá.",
   "manage.accounts.games_one": "1 hra",
   "manage.accounts.games_other": "Počet her: {count}",
   "manage.accounts.login_again": "Přihlásit znovu",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Hry bez DRM včetně klasik.",
   "manage.stores.blurb.amazon": "Prime Gaming a Amazon Games.",
   "manage.stores.blurb.zoom": "Nezávislé a retro hry bez DRM.",
+  "manage.stores.blurb.itch": "Nezávislé hry, game jamy a hry za libovolnou cenu.",
   "manage.stores.login_hint": "Nákupy se zobrazí po přihlášení.",
   "manage.stores.login": "Přihlásit",
   "manage.deals.title": "Slevy",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Skryto",
   "manage.accounts.hidden_detail": "Jeho hry se v knihovně nezobrazují. Přihlášení i nainstalované hry zůstávají.",
   "manage.accounts.hide": "Skrýt",
-  "manage.accounts.show": "Zobrazit"
+  "manage.accounts.show": "Zobrazit",
+  "manage.accounts.state.local": "V tomto počítači",
+  "manage.accounts.state.not_found": "Nenalezeno",
+  "manage.accounts.installed_one": "1 nainstalovaná hra",
+  "manage.accounts.installed_other": "Nainstalované hry: {count}",
+  "manage.accounts.local_hint": "Načteno z aplikace {store} v tomto počítači, bez přihlášení. Hry instalujte a aktualizujte v aplikaci {store}.",
+  "manage.accounts.local_missing": "Aplikace {store} nebyla v tomto počítači nalezena. Pokud je nainstalována jinde, nastavte její složku v Nastavení.",
+  "manage.accounts.local_hidden_detail": "Jeho hry se v knihovně nezobrazují.",
+  "manage.accounts.rescan": "Znovu prohledat"
 }

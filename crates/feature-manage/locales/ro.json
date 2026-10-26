@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Conectat",
   "manage.accounts.state.signed_out": "Neconectat",
   "manage.accounts.state.turned_off": "Dezactivat",
-  "manage.accounts.zoom_turned_off": "Suportul pentru ZOOM Platform este dezactivat.",
+  "manage.accounts.turned_off": "Suportul pentru {store} este dezactivat.",
   "manage.accounts.games_one": "1 joc",
   "manage.accounts.games_other": "Jocuri: {count}",
   "manage.accounts.login_again": "Conectează-te din nou",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Jocuri fără DRM, inclusiv clasice.",
   "manage.stores.blurb.amazon": "Prime Gaming și Amazon Games.",
   "manage.stores.blurb.zoom": "Jocuri indie și retro fără DRM.",
+  "manage.stores.blurb.itch": "Jocuri indie, game jam-uri și titluri cu preț la alegere.",
   "manage.stores.login_hint": "Achizițiile apar după ce te conectezi.",
   "manage.stores.login": "Conectează-te",
   "manage.deals.title": "Oferte",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Ascuns",
   "manage.accounts.hidden_detail": "Jocurile sale nu apar în bibliotecă. Autentificarea și jocurile instalate se păstrează.",
   "manage.accounts.hide": "Ascunde",
-  "manage.accounts.show": "Afișează"
+  "manage.accounts.show": "Afișează",
+  "manage.accounts.state.local": "Pe acest computer",
+  "manage.accounts.state.not_found": "Negăsit",
+  "manage.accounts.installed_one": "1 joc instalat",
+  "manage.accounts.installed_other": "Jocuri instalate: {count}",
+  "manage.accounts.local_hint": "Citit din {store} de pe acest computer, fără autentificare. Instalează și actualizează jocurile în {store}.",
+  "manage.accounts.local_missing": "{store} nu a fost găsit pe acest computer. Dacă e instalat în altă parte, setează-i dosarul în Setări.",
+  "manage.accounts.local_hidden_detail": "Jocurile sale nu apar în bibliotecă.",
+  "manage.accounts.rescan": "Caută din nou"
 }

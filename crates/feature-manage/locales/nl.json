@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Ingelogd",
   "manage.accounts.state.signed_out": "Niet ingelogd",
   "manage.accounts.state.turned_off": "Uitgeschakeld",
-  "manage.accounts.zoom_turned_off": "Ondersteuning voor ZOOM Platform is uitgeschakeld.",
+  "manage.accounts.turned_off": "Ondersteuning voor {store} staat uit.",
   "manage.accounts.games_one": "1 game",
   "manage.accounts.games_other": "{count} games",
   "manage.accounts.login_again": "Opnieuw inloggen",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "DRM-vrije games, inclusief klassiekers.",
   "manage.stores.blurb.amazon": "Prime Gaming en Amazon Games.",
   "manage.stores.blurb.zoom": "DRM-vrije indie- en retrogames.",
+  "manage.stores.blurb.itch": "Indiegames, game jams en releases waarvoor je betaalt wat je wilt.",
   "manage.stores.login_hint": "Aankopen verschijnen nadat je inlogt.",
   "manage.stores.login": "Inloggen",
   "manage.deals.title": "Aanbiedingen",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Verborgen",
   "manage.accounts.hidden_detail": "De games staan niet in je bibliotheek. Aanmelding en geïnstalleerde games blijven behouden.",
   "manage.accounts.hide": "Verbergen",
-  "manage.accounts.show": "Tonen"
+  "manage.accounts.show": "Tonen",
+  "manage.accounts.state.local": "Op deze computer",
+  "manage.accounts.state.not_found": "Niet gevonden",
+  "manage.accounts.installed_one": "1 geïnstalleerde game",
+  "manage.accounts.installed_other": "{count} geïnstalleerde games",
+  "manage.accounts.local_hint": "Gelezen uit {store} op deze computer, zonder inloggen. Installeer en werk games bij in {store}.",
+  "manage.accounts.local_missing": "{store} is niet gevonden op deze computer. Staat het ergens anders, stel dan de map in bij Instellingen.",
+  "manage.accounts.local_hidden_detail": "De games ervan staan niet in je bibliotheek.",
+  "manage.accounts.rescan": "Opnieuw zoeken"
 }

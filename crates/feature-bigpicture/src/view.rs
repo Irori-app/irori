@@ -316,6 +316,7 @@ impl BigPictureView {
             in_queue: m.downloads.read(cx).queue.active.iter().any(|i| i.id == id),
             has_update: lib.has_update(&id),
             favourite: lib.is_favourite(&id),
+            external: !id.runner.manages_installs(),
         }
     }
 

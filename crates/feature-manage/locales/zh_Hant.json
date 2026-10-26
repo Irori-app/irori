@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "已登入",
   "manage.accounts.state.signed_out": "未登入",
   "manage.accounts.state.turned_off": "已關閉",
-  "manage.accounts.zoom_turned_off": "ZOOM Platform 支援已關閉。",
+  "manage.accounts.turned_off": "已關閉 {store} 支援。",
   "manage.accounts.games_one": "1 款遊戲",
   "manage.accounts.games_other": "{count} 款遊戲",
   "manage.accounts.login_again": "重新登入",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "無 DRM 遊戲，包括經典作品。",
   "manage.stores.blurb.amazon": "Prime Gaming 與 Amazon Games。",
   "manage.stores.blurb.zoom": "無 DRM 的獨立遊戲與復古遊戲。",
+  "manage.stores.blurb.itch": "獨立遊戲、Game Jam 作品和自由定價遊戲。",
   "manage.stores.login_hint": "登入後會顯示已購項目。",
   "manage.stores.login": "登入",
   "manage.deals.title": "優惠",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "已隱藏",
   "manage.accounts.hidden_detail": "其遊戲不會顯示在遊戲庫中。登入狀態和已安裝的遊戲會保留。",
   "manage.accounts.hide": "隱藏",
-  "manage.accounts.show": "顯示"
+  "manage.accounts.show": "顯示",
+  "manage.accounts.state.local": "在此電腦上",
+  "manage.accounts.state.not_found": "找不到",
+  "manage.accounts.installed_one": "1 款已安裝的遊戲",
+  "manage.accounts.installed_other": "{count} 款已安裝的遊戲",
+  "manage.accounts.local_hint": "從此電腦上的 {store} 讀取，無需登入。請在 {store} 中安裝和更新遊戲。",
+  "manage.accounts.local_missing": "未在此電腦上找到 {store}。如果它安裝在其他位置，請在設定中指定其資料夾。",
+  "manage.accounts.local_hidden_detail": "其遊戲不會顯示在你的遊戲庫中。",
+  "manage.accounts.rescan": "重新尋找"
 }

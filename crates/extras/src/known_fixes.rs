@@ -79,14 +79,15 @@ impl KnownFixesFile {
         serde_json::from_slice(json).context("known fixes data is not valid")
     }
 
-    /// Fixes for a game. Sideloaded apps have none.
+    /// Fixes for a game. Sideloaded apps and Steam games (which Steam
+    /// starts) have none.
     pub fn get(&self, runner: Runner, app_name: &str) -> Option<&KnownFix> {
         let store = match runner {
             Runner::Legendary => &self.epic,
             Runner::Gog => &self.gog,
             Runner::Nile => &self.amazon,
             Runner::Zoom => &self.zoom,
-            Runner::Sideload => return None,
+            Runner::Itch | Runner::Steam | Runner::Sideload => return None,
         };
         store.get(app_name)
     }

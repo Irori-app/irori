@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Zalogowano",
   "manage.accounts.state.signed_out": "Nie zalogowano",
   "manage.accounts.state.turned_off": "Wyłączony",
-  "manage.accounts.zoom_turned_off": "Obsługa ZOOM Platform jest wyłączona.",
+  "manage.accounts.turned_off": "Obsługa sklepu {store} jest wyłączona.",
   "manage.accounts.games_one": "1 gra",
   "manage.accounts.games_other": "Gry: {count}",
   "manage.accounts.login_again": "Zaloguj ponownie",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Gry bez DRM, w tym klasyki.",
   "manage.stores.blurb.amazon": "Prime Gaming i Amazon Games.",
   "manage.stores.blurb.zoom": "Gry niezależne i retro bez DRM.",
+  "manage.stores.blurb.itch": "Gry niezależne, game jamy i wydania w modelu „zapłać, ile chcesz”.",
   "manage.stores.login_hint": "Zakupy pojawią się po zalogowaniu.",
   "manage.stores.login": "Zaloguj",
   "manage.deals.title": "Promocje",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Ukryty",
   "manage.accounts.hidden_detail": "Jego gry nie są wyświetlane w bibliotece. Logowanie i zainstalowane gry zostają.",
   "manage.accounts.hide": "Ukryj",
-  "manage.accounts.show": "Pokaż"
+  "manage.accounts.show": "Pokaż",
+  "manage.accounts.state.local": "Na tym komputerze",
+  "manage.accounts.state.not_found": "Nie znaleziono",
+  "manage.accounts.installed_one": "1 zainstalowana gra",
+  "manage.accounts.installed_other": "Zainstalowane gry: {count}",
+  "manage.accounts.local_hint": "Odczytano z aplikacji {store} na tym komputerze, bez logowania. Gry instaluj i aktualizuj w aplikacji {store}.",
+  "manage.accounts.local_missing": "Nie znaleziono aplikacji {store} na tym komputerze. Jeśli jest zainstalowana gdzie indziej, wskaż jej folder w Ustawieniach.",
+  "manage.accounts.local_hidden_detail": "Jego gry nie są pokazywane w bibliotece.",
+  "manage.accounts.rescan": "Wyszukaj ponownie"
 }

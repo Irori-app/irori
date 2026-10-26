@@ -1,0 +1,22 @@
+[package]
+name = "ember-itch-api"
+description = "itch.io protocol client: API-key login, owned games, uploads and download links"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+ember-depot = { workspace = true, features = ["test-server"] }
+tokio.workspace = true

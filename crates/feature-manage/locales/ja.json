@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "ログイン済み",
   "manage.accounts.state.signed_out": "未ログイン",
   "manage.accounts.state.turned_off": "オフ",
-  "manage.accounts.zoom_turned_off": "ZOOM Platform のサポートはオフになっています。",
+  "manage.accounts.turned_off": "{store} のサポートはオフになっています。",
   "manage.accounts.games_one": "1 本のゲーム",
   "manage.accounts.games_other": "{count} 本のゲーム",
   "manage.accounts.login_again": "もう一度ログイン",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "クラシックを含む DRM フリーのゲーム。",
   "manage.stores.blurb.amazon": "Prime Gaming と Amazon Games。",
   "manage.stores.blurb.zoom": "DRM フリーのインディーゲームとレトロゲーム。",
+  "manage.stores.blurb.itch": "インディーゲーム、ゲームジャム、好きな金額で買える作品。",
   "manage.stores.login_hint": "ログインすると購入したゲームが表示されます。",
   "manage.stores.login": "ログイン",
   "manage.deals.title": "セール",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "非表示",
   "manage.accounts.hidden_detail": "このストアのゲームはライブラリに表示されません。サインインとインストール済みのゲームは保持されます。",
   "manage.accounts.hide": "非表示にする",
-  "manage.accounts.show": "表示する"
+  "manage.accounts.show": "表示する",
+  "manage.accounts.state.local": "このコンピューター",
+  "manage.accounts.state.not_found": "見つかりません",
+  "manage.accounts.installed_one": "インストール済みのゲーム 1 本",
+  "manage.accounts.installed_other": "インストール済みのゲーム {count} 本",
+  "manage.accounts.local_hint": "このコンピューターの {store} から読み込みます。ログインは不要です。ゲームのインストールと更新は {store} で行います。",
+  "manage.accounts.local_missing": "このコンピューターで {store} が見つかりませんでした。別の場所にインストールしている場合は、設定でフォルダーを指定してください。",
+  "manage.accounts.local_hidden_detail": "このストアのゲームはライブラリに表示されません。",
+  "manage.accounts.rescan": "再検索"
 }

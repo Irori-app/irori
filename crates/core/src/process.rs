@@ -676,6 +676,82 @@ mod tests {
         assert!(result.aborted);
     }
 
+    /// Started by [`runs_from_non_latin_folders`] as a copy of this test
+    /// binary: reports what it was given to the file named in
+    /// `EMBER_ECHO_OUT`. Does nothing when run on its own.
+    #[test]
+    #[ignore = "helper started by runs_from_non_latin_folders"]
+    fn echo_helper() {
+        let Some(out) = std::env::var_os("EMBER_ECHO_OUT") else {
+            return;
+        };
+        let args: Vec<String> = std::env::args().collect();
+        let skipped = args
+            .iter()
+            .position(|a| a == "--skip")
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+            .unwrap_or_default();
+        let report = [
+            std::env::var("EMBER_ECHO").unwrap_or_default(),
+            skipped,
+            std::env::current_dir().unwrap().display().to_string(),
+            std::env::current_exe().unwrap().display().to_string(),
+        ]
+        .join("\n");
+        std::fs::write(out, report).unwrap();
+    }
+
+    /// Games installed under Japanese, Chinese or Cyrillic folder names
+    /// must start, with such arguments, variables, working folder and log
+    /// file (Heroic #5418 broke exactly this on Windows).
+    #[tokio::test]
+    async fn runs_from_non_latin_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let games = dir.path().join("ゲーム フォルダ").join("游戏 Игра");
+        std::fs::create_dir_all(&games).unwrap();
+        let exe = games.join(if cfg!(windows) {
+            "ゲーム.exe"
+        } else {
+            "ゲーム"
+        });
+        std::fs::copy(std::env::current_exe().unwrap(), &exe).unwrap();
+        let out = games.join("報告.txt");
+        let log = dir.path().join("ログ").join("ゲーム.log");
+        let spec = CommandSpec::new(&exe)
+            .args([
+                "process::tests::echo_helper",
+                "--exact",
+                "--ignored",
+                "--test-threads=1",
+                "--skip",
+                "引数 аргумент",
+            ])
+            .env("EMBER_ECHO", "値 значение")
+            .env("EMBER_ECHO_OUT", out.to_string_lossy().into_owned())
+            .cwd(&games);
+        let mut child = spawn(&spec, Some(&log)).unwrap();
+        let status = tokio::time::timeout(Duration::from_secs(60), child.wait())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            status.success(),
+            "{}",
+            std::fs::read_to_string(&log).unwrap_or_default()
+        );
+        let report = std::fs::read_to_string(&out).unwrap();
+        let lines: Vec<&str> = report.lines().collect();
+        assert_eq!(lines[0], "値 значение");
+        assert_eq!(lines[1], "引数 аргумент");
+        let same = |a: &str, b: &Path| {
+            std::fs::canonicalize(a).unwrap() == std::fs::canonicalize(b).unwrap()
+        };
+        assert!(same(lines[2], &games), "cwd {}", lines[2]);
+        assert!(same(lines[3], &exe), "exe {}", lines[3]);
+        assert!(log.is_file());
+    }
+
     #[test]
     fn splits_like_a_shell() {
         assert_eq!(

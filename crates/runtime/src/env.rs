@@ -80,6 +80,8 @@ pub fn app_source(runner: Runner) -> &'static str {
         Runner::Nile => "amazon",
         Runner::Sideload => "sideload",
         Runner::Zoom => "zoom",
+        Runner::Itch => "itch",
+        Runner::Steam => "steam",
     }
 }
 
@@ -90,7 +92,8 @@ pub fn umu_store(runner: Runner) -> Option<&'static str> {
         Runner::Legendary => Some("egs"),
         Runner::Nile => Some("amazon"),
         Runner::Zoom => Some("zoomplatform"),
-        Runner::Sideload => None,
+        Runner::Itch => Some("itchio"),
+        Runner::Steam | Runner::Sideload => None,
     }
 }
 
@@ -215,6 +218,13 @@ pub fn wine_env_for(platform: ember_core::HostPlatform, input: &WineEnvInput<'_>
         let mut env = EnvMap::new();
         if input.wine.kind == WineKind::Crossover {
             env.insert("CX_BOTTLE".into(), gs.wine_crossover_bottle.clone());
+            // Tells CrossOver where the bottle is when its folder was moved.
+            if let Some(bottles) = input.prefix.parent() {
+                env.insert(
+                    "CX_BOTTLE_PATH".into(),
+                    bottles.to_string_lossy().into_owned(),
+                );
+            }
         } else {
             env.insert(
                 "WINEPREFIX".into(),
@@ -533,8 +543,11 @@ mod tests {
             }
         }
         wine.kind = WineKind::Crossover;
-        let vars = wine_env_for(Mac, &input(&settings, &wine, &host));
+        let mut moved = input(&settings, &wine, &host);
+        moved.prefix = Path::new("/Volumes/Games/Bottles/My Games");
+        let vars = wine_env_for(Mac, &moved);
         assert_eq!(vars["CX_BOTTLE"], "My Games");
+        assert_eq!(vars["CX_BOTTLE_PATH"], "/Volumes/Games/Bottles");
         assert!(!vars.contains_key("WINEPREFIX"));
     }
 

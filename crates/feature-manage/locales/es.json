@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "Sesión iniciada",
   "manage.accounts.state.signed_out": "Sin sesión",
   "manage.accounts.state.turned_off": "Desactivada",
-  "manage.accounts.zoom_turned_off": "La compatibilidad con ZOOM Platform está desactivada.",
+  "manage.accounts.turned_off": "La compatibilidad con {store} está desactivada.",
   "manage.accounts.games_one": "1 juego",
   "manage.accounts.games_other": "{count} juegos",
   "manage.accounts.login_again": "Volver a iniciar sesión",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "Juegos sin DRM, incluidos clásicos.",
   "manage.stores.blurb.amazon": "Prime Gaming y Amazon Games.",
   "manage.stores.blurb.zoom": "Juegos indie y retro sin DRM.",
+  "manage.stores.blurb.itch": "Juegos indie, game jams y lanzamientos a precio libre.",
   "manage.stores.login_hint": "Las compras aparecen al iniciar sesión.",
   "manage.stores.login": "Iniciar sesión",
   "manage.deals.title": "Ofertas",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "Oculta",
   "manage.accounts.hidden_detail": "Sus juegos no aparecen en la biblioteca. La sesión y los juegos instalados se conservan.",
   "manage.accounts.hide": "Ocultar",
-  "manage.accounts.show": "Mostrar"
+  "manage.accounts.show": "Mostrar",
+  "manage.accounts.state.local": "En este equipo",
+  "manage.accounts.state.not_found": "No encontrado",
+  "manage.accounts.installed_one": "1 juego instalado",
+  "manage.accounts.installed_other": "{count} juegos instalados",
+  "manage.accounts.local_hint": "Leído de {store} en este equipo, sin iniciar sesión. Instala y actualiza los juegos en {store}.",
+  "manage.accounts.local_missing": "No se encontró {store} en este equipo. Si está instalado en otro lugar, indica su carpeta en Ajustes.",
+  "manage.accounts.local_hidden_detail": "Sus juegos no aparecen en tu biblioteca.",
+  "manage.accounts.rescan": "Volver a buscar"
 }

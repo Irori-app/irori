@@ -188,7 +188,8 @@ pub trait Store: Send + Sync + 'static {
         .await
     }
 
-    /// Stop update checks for a pinned build (GOG rollback).
+    /// Keep an installed game at its current build: no update checks and no
+    /// update prompt at launch (GOG rollback, Epic and ZOOM version pins).
     async fn set_version_pinned(&self, _app_name: &str, _pinned: bool) -> Result<()> {
         Ok(())
     }

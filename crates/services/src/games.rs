@@ -75,6 +75,18 @@ impl Backend {
         crate::sessions::read_all()
     }
 
+    /// Refuse to touch the files of a game another launcher manages (Steam),
+    /// before anything moves or is deleted.
+    fn ensure_managed(id: &GameId) -> Result<()> {
+        anyhow::ensure!(
+            id.runner.manages_installs(),
+            "{} installs, updates and removes its own games. Use {} for that.",
+            id.runner.store_name(),
+            id.runner.store_name()
+        );
+        Ok(())
+    }
+
     fn installed_game(&self, id: &GameId) -> Result<Arc<GameInfo>> {
         let game = self
             .game(id)
@@ -171,7 +183,13 @@ impl Backend {
         }
 
         ctx.step.as_ref()("Preparing");
-        let environment = ember_runtime::prepare_launch(&app, &settings, target, &ctx).await?;
+        // Another launcher starts its games with its own settings; Ember's
+        // Wine, wrappers and variables would only apply to the opener.
+        let environment = if id.runner.manages_installs() {
+            ember_runtime::prepare_launch(&app, &settings, target, &ctx).await?
+        } else {
+            Default::default()
+        };
 
         // "Turn off logs" sends everything to /dev/null; stores and scripts
         // still get a path to write to.
@@ -385,6 +403,7 @@ impl Backend {
     }
 
     pub async fn uninstall(&self, id: &GameId, args: RemoveArgs) -> Result<()> {
+        Self::ensure_managed(id)?;
         let game = self.installed_game(id)?;
         let store = self.store(id.runner).context("store not available")?;
         let _guard = self.statuses.guard(id, StatusKind::Uninstalling);
@@ -425,6 +444,7 @@ impl Backend {
 
     /// Move an installed game to another directory (`new_base/<folder>`).
     pub async fn move_install(&self, id: &GameId, new_base: PathBuf) -> Result<()> {
+        Self::ensure_managed(id)?;
         let game = self.installed_game(id)?;
         let store = self.store(id.runner).context("store not available")?;
         let src = game.install_path().context("unknown install location")?;
@@ -491,6 +511,7 @@ impl Backend {
     }
 
     pub async fn repair(&self, id: &GameId) -> Result<()> {
+        Self::ensure_managed(id)?;
         let game = self.installed_game(id)?;
         let store = self.store(id.runner).context("store not available")?;
         let _guard = self.statuses.guard(id, StatusKind::Repairing);
@@ -517,6 +538,7 @@ impl Backend {
     }
 
     pub async fn import(&self, id: &GameId, path: &Path, platform: InstallPlatform) -> Result<()> {
+        Self::ensure_managed(id)?;
         let store = self.store(id.runner).context("store not available")?;
         let _guard = self.statuses.guard(id, StatusKind::Importing);
         store.import(&id.app_name, path, platform).await?;
@@ -591,8 +613,36 @@ impl Backend {
             .check()
     }
 
+    /// Run protontricks on the Proton prefix Steam made for one of its games
+    /// (Linux): its window when `verbs` is empty, else the verbs unattended.
+    pub async fn protontricks(&self, id: &GameId, verbs: Vec<String>) -> Result<ExecResult> {
+        anyhow::ensure!(cfg!(target_os = "linux"), "Protontricks runs on Linux only");
+        let game = self.installed_game(id)?;
+        anyhow::ensure!(
+            id.runner == ember_core::Runner::Steam,
+            "Protontricks works with Steam games. Use Winetricks for {}.",
+            game.title
+        );
+        let install = game.install_path().context("unknown install location")?;
+        let prefix = ember_runtime::protontricks::prefix_of(&install, &id.app_name)
+            .context("unknown install location")?;
+        if !tokio::fs::try_exists(&prefix).await.unwrap_or(false) {
+            bail!(
+                "Steam hasn't made a Proton prefix for {} yet. Play it once with Proton in Steam first.",
+                game.title
+            );
+        }
+        let steam_dir = ember_runtime::locations::steam_path(&self.settings.app());
+        let _guard = self.statuses.guard(id, StatusKind::Winetricks);
+        let ctx = self.op_context(id, CancellationToken::new());
+        ember_runtime::protontricks::run(&steam_dir, &id.app_name, &verbs, &ctx)
+            .await?
+            .check()
+    }
+
     /// Record that a game's files now live at `path` (files already moved).
     pub async fn set_install_path(&self, id: &GameId, path: &Path) -> Result<()> {
+        Self::ensure_managed(id)?;
         let store = self.store(id.runner).context("store not available")?;
         store.set_install_path(&id.app_name, path).await?;
         self.bus.emit(Event::LibraryChanged(id.runner));

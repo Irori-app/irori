@@ -275,7 +275,9 @@ mod tests {
         assert_eq!(l.app_name, "my app");
         let l = launch("ember://Launch/zoom/42");
         assert_eq!(l.runner, Some(Runner::Zoom));
-        let l = launch("heroic://launch/steam/42");
+        let l = launch("ember://launch/steam/620");
+        assert_eq!(l.game_id(), Some(GameId::new(Runner::Steam, "620")));
+        let l = launch("heroic://launch/uplay/42");
         assert_eq!(l.runner, None);
     }
 

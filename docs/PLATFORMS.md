@@ -32,13 +32,18 @@ commercial CrossOver application and does not create CrossOver bottles.
 Discovery includes Ember/Heroic downloads, Wine app bundles, Homebrew paths,
 CrossOver and CrossOver Preview in `/Applications` and `~/Applications`, and
 Whisky's Wine installation. Custom paths may point to a runtime executable.
-CrossOver uses the bottle selected in settings, located under
-`~/Library/Application Support/CrossOver/Bottles`. Create the bottle in CrossOver
-first. Ember uses `CX_BOTTLE`, including for setup and wineserver commands, and
+CrossOver uses the bottle named in a game's Wine settings ("CrossOver bottle"),
+located under `~/Library/Application Support/CrossOver/Bottles` unless General ›
+Folders › "CrossOver bottles folder" points elsewhere (for bottles moved to another
+drive in CrossOver's preferences). Create the bottle in CrossOver first. Ember uses
+`CX_BOTTLE` and `CX_BOTTLE_PATH`, including for setup and wineserver commands, and
 does not initialize an external bottle. Uninstall refuses to delete a shared CrossOver bottle; keep the prefix and manage it in CrossOver. Whisky uses its runtime with an Ember
 prefix; existing Whisky bottles are not imported automatically.
 
-macOS settings include Msync, Metal HUD and Rosetta AVX advertisement. Linux
+macOS settings include Msync, Metal HUD, Rosetta AVX advertisement and Retina mode.
+Retina mode sets `HKCU\Software\Wine\Mac Driver\RetinaMode` in the prefix before
+launch, only when it differs from what `user.reg` already holds, so Wine, CrossOver
+and Game Porting Toolkit render at the display's full resolution. Linux
 wrappers, Fsync, GameMode, gamescope, MangoHud, Linux DXVK/VKD3D/NVAPI installation,
 umu, and Linux anticheat runtimes are not automatically applied on macOS or
 Windows, even when old settings enable them. Explicit custom environment variables
@@ -99,7 +104,32 @@ unsigned validation packages using the small `ci` Cargo profile. It does not pub
 | Steam default | `~/.steam/steam` | `~/Library/Application Support/Steam` | ProgramFiles(x86) / `Steam` |
 
 `EMBER_HOME` relocates settings, data and cache under one root and is useful for
-isolated testing. Configured Steam paths take precedence over defaults.
+isolated testing. Configured Steam paths take precedence over defaults; on Linux,
+Flatpak Steam (`~/.var/app/com.valvesoftware.Steam/.steam/steam`) comes before
+`~/.steam/steam`.
+
+The read-only Steam library scans that Steam folder and every library in its
+`steamapps/libraryfolders.vdf` for `appmanifest_*.acf` files, skipping Proton, the
+Steam Linux Runtime and other tools. Playing opens `steam://rungameid/<id>` through
+`xdg-open`, `open` or the Windows URL handler, so Steam applies its own Proton version,
+launch options and overlay. The opener exits at once, so Ember records no session for
+these games; the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` are
+merged into Ember's playtime instead.
+
+itch.io (turned on in Settings › General › Integrations, or from its account card)
+signs in with an API key from `https://itch.io/user/settings/api-keys`, kept owner-only
+in the store's config folder. Installs download the upload that fits the platform into
+`<install folder>/.itch-download/<game id>/` (resumable), then unpack zip and tar
+archives (gzip, xz, bzip2) into the game folder; other single files such as AppImages
+or portable `.exe` files are copied as they are, and disk images, 7-Zip and RAR files
+are refused. Updates unpack next to the game and swap folders, so a failed update leaves
+the old files in place. The program to start comes from the game's `.itch.toml` when it
+has one, else from a search of the folder.
+
+On Linux a Steam game's menu offers Protontricks once Steam has made its Proton prefix
+(`steamapps/compatdata/<id>/pfx`). Ember runs `protontricks` from `PATH`, or the Flathub
+app `com.github.Matoking.protontricks`, with `STEAM_DIR` set to the Steam folder it reads.
+protontricks only knows Steam app IDs, so games Ember runs itself keep using winetricks.
 
 Each configuration root has one running Ember instance, protected by an OS file
 lock. Subsequent invocations forward arguments over authenticated loopback IPC.

@@ -170,3 +170,23 @@ fn tells_about_updates_released_while_running() {
     rt.block_on(b.refresh_updates());
     assert_eq!(notices(&mut rx), ["shell.notice.updates_available"]);
 }
+
+#[test]
+fn never_touches_files_of_games_steam_manages() {
+    isolate_paths();
+    let b = Backend::start_headless(|_, _| Vec::new()).unwrap();
+    let id = ember_core::GameId::new(Runner::Steam, "620");
+    let dir = tempfile::tempdir().unwrap();
+    let rt = b.runtime();
+    let refusals = [
+        rt.block_on(b.move_install(&id, dir.path().to_path_buf())),
+        rt.block_on(b.uninstall(&id, RemoveArgs::default())),
+        rt.block_on(b.repair(&id)),
+        rt.block_on(b.set_install_path(&id, dir.path())),
+        rt.block_on(b.import(&id, dir.path(), InstallPlatform::Windows)),
+    ];
+    for result in refusals {
+        let e = result.unwrap_err().to_string();
+        assert!(e.contains("Steam installs, updates and removes"), "{e}");
+    }
+}

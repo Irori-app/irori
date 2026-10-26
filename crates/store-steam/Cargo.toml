@@ -1,0 +1,20 @@
+[package]
+name = "ember-steam"
+description = "Read-only Steam library for Ember: games the Steam client installed on this computer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-runtime.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

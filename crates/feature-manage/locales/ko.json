@@ -8,7 +8,7 @@
   "manage.accounts.state.signed_in": "로그인됨",
   "manage.accounts.state.signed_out": "로그인 안 됨",
   "manage.accounts.state.turned_off": "꺼짐",
-  "manage.accounts.zoom_turned_off": "ZOOM Platform 지원이 꺼져 있습니다.",
+  "manage.accounts.turned_off": "{store} 지원이 꺼져 있습니다.",
   "manage.accounts.games_one": "게임 1개",
   "manage.accounts.games_other": "게임 {count}개",
   "manage.accounts.login_again": "다시 로그인",
@@ -30,6 +30,7 @@
   "manage.stores.blurb.gog": "고전 게임을 포함한 DRM 없는 게임.",
   "manage.stores.blurb.amazon": "Prime Gaming 및 Amazon Games.",
   "manage.stores.blurb.zoom": "DRM 없는 인디 및 레트로 게임.",
+  "manage.stores.blurb.itch": "인디 게임, 게임 잼, 원하는 만큼 내는 게임.",
   "manage.stores.login_hint": "로그인하면 구매 항목이 표시됩니다.",
   "manage.stores.login": "로그인",
   "manage.deals.title": "할인",
@@ -230,5 +231,13 @@
   "manage.accounts.state.hidden": "숨김",
   "manage.accounts.hidden_detail": "이 스토어의 게임은 라이브러리에 표시되지 않습니다. 로그인과 설치된 게임은 유지됩니다.",
   "manage.accounts.hide": "숨기기",
-  "manage.accounts.show": "표시"
+  "manage.accounts.show": "표시",
+  "manage.accounts.state.local": "이 컴퓨터",
+  "manage.accounts.state.not_found": "찾을 수 없음",
+  "manage.accounts.installed_one": "설치된 게임 1개",
+  "manage.accounts.installed_other": "설치된 게임 {count}개",
+  "manage.accounts.local_hint": "이 컴퓨터의 {store}에서 읽어 오며 로그인은 필요 없습니다. 게임 설치와 업데이트는 {store}에서 하세요.",
+  "manage.accounts.local_missing": "이 컴퓨터에서 {store}을(를) 찾지 못했습니다. 다른 위치에 설치되어 있다면 설정에서 폴더를 지정하세요.",
+  "manage.accounts.local_hidden_detail": "이 스토어의 게임은 라이브러리에 표시되지 않습니다.",
+  "manage.accounts.rescan": "다시 찾기"
 }

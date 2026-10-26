@@ -1,7 +1,8 @@
 # Ember
 
 A fast, native game launcher for Linux, macOS and Windows. Ember plays your **Epic Games**, **GOG**,
-**Amazon Games** and **ZOOM Platform** libraries plus any game you add yourself, running
+**Amazon Games**, **ZOOM Platform** and **itch.io** libraries, lists your installed **Steam** games,
+and runs any game you add yourself, running
 Windows games natively on Windows, through Wine/Proton/umu on Linux, and through macOS Wine, CrossOver or Game Porting Toolkit on macOS.
 
 Ember is written in Rust with [GPUI](https://www.gpui.rs) and
@@ -32,6 +33,13 @@ and kept in a bounded GPU cache.
   200 % for TVs.
 - "Add to Steam" for any game, installed or not, filed under an "Ember" collection;
   Steam starts Ember, which offers to install a game that isn't installed yet.
+- itch.io, opt-in: log in with an API key, then install, update and play the games you
+  own there. Ember downloads the best upload for your system (resumable), unpacks zip and
+  tar archives and finds the program to start.
+- Your installed Steam games in the same library, read from Steam's own files with no
+  login. Play opens them in Steam, and the playtime Steam recorded is shown in Ember;
+  installing, updating and removing them stays in Steam. On Linux, Protontricks opens
+  on a Steam game's Proton prefix from its menu.
 - One-click import of your Heroic accounts, installs, settings, favourites and categories.
 - Translated into 19 languages, switchable live; searchable settings.
 - Tray menu with recent games, desktop and Steam shortcuts, Discord Rich Presence,
@@ -69,7 +77,7 @@ packaging/install.sh
 | --- | --- |
 | `crates/core` | Domain types, settings schema, the `Store` trait, process/HTTP/JSON utilities |
 | `crates/runtime` | Wine/Proton discovery and downloads, prefixes, DXVK/VKD3D, launch environment |
-| `crates/store-*` | One store backend each: Epic, GOG, Amazon, ZOOM, sideloaded apps |
+| `crates/store-*` | One store backend each: Epic, GOG, Amazon, ZOOM, itch.io, Steam (read-only), sideloaded apps |
 | `crates/depot` | Shared download engine: parallel chunked downloads, resume, verify/repair, delta updates |
 | `crates/epic`, `crates/gog`, `crates/amazon` | Store protocols (Rust ports of legendary, gogdl and nile) |
 | `crates/gog-galaxy` | GOG Galaxy communication service for games (comet, as a library) |
