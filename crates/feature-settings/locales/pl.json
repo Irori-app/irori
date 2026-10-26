@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Tu instalowane są nowe gry, chyba że wybierzesz inny folder.",
   "settings.field.default_install_path.label": "Domyślny folder instalacji",
   "settings.field.default_size": "Domyślny rozmiar",
-  "settings.field.default_steam_path.help": "Służy do wyszukiwania wersji Protona ze Steama i do dodawania gier do Steama.",
+  "settings.field.default_steam_path.help": "Stąd Ember odczytuje zainstalowane gry ze Steama i wersje Protona ze Steama oraz dodaje gry do Steama.",
   "settings.field.default_steam_path.label": "Folder Steama",
   "settings.field.crossover_bottles_path.label": "Folder butelek CrossOver",
   "settings.field.crossover_bottles_path.help": "Ustaw, jeśli w preferencjach CrossOver przeniesiono butelki, na przykład na dysk zewnętrzny.",

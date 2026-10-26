@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Сюди встановлюються нові ігри, якщо не вибрано іншої теки.",
   "settings.field.default_install_path.label": "Типова тека встановлення",
   "settings.field.default_size": "Типовий розмір",
-  "settings.field.default_steam_path.help": "Потрібна, щоб знаходити збірки Proton зі Steam і додавати ігри до Steam.",
+  "settings.field.default_steam_path.help": "Звідси Ember читає встановлені ігри Steam і збірки Proton зі Steam та додає ігри до Steam.",
   "settings.field.default_steam_path.label": "Тека Steam",
   "settings.field.crossover_bottles_path.label": "Тека пляшок CrossOver",
   "settings.field.crossover_bottles_path.help": "Укажіть, якщо ви перенесли пляшки в налаштуваннях CrossOver, наприклад на зовнішній диск.",

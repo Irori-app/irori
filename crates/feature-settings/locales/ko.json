@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "다른 폴더를 선택하지 않으면 새 게임이 이곳에 설치됩니다.",
   "settings.field.default_install_path.label": "기본 설치 폴더",
   "settings.field.default_size": "기본 크기",
-  "settings.field.default_steam_path.help": "Steam의 Proton 빌드를 찾고 게임을 Steam에 추가하는 데 사용됩니다.",
+  "settings.field.default_steam_path.help": "Ember가 설치된 Steam 게임과 Steam의 Proton 빌드를 읽고 Steam에 게임을 추가하는 위치입니다.",
   "settings.field.default_steam_path.label": "Steam 폴더",
   "settings.field.crossover_bottles_path.label": "CrossOver 보틀 폴더",
   "settings.field.crossover_bottles_path.help": "CrossOver 환경설정에서 보틀을 외장 드라이브 등으로 옮겼다면 설정하세요.",

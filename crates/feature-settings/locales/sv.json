@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Här installeras nya spel om du inte väljer en annan mapp.",
   "settings.field.default_install_path.label": "Standardmapp för installation",
   "settings.field.default_size": "Standardstorlek",
-  "settings.field.default_steam_path.help": "Används för att hitta Steams Proton-versioner och för att lägga till spel i Steam.",
+  "settings.field.default_steam_path.help": "Här läser Ember dina installerade Steam-spel och Steams Proton-versioner, och lägger till spel i Steam.",
   "settings.field.default_steam_path.label": "Steam-mapp",
   "settings.field.crossover_bottles_path.label": "Mapp för CrossOver-flaskor",
   "settings.field.crossover_bottles_path.help": "Ange den om du har flyttat dina flaskor i CrossOvers inställningar, till exempel till en extern disk.",

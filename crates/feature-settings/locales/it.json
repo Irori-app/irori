@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Dove vengono installati i nuovi giochi, a meno che tu non scelga un'altra cartella.",
   "settings.field.default_install_path.label": "Cartella di installazione predefinita",
   "settings.field.default_size": "Dimensione predefinita",
-  "settings.field.default_steam_path.help": "Serve a trovare le build di Proton di Steam e ad aggiungere giochi a Steam.",
+  "settings.field.default_steam_path.help": "Da qui Ember legge i giochi Steam installati e le versioni di Proton di Steam, e aggiunge giochi a Steam.",
   "settings.field.default_steam_path.label": "Cartella di Steam",
   "settings.field.crossover_bottles_path.label": "Cartella delle bottiglie di CrossOver",
   "settings.field.crossover_bottles_path.help": "Impostala se hai spostato le bottiglie nelle preferenze di CrossOver, ad esempio su un disco esterno.",

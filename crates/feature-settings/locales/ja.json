@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "別のフォルダーを選ばない限り、新しいゲームはここにインストールされます。",
   "settings.field.default_install_path.label": "既定のインストールフォルダー",
   "settings.field.default_size": "既定のサイズ",
-  "settings.field.default_steam_path.help": "SteamのProtonビルドを見つけたり、ゲームをSteamに追加したりするために使用します。",
+  "settings.field.default_steam_path.help": "Ember はここからインストール済みの Steam ゲームと Steam の Proton を読み込み、Steam にゲームを追加します。",
   "settings.field.default_steam_path.label": "Steamフォルダー",
   "settings.field.crossover_bottles_path.label": "CrossOver のボトルフォルダー",
   "settings.field.crossover_bottles_path.help": "CrossOver の環境設定でボトルを外付けドライブなどへ移動した場合に設定します。",

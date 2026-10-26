@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "新游戏默认安装到此处，除非你选择其他文件夹。",
   "settings.field.default_install_path.label": "默认安装文件夹",
   "settings.field.default_size": "默认大小",
-  "settings.field.default_steam_path.help": "用于查找 Steam 的 Proton 版本，以及将游戏添加到 Steam。",
+  "settings.field.default_steam_path.help": "Ember 从这里读取已安装的 Steam 游戏和 Steam 的 Proton 版本，并将游戏添加到 Steam。",
   "settings.field.default_steam_path.label": "Steam 文件夹",
   "settings.field.crossover_bottles_path.label": "CrossOver 容器文件夹",
   "settings.field.crossover_bottles_path.help": "如果你在 CrossOver 偏好设置中移动了容器（例如移到外置硬盘），请设置此项。",

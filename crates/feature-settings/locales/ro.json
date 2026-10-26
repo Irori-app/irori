@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Locul în care se instalează jocurile noi, dacă nu alegi alt folder.",
   "settings.field.default_install_path.label": "Folder de instalare implicit",
   "settings.field.default_size": "Dimensiune implicită",
-  "settings.field.default_steam_path.help": "Folosit pentru a găsi versiunile Proton ale Steam și pentru a adăuga jocuri în Steam.",
+  "settings.field.default_steam_path.help": "De aici citește Ember jocurile Steam instalate și versiunile Proton din Steam și adaugă jocuri în Steam.",
   "settings.field.default_steam_path.label": "Folderul Steam",
   "settings.field.crossover_bottles_path.label": "Dosarul sticlelor CrossOver",
   "settings.field.crossover_bottles_path.help": "Setează-l dacă ai mutat sticlele din preferințele CrossOver, de exemplu pe un disc extern.",

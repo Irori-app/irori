@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Where new games are installed unless you pick another folder.",
   "settings.field.default_install_path.label": "Default install folder",
   "settings.field.default_size": "Default size",
-  "settings.field.default_steam_path.help": "Used to find Steam's Proton builds and to add games to Steam.",
+  "settings.field.default_steam_path.help": "Where Ember reads your installed Steam games and Steam’s Proton builds, and adds games to Steam.",
   "settings.field.default_steam_path.label": "Steam folder",
   "settings.field.crossover_bottles_path.label": "CrossOver bottles folder",
   "settings.field.crossover_bottles_path.help": "Set this if you moved your bottles in CrossOver’s preferences, for example to an external drive.",

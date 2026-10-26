@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Sem se instalují nové hry, pokud nevyberete jinou složku.",
   "settings.field.default_install_path.label": "Výchozí složka pro instalace",
   "settings.field.default_size": "Výchozí velikost",
-  "settings.field.default_steam_path.help": "Slouží k nalezení verzí Protonu ze Steamu a k přidávání her do Steamu.",
+  "settings.field.default_steam_path.help": "Odtud Ember načítá nainstalované hry ze Steamu a sestavení Proton ze Steamu a sem přidává hry do Steamu.",
   "settings.field.default_steam_path.label": "Složka Steamu",
   "settings.field.crossover_bottles_path.label": "Složka lahví CrossOver",
   "settings.field.crossover_bottles_path.help": "Nastavte, pokud jste v předvolbách CrossOver přesunuli lahve jinam, například na externí disk.",

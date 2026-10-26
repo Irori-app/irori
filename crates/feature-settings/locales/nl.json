@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Hier worden nieuwe games geïnstalleerd, tenzij je een andere map kiest.",
   "settings.field.default_install_path.label": "Standaard installatiemap",
   "settings.field.default_size": "Standaardgrootte",
-  "settings.field.default_steam_path.help": "Wordt gebruikt om de Proton-versies van Steam te vinden en games aan Steam toe te voegen.",
+  "settings.field.default_steam_path.help": "Hier leest Ember je geïnstalleerde Steam-games en de Proton-versies van Steam, en voegt het games aan Steam toe.",
   "settings.field.default_steam_path.label": "Steam-map",
   "settings.field.crossover_bottles_path.label": "Map met CrossOver-bottles",
   "settings.field.crossover_bottles_path.help": "Stel dit in als je je bottles in de voorkeuren van CrossOver hebt verplaatst, bijvoorbeeld naar een externe schijf.",

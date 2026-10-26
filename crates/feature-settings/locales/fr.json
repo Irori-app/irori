@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Emplacement d’installation des nouveaux jeux, sauf si vous choisissez un autre dossier.",
   "settings.field.default_install_path.label": "Dossier d’installation par défaut",
   "settings.field.default_size": "Taille par défaut",
-  "settings.field.default_steam_path.help": "Sert à trouver les versions de Proton de Steam et à ajouter des jeux à Steam.",
+  "settings.field.default_steam_path.help": "Ember y lit vos jeux Steam installés et les versions de Proton de Steam, et y ajoute des jeux à Steam.",
   "settings.field.default_steam_path.label": "Dossier de Steam",
   "settings.field.crossover_bottles_path.label": "Dossier des bouteilles CrossOver",
   "settings.field.crossover_bottles_path.help": "À définir si vous avez déplacé vos bouteilles dans les préférences de CrossOver, par exemple sur un disque externe.",

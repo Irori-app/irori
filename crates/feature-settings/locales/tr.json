@@ -136,7 +136,7 @@
   "settings.field.default_install_path.help": "Başka bir klasör seçmediğiniz sürece yeni oyunlar buraya kurulur.",
   "settings.field.default_install_path.label": "Varsayılan kurulum klasörü",
   "settings.field.default_size": "Varsayılan boyut",
-  "settings.field.default_steam_path.help": "Steam'in Proton sürümlerini bulmak ve oyunları Steam'e eklemek için kullanılır.",
+  "settings.field.default_steam_path.help": "Ember, yüklü Steam oyunlarınızı ve Steam’in Proton sürümlerini buradan okur; oyunları Steam’e de buradan ekler.",
   "settings.field.default_steam_path.label": "Steam klasörü",
   "settings.field.crossover_bottles_path.label": "CrossOver şişe klasörü",
   "settings.field.crossover_bottles_path.help": "Şişelerinizi CrossOver tercihlerinden başka bir yere, örneğin harici bir sürücüye taşıdıysanız bunu ayarlayın.",
