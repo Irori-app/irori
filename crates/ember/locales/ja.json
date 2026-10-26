@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} はすでにインストールされています",
   "shell.notice.login_expired": "{store} にもう一度ログインしてください",
   "shell.notice.login_expired_message": "保存されたログインが使えなくなりました。［アカウント］を開いてもう一度ログインしてください。",
+  "shell.notice.saves_conflict": "{title} のセーブデータはアップロードされませんでした",
+  "shell.notice.saves_conflict_message": "ここでもクラウドでも変更されています。ゲームのクラウドセーブを開いて、残す方を選んでください。",
   "shell.duration.minutes": "{minutes} 分",
   "shell.duration.hours": "{hours} 時間",
   "shell.duration.hours_minutes": "{hours} 時間 {minutes} 分",

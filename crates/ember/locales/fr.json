@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} est déjà installé",
   "shell.notice.login_expired": "Reconnectez-vous à {store}",
   "shell.notice.login_expired_message": "Votre connexion enregistrée ne fonctionne plus. Ouvrez Comptes pour vous reconnecter.",
+  "shell.notice.saves_conflict": "Les sauvegardes de {title} n’ont pas été envoyées",
+  "shell.notice.saves_conflict_message": "Elles ont changé ici et dans le cloud. Ouvrez les sauvegardes cloud du jeu pour choisir celles à garder.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} är redan installerat",
   "shell.notice.login_expired": "Logga in på {store} igen",
   "shell.notice.login_expired_message": "Din sparade inloggning fungerar inte längre. Öppna Konton för att logga in igen.",
+  "shell.notice.saves_conflict": "Sparfilerna för {title} laddades inte upp",
+  "shell.notice.saves_conflict_message": "De har ändrats här och i molnet. Öppna spelets molnsparningar och välj vilka du behåller.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

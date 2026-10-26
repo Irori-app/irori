@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} is already installed",
   "shell.notice.login_expired": "Log in to {store} again",
   "shell.notice.login_expired_message": "Your saved login no longer works. Open Accounts to log in again.",
+  "shell.notice.saves_conflict": "Saves of {title} weren’t uploaded",
+  "shell.notice.saves_conflict_message": "They changed here and in the cloud. Open the game’s cloud saves to choose which to keep.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

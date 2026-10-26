@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{OpContext, Store as _, SyncDirection};
+use ember_core::{OpContext, SaveConflict, Store as _, SyncDirection};
 use ember_epic_api::saves::{self, Filters, SaveLocation, SaveStatus};
 
 use crate::EpicStore;
@@ -14,25 +14,26 @@ use crate::state::real_prefix;
 pub(crate) enum Action {
     Download,
     Upload,
+    /// Both sides changed; only the user can say which to keep.
+    Conflict,
     Nothing,
 }
 
-/// Choose the action for a save `status` and the requested `direction`.
-pub(crate) fn decide(status: SaveStatus, direction: SyncDirection) -> Result<Action> {
+/// Choose the action for a save `status` and the requested `direction`. A
+/// conflict stays a conflict unless the direction is forced: syncing one
+/// way, even the way the caller asked, would overwrite the other side.
+pub(crate) fn decide(status: SaveStatus, direction: SyncDirection) -> Action {
     use SaveStatus as S;
     use SyncDirection as D;
-    Ok(match (direction, status) {
+    match (direction, status) {
         (D::ForceDownload, _) => Action::Download,
         (D::ForceUpload, _) => Action::Upload,
+        (_, S::Conflict) => Action::Conflict,
         (_, S::NoSave | S::SameAge) => Action::Nothing,
         (D::Download, S::RemoteNewer) | (D::Auto, S::RemoteNewer) => Action::Download,
         (D::Upload, S::LocalNewer) | (D::Auto, S::LocalNewer) => Action::Upload,
-        (D::Auto, S::Conflict) => bail!(
-            "The local and cloud saves both changed since the last sync. Choose whether to \
-             download or upload."
-        ),
         _ => Action::Nothing,
-    })
+    }
 }
 
 impl EpicStore {
@@ -113,9 +114,16 @@ impl EpicStore {
             Self::blocking(move || saves::newest_mtime(&dir)).await?
         };
         let status = saves::status(local, latest.map(|s| s.time), installed.save_timestamp);
-        let action = decide(status, direction)?;
+        let action = decide(status, direction);
         let mut log = format!("{}: {status:?}\n", game.title);
         match action {
+            Action::Conflict => {
+                return Err(SaveConflict {
+                    local: (local > 0).then_some(local),
+                    cloud: latest.map(|s| s.time),
+                }
+                .into());
+            }
             Action::Nothing => log.push_str("Saves are up to date.\n"),
             Action::Download => {
                 let save = latest.context("There is no cloud save to download")?;
@@ -178,16 +186,17 @@ mod tests {
     fn decides_sync_actions() {
         use SaveStatus as S;
         use SyncDirection as D;
-        assert_eq!(decide(S::RemoteNewer, D::Auto).unwrap(), Action::Download);
-        assert_eq!(decide(S::LocalNewer, D::Auto).unwrap(), Action::Upload);
-        assert_eq!(decide(S::SameAge, D::Auto).unwrap(), Action::Nothing);
-        assert!(decide(S::Conflict, D::Auto).is_err());
-        assert_eq!(decide(S::LocalNewer, D::Download).unwrap(), Action::Nothing);
-        assert_eq!(decide(S::RemoteNewer, D::Upload).unwrap(), Action::Nothing);
-        assert_eq!(decide(S::Conflict, D::ForceUpload).unwrap(), Action::Upload);
-        assert_eq!(
-            decide(S::NoSave, D::ForceDownload).unwrap(),
-            Action::Download
-        );
+        assert_eq!(decide(S::RemoteNewer, D::Auto), Action::Download);
+        assert_eq!(decide(S::LocalNewer, D::Auto), Action::Upload);
+        assert_eq!(decide(S::SameAge, D::Auto), Action::Nothing);
+        assert_eq!(decide(S::Conflict, D::Auto), Action::Conflict);
+        assert_eq!(decide(S::LocalNewer, D::Download), Action::Nothing);
+        assert_eq!(decide(S::RemoteNewer, D::Upload), Action::Nothing);
+        // Before a launch (download) or after it (upload), a conflict must
+        // not be skipped quietly.
+        assert_eq!(decide(S::Conflict, D::Download), Action::Conflict);
+        assert_eq!(decide(S::Conflict, D::Upload), Action::Conflict);
+        assert_eq!(decide(S::Conflict, D::ForceUpload), Action::Upload);
+        assert_eq!(decide(S::NoSave, D::ForceDownload), Action::Download);
     }
 }

@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} já está instalado",
   "shell.notice.login_expired": "Entre de novo na {store}",
   "shell.notice.login_expired_message": "Seu login salvo não funciona mais. Abra Contas para entrar de novo.",
+  "shell.notice.saves_conflict": "Os saves de {title} não foram enviados",
+  "shell.notice.saves_conflict_message": "Eles mudaram aqui e na nuvem. Abra os saves na nuvem do jogo para escolher quais manter.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} este deja instalat",
   "shell.notice.login_expired": "Conectează-te din nou la {store}",
   "shell.notice.login_expired_message": "Conectarea salvată nu mai funcționează. Deschide Conturi ca să te conectezi din nou.",
+  "shell.notice.saves_conflict": "Salvările {title} nu au fost încărcate",
+  "shell.notice.saves_conflict_message": "S-au schimbat aici și în cloud. Deschide salvările din cloud ale jocului ca să alegi pe care le păstrezi.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

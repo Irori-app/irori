@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} ist bereits installiert",
   "shell.notice.login_expired": "Melde dich erneut bei {store} an",
   "shell.notice.login_expired_message": "Deine gespeicherte Anmeldung funktioniert nicht mehr. Öffne Konten, um dich erneut anzumelden.",
+  "shell.notice.saves_conflict": "Spielstände von {title} wurden nicht hochgeladen",
+  "shell.notice.saves_conflict_message": "Sie haben sich hier und in der Cloud geändert. Öffne die Cloud-Spielstände des Spiels, um zu wählen, welche bleiben.",
   "shell.duration.minutes": "{minutes} Min.",
   "shell.duration.hours": "{hours} Std.",
   "shell.duration.hours_minutes": "{hours} Std. {minutes} Min.",

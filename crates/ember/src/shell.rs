@@ -657,6 +657,15 @@ pub fn launch_game(id: GameId, window: &mut Window, cx: &mut App) {
         .spawn(cx, async move |cx| {
             if let Err(e) = task.await {
                 let _ = cx.update(|window, cx| {
+                    if ember_ui::save_conflict::resolve_launch_error(
+                        &id,
+                        Default::default(),
+                        &e,
+                        window,
+                        cx,
+                    ) {
+                        return;
+                    }
                     window.push_notification(
                         Notification::error(format!("{e:#}")).title(t("shell.launch_failed")),
                         cx,

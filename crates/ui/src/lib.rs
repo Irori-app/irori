@@ -11,6 +11,7 @@ pub mod i18n;
 pub mod models;
 pub mod motion;
 pub mod nav;
+pub mod save_conflict;
 pub mod state;
 pub mod style;
 pub mod system_notify;

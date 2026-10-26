@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} is al geïnstalleerd",
   "shell.notice.login_expired": "Log opnieuw in bij {store}",
   "shell.notice.login_expired_message": "Je opgeslagen inlog werkt niet meer. Open Accounts om opnieuw in te loggen.",
+  "shell.notice.saves_conflict": "Opgeslagen spellen van {title} zijn niet geüpload",
+  "shell.notice.saves_conflict_message": "Ze zijn hier en in de cloud gewijzigd. Open de cloudopslag van het spel om te kiezen wat je houdt.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} u",
   "shell.duration.hours_minutes": "{hours} u {minutes} min",

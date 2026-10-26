@@ -10,7 +10,7 @@ use ember_core::log_cap;
 use ember_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
 use ember_core::{
     Event, GameId, GameInfo, InstallPlatform, InstallProgress, LaunchOption, LaunchRequest, Notice,
-    NoticeLevel, Outcome, Paths, RemoveArgs, StatusKind, SyncDirection, util,
+    NoticeLevel, Outcome, Paths, RemoveArgs, SaveConflict, StatusKind, SyncDirection, util,
 };
 use ember_runtime::Target;
 use serde_json::Value;
@@ -161,6 +161,11 @@ impl Backend {
         if settings.auto_sync_saves && store.supports_cloud_saves() && self.is_online() {
             ctx.step.as_ref()("Syncing saves");
             if let Err(e) = self.sync_saves_inner(id, SyncDirection::Download).await {
+                // Playing on would build on saves the next upload overwrites,
+                // or that overwrite the cloud's; the caller asks the user.
+                if SaveConflict::of(&e).is_some() {
+                    return Err(e);
+                }
                 tracing::warn!("pre-launch save sync of {id}: {e:#}");
             }
         }
@@ -277,6 +282,21 @@ impl Backend {
                 && let Err(e) = b.sync_saves(&id, SyncDirection::Upload).await
             {
                 tracing::warn!("post-exit save sync of {id}: {e:#}");
+                if SaveConflict::of(&e).is_some() {
+                    b.bus.notice(
+                        Notice::new(
+                            NoticeLevel::Warning,
+                            format!("Saves of {} weren't uploaded", game.title),
+                        )
+                        .message(format!("{e:#}"))
+                        .keys(
+                            "shell.notice.saves_conflict",
+                            Some("shell.notice.saves_conflict_message"),
+                            &[("title", &game.title)],
+                        )
+                        .game(id.clone()),
+                    );
+                }
             }
             b.bus.emit(Event::GameExited {
                 id,

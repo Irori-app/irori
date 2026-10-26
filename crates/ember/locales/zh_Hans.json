@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} 已安装",
   "shell.notice.login_expired": "请重新登录 {store}",
   "shell.notice.login_expired_message": "已保存的登录已失效。请打开“账号”重新登录。",
+  "shell.notice.saves_conflict": "{title} 的存档未上传",
+  "shell.notice.saves_conflict_message": "此处和云端的存档都已更改。请打开游戏的云存档，选择要保留的一方。",
   "shell.duration.minutes": "{minutes} 分钟",
   "shell.duration.hours": "{hours} 小时",
   "shell.duration.hours_minutes": "{hours} 小时 {minutes} 分钟",

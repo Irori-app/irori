@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} zaten yüklü",
   "shell.notice.login_expired": "{store} hesabında yeniden oturum açın",
   "shell.notice.login_expired_message": "Kayıtlı oturumunuz artık çalışmıyor. Yeniden oturum açmak için Hesaplar'ı açın.",
+  "shell.notice.saves_conflict": "{title} kayıtları yüklenmedi",
+  "shell.notice.saves_conflict_message": "Hem burada hem de bulutta değişti. Hangilerini koruyacağınızı seçmek için oyunun bulut kayıtlarını açın.",
   "shell.duration.minutes": "{minutes} dk",
   "shell.duration.hours": "{hours} sa",
   "shell.duration.hours_minutes": "{hours} sa {minutes} dk",

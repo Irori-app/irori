@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} è già installato",
   "shell.notice.login_expired": "Accedi di nuovo a {store}",
   "shell.notice.login_expired_message": "L’accesso salvato non funziona più. Apri Account per accedere di nuovo.",
+  "shell.notice.saves_conflict": "I salvataggi di {title} non sono stati caricati",
+  "shell.notice.saves_conflict_message": "Sono cambiati qui e nel cloud. Apri i salvataggi cloud del gioco per scegliere quali tenere.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

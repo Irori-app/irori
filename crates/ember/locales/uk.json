@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} вже встановлено",
   "shell.notice.login_expired": "Увійдіть у {store} знову",
   "shell.notice.login_expired_message": "Збережений вхід більше не працює. Відкрийте «Облікові записи», щоб увійти знову.",
+  "shell.notice.saves_conflict": "Збереження {title} не вивантажено",
+  "shell.notice.saves_conflict_message": "Вони змінилися і тут, і в хмарі. Відкрийте хмарні збереження гри й виберіть, які залишити.",
   "shell.duration.minutes": "{minutes} хв",
   "shell.duration.hours": "{hours} год",
   "shell.duration.hours_minutes": "{hours} год {minutes} хв",

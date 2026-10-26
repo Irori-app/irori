@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} ya está instalado",
   "shell.notice.login_expired": "Vuelve a iniciar sesión en {store}",
   "shell.notice.login_expired_message": "Tu inicio de sesión guardado ya no funciona. Abre Cuentas para volver a iniciar sesión.",
+  "shell.notice.saves_conflict": "No se subieron las partidas de {title}",
+  "shell.notice.saves_conflict_message": "Cambiaron aquí y en la nube. Abre las partidas en la nube del juego para elegir cuáles conservar.",
   "shell.duration.minutes": "{minutes} min",
   "shell.duration.hours": "{hours} h",
   "shell.duration.hours_minutes": "{hours} h {minutes} min",

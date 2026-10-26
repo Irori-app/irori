@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} 已安裝",
   "shell.notice.login_expired": "請重新登入 {store}",
   "shell.notice.login_expired_message": "已儲存的登入已失效。請開啟「帳號」重新登入。",
+  "shell.notice.saves_conflict": "{title} 的存檔未上傳",
+  "shell.notice.saves_conflict_message": "此處和雲端的存檔都已變更。請開啟遊戲的雲端存檔，選擇要保留的一方。",
   "shell.duration.minutes": "{minutes} 分鐘",
   "shell.duration.hours": "{hours} 小時",
   "shell.duration.hours_minutes": "{hours} 小時 {minutes} 分鐘",

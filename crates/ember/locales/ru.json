@@ -36,6 +36,8 @@
   "shell.notice.already_installed": "{title} уже установлено",
   "shell.notice.login_expired": "Войдите в {store} снова",
   "shell.notice.login_expired_message": "Сохранённый вход больше не работает. Откройте «Аккаунты», чтобы войти снова.",
+  "shell.notice.saves_conflict": "Сохранения {title} не загружены",
+  "shell.notice.saves_conflict_message": "Они изменились и здесь, и в облаке. Откройте облачные сохранения игры и выберите, какие оставить.",
   "shell.duration.minutes": "{minutes} мин",
   "shell.duration.hours": "{hours} ч",
   "shell.duration.hours_minutes": "{hours} ч {minutes} мин",
