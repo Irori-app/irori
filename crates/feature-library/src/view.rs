@@ -628,6 +628,30 @@ impl LibraryView {
                 })
                 .detach();
             }
+            GameCommand::AddToSteam => {
+                let app = b.settings.app();
+                let task = ember_ui::run(cx, async move {
+                    let targets = ember_extras::shortcuts::ShortcutTargets {
+                        steam: true,
+                        ..Default::default()
+                    };
+                    ember_extras::shortcuts::add(&game, &app, targets).await
+                });
+                let failed = t_args("library.error.add_to_steam", &[("title", &title)]);
+                let done = t_args("library.steam_added", &[("title", &title)]);
+                cx.spawn_in(window, async move |_, cx| {
+                    let result = task.await;
+                    cx.update(|window, cx| match result {
+                        Ok(()) => window.push_notification(
+                            gpui_kit::component::notification::Notification::success(done),
+                            cx,
+                        ),
+                        Err(e) => crate::notify_error(failed, &e, window, cx),
+                    })
+                    .ok();
+                })
+                .detach();
+            }
             GameCommand::OpenFolder => {
                 if let Some(path) = game.install_path() {
                     cx.open_with_system(&path);

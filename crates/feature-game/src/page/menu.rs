@@ -103,6 +103,15 @@ pub(super) fn build_menu(
                         manage::open_import_dialog(i.clone(), window, cx)
                     }),
             );
+            // Steam starts Ember for the shortcut, which offers the install.
+            if game.installable {
+                let i = id.clone();
+                menu = menu.separator().item(
+                    item("game.menu.add_to_steam", IconName::Gamepad2).on_click(
+                        move |_, window, cx| ops::add_shortcuts(&i, true, window, cx).detach(),
+                    ),
+                );
+            }
         }
     } else {
         let playable = matches!(

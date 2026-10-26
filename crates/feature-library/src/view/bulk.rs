@@ -1,5 +1,6 @@
 //! Bulk actions on the games picked in selection mode (install, uninstall,
-//! categories, favourite and hide), from a bar floating over the library.
+//! add to Steam, categories, favourite and hide), from a bar floating over
+//! the library.
 
 use std::sync::Arc;
 
@@ -117,6 +118,37 @@ impl LibraryView {
         .detach();
     }
 
+    /// Add every picked game to Steam in one pass, installed or not.
+    fn add_picked_to_steam(
+        &mut self,
+        games: Vec<Arc<GameInfo>>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let app = backend(cx).settings.app();
+        let task = ember_ui::run(cx, async move {
+            ember_extras::shortcuts::add_to_steam(&games, &app).await
+        });
+        cx.spawn_in(window, async move |this, cx| {
+            let result = task.await;
+            let _ = this.update_in(cx, |this, window, cx| {
+                match result {
+                    Ok(added) => window.push_notification(
+                        Notification::success(t_args(
+                            "library.bulk.steam_added",
+                            &[("count", &added.to_string())],
+                        )),
+                        cx,
+                    ),
+                    Err(e) => crate::notify_error(t("library.bulk.steam_failed"), &e, window, cx),
+                }
+                this.selection.end();
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
     /// Ask, then uninstall every picked installed game one after another.
     fn confirm_uninstall(
         &mut self,
@@ -222,6 +254,12 @@ impl LibraryView {
             .filter(|(_, s)| s.installed && !s.is_playing() && !s.is_busy())
             .map(|(g, _)| g.clone())
             .collect();
+        let for_steam: Vec<Arc<GameInfo>> = picked
+            .iter()
+            .zip(&states)
+            .filter(|(_, s)| !s.browser && (s.installed || s.installable))
+            .map(|(g, _)| g.clone())
+            .collect();
         let ids: Vec<GameId> = picked.iter().map(|g| g.id()).collect();
         let keys: Vec<String> = ids.iter().map(GameId::key).collect();
         let all_favourite = !keys.is_empty() && keys.iter().all(|k| user.favourites.contains(k));
@@ -274,6 +312,21 @@ impl LibraryView {
                 .disabled(removable.is_empty())
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.confirm_uninstall(games.clone(), window, cx)
+                }))
+        };
+        let steam = {
+            let games = for_steam.clone();
+            Button::new("bulk-steam")
+                .small()
+                .outline()
+                .icon(IconName::Gamepad2)
+                .label(t_args(
+                    "library.bulk.add_to_steam",
+                    &[("count", &for_steam.len().to_string())],
+                ))
+                .disabled(for_steam.is_empty())
+                .on_click(cx.listener(move |this, _, window, cx| {
+                    this.add_picked_to_steam(games.clone(), window, cx)
                 }))
         };
         let category_ids = ids.clone();
@@ -361,6 +414,7 @@ impl LibraryView {
                         .when(!nothing, |bar| {
                             bar.child(install)
                                 .child(uninstall)
+                                .child(steam)
                                 .child(categories_button)
                                 .child(favourite)
                                 .child(hide)

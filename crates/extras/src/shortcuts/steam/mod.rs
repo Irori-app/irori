@@ -48,6 +48,8 @@ pub struct SteamReport {
     pub users_changed: usize,
     /// The game was already present (add) for at least one user.
     pub already_present: bool,
+    /// Shortcuts added for the user who received the most (add).
+    pub added: usize,
     /// Per-user problems (corrupt files, write errors). Non-fatal as long as
     /// at least one user succeeded.
     pub errors: Vec<String>,
@@ -204,42 +206,83 @@ pub fn matches_game(entry: ShortcutEntry<'_>, id: &GameId) -> bool {
         || found(&format!("ember://launch/{encoded}"))
 }
 
+/// Steam collection every Ember shortcut is filed under, so Ember's games
+/// are listed together instead of only under "Non-Steam".
+pub const COLLECTION: &str = "Ember";
+
+/// A game to add, with its Steam app ID (from wiki data) when known, which
+/// selects official Steam artwork.
+#[derive(Debug, Clone, Copy)]
+pub struct SteamGame<'a> {
+    pub game: &'a GameInfo,
+    pub steam_app_id: Option<&'a str>,
+}
+
 /// Add the game to every Steam user's shortcuts and set its artwork.
 /// `steam_app_id` (from wiki data) selects official Steam artwork when known.
+///
+/// The game need not be installed: the shortcut starts Ember, which offers
+/// to install a game that isn't installed yet.
 pub async fn add(
     game: &GameInfo,
     app: &AppSettings,
     steam_app_id: Option<&str>,
 ) -> Result<SteamReport> {
+    let report = add_many(&[SteamGame { game, steam_app_id }], app).await?;
+    if report.users_changed == 0 && !report.already_present && !report.steam_running {
+        bail!(
+            "Adding {} to Steam failed: {}",
+            game.title,
+            report.errors.join("; ")
+        );
+    }
+    Ok(report)
+}
+
+/// Add several games at once, reading and writing each user's
+/// `shortcuts.vdf` once. Games a user already has are left alone.
+pub async fn add_many(games: &[SteamGame<'_>], app: &AppSettings) -> Result<SteamReport> {
     let steam = steam_path(app);
     let users = users(&steam).await?;
-    let id = game.id();
     let mut report = SteamReport::default();
 
     if is_running(&steam).await {
         report.steam_running = true;
-        report.already_present = is_added_for(&users, &id).await;
+        for g in games {
+            if is_added_for(&users, &g.game.id()).await {
+                report.already_present = true;
+                break;
+            }
+        }
         return Ok(report);
     }
 
-    let cmd = EntryCommand::new(&LauncherCommand::detect(), &id);
-    let icon = match icon::ensure_icon(game).await {
-        Ok(p) => p.map(|p| p.to_string_lossy().into_owned()),
-        Err(e) => {
-            tracing::warn!("no icon for the Steam shortcut of {}: {e:#}", game.title);
-            None
+    let launcher = LauncherCommand::detect();
+    let mut prepared = Vec::with_capacity(games.len());
+    for g in games {
+        let game = g.game;
+        let id = game.id();
+        let cmd = EntryCommand::new(&launcher, &id);
+        let icon = match icon::ensure_icon(game).await {
+            Ok(p) => p.map(|p| p.to_string_lossy().into_owned()),
+            Err(e) => {
+                tracing::warn!("no icon for the Steam shortcut of {}: {e:#}", game.title);
+                None
+            }
+        };
+        let entry = NewShortcut {
+            app_name: game.title.clone(),
+            exe: cmd.exe.clone(),
+            start_dir: cmd.start_dir.clone(),
+            icon,
+            launch_options: cmd.launch_options.clone(),
+            last_play_time: i32::try_from(ember_core::util::unix_now()).unwrap_or(i32::MAX),
+            tags: vec![COLLECTION.to_string()],
         }
-    };
-    let entry = NewShortcut {
-        app_name: game.title.clone(),
-        exe: cmd.exe.clone(),
-        start_dir: cmd.start_dir.clone(),
-        icon,
-        launch_options: cmd.launch_options.clone(),
-        last_play_time: i32::try_from(ember_core::util::unix_now()).unwrap_or(i32::MAX),
+        .to_entry();
+        let grid_ids = GridIds::from_exe_name(&cmd.exe, &game.title);
+        prepared.push((g, id, entry, grid_ids));
     }
-    .to_entry();
-    let grid_ids = GridIds::from_exe_name(&cmd.exe, &game.title);
 
     for user in &users {
         let path = user.shortcuts_file();
@@ -248,36 +291,51 @@ pub async fn add(
             Ok(None) => ShortcutsFile::empty(),
             Err(e) => {
                 report.errors.push(format!(
-                    "Can't add \"{}\" to Steam user \"{}\". \"{}\" is corrupted! {e:#}",
-                    game.title,
+                    "Can't add games to Steam user \"{}\". \"{}\" is corrupted! {e:#}",
                     user.id,
                     path.display()
                 ));
                 continue;
             }
         };
-        if file.entries().any(|e| matches_game(e, &id)) {
+        let entries: Vec<(&GameId, &vdf::Map)> =
+            prepared.iter().map(|(_, id, e, _)| (id, e)).collect();
+        let added = push_missing(&mut file, &entries);
+        if added.len() < prepared.len() {
             report.already_present = true;
+        }
+        if added.is_empty() {
             continue;
         }
-        file.push(entry.clone());
-        for err in art::prepare(&user.grid_dir(), grid_ids, game, steam_app_id).await {
-            tracing::warn!("Steam artwork for {}: {err}", game.title);
+        for &ix in &added {
+            let (g, _, _, grid_ids) = &prepared[ix];
+            for err in art::prepare(&user.grid_dir(), *grid_ids, g.game, g.steam_app_id).await {
+                tracing::warn!("Steam artwork for {}: {err}", g.game.title);
+            }
         }
         match util::write_atomic(&path, &file.to_bytes()).await {
-            Ok(()) => report.users_changed += 1,
+            Ok(()) => {
+                report.users_changed += 1;
+                report.added = report.added.max(added.len());
+            }
             Err(e) => report.errors.push(format!("{e:#}")),
         }
     }
-
-    if report.users_changed == 0 && !report.already_present {
-        bail!(
-            "Adding {} to Steam failed: {}",
-            game.title,
-            report.errors.join("; ")
-        );
-    }
     Ok(report)
+}
+
+/// Append the entries whose game has no Ember shortcut in `file` yet;
+/// returns the indices of those appended.
+fn push_missing(file: &mut ShortcutsFile, entries: &[(&GameId, &vdf::Map)]) -> Vec<usize> {
+    let mut added = Vec::new();
+    for (ix, (id, entry)) in entries.iter().enumerate() {
+        if file.entries().any(|e| matches_game(e, id)) {
+            continue;
+        }
+        file.push((*entry).clone());
+        added.push(ix);
+    }
+    added
 }
 
 /// Remove the game's shortcut from every Steam user, with its artwork.
@@ -402,6 +460,7 @@ mod tests {
             icon: None,
             launch_options: cmd.launch_options.clone(),
             last_play_time: 0,
+            tags: Vec::new(),
         }
         .to_entry();
         assert!(matches_game(ShortcutEntry(&entry), &id));
@@ -437,6 +496,40 @@ mod tests {
             cmd.launch_options,
             "run org.ember.Ember --launch \"nile/amzn1.x\""
         );
+    }
+
+    #[test]
+    fn adds_only_missing_games_in_the_ember_collection() {
+        let entry = |id: &GameId, title: &str| {
+            let cmd = EntryCommand::new(&launcher(), id);
+            NewShortcut {
+                app_name: title.into(),
+                exe: cmd.exe,
+                start_dir: cmd.start_dir,
+                icon: None,
+                launch_options: cmd.launch_options,
+                last_play_time: 0,
+                tags: vec![COLLECTION.into()],
+            }
+            .to_entry()
+        };
+        let (a, b) = (
+            GameId::new(Runner::Gog, "1"),
+            GameId::new(Runner::Legendary, "Fortnite"),
+        );
+        let (ea, eb) = (entry(&a, "A"), entry(&b, "B"));
+        let mut file = ShortcutsFile::empty();
+        file.push(ea.clone());
+        let added = push_missing(&mut file, &[(&a, &ea), (&b, &eb), (&b, &eb)]);
+        assert_eq!(added, [1]);
+        assert_eq!(file.entries().count(), 2);
+        let tags = file
+            .entries()
+            .nth(1)
+            .and_then(|e| e.0.get_ci("tags"))
+            .and_then(vdf::Value::as_map)
+            .unwrap();
+        assert_eq!(tags.str_ci("0"), COLLECTION);
     }
 
     #[tokio::test]
@@ -480,6 +573,7 @@ mod tests {
                 icon: None,
                 launch_options: String::new(),
                 last_play_time: 5,
+                tags: Vec::new(),
             }
             .to_entry(),
         );
@@ -497,6 +591,7 @@ mod tests {
                 icon: None,
                 launch_options: cmd.launch_options,
                 last_play_time: 7,
+                tags: vec![COLLECTION.into()],
             }
             .to_entry(),
         );

@@ -162,6 +162,7 @@ impl BigPictureView {
             cx.observe(&m.statuses, |_, _, cx| cx.notify()),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
             cx.observe(&art_store(cx), |_, _, cx| cx.notify()),
+            cx.observe_global::<crate::ShowGame>(|this, cx| this.show_requested_game(cx)),
             cx.on_focus_lost(window, |this, window, cx| this.focus.focus(window, cx)),
         ];
         if let Some(pad) = gamepad::model(cx) {
@@ -212,8 +213,34 @@ impl BigPictureView {
             _subscriptions: subscriptions,
         };
         this.refresh_rows(cx);
+        this.show_requested_game(cx);
         this.hero = this.focused_game().cloned();
         this
+    }
+
+    /// Focus the game asked for through [`crate::show_game`] and open its
+    /// commands.
+    fn show_requested_game(&mut self, cx: &mut Context<Self>) {
+        let Some(id) = crate::take_shown_game(cx) else {
+            return;
+        };
+        let found = self.rows.iter().enumerate().find_map(|(row, r)| {
+            r.games
+                .iter()
+                .position(|g| g.id() == id)
+                .map(|col| (row, col))
+        });
+        if let Some((row, col)) = found {
+            let lens = self.lens();
+            self.grid.set(row, col, &lens);
+            self.after_focus_change(cx);
+        }
+        self.overlay = Some(Overlay::Game {
+            id,
+            ix: 0,
+            confirm: None,
+        });
+        cx.notify();
     }
 
     /// The focused game, if any shelf has games.

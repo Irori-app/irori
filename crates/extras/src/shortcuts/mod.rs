@@ -194,6 +194,36 @@ pub async fn add_with_report(
     Ok(report)
 }
 
+/// Add games to Steam in one pass, installed or not; DLCs are skipped.
+/// Returns how many shortcuts were added. Fails when Steam is running or
+/// no Steam user could be changed.
+pub async fn add_to_steam(games: &[std::sync::Arc<GameInfo>], app: &AppSettings) -> Result<usize> {
+    let games: Vec<&GameInfo> = games.iter().map(|g| &**g).filter(|g| !is_dlc(g)).collect();
+    let mut steam_ids = Vec::with_capacity(games.len());
+    for game in &games {
+        steam_ids.push(crate::wiki::steam_app_id(game).await);
+    }
+    let list: Vec<steam::SteamGame<'_>> = games
+        .iter()
+        .zip(&steam_ids)
+        .map(|(game, id)| steam::SteamGame {
+            game,
+            steam_app_id: id.as_deref(),
+        })
+        .collect();
+    let report = steam::add_many(&list, app).await?;
+    if report.steam_running {
+        bail!("Steam is running. Close Steam and try again to add games to Steam.");
+    }
+    if report.users_changed == 0 && !report.already_present {
+        bail!("Adding games to Steam failed: {}", report.errors.join("; "));
+    }
+    for e in &report.errors {
+        tracing::warn!("{e}");
+    }
+    Ok(report.added)
+}
+
 /// Remove every shortcut Ember created for the game.
 pub async fn remove(game: &GameInfo, app: &AppSettings) -> Result<()> {
     let report = remove_with_report(game, app).await?;
