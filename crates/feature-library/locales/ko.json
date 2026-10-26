@@ -322,6 +322,7 @@
   "library.time.years_other": "{count}년 전",
   "library.time.yesterday": "어제",
   "library.toolbar.all_stores": "전체",
+  "library.toolbar.all_accounts": "모든 계정",
   "library.toolbar.filters": "필터",
   "library.toolbar.filters_active": "필터 · {count}",
   "library.toolbar.grid": "격자",

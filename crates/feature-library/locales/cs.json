@@ -322,6 +322,7 @@
   "library.time.years_other": "Před {count} lety",
   "library.time.yesterday": "Včera",
   "library.toolbar.all_stores": "Vše",
+  "library.toolbar.all_accounts": "Všechny účty",
   "library.toolbar.filters": "Filtry",
   "library.toolbar.filters_active": "Filtry · {count}",
   "library.toolbar.grid": "Mřížka",

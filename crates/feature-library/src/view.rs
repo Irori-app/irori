@@ -1250,10 +1250,70 @@ impl LibraryView {
                             Some(r) => StoreFilter::Store(r),
                             None => StoreFilter::All,
                         };
-                        this.update_filter(|f| f.store = store, cx);
+                        this.update_filter(
+                            |f| {
+                                if f.store != store {
+                                    f.account = None;
+                                }
+                                f.store = store;
+                            },
+                            cx,
+                        );
                     }
                 }))
         });
+
+        // The shown store's accounts, when it has several.
+        let account_switcher =
+            filter.shown_store(&stores).and_then(|runner| {
+                let accounts: Vec<(String, String)> = models(cx)
+                    .accounts
+                    .read(cx)
+                    .accounts(runner)
+                    .iter()
+                    .filter(|a| a.signed_in)
+                    .map(|a| (a.account_id.clone(), a.display_name.clone()))
+                    .collect();
+                if accounts.len() < 2 {
+                    return None;
+                }
+                let current = filter
+                    .account
+                    .as_ref()
+                    .filter(|a| a.runner == runner)
+                    .map(|a| a.account_id.clone());
+                let options: Vec<Option<String>> = std::iter::once(None)
+                    .chain(accounts.iter().map(|(id, _)| Some(id.clone())))
+                    .collect();
+                let clicks = options.clone();
+                Some(
+                    ButtonGroup::new("library-account")
+                        .small()
+                        .outline()
+                        .children(options.iter().enumerate().map(|(ix, option)| {
+                            let label: SharedString = match option {
+                                Some(id) => accounts
+                                    .iter()
+                                    .find(|(a, _)| a == id)
+                                    .map(|(_, name)| name.clone())
+                                    .unwrap_or_default()
+                                    .into(),
+                                None => t("library.toolbar.all_accounts"),
+                            };
+                            Button::new(SharedString::from(format!("account-{ix}")))
+                                .label(label)
+                                .selected(*option == current)
+                        }))
+                        .on_click(cx.listener(move |this, clicked: &Vec<usize>, _, cx| {
+                            if let Some(&ix) = clicked.first() {
+                                let account = clicks[ix].clone().map(|account_id| {
+                                    crate::filter::AccountFilter { runner, account_id }
+                                });
+                                this.update_filter(|f| f.account = account, cx);
+                            }
+                        })),
+                )
+            });
 
         let order = crate::i18n::sort_label(sort);
         let sort_label = if searching {
@@ -1286,6 +1346,7 @@ impl LibraryView {
                     ),
             )
             .children(store_switcher)
+            .children(account_switcher)
             .child(
                 Popover::new("library-filters-popover")
                     .trigger(

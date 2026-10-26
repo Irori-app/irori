@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} jaar geleden",
   "library.time.yesterday": "Gisteren",
   "library.toolbar.all_stores": "Alle",
+  "library.toolbar.all_accounts": "Alle accounts",
   "library.toolbar.filters": "Filters",
   "library.toolbar.filters_active": "Filters · {count}",
   "library.toolbar.grid": "Raster",

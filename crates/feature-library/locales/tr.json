@@ -322,6 +322,7 @@
   "library.time.years_other": "{count} yıl önce",
   "library.time.yesterday": "Dün",
   "library.toolbar.all_stores": "Tümü",
+  "library.toolbar.all_accounts": "Tüm hesaplar",
   "library.toolbar.filters": "Filtreler",
   "library.toolbar.filters_active": "Filtreler · {count}",
   "library.toolbar.grid": "Izgara",
