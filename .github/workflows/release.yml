@@ -165,7 +165,7 @@ jobs:
           path: packaging/flatpak
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          manifest-path: packaging/flatpak/io.github.irori_app.Irori.yml
+          manifest-path: packaging/flatpak/app.irori.Irori.yml
           bundle: Irori-${{ needs.version.outputs.version }}-linux.flatpak
           cache-key: flatpak-${{ hashFiles('Cargo.lock') }}
           upload-artifact: false

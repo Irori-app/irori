@@ -3,7 +3,7 @@
 #
 # cargo-sources.json is generated, not committed:
 #   python3 flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
-id: io.github.irori_app.Irori
+id: app.irori.Irori
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
@@ -86,7 +86,7 @@ modules:
       - install -Dm755 target/release/irori-sign-in /app/bin/irori-sign-in
       - install -Dm644 packaging/irori.desktop /app/share/applications/irori.desktop
       - install -Dm644 packaging/irori.svg /app/share/icons/hicolor/scalable/apps/irori.svg
-      - install -Dm644 packaging/linux/io.github.irori_app.Irori.metainfo.xml /app/share/metainfo/io.github.irori_app.Irori.metainfo.xml
+      - install -Dm644 packaging/linux/app.irori.Irori.metainfo.xml /app/share/metainfo/app.irori.Irori.metainfo.xml
     sources:
       - type: dir
         path: ../..

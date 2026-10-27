@@ -80,17 +80,17 @@ assets = [
     ["target/release/irori", "usr/bin/", "755"],
     ["../../packaging/irori.desktop", "usr/share/applications/", "644"],
     ["../../packaging/irori.svg", "usr/share/icons/hicolor/scalable/apps/", "644"],
-    ["../../packaging/linux/io.github.irori_app.Irori.metainfo.xml", "usr/share/metainfo/", "644"],
+    ["../../packaging/linux/app.irori.Irori.metainfo.xml", "usr/share/metainfo/", "644"],
 ]
 
 [package.metadata.generate-rpm]
 summary = "Every game you own, around one fire"
-url = "https://github.com/irori-app/irori"
+url = "https://irori.app"
 assets = [
     { source = "target/release/irori", dest = "/usr/bin/irori", mode = "755" },
     { source = "packaging/irori.desktop", dest = "/usr/share/applications/irori.desktop", mode = "644" },
     { source = "packaging/irori.svg", dest = "/usr/share/icons/hicolor/scalable/apps/irori.svg", mode = "644" },
-    { source = "packaging/linux/io.github.irori_app.Irori.metainfo.xml", dest = "/usr/share/metainfo/io.github.irori_app.Irori.metainfo.xml", mode = "644" },
+    { source = "packaging/linux/app.irori.Irori.metainfo.xml", dest = "/usr/share/metainfo/app.irori.Irori.metainfo.xml", mode = "644" },
     { source = "LICENSE", dest = "/usr/share/licenses/irori/LICENSE", mode = "644", doc = true },
 ]
 

@@ -21,7 +21,7 @@ AppName=Irori
 AppVersion={#Version}
 AppVerName=Irori {#Version}
 AppPublisher=Irori developers
-AppPublisherURL=https://github.com/irori-app/irori
+AppPublisherURL=https://irori.app
 AppSupportURL=https://github.com/irori-app/irori/issues
 DefaultDirName={localappdata}\Programs\Irori
 DisableProgramGroupPage=yes
@@ -71,7 +71,7 @@ Source: "{#Source}\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 ; Windows shows toasts only for apps whose Start menu shortcut carries their
 ; AppUserModelID; it matches APP_ID in crates/ui/src/system_notify.rs.
-Name: "{autoprograms}\Irori"; Filename: "{app}\irori.exe"; IconFilename: "{app}\irori.ico"; AppUserModelID: "io.github.irori-app.Irori"
+Name: "{autoprograms}\Irori"; Filename: "{app}\irori.exe"; IconFilename: "{app}\irori.ico"; AppUserModelID: "app.irori.Irori"
 Name: "{autodesktop}\Irori"; Filename: "{app}\irori.exe"; IconFilename: "{app}\irori.ico"; Tasks: desktopicon
 
 [Registry]

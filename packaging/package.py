@@ -177,7 +177,7 @@ def package(platform: str, binary_dir: Path, output: Path, dmg: bool = False) ->
     else:
         shutil.copy2(root / "packaging/irori.desktop", staging)
         shutil.copy2(root / "packaging/irori.svg", staging)
-        shutil.copy2(root / "packaging/linux/io.github.irori_app.Irori.metainfo.xml", staging)
+        shutil.copy2(root / "packaging/linux/app.irori.Irori.metainfo.xml", staging)
         shutil.copy2(root / "LICENSE", staging)
         archive = output / f"Irori-{version}-linux.tar.gz"
         with tarfile.open(archive, "x:gz") as tar:
