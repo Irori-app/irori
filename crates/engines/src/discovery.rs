@@ -249,8 +249,10 @@ pub fn locate_program(dir: &Path, names: &[String]) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use crate::state::ManagedInstall;
 
+    #[cfg(unix)]
     fn manifest() -> EngineManifest {
         EngineManifest::parse(
             &serde_json::json!({
@@ -266,6 +268,8 @@ mod tests {
         .unwrap()
     }
 
+    // Flatpaks and `PATH` lookups of extensionless programs are Unix things.
+    #[cfg(unix)]
     #[test]
     fn finds_managed_flatpak_path_and_custom_installs() {
         let dir = tempfile::tempdir().unwrap();
