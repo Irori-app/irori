@@ -12,7 +12,7 @@ pnpm build    # type-checks, then writes dist/
 ## Deploying with Coolify
 
 Create an application from this repository with the **Dockerfile** build pack, base
-directory `/website`, and port **80**. The image builds the site and serves `dist/`
+directory `/website`, port **80** and the domain **https://irori.app**. The image builds the site and serves `dist/`
 with Caddy; Coolify's proxy adds TLS and the domain.
 
 ## Screenshots

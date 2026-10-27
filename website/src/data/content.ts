@@ -1,4 +1,4 @@
-export const REPO = 'https://github.com/irori-app/irori'
+export const REPO = 'https://github.com/Irori-app/irori'
 
 export interface Screen {
   /** File stem under /screenshots; a `light-` twin exists when `light` is set. */
@@ -42,19 +42,19 @@ export const INSTALL: Record<'linux' | 'macos' | 'windows', InstallOption[]> = {
     {
       label: 'Debian, Ubuntu',
       commands: [
-        'curl -fsSL https://irori-app.github.io/irori/irori.gpg | sudo tee /usr/share/keyrings/irori.gpg > /dev/null',
-        'curl -fsSL https://irori-app.github.io/irori/irori.list | sudo tee /etc/apt/sources.list.d/irori.list',
+        'curl -fsSL https://packages.irori.app/irori.gpg | sudo tee /usr/share/keyrings/irori.gpg > /dev/null',
+        'curl -fsSL https://packages.irori.app/irori.list | sudo tee /etc/apt/sources.list.d/irori.list',
         'sudo apt update && sudo apt install irori',
       ],
     },
     {
       label: 'Fedora, openSUSE',
       commands: [
-        'sudo curl -fsSLo /etc/yum.repos.d/irori.repo https://irori-app.github.io/irori/irori.repo',
+        'sudo curl -fsSLo /etc/yum.repos.d/irori.repo https://packages.irori.app/irori.repo',
         'sudo dnf install irori',
       ],
     },
-    { label: 'Flatpak', commands: ['flatpak install flathub io.github.irori_app.Irori'], note: 'Also the way to install on Steam Deck.' },
+    { label: 'Flatpak', commands: ['flatpak install flathub app.irori.Irori'], note: 'Also the way to install on Steam Deck.' },
     { label: 'Arch', commands: ['yay -S irori-bin'] },
   ],
   macos: [
