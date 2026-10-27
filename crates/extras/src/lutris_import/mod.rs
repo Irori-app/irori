@@ -160,6 +160,34 @@ impl ImportKind {
     }
 }
 
+/// Whether `runner` is a Lutris emulator runner Ember maps to an engine.
+pub fn is_emulator_runner(runner: &str) -> bool {
+    emulators::is_emulator(runner)
+}
+
+/// The Ember system and engine (`duckstation`, `retroarch:<core>`) for a
+/// game of the Lutris emulator `runner` whose file is `file`. `core` is a
+/// libretro game's core and `dolphin_platform` Dolphin's `platform` option
+/// (`0` GameCube, `1` Wii). Install scripts use this for the games they
+/// produce; `None` means `runner` is not an emulator runner.
+pub fn emulator_target(
+    runner: &str,
+    file: &Path,
+    core: Option<&str>,
+    dolphin_platform: Option<&str>,
+) -> Option<Result<(String, String), SkipReason>> {
+    if !emulators::is_emulator(runner) {
+        return None;
+    }
+    let hints = emulators::Hints {
+        rom: file,
+        platform: None,
+        dolphin_platform,
+        core,
+    };
+    Some(emulators::map(runner, &hints).map(|t| (t.system.to_string(), t.engine)))
+}
+
 /// Plan the import of one Lutris installation. Reads files directly; call it
 /// off the async runtime (or use [`plan_async`]).
 pub fn plan(dirs: &LutrisDirs) -> Result<LutrisPlan> {

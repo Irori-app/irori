@@ -13,6 +13,7 @@ ember-depot.workspace = true
 ember-runtime.workspace = true
 ember-engines.workspace = true
 ember-extras.workspace = true
+ember-scripts.workspace = true
 anyhow.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true

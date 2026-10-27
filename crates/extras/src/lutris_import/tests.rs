@@ -706,3 +706,19 @@ fn reports_invalid_yaml_as_a_warning() {
     assert_eq!(plan.warnings.len(), 1);
     assert!(plan.warnings[0].contains("not valid YAML"));
 }
+
+#[test]
+fn script_games_map_through_the_same_emulator_table() {
+    assert_eq!(
+        emulator_target("dosbox", Path::new("/g/quake/quake.exe"), None, None),
+        Some(Ok(("dos".to_string(), "dosbox-staging".to_string())))
+    );
+    assert_eq!(
+        emulator_target("libretro", Path::new("/g/a.sfc"), None, None),
+        Some(Err(SkipReason::MissingCore))
+    );
+    assert_eq!(
+        emulator_target("wine", Path::new("/g/a.exe"), None, None),
+        None
+    );
+}

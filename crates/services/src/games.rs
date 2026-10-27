@@ -799,7 +799,7 @@ fn copy_dir(src: &Path, dst: &Path, progress: &dyn Fn(InstallProgress)) -> Resul
 }
 
 /// Free bytes on the filesystem that will hold `path`.
-fn free_space(path: &Path) -> Option<u64> {
+pub(crate) fn free_space(path: &Path) -> Option<u64> {
     let existing = path.ancestors().find(|p| p.exists())?;
     fs4::available_space(existing).ok()
 }
