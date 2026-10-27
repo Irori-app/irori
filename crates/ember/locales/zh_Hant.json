@@ -3,6 +3,7 @@
   "shell.nav.downloads": "下載",
   "shell.nav.stores": "商店",
   "shell.nav.wine": "Wine 與 Proton",
+  "shell.nav.emulators": "模擬器",
   "shell.nav.accounts": "帳號",
   "shell.nav.login": "登入商店",
   "shell.nav.settings": "設定",
@@ -53,5 +54,10 @@
   "shell.playing.stop_failed": "無法停止 {title}",
   "shell.nav.stats": "統計",
   "shell.palette.random": "隨機挑選一款遊戲",
-  "shell.palette.random_keywords": "隨機 驚喜 打亂 輪盤"
+  "shell.palette.random_keywords": "隨機 驚喜 打亂 輪盤",
+  "shell.notice.exit_hotkey": "{engine}：離開遊戲請按 {keys}",
+  "shell.palette.set_up_emulation": "設定模擬遊戲",
+  "shell.palette.set_up_emulation_keywords": "模擬器 ROM 主機 復古 BIOS RetroArch",
+  "shell.palette.lutris_script": "使用 Lutris 指令碼安裝",
+  "shell.palette.lutris_script_keywords": "Lutris 指令碼 安裝程式 lutris.net 社群"
 }

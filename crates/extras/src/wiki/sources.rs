@@ -122,7 +122,7 @@ pub fn gamesdb_store(runner: Runner) -> Option<&'static str> {
         Runner::Nile => Some("amazon"),
         Runner::Zoom => Some("zoom"),
         Runner::Itch => Some("itch"),
-        Runner::Steam | Runner::Sideload => None,
+        Runner::Steam | Runner::Sideload | Runner::Emulation | Runner::Launchers => None,
     }
 }
 
@@ -174,7 +174,7 @@ pub fn umu_store(runner: Runner) -> Option<&'static str> {
         Runner::Nile => Some("amazon"),
         Runner::Zoom => Some("zoomplatform"),
         Runner::Itch => Some("itchio"),
-        Runner::Steam | Runner::Sideload => None,
+        Runner::Steam | Runner::Sideload | Runner::Emulation | Runner::Launchers => None,
     }
 }
 

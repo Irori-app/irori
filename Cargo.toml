@@ -14,11 +14,14 @@ publish = false
 [workspace.dependencies]
 ember-core = { path = "crates/core" }
 ember-runtime = { path = "crates/runtime" }
+ember-engines = { path = "crates/engines" }
 ember-epic = { path = "crates/store-epic" }
 ember-gog = { path = "crates/store-gog" }
 ember-amazon = { path = "crates/store-amazon" }
 ember-zoom = { path = "crates/store-zoom" }
 ember-sideload = { path = "crates/store-sideload" }
+ember-emulation = { path = "crates/store-emulation" }
+ember-launchers = { path = "crates/store-launchers" }
 ember-steam = { path = "crates/store-steam" }
 ember-sign-in = { path = "crates/sign-in" }
 ember-depot = { path = "crates/depot" }
@@ -28,6 +31,7 @@ ember-gog-api = { path = "crates/gog" }
 ember-gog-galaxy = { path = "crates/gog-galaxy" }
 ember-itch-api = { path = "crates/itch" }
 ember-itch = { path = "crates/store-itch" }
+ember-launchers-data = { path = "crates/launchers" }
 ember-services = { path = "crates/services" }
 ember-extras = { path = "crates/extras" }
 ember-ui = { path = "crates/ui" }
@@ -36,6 +40,7 @@ ember-game = { path = "crates/feature-game" }
 ember-settings = { path = "crates/feature-settings" }
 ember-manage = { path = "crates/feature-manage" }
 ember-bigpicture = { path = "crates/feature-bigpicture" }
+ember-scripts = { path = "crates/scripts" }
 
 gpui-kit = "0.8.0"
 anyhow = "1"
@@ -68,6 +73,8 @@ prost = { version = "0.14", default-features = false, features = ["std", "derive
 lzma-rs = "0.3"
 fs4 = "1"
 plist = "1"
+rusqlite = { version = "0.30", features = ["bundled"] }
+serde_yaml_ng = "0.10"
 hex = "0.4"
 nix = { version = "0.31", features = ["signal", "process", "fs", "user"] }
 which = "8"

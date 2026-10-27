@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "설정 및 로그 제거",
   "game.uninstall.remove_settings_help": "이 게임의 개별 설정을 지우고 로그를 삭제합니다.",
   "game.uninstall.running": "{title}이(가) 실행 중입니다. 제거하려면 게임을 종료하세요.",
-  "game.uninstall.title": "‘{title}’을(를) 제거할까요?"
+  "game.uninstall.title": "‘{title}’을(를) 제거할까요?",
+  "game.play_with.menu": "실행 방법 선택…",
+  "game.play_with.title": "‘{title}’ 플레이에 사용할 에뮬레이터",
+  "game.play_with.description": "이 게임에 사용할 에뮬레이터를 선택하세요. ‘기본값’은 시스템의 기본 에뮬레이터를 따르며, 에뮬레이터 페이지에서 바꿀 수 있습니다.",
+  "game.play_with.default": "기본값",
+  "game.play_with.not_installed": "설치 안 됨",
+  "game.play_with.chosen": "선택됨",
+  "game.play_with.versions": "버전",
+  "game.play_with.versions_help": "이 게임이 특정 버전에서 가장 잘 작동하면 해당 버전으로 고정하세요. 업데이트해도 바뀌지 않습니다.",
+  "game.play_with.version": "버전 {version}",
+  "game.play_with.version_default": "기본값 ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "직접 선택함",
+  "game.play_with.system": "이 컴퓨터에 설치됨",
+  "game.play_with.manage": "에뮬레이터 관리"
 }

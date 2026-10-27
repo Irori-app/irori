@@ -1506,6 +1506,15 @@ impl LibraryView {
                                     .on_click(|_, window, cx| {
                                         dialogs::sideload::open_add_game_dialog(window, cx)
                                     }),
+                            )
+                            .child(
+                                Button::new("empty-emulation")
+                                    .outline()
+                                    .icon(IconName::Joystick)
+                                    .label(t("library.empty.set_up_emulation"))
+                                    .on_click(|_, window, cx| {
+                                        ember_ui::hooks::open_emulation_setup(window, cx)
+                                    }),
                             ),
                     )
             } else {
@@ -1528,6 +1537,15 @@ impl LibraryView {
                                     .label(t("library.header.add_game"))
                                     .on_click(|_, window, cx| {
                                         dialogs::sideload::open_add_game_dialog(window, cx)
+                                    }),
+                            )
+                            .child(
+                                Button::new("empty-emulation")
+                                    .outline()
+                                    .icon(IconName::Joystick)
+                                    .label(t("library.empty.set_up_emulation"))
+                                    .on_click(|_, window, cx| {
+                                        ember_ui::hooks::open_emulation_setup(window, cx)
                                     }),
                             ),
                     )

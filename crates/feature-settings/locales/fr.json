@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Rechercher des composants Winetricks",
   "settings.winetricks.search_placeholder": "Rechercher des composants, polices et paramètres",
   "settings.winetricks.showing": "{shown} sur {total} affichés. Lancez une recherche pour affiner la liste.",
-  "settings.winetricks.verb_installed": "{verb} installé"
+  "settings.winetricks.verb_installed": "{verb} installé",
+  "settings.field.action_import_lutris.label": "Importer depuis Lutris",
+  "settings.field.action_import_lutris.help": "Récupère depuis Lutris les jeux installés, les jeux émulés, les favoris, les catégories et le temps de jeu. Lutris lui-même n’est pas modifié.",
+  "settings.error.import_lutris": "Impossible d’importer depuis Lutris"
 }

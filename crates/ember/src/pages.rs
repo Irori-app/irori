@@ -10,6 +10,7 @@ pub struct Pages {
     current: Option<(Route, AnyView)>,
     downloads: Option<AnyView>,
     wine: Option<AnyView>,
+    emulators: Option<AnyView>,
     accounts: Option<AnyView>,
     stores: Option<AnyView>,
     settings: Option<Entity<ember_settings::SettingsView>>,
@@ -69,6 +70,10 @@ impl Pages {
             }),
             Route::WineManager => cached(&mut self.wine, || {
                 cx.new(|cx| ember_manage::WineManagerView::new(window, cx))
+                    .into()
+            }),
+            Route::Emulators => cached(&mut self.emulators, || {
+                cx.new(|cx| ember_manage::EmulatorsView::new(window, cx))
                     .into()
             }),
             Route::Accounts => cached(&mut self.accounts, || {

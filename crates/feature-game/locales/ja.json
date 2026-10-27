@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "設定とログを削除",
   "game.uninstall.remove_settings_help": "このゲームの個別設定を破棄し、ログを削除します。",
   "game.uninstall.running": "{title} は実行中です。アンインストールするにはゲームを終了してください。",
-  "game.uninstall.title": "「{title}」をアンインストールしますか？"
+  "game.uninstall.title": "「{title}」をアンインストールしますか？",
+  "game.play_with.menu": "起動方法を選択…",
+  "game.play_with.title": "「{title}」をプレイするエミュレーター",
+  "game.play_with.description": "このゲームで使うエミュレーターを選びます。「デフォルト」はシステムのデフォルトのエミュレーターに従います。これは「エミュレーター」ページで変更できます。",
+  "game.play_with.default": "デフォルト",
+  "game.play_with.not_installed": "未インストール",
+  "game.play_with.chosen": "選択中",
+  "game.play_with.versions": "バージョン",
+  "game.play_with.versions_help": "このゲームが特定のバージョンで最もよく動く場合は、そのバージョンに固定できます。アップデートしても変わりません。",
+  "game.play_with.version": "バージョン {version}",
+  "game.play_with.version_default": "デフォルト ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "自分で選択",
+  "game.play_with.system": "このコンピューターにインストール済み",
+  "game.play_with.manage": "エミュレーターを管理"
 }

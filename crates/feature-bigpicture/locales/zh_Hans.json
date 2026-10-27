@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "正在加载你的游戏库…",
   "bigpicture.empty.title": "还没有游戏",
   "bigpicture.empty.description": "请登录商店或从游戏库添加游戏，然后再回来。",
-  "bigpicture.menu.interface_size": "界面大小：{percent}%"
+  "bigpicture.menu.interface_size": "界面大小：{percent}%",
+  "bigpicture.menu.set_up_emulation": "设置模拟游戏"
 }

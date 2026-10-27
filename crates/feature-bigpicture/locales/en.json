@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Loading your library…",
   "bigpicture.empty.title": "No games yet",
   "bigpicture.empty.description": "Log in to a store or add a game from the library, then come back.",
-  "bigpicture.menu.interface_size": "Interface size: {percent}%"
+  "bigpicture.menu.interface_size": "Interface size: {percent}%",
+  "bigpicture.menu.set_up_emulation": "Set up emulation"
 }

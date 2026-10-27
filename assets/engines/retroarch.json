@@ -1,0 +1,70 @@
+{
+  "id": "retroarch",
+  "name": "RetroArch",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://www.retroarch.com",
+  "kind": "retroarch",
+  "systems": ["nes", "snes", "n64", "gb", "gbc", "gba", "nds", "sms", "genesis", "gamegear", "segacd", "pce", "psx", "psp"],
+  "sources": [
+    {
+      "type": "buildbot",
+      "index": "https://buildbot.libretro.com/stable/",
+      "versionPattern": "^(\\d+\\.\\d+\\.\\d+)/$",
+      "assets": {
+        "linux-x86_64": "{version}/linux/x86_64/RetroArch.7z",
+        "macos-aarch64": "{version}/apple/osx/universal/RetroArch_Metal.dmg",
+        "macos-x86_64": "{version}/apple/osx/universal/RetroArch_Metal.dmg",
+        "windows-x86_64": "{version}/windows/x86_64/RetroArch.7z"
+      }
+    },
+    { "type": "flatpak", "id": "org.libretro.RetroArch" },
+    { "type": "path", "names": ["retroarch"] },
+    { "type": "macApp", "bundle": "RetroArch.app" },
+    {
+      "type": "windows",
+      "paths": ["C:\\RetroArch-Win64\\retroarch.exe", "%ProgramFiles%\\RetroArch\\retroarch.exe"]
+    }
+  ],
+  "binaries": {
+    "linux": ["RetroArch-Linux-x86_64.AppImage", "retroarch"],
+    "macos": ["RetroArch.app"],
+    "windows": ["retroarch.exe"]
+  },
+  "launch": {
+    "args": [{ "if": "fullscreen", "args": ["--fullscreen"] }, "{rom}"]
+  },
+  "options": [
+    { "id": "fullscreen", "kind": "toggle", "default": true },
+    { "id": "vsync", "kind": "toggle", "default": true },
+    { "id": "show_fps", "kind": "toggle", "default": false, "advanced": true },
+    {
+      "id": "video_driver",
+      "kind": "choice",
+      "default": "",
+      "advanced": true,
+      "choices": ["", "vulkan", "glcore", "gl"],
+      "visibleWhen": { "hosts": ["linux", "windows"] }
+    },
+    { "id": "pause_in_background", "kind": "toggle", "default": true, "advanced": true }
+  ],
+  "exitHotkey": "Esc ×2 · Select + Start",
+  "cores": [
+    { "id": "nestopia", "name": "Nestopia", "license": "GPL-2.0", "systems": ["nes"] },
+    { "id": "mesen", "name": "Mesen", "license": "GPL-3.0", "systems": ["nes"] },
+    { "id": "snes9x", "name": "Snes9x", "license": "Snes9x (non-commercial)", "systems": ["snes"] },
+    { "id": "bsnes", "name": "bsnes", "license": "GPL-3.0", "systems": ["snes"] },
+    { "id": "mupen64plus_next", "name": "Mupen64Plus-Next", "license": "GPL-2.0", "systems": ["n64"] },
+    { "id": "gambatte", "name": "Gambatte", "license": "GPL-2.0", "systems": ["gb", "gbc"] },
+    { "id": "mgba", "name": "mGBA", "license": "MPL-2.0", "systems": ["gb", "gbc", "gba"] },
+    { "id": "melondsds", "name": "melonDS DS", "license": "GPL-3.0", "systems": ["nds"] },
+    {
+      "id": "genesis_plus_gx",
+      "name": "Genesis Plus GX",
+      "license": "Genesis Plus GX (non-commercial)",
+      "systems": ["sms", "genesis", "gamegear", "segacd"]
+    },
+    { "id": "mednafen_pce_fast", "name": "Beetle PCE Fast", "license": "GPL-2.0", "systems": ["pce"] },
+    { "id": "swanstation", "name": "SwanStation", "license": "GPL-3.0", "systems": ["psx"] },
+    { "id": "ppsspp", "name": "PPSSPP", "license": "GPL-2.0-or-later", "systems": ["psp"] }
+  ]
+}

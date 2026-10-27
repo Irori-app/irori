@@ -354,7 +354,7 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
                     cx.notify();
                 });
             }
-            Event::WineVersionsChanged => settings = true,
+            Event::WineVersionsChanged | Event::EnginesChanged => settings = true,
         }
     }
 

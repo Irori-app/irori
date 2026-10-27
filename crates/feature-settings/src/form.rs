@@ -168,6 +168,7 @@ pub struct SettingsForm {
     busy: HashSet<ActionKind>,
     import_summary: Option<SharedString>,
     heroic_detected: bool,
+    lutris_detected: bool,
     /// Self-contained panels (controllers, EOS overlay, EGL sync, save sync).
     panels: HashMap<&'static str, AnyView>,
     /// Game target: the game is installed as a native Linux build.
@@ -220,6 +221,7 @@ impl SettingsForm {
             busy: HashSet::new(),
             import_summary: None,
             heroic_detected: ember_ui::hooks::heroic_detected(),
+            lutris_detected: ember_ui::hooks::lutris_detected(),
             panels: HashMap::new(),
             native: false,
             epic_available: crate::stores::epic(cx).is_some(),
@@ -321,6 +323,11 @@ impl SettingsForm {
         self.fields.iter().copied().filter(move |f| {
             if matches!(f.kind, FieldKind::Action(ActionKind::ImportHeroic))
                 && !self.heroic_detected
+            {
+                return false;
+            }
+            if matches!(f.kind, FieldKind::Action(ActionKind::ImportLutris))
+                && !self.lutris_detected
             {
                 return false;
             }
@@ -1137,6 +1144,7 @@ impl SettingsForm {
                 });
             }
             ActionKind::ImportHeroic => self.import_heroic(window, cx),
+            ActionKind::ImportLutris => self.import_lutris(window, cx),
         }
     }
 
@@ -1182,6 +1190,32 @@ impl SettingsForm {
             window,
             cx,
         );
+    }
+
+    fn import_lutris(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.busy.insert(ActionKind::ImportLutris);
+        let task = ember_ui::hooks::import_from_lutris(cx);
+        cx.spawn_in(window, async move |this, cx| {
+            let result = task.await;
+            this.update_in(cx, |this, window, cx| {
+                this.busy.remove(&ActionKind::ImportLutris);
+                match result {
+                    Ok(summary) => {
+                        models::refresh_library(false, cx);
+                        ember_ui::lutris_summary::open_lutris_summary(summary, window, cx);
+                    }
+                    Err(e) => window.push_notification(
+                        Notification::error(format!("{e:#}"))
+                            .title(t("settings.error.import_lutris")),
+                        cx,
+                    ),
+                }
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+        cx.notify();
     }
 
     fn import_heroic(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -1374,7 +1408,9 @@ impl SettingsForm {
                     ActionKind::ClearCaches => ("settings.action.clear_caches", false),
                     ActionKind::ResetSettings => ("settings.action.reset_settings", true),
                     ActionKind::OpenLogsFolder => ("settings.action.open_folder", false),
-                    ActionKind::ImportHeroic => ("settings.action.import", false),
+                    ActionKind::ImportHeroic | ActionKind::ImportLutris => {
+                        ("settings.action.import", false)
+                    }
                 };
                 Button::new(id("action"))
                     .label(t(key))

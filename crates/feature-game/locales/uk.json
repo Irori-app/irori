@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Видалити налаштування й журнали",
   "game.uninstall.remove_settings_help": "Скидає змінені налаштування цієї гри й видаляє її журнали.",
   "game.uninstall.running": "{title} запущена. Закрийте гру, щоб видалити її.",
-  "game.uninstall.title": "Видалити «{title}»?"
+  "game.uninstall.title": "Видалити «{title}»?",
+  "game.play_with.menu": "Грати з…",
+  "game.play_with.title": "Грати в «{title}» за допомогою",
+  "game.play_with.description": "Виберіть емулятор для цієї гри. «Типовий» означає типовий емулятор системи, який можна змінити на сторінці «Емулятори».",
+  "game.play_with.default": "Типовий",
+  "game.play_with.not_installed": "Не встановлено",
+  "game.play_with.chosen": "Вибрано",
+  "game.play_with.versions": "Версія",
+  "game.play_with.versions_help": "Закріпіть гру на одній версії, якщо вона найкраще працює в ній; оновлення її не змінять.",
+  "game.play_with.version": "Версія {version}",
+  "game.play_with.version_default": "Типова ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Вибрано вами",
+  "game.play_with.system": "Встановлено на цьому комп’ютері",
+  "game.play_with.manage": "Керувати емуляторами"
 }

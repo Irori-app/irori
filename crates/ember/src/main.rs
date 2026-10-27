@@ -7,6 +7,7 @@ mod crash;
 mod headless;
 mod import;
 mod instance;
+mod lutris;
 mod pages;
 mod palette;
 mod playing;
@@ -128,6 +129,12 @@ fn main() -> Result<()> {
         ember_game::install_store_handles(epic, stores::GOG.get().cloned(), cx);
         if let Some(sideload) = stores::SIDELOAD.get() {
             ember_library::install_sideload_store(sideload.clone(), cx);
+            if let Some(launchers) = stores::LAUNCHERS.get() {
+                ember_manage::install_launchers_store(launchers.clone(), cx);
+            }
+            if let Some(emulation) = stores::EMULATION.get() {
+                ember_library::install_emulation_store(emulation.clone(), cx);
+            }
         }
         actions::bind_keys(cx);
         cx.set_quit_mode(QuitMode::Explicit);
@@ -282,6 +289,20 @@ fn handle_cli(cli: &Cli, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
     if cli.big_picture {
         open_main_window(app, cx);
         nav::navigate(Route::BigPicture, cx);
+    }
+    if let Some(slug) = &cli.lutris {
+        open_main_window(app, cx);
+        let window = app.lock().window;
+        if let Some(handle) = window {
+            let slug = slug.clone();
+            // The dialog lives on the window's root, which `update` holds:
+            // open it once this update is over.
+            let _ = handle.update(cx, |_, window, cx| {
+                window.defer(cx, move |window, cx| {
+                    ember_library::open_lutris_installer(Some(slug), window, cx)
+                })
+            });
+        }
     }
     if let Some(id) = &cli.launch {
         launch_from_outside(id.clone(), app, cx);

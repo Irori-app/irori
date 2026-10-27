@@ -11,6 +11,7 @@ use ember_services::{Backend, DownloadState};
 
 pub const COMMANDS: &[&str] = &[
     "import-heroic",
+    "import-lutris",
     "list",
     "refresh",
     "info",
@@ -23,6 +24,7 @@ pub const COMMANDS: &[&str] = &[
 pub const HELP: &str = "Commands (run without opening a window):
   ember accounts                      Show which stores are logged in
   ember import-heroic                 Import accounts, installs and settings from Heroic
+  ember import-lutris                 Import games, categories and playtime from Lutris
   ember refresh                       Refresh every store's library
   ember list [--installed]            List the library
   ember info <runner>/<app> [--platform windows|linux]
@@ -42,6 +44,7 @@ pub fn run(args: &[String]) -> Result<i32> {
         match args[0].as_str() {
             "accounts" => accounts(&backend),
             "import-heroic" => import_heroic(&backend).await,
+            "import-lutris" => import_lutris(&backend).await,
             "refresh" => {
                 backend.refresh_all(false).await;
                 println!("{} games", backend.library().len());
@@ -135,6 +138,39 @@ async fn import_heroic(backend: &Backend) -> Result<i32> {
     );
     backend.refresh_all(false).await;
     accounts(backend)
+}
+
+async fn import_lutris(backend: &Backend) -> Result<i32> {
+    let s = crate::lutris::import(
+        backend,
+        crate::stores::SIDELOAD.get().cloned(),
+        crate::stores::EMULATION.get().cloned(),
+    )
+    .await?;
+    println!(
+        "{} games in Lutris: {} imported, {} already in Ember",
+        s.found, s.imported, s.matched
+    );
+    println!(
+        "{} favourites, {} category entries, playtime for {} games",
+        s.favourites, s.categories, s.playtime_games
+    );
+    for (title, store) in &s.store_games {
+        println!("→ {title}: log in to {store} in Ember to see it");
+    }
+    for (title, build) in &s.wine_missing {
+        println!("! {title}: Wine build {build} isn't installed; it uses your default build");
+    }
+    for skip in &s.skipped {
+        match &skip.detail {
+            Some(d) => println!("✗ {}: {} ({d})", skip.title, skip.reason),
+            None => println!("✗ {}: {}", skip.title, skip.reason),
+        }
+    }
+    for w in &s.warnings {
+        println!("! {w}");
+    }
+    Ok(0)
 }
 
 fn list(backend: &Backend, installed_only: bool) -> Result<i32> {

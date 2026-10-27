@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Caricamento della tua libreria…",
   "bigpicture.empty.title": "Ancora nessun gioco",
   "bigpicture.empty.description": "Accedi a uno store o aggiungi un gioco dalla libreria, poi torna qui.",
-  "bigpicture.menu.interface_size": "Dimensione dell’interfaccia: {percent}%"
+  "bigpicture.menu.interface_size": "Dimensione dell’interfaccia: {percent}%",
+  "bigpicture.menu.set_up_emulation": "Configura l’emulazione"
 }

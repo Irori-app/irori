@@ -1,0 +1,73 @@
+{
+  "id": "melonds",
+  "name": "melonDS",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://melonds.kuribo64.net",
+  "kind": "standalone",
+  "systems": [
+    "nds"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "melonDS-emu/melonDS",
+      "assets": {
+        "linux-x86_64": "^melonDS-[\\d.]+-appimage-x86_64\\.zip$",
+        "linux-aarch64": "^melonDS-[\\d.]+-appimage-aarch64\\.zip$",
+        "macos-aarch64": "^melonDS-[\\d.]+-macOS-universal\\.zip$",
+        "macos-x86_64": "^melonDS-[\\d.]+-macOS-universal\\.zip$",
+        "windows-x86_64": "^melonDS-[\\d.]+-windows-x86_64\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "net.kuribo64.melonDS"
+    },
+    {
+      "type": "path",
+      "names": [
+        "melonDS"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "melonDS.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\melonDS\\melonDS.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "melonDS*.AppImage"
+    ],
+    "macos": [
+      "melonDS.app"
+    ],
+    "windows": [
+      "melonDS.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen"
+        ]
+      },
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Ctrl+Q"
+}

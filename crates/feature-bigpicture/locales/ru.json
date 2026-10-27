@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Загрузка вашей библиотеки…",
   "bigpicture.empty.title": "Игр пока нет",
   "bigpicture.empty.description": "Войдите в магазин или добавьте игру в библиотеке, затем вернитесь.",
-  "bigpicture.menu.interface_size": "Размер интерфейса: {percent}%"
+  "bigpicture.menu.interface_size": "Размер интерфейса: {percent}%",
+  "bigpicture.menu.set_up_emulation": "Настроить эмуляцию"
 }

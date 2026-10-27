@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "移除设置和日志",
   "game.uninstall.remove_settings_help": "清除此游戏的自定义设置并删除其日志。",
   "game.uninstall.running": "{title} 正在运行。请关闭游戏后再卸载。",
-  "game.uninstall.title": "卸载“{title}”？"
+  "game.uninstall.title": "卸载“{title}”？",
+  "game.play_with.menu": "启动方式…",
+  "game.play_with.title": "选择游玩“{title}”的模拟器",
+  "game.play_with.description": "为此游戏选择模拟器。“默认”会使用该系统的默认模拟器，你可以在“模拟器”页面更改。",
+  "game.play_with.default": "默认",
+  "game.play_with.not_installed": "未安装",
+  "game.play_with.chosen": "已选择",
+  "game.play_with.versions": "版本",
+  "game.play_with.versions_help": "如果此游戏在某个版本上运行最佳，可将其固定在该版本；更新不会改变它。",
+  "game.play_with.version": "版本 {version}",
+  "game.play_with.version_default": "默认（{version}）",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "由你选择",
+  "game.play_with.system": "已安装在此电脑上",
+  "game.play_with.manage": "管理模拟器"
 }

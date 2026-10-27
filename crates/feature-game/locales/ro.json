@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Elimină setările și jurnalele",
   "game.uninstall.remove_settings_help": "Uită setările personalizate ale acestui joc și îi șterge jurnalele.",
   "game.uninstall.running": "{title} rulează. Închide jocul pentru a-l dezinstala.",
-  "game.uninstall.title": "Dezinstalezi „{title}”?"
+  "game.uninstall.title": "Dezinstalezi „{title}”?",
+  "game.play_with.menu": "Joacă cu…",
+  "game.play_with.title": "Joacă „{title}” cu",
+  "game.play_with.description": "Alege emulatorul pentru acest joc. „Implicit” urmează emulatorul implicit al sistemului, pe care îl poți schimba pe pagina Emulatoare.",
+  "game.play_with.default": "Implicit",
+  "game.play_with.not_installed": "Neinstalat",
+  "game.play_with.chosen": "Ales",
+  "game.play_with.versions": "Versiune",
+  "game.play_with.versions_help": "Păstrează jocul pe o singură versiune dacă merge cel mai bine pe ea; actualizările nu o vor schimba.",
+  "game.play_with.version": "Versiunea {version}",
+  "game.play_with.version_default": "Implicită ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Ales de tine",
+  "game.play_with.system": "Instalat pe acest computer",
+  "game.play_with.manage": "Gestionează emulatoarele"
 }

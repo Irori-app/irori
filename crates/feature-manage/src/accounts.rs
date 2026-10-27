@@ -47,6 +47,8 @@ pub(crate) fn store_icon(runner: Runner) -> IconName {
         Runner::Itch => IconName::Gem,
         Runner::Steam => IconName::Joystick,
         Runner::Sideload => IconName::FolderOpen,
+        Runner::Emulation => IconName::Gamepad,
+        Runner::Launchers => IconName::Rocket,
     }
 }
 

@@ -1,0 +1,61 @@
+{
+  "id": "shadps4",
+  "name": "shadPS4",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://shadps4.net",
+  "kind": "standalone",
+  "systems": [
+    "ps4"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "shadps4-emu/shadPS4",
+      "assets": {
+        "linux-x86_64": "(?i)^shadps4-linux-sdl-[\\w.-]+\\.zip$",
+        "macos-aarch64": "(?i)^shadps4-macos-sdl-[\\w.-]+\\.zip$",
+        "macos-x86_64": "(?i)^shadps4-macos-sdl-[\\w.-]+\\.zip$",
+        "windows-x86_64": "(?i)^shadps4-win64-sdl-[\\w.-]+\\.zip$"
+      }
+    },
+    {
+      "type": "path",
+      "names": [
+        "shadps4"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "Shadps4-sdl.AppImage",
+      "shadps4"
+    ],
+    "macos": [
+      "shadps4"
+    ],
+    "windows": [
+      "shadPS4.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen",
+          "true"
+        ]
+      },
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc",
+  "experimental": true
+}

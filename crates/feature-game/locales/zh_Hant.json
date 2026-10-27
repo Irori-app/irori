@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "移除設定和記錄",
   "game.uninstall.remove_settings_help": "清除此遊戲的自訂設定並刪除其記錄。",
   "game.uninstall.running": "{title} 正在執行。請關閉遊戲後再解除安裝。",
-  "game.uninstall.title": "要解除安裝「{title}」嗎？"
+  "game.uninstall.title": "要解除安裝「{title}」嗎？",
+  "game.play_with.menu": "啟動方式…",
+  "game.play_with.title": "選擇遊玩「{title}」的模擬器",
+  "game.play_with.description": "為此遊戲選擇模擬器。「預設」會使用該系統的預設模擬器，你可以在「模擬器」頁面變更。",
+  "game.play_with.default": "預設",
+  "game.play_with.not_installed": "未安裝",
+  "game.play_with.chosen": "已選擇",
+  "game.play_with.versions": "版本",
+  "game.play_with.versions_help": "如果此遊戲在某個版本上執行最佳，可將其固定在該版本；更新不會改變它。",
+  "game.play_with.version": "版本 {version}",
+  "game.play_with.version_default": "預設（{version}）",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "由你選擇",
+  "game.play_with.system": "已安裝在此電腦上",
+  "game.play_with.manage": "管理模擬器"
 }

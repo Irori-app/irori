@@ -1,0 +1,72 @@
+{
+  "id": "azahar",
+  "name": "Azahar",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://azahar-emu.org",
+  "kind": "standalone",
+  "systems": [
+    "3ds"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "azahar-emu/azahar",
+      "assets": {
+        "linux-x86_64": "^azahar\\.AppImage$",
+        "macos-aarch64": "^azahar-macos-universal-[\\w.]+\\.zip$",
+        "macos-x86_64": "^azahar-macos-universal-[\\w.]+\\.zip$",
+        "windows-x86_64": "^azahar-windows-msvc-[\\w.]+\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "org.azahar_emu.Azahar"
+    },
+    {
+      "type": "path",
+      "names": [
+        "azahar"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "Azahar.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%LOCALAPPDATA%\\Azahar\\azahar.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "azahar.AppImage"
+    ],
+    "macos": [
+      "Azahar.app"
+    ],
+    "windows": [
+      "azahar.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "-f"
+        ]
+      },
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Ctrl+Q"
+}

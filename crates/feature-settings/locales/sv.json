@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Sök bland Winetricks-komponenter",
   "settings.winetricks.search_placeholder": "Sök bland komponenter, teckensnitt och inställningar",
   "settings.winetricks.showing": "Visar {shown} av {total}. Sök för att begränsa listan.",
-  "settings.winetricks.verb_installed": "{verb} har installerats"
+  "settings.winetricks.verb_installed": "{verb} har installerats",
+  "settings.field.action_import_lutris.label": "Importera från Lutris",
+  "settings.field.action_import_lutris.help": "För över installerade spel, emulerade spel, favoriter, kategorier och speltid från Lutris. Lutris lämnas orört.",
+  "settings.error.import_lutris": "Det gick inte att importera från Lutris"
 }

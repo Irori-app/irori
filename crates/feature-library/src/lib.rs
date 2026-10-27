@@ -44,6 +44,7 @@ use gpui_kit::{App, Global, KeyBinding, Window};
 pub use commands::{GameCommand, GameState};
 pub use dialogs::categories::open_categories_dialog;
 pub use dialogs::edit_game::open_edit_game_dialog;
+pub use dialogs::lutris::open_lutris_installer;
 pub use dialogs::sideload::open_add_game_dialog;
 pub use filter::{CategoryFilter, HiddenMode, InstallFilter, ViewFilter};
 pub use i18n::CATALOGS;
@@ -137,6 +138,19 @@ pub fn install_sideload_store(store: Arc<SideloadStore>, cx: &mut App) {
 
 pub(crate) fn sideload_store(cx: &App) -> Option<Arc<SideloadStore>> {
     cx.try_global::<SideloadHandle>().map(|h| h.0.clone())
+}
+
+struct EmulationHandle(Arc<ember_emulation::EmulationStore>);
+impl Global for EmulationHandle {}
+
+/// Give the library access to the ROM library store, so Add game can put a
+/// ROM there.
+pub fn install_emulation_store(store: Arc<ember_emulation::EmulationStore>, cx: &mut App) {
+    cx.set_global(EmulationHandle(store));
+}
+
+pub(crate) fn emulation_store(cx: &App) -> Option<Arc<ember_emulation::EmulationStore>> {
+    cx.try_global::<EmulationHandle>().map(|h| h.0.clone())
 }
 
 /// Show an error notification in `window`.

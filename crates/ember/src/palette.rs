@@ -21,6 +21,8 @@ enum PaletteTarget {
     Route(Route),
     Refresh,
     Random,
+    SetUpEmulation,
+    LutrisScript,
 }
 
 /// Retained palette state, owned by the shell.
@@ -60,6 +62,7 @@ impl Palette {
                 IconName::Wine,
                 Route::WineManager,
             ),
+            ("shell.nav.emulators", IconName::Joystick, Route::Emulators),
             ("shell.nav.accounts", IconName::CircleUser, Route::Accounts),
             (
                 "shell.nav.settings",
@@ -84,6 +87,22 @@ impl Palette {
                 targets,
             );
         }
+        push(
+            CommandItem::new()
+                .label(t("shell.palette.set_up_emulation"))
+                .keywords([t("shell.palette.set_up_emulation_keywords")])
+                .icon(IconName::Joystick),
+            PaletteTarget::SetUpEmulation,
+            targets,
+        );
+        push(
+            CommandItem::new()
+                .label(t("shell.palette.lutris_script"))
+                .keywords([t("shell.palette.lutris_script_keywords")])
+                .icon(IconName::ScrollText),
+            PaletteTarget::LutrisScript,
+            targets,
+        );
         push(
             CommandItem::new()
                 .label(t("shell.palette.refresh"))
@@ -183,6 +202,8 @@ fn run_target(target: PaletteTarget, window: &mut Window, cx: &mut App) {
         PaletteTarget::Route(r) => ember_ui::navigate(r, cx),
         PaletteTarget::Refresh => ember_ui::models::refresh_library(false, cx),
         PaletteTarget::Random => ember_library::open_random_game(window, cx),
+        PaletteTarget::SetUpEmulation => ember_manage::open_emulation_setup(window, cx),
+        PaletteTarget::LutrisScript => ember_library::open_lutris_installer(None, window, cx),
         PaletteTarget::Play(id) => crate::shell::launch_game(id, window, cx),
     }
 }
