@@ -84,7 +84,7 @@ Ember's other arguments (`crates/ember/src/cli.rs`) are:
 
 - `-l/--launch <runner>/<app>`, `--big-picture`/`--console`, `--minimized`/`--tray`,
   `-V/--version` and `-h/--help`.
-- Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|bigpicture`,
+- Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
   `ember://settings/<section>`, and Heroic's `heroic://launch/...`.
 - `--sign-in-window` is internal. On macOS and Windows it makes Ember run the store
   sign-in window instead of itself (see [4.6](#46-store-sign-in)).
@@ -115,6 +115,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | --- | --- | --- |
 | `crates/core` | `ember-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
 | `crates/runtime` | `ember-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
+| `crates/engines` | `ember-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
 | `crates/depot` | `ember-depot` | Download engine: parallel chunked downloads, resume, verification, delta updates; a `test-server` feature |
 | `crates/epic` | `ember-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
 | `crates/gog` | `ember-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
@@ -142,7 +143,8 @@ Directory names and package names differ. Use the package name with `-p`.
 
 Other top-level paths:
 
-- `assets/`: bundled theme JSON files and the Manrope font.
+- `assets/`: bundled theme JSON files, the Manrope font, and `engines/` (emulator
+  manifests and the systems catalog, see [4.8](#48-engines-emulators)).
 - `packaging/`: `package.py`, its tests, the Linux `install.sh`, the Windows
   `install-windows.ps1`, the desktop entry, icons and entitlements.
 - `docs/`:
@@ -162,6 +164,7 @@ The crates form a strict hierarchy. Never add a dependency that points upward.
 ```text
 ember-core                        (depends on nothing internal)
   ├─ ember-runtime, ember-depot, ember-extras
+  ├─ ember-engines   (core, runtime, depot)
   ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
   │                   (depot only, not core)
   ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
@@ -494,6 +497,41 @@ it on every platform, and CI's Windows install test runs it.
   handle them.
 - The Guide button toggles Big Picture. Every screen must stay usable with arrows,
   Enter and Escape, because that is how controllers reach it.
+
+### 4.8 Engines (emulators)
+
+Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
+
+- **Words.** `Runner` is a store. An emulator, RetroArch, ScummVM or DOSBox is an
+  **engine** in code (`ember_engines::EngineManifest`) and an "emulator" in the UI. A
+  console is a **system** (`assets/engines/systems.json`, ids like `psx`, `snes`, `dos`).
+  An engine choice is an `EngineRef`, written `duckstation` or `retroarch:<core>`.
+- **Manifests are data.** Each engine is `assets/engines/<id>.json`: sources per OS
+  (GitHub release regexes, the libretro buildbot, a download page, Flatpak id, `PATH`
+  names, app bundle, Windows paths), the launch template, options with **one** visibility
+  rule (`visibleWhen`), BIOS folder, exit hotkey and licence. Never pin a download URL;
+  describe where versions are listed. The only per-engine code is the `kind` match in
+  `crates/engines/src/launch.rs` (RetroArch cores, DOSBox, ScummVM, MAME). Users may
+  override a manifest with `<config>/engines/<id>.json` (merge patch).
+- **Option texts** are `manage.engines.option.<id>.label` / `.help` (and
+  `.<choice>` for choice values) in `ember-manage`; a test fails when a built-in option
+  has no English text.
+- **Installs.** Ember downloads engines from the projects' own servers on request and
+  never redistributes them. Managed versions sit side by side under
+  `<data>/engines/<id>/<version>/` and are recorded in `<state>/engines.json` with the
+  default installation per engine. Installing never changes what games use; Update does,
+  and a game pinned with `emberEngineVersion` keeps its version. Flatpak and system
+  installs are detected and labelled, never installed or removed.
+- **BIOS.** Never download or link to BIOS files or ROMs. The BIOS index hashes only
+  plausible files and caches digests by path, size and modification time; nothing is
+  hashed at launch. Files are linked under the expected names before a launch.
+- **Settings keys** are Ember-only: `emberEngine`, `emberEngineVersion`,
+  `emberEngineOptions` (merged per engine and option over the defaults),
+  `emberEngineOwnSettings`, `emberSystemEngines`.
+- **UI.** The Emulators page (`Route::Emulators`, `ember-manage::emulators`) installs,
+  updates and removes versions and cores, and picks each system's default emulator.
+  Installs run through `ember_manage::start_install` so any screen can start one and the
+  page shows its progress. Changes emit `Event::EnginesChanged`.
 
 ## 5. Rust conventions
 

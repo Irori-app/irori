@@ -492,6 +492,15 @@ impl AppShell {
                 ))
             })
             .child(item(
+                "nav-emulators",
+                "shell.nav.emulators",
+                IconName::Joystick,
+                "emulators",
+                Route::Emulators,
+                None,
+                cx,
+            ))
+            .child(item(
                 "nav-accounts",
                 if any_account {
                     "shell.nav.accounts"
@@ -579,6 +588,7 @@ impl Render for AppShell {
             .on_action(cx.listener(|_, _: &GoStores, _, cx| nav::navigate(Route::Stores, cx)))
             .on_action(cx.listener(|_, _: &GoStats, _, cx| nav::navigate(Route::Stats, cx)))
             .on_action(cx.listener(|_, _: &GoWine, _, cx| nav::navigate(Route::WineManager, cx)))
+            .on_action(cx.listener(|_, _: &GoEmulators, _, cx| nav::navigate(Route::Emulators, cx)))
             .on_action(cx.listener(|_, _: &GoAccounts, _, cx| nav::navigate(Route::Accounts, cx)))
             .on_action(cx.listener(|_, _: &GoSettings, _, cx| {
                 nav::navigate(Route::Settings("general".into()), cx)

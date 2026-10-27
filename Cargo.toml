@@ -14,6 +14,7 @@ publish = false
 [workspace.dependencies]
 ember-core = { path = "crates/core" }
 ember-runtime = { path = "crates/runtime" }
+ember-engines = { path = "crates/engines" }
 ember-epic = { path = "crates/store-epic" }
 ember-gog = { path = "crates/store-gog" }
 ember-amazon = { path = "crates/store-amazon" }

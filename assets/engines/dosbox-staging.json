@@ -1,0 +1,77 @@
+{
+  "id": "dosbox-staging",
+  "name": "DOSBox Staging",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://www.dosbox-staging.org",
+  "kind": "dosbox",
+  "systems": [
+    "dos"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "dosbox-staging/dosbox-staging",
+      "assets": {
+        "linux-x86_64": "^dosbox-staging-linux-x86_64-v[\\d.]+\\.tar\\.xz$",
+        "macos-aarch64": "^dosbox-staging-macOS-(universal-)?v[\\d.]+\\.dmg$",
+        "macos-x86_64": "^dosbox-staging-macOS-(universal-)?v[\\d.]+\\.dmg$",
+        "windows-x86_64": "^dosbox-staging-windows-x64-v[\\d.]+\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "io.github.dosbox-staging"
+    },
+    {
+      "type": "path",
+      "names": [
+        "dosbox-staging",
+        "dosbox"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "DOSBox Staging.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\DOSBox Staging\\dosbox.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "dosbox"
+    ],
+    "macos": [
+      "DOSBox Staging.app"
+    ],
+    "windows": [
+      "dosbox.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen"
+        ]
+      }
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    },
+    {
+      "id": "exit_on_quit",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Ctrl+F9"
+}

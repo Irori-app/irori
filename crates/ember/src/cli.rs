@@ -83,6 +83,7 @@ impl Cli {
             "stores" => self.route = Some(Route::Stores),
             "stats" => self.route = Some(Route::Stats),
             "wine" => self.route = Some(Route::WineManager),
+            "emulators" => self.route = Some(Route::Emulators),
             "settings" => {
                 let section = url
                     .path_segments()

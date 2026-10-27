@@ -113,6 +113,8 @@ mod tests {
                 used.insert(key);
             }
         }
+        // Emulator option texts are looked up by option id.
+        used.extend(crate::emulators::option_keys());
         let unused: Vec<&String> = en.keys().filter(|k| !used.contains(*k)).collect();
         assert!(
             unused.is_empty(),

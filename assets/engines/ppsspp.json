@@ -1,0 +1,77 @@
+{
+  "id": "ppsspp",
+  "name": "PPSSPP",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://www.ppsspp.org",
+  "kind": "standalone",
+  "systems": [
+    "psp"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "hrydgard/ppsspp",
+      "assets": {
+        "linux-x86_64": "^PPSSPP-v[\\d.]+-anylinux-x86_64\\.AppImage$",
+        "linux-aarch64": "^PPSSPP-v[\\d.]+-anylinux-aarch64\\.AppImage$",
+        "macos-aarch64": "^PPSSPPSDL-macOS-v[\\d.]+\\.zip$",
+        "macos-x86_64": "^PPSSPPSDL-macOS-v[\\d.]+\\.zip$",
+        "windows-x86_64": "^PPSSPP-v[\\d.]+-Windows-x64\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "org.ppsspp.PPSSPP"
+    },
+    {
+      "type": "path",
+      "names": [
+        "PPSSPPSDL",
+        "ppsspp",
+        "PPSSPPQt"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "PPSSPPSDL.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\PPSSPP\\PPSSPPWindows64.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "PPSSPP-*.AppImage",
+      "PPSSPPSDL"
+    ],
+    "macos": [
+      "PPSSPPSDL.app"
+    ],
+    "windows": [
+      "PPSSPPWindows64.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen"
+        ]
+      },
+      "--escape-exit",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc"
+}

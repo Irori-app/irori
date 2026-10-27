@@ -1,0 +1,82 @@
+{
+  "id": "scummvm",
+  "name": "ScummVM",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://www.scummvm.org",
+  "kind": "scummvm",
+  "systems": [
+    "scummvm"
+  ],
+  "sources": [
+    {
+      "type": "page",
+      "url": "https://www.scummvm.org/downloads/",
+      "assets": {
+        "macos-aarch64": "https://downloads\\.scummvm\\.org/frs/scummvm/(?P<version>[\\d.]+)/scummvm-[\\d.]+-macosx\\.dmg",
+        "macos-x86_64": "https://downloads\\.scummvm\\.org/frs/scummvm/(?P<version>[\\d.]+)/scummvm-[\\d.]+-macosx\\.dmg",
+        "windows-x86_64": "https://downloads\\.scummvm\\.org/frs/scummvm/(?P<version>[\\d.]+)/scummvm-[\\d.]+-win32-x86_64\\.zip"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "org.scummvm.ScummVM"
+    },
+    {
+      "type": "path",
+      "names": [
+        "scummvm"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "ScummVM.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\ScummVM\\scummvm.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "scummvm"
+    ],
+    "macos": [
+      "ScummVM.app"
+    ],
+    "windows": [
+      "scummvm.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen"
+        ]
+      },
+      {
+        "if": "aspect_ratio",
+        "args": [
+          "--aspect-ratio"
+        ]
+      }
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    },
+    {
+      "id": "aspect_ratio",
+      "kind": "toggle",
+      "default": true,
+      "advanced": true
+    }
+  ],
+  "exitHotkey": "Ctrl+Q"
+}

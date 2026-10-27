@@ -16,6 +16,8 @@ pub enum Route {
     /// Settings of one game, opened on a section id.
     GameSettings(GameId, SharedString),
     WineManager,
+    /// Emulators, their versions and cores, and each system's default.
+    Emulators,
     Accounts,
     Stores,
     /// Play time per week, store and game, and streaks.
@@ -34,6 +36,7 @@ impl Route {
             Route::Downloads => "downloads",
             Route::Settings(_) => "settings",
             Route::WineManager => "wine",
+            Route::Emulators => "emulators",
             Route::Accounts => "accounts",
             Route::Stores => "stores",
             Route::Stats => "stats",

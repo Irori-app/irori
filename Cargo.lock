@@ -2205,6 +2205,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "ember-engines"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crc32fast",
+ "dirs 6.0.0",
+ "ember-core",
+ "ember-depot",
+ "ember-runtime",
+ "hex",
+ "md-5",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sevenz-rust2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "which 8.0.6",
+ "zip",
+]
+
+[[package]]
 name = "ember-epic"
 version = "0.1.0"
 dependencies = [
@@ -2441,6 +2469,7 @@ dependencies = [
  "anyhow",
  "ember-amazon-api",
  "ember-core",
+ "ember-engines",
  "ember-epic-api",
  "ember-extras",
  "ember-gog-api",
@@ -2500,6 +2529,7 @@ dependencies = [
  "discord-rich-presence",
  "ember-core",
  "ember-depot",
+ "ember-engines",
  "ember-extras",
  "ember-runtime",
  "fs4",
@@ -5515,6 +5545,12 @@ dependencies = [
  "byteorder",
  "crc",
 ]
+
+[[package]]
+name = "lzma-rust2"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1c46f3fcd2e888afdb01a07efc071cb21300e07c68d32c3e8b01b5c8cb1fcaa"
 
 [[package]]
 name = "lzma-sys"
@@ -8609,6 +8645,18 @@ checksum = "d52aa42f8fdf0fed91e5ce7f23d8138441002fa31dca008acf47e6fd4721f741"
 dependencies = [
  "nodrop",
  "stable_deref_trait",
+]
+
+[[package]]
+name = "sevenz-rust2"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f0c68c0e8289bfd09e49ef433e8de02c7c464afc1d7f5a275c99749a880e301"
+dependencies = [
+ "crc32fast",
+ "js-sys",
+ "lzma-rust2",
+ "wasm-bindgen",
 ]
 
 [[package]]
