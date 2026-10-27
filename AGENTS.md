@@ -524,6 +524,12 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   describe where versions are listed. The only per-engine code is the `kind` match in
   `crates/engines/src/launch.rs` (RetroArch cores, DOSBox, ScummVM, MAME). Users may
   override a manifest with `<config>/engines/<id>.json` (merge patch).
+- **Engines shipped:** RetroArch (12 cores), DuckStation, PPSSPP, Dolphin, ScummVM,
+  DOSBox Staging, PCSX2, melonDS, mGBA, Azahar, MAME (detected only), and the
+  experimental Cemu, RPCS3, xemu and shadPS4 (never a system's default while another
+  engine plays it). Systems may be `folderOnly` (arcade zips, Xbox images) and folder
+  games may name the file engines open (`folderMain`); BIOS files with many names
+  match a `pattern`.
 - **Option texts** are `manage.engines.option.<id>.label` / `.help` (and
   `.<choice>` for choice values) in `ember-manage`; a test fails when a built-in option
   has no English text.

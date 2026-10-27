@@ -1,0 +1,69 @@
+{
+  "id": "cemu",
+  "name": "Cemu",
+  "license": "MPL-2.0",
+  "homepage": "https://cemu.info",
+  "kind": "standalone",
+  "systems": [
+    "wiiu"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "cemu-project/Cemu",
+      "assets": {
+        "linux-x86_64": "^Cemu-[\\d.]+-x86_64\\.AppImage$",
+        "macos-x86_64": "^cemu-[\\d.]+-macos-\\d+-x64\\.dmg$",
+        "macos-aarch64": "^cemu-[\\d.]+-macos-\\d+-x64\\.dmg$",
+        "windows-x86_64": "^cemu-[\\d.]+-windows-x64\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "info.cemu.Cemu"
+    },
+    {
+      "type": "path",
+      "names": [
+        "cemu",
+        "Cemu"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "Cemu.app"
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "Cemu-*.AppImage"
+    ],
+    "macos": [
+      "Cemu.app"
+    ],
+    "windows": [
+      "Cemu.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "-f"
+        ]
+      },
+      "-g",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc",
+  "experimental": true
+}

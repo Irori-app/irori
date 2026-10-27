@@ -1,0 +1,62 @@
+{
+  "id": "mame",
+  "name": "MAME",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://www.mamedev.org",
+  "kind": "mame",
+  "systems": [
+    "arcade"
+  ],
+  "sources": [
+    {
+      "type": "flatpak",
+      "id": "org.mamedev.MAME"
+    },
+    {
+      "type": "path",
+      "names": [
+        "mame"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "mame.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\MAME\\mame.exe",
+        "C:\\mame\\mame.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "mame"
+    ],
+    "macos": [
+      "mame"
+    ],
+    "windows": [
+      "mame.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "unless": "fullscreen",
+        "args": [
+          "-window"
+        ]
+      }
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc"
+}
