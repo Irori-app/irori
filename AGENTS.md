@@ -72,6 +72,7 @@ Commands Ember offers without opening a window (`crates/ember/src/headless.rs`):
 ```text
 ember accounts                                   which stores are logged in
 ember import-heroic                              import Heroic accounts, installs and settings
+ember import-lutris                              import Lutris games, categories and playtime (read-only)
 ember refresh                                    refresh every library
 ember list [--installed]
 ember info <runner>/<app> [--platform P]
@@ -84,8 +85,10 @@ Ember's other arguments (`crates/ember/src/cli.rs`) are:
 
 - `-l/--launch <runner>/<app>`, `--big-picture`/`--console`, `--minimized`/`--tray`,
   `-V/--version` and `-h/--help`.
-- Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|bigpicture`,
-  `ember://settings/<section>`, and Heroic's `heroic://launch/...`.
+- Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
+  `ember://settings/<section>`, `ember://lutris/<slug>` (the Lutris script installer at
+  a lutris.net game; Lutris's own `lutris:<slug>` is accepted as an argument too), and
+  Heroic's `heroic://launch/...`.
 - `--sign-in-window` is internal. On macOS and Windows it makes Ember run the store
   sign-in window instead of itself (see [4.6](#46-store-sign-in)).
 
@@ -115,6 +118,8 @@ Directory names and package names differ. Use the package name with `-p`.
 | --- | --- | --- |
 | `crates/core` | `ember-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
 | `crates/runtime` | `ember-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
+| `crates/engines` | `ember-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
+| `crates/scripts` | `ember-scripts` | Lutris install scripts: typed parser, validation, variables, consent plan, confined executor with rollback, the `ScriptHost` trait, the lutris.net client, Wine build matching |
 | `crates/depot` | `ember-depot` | Download engine: parallel chunked downloads, resume, verification, delta updates; a `test-server` feature |
 | `crates/epic` | `ember-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
 | `crates/gog` | `ember-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
@@ -128,10 +133,13 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-itch` | `ember-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `emberItchIo` |
 | `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
-| `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import |
-| `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime |
+| `crates/launchers` | `ember-launchers-data` | Reads third-party launchers' local data (Battle.net `product.db`, Ubisoft cache and registry, EA manifests, Rockstar registry) |
+| `crates/store-launchers` | `ember-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar (`Runner::Launchers`): setup and library, opt-in through `emberThirdPartyLaunchers` |
+| `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
+| `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
+| `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime, Lutris script installs (`scripts.rs`) |
 | `crates/ui` | `ember-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
-| `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs |
+| `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs, the Lutris script installer |
 | `crates/feature-game` | `ember-game` | Game page and its sheets: install, uninstall, logs, cloud saves, import, modify |
 | `crates/feature-manage` | `ember-manage` | Downloads, Wine manager, accounts and login, stores, onboarding |
 | `crates/feature-settings` | `ember-settings` | App settings, game defaults, per-game overrides, logs, system info |
@@ -142,12 +150,16 @@ Directory names and package names differ. Use the package name with `-p`.
 
 Other top-level paths:
 
-- `assets/`: bundled theme JSON files and the Manrope font.
+- `assets/`: bundled theme JSON files, the Manrope font, and `engines/` (emulator
+  manifests and the systems catalog, see [4.8](#48-engines-emulators)).
 - `packaging/`: `package.py`, its tests, the Linux `install.sh`, the Windows
   `install-windows.ps1`, the desktop entry, icons and entitlements.
 - `docs/`:
   - `PLATFORMS.md`: paths, desktop behaviour, translucency, packaging, release checklist.
-  - `parity/`: the Heroic behaviour Ember matches.
+  - `parity/`: the Heroic behaviour Ember matches, and the Lutris behaviour
+    (`parity/lutris.md`).
+  - `design/`: designs of larger features (`design/engines.md`: emulators, ROM
+    libraries, Lutris import and scripts, third-party launchers).
   - The three briefs (see the top of this file).
 - `postman/`: contract, mock and simulation used by an ignored runtime test.
 - `.github/`: CI, the PR-rule check and the PR template.
@@ -159,11 +171,14 @@ The crates form a strict hierarchy. Never add a dependency that points upward.
 ```text
 ember-core                        (depends on nothing internal)
   ├─ ember-runtime, ember-depot, ember-extras
+  ├─ ember-engines   (core, runtime, depot)
+  ├─ ember-scripts   (core, runtime, depot; knows nothing of stores or the UI)
   ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
   │                   (depot only, not core)
   ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
-  │                   ember-steam, ember-sideload
-  └─ ember-services   (core, depot, runtime, extras; stores reach it as `DynStore`)
+  │                   ember-steam, ember-sideload, ember-emulation (+ engines),
+  │                   ember-launchers (+ runtime, ember-launchers-data)
+  └─ ember-services   (core, depot, runtime, extras, engines, scripts; stores reach it as `DynStore`)
 ember-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
 ember (binary)    (everything; the only crate that names every store)
@@ -221,11 +236,12 @@ and `launch.rs` before changing anything below the UI.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
     asks which saves to keep (`ember_ui::save_conflict`).
-- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam and Sideload. Their
+- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam, Sideload, Emulation and
+  Launchers. Their
   serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
   `epic` and `amazon`. Ember-only runners use their store's plain name (`itch`,
   `steam`).
-- `Runner::manages_installs()` is false for Steam: its games are listed and launched,
+- `Runner::manages_installs()` is false for Steam and Launchers: its games are listed and launched,
   never installed, moved, repaired or removed. UI code hides those commands and
   services refuse them before touching files.
 - `GameId { runner, app_name: Arc<str> }` has `key() == "runner:app"`, which keys
@@ -348,7 +364,8 @@ which runs one instance per account ("slot") and merges them into one `Store`:
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
 GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
 registered; empty and signed out while `settings.itch_io` is off, so its account card
-can turn it on), Steam, then Sideload. Adding a
+can turn it on), Steam, Launchers (always registered; empty while
+`emberThirdPartyLaunchers` is off), Emulation (the ROM library), then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.
@@ -391,7 +408,7 @@ cx.spawn_in(window, async move |this, cx| {
 **Navigation** (`nav.rs`):
 
 - `Route` variants: Library, Game, Downloads, Settings(section), GameSettings,
-  WineManager, Accounts, Stores, Stats, BigPicture, Onboarding.
+  WineManager, Emulators, Accounts, Stores, Stats, BigPicture, Onboarding.
 - Use `navigate(route, cx)`, `go_back`, `go_forward`. The shell decides which pages it
   caches.
 
@@ -491,6 +508,119 @@ it on every platform, and CI's Windows install test runs it.
   handle them.
 - The Guide button toggles Big Picture. Every screen must stay usable with arrows,
   Enter and Escape, because that is how controllers reach it.
+
+### 4.8 Engines (emulators)
+
+Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
+
+- **Words.** `Runner` is a store. An emulator, RetroArch, ScummVM or DOSBox is an
+  **engine** in code (`ember_engines::EngineManifest`) and an "emulator" in the UI. A
+  console is a **system** (`assets/engines/systems.json`, ids like `psx`, `snes`, `dos`).
+  An engine choice is an `EngineRef`, written `duckstation` or `retroarch:<core>`.
+- **Manifests are data.** Each engine is `assets/engines/<id>.json`: sources per OS
+  (GitHub release regexes, the libretro buildbot, a download page, Flatpak id, `PATH`
+  names, app bundle, Windows paths), the launch template, options with **one** visibility
+  rule (`visibleWhen`), BIOS folder, exit hotkey and licence. Never pin a download URL;
+  describe where versions are listed. The only per-engine code is the `kind` match in
+  `crates/engines/src/launch.rs` (RetroArch cores, DOSBox, ScummVM, MAME). Users may
+  override a manifest with `<config>/engines/<id>.json` (merge patch).
+- **Engines shipped:** RetroArch (12 cores), DuckStation, PPSSPP, Dolphin, ScummVM,
+  DOSBox Staging, PCSX2, melonDS, mGBA, Azahar, MAME (detected only), and the
+  experimental Cemu, RPCS3, xemu and shadPS4 (never a system's default while another
+  engine plays it). Systems may be `folderOnly` (arcade zips, Xbox images) and folder
+  games may name the file engines open (`folderMain`); BIOS files with many names
+  match a `pattern`.
+- **Option texts** are `manage.engines.option.<id>.label` / `.help` (and
+  `.<choice>` for choice values) in `ember-manage`; a test fails when a built-in option
+  has no English text.
+- **Installs.** Ember downloads engines from the projects' own servers on request and
+  never redistributes them. Managed versions sit side by side under
+  `<data>/engines/<id>/<version>/` and are recorded in `<state>/engines.json` with the
+  default installation per engine. Installing never changes what games use; Update does,
+  and a game pinned with `emberEngineVersion` keeps its version. Flatpak and system
+  installs are detected and labelled, never installed or removed.
+- **BIOS.** Never download or link to BIOS files or ROMs. The BIOS index hashes only
+  plausible files and caches digests by path, size and modification time; nothing is
+  hashed at launch. Files are linked under the expected names before a launch.
+- **Settings keys** are Ember-only: `emberEngine`, `emberEngineVersion`,
+  `emberEngineOptions` (merged per engine and option over the defaults),
+  `emberEngineOwnSettings`, `emberSystemEngines`, `emberRomFolders`, `emberBiosFolder`.
+- **The ROM library** (`ember-emulation`, `Runner::Emulation`, serialized id
+  `emulation`, app names are a hash of the game's first file) scans `emberRomFolders`
+  incrementally (detections cached by path, size and mtime) and watches them with
+  `notify`. It never deletes ROMs: removing a game only hides it from the library.
+  Launch order: BIOS check (typed `BiosMissing`), engine choice (game, then system
+  default, then first installed recommended), missing RetroArch cores installed on the
+  way, version pin (typed `EngineMissing`), then the command. `GameInfo.system` and
+  `GameInfo.tags` (region, revision) drive the system filter, badges, the generated
+  cover and Big Picture's per-system shelves.
+- **Lutris import** (`ember-extras::lutris_import` reads; `crates/ember/src/lutris.rs`
+  applies). It only reads Lutris: `pga.db` is opened read-only and immutable, YAML is
+  parsed, nothing is written there. Windows/Linux games become added apps with their
+  prefix, Wine build (matched by name, else reported), arguments and variables;
+  emulated games join the ROM library as added games with their emulator; Steam and
+  store games are matched by id. Every game not imported comes back with a reason id
+  that `ember_ui::lutris_summary` translates. Tests build the SQLite database in the
+  test; `rusqlite` is built with `bundled` on every OS.
+- **Fix dialogs.** `ember_ui::save_conflict::resolve_launch_error` also turns
+  `EngineMissing` and `BiosMissing` into dialogs with a fix (install and play, use the
+  default version, choose the BIOS folder). Every place that starts a game already
+  calls it.
+- **UI.** The Emulators page (`Route::Emulators`, `ember-manage::emulators`) installs,
+  updates and removes versions and cores, and picks each system's default emulator.
+  Installs run through `ember_manage::start_install` so any screen can start one and the
+  page shows its progress. Changes emit `Event::EnginesChanged`.
+- **Lutris install scripts** (`ember-scripts` interprets; `ember_services::scripts`
+  hosts Wine, DOSBox, programs and prompts; `ember_library::open_lutris_installer` is
+  the window, reached from Add game, the command palette and `ember://lutris/<slug>`).
+  These rules keep a community script from doing anything the user didn't see:
+  - **Typed commands only.** A script is parsed into enums before anything runs. An
+    unknown command, task, parameter or variable refuses the whole script, naming the
+    step; Ember's own variables (`$GAMEDIR`, `$CACHE`, `$HOME`…) cannot be redefined.
+    Never add a "pass through" command or leave an unknown variable as text.
+  - **Consent before running.** `ember_scripts::consent` lists downloads (host and
+    size), every write outside the game folder, the cache and the prefix (each approved
+    on its own), programs, registry edits, winetricks verbs and store autosetups. The
+    executor refuses to run without `Approvals::accepted`.
+  - **Shell commands verbatim.** Every `execute` command line is shown exactly as the
+    script wrote it, and needs its own "I understand" acknowledgement
+    (`Approvals::shell_acknowledged`); the executor checks it again.
+  - **Writes are confined** to `$GAMEDIR`, `$CACHE`, the prefix and approved paths,
+    with symlinks resolved before every check; archives cannot escape their target.
+    Cancel or failure rolls back what the install created in the game folder and
+    keeps downloads. An install that only lacks the game's program keeps its files
+    (`UnfinishedInstall`) so the user can choose the program.
+  - **Native first.** Scripts installing the Epic Games Launcher, the EA app or
+    Ubisoft Connect in Wine are refused (`PreferNative`); GOG, Amazon and ZOOM
+    autosetups stop with `InstallFromStore`; a library game with the same title in a
+    native store is offered before the script.
+  - **lutris.net etiquette.** Fetch only when the user searches or opens a game's
+    scripts, never in the background; one shared client keeps to two requests a second
+    and caches answers for a day; show every script's author, date and lutris.net page;
+    never bundle, mirror or commit lutris.net scripts or catalogue data (test fixtures
+    are hand-written).
+  - **Result.** Wine and Linux scripts become added apps (`winePrefix`, `wineVersion`,
+    `enviromentOptions`); emulator runners join the ROM library with `emberEngine`
+    (mapped like the Lutris import). The Wine build is the script's own when installed
+    (`match_wine_version`), else the default, and the window says which. Each game
+    records its script in the Ember-only per-game setting `emberLutrisScript`
+    (`{slug, installerSlug, version, revision, sourceUrl}`) for later reinstalls and
+    updates.
+
+### 4.9 Third-party launchers
+
+- Ember never handles Battle.net, EA app, Ubisoft Connect or Rockstar accounts. The
+  Stores page sets a launcher up once: a prefix of its own (`<prefixes>/<launcher
+  name>`) with the Wine build the user picks, and the vendor's official installer
+  (natively on Windows). The user signs in and installs games inside the launcher.
+- Games are read from the launcher's local data (`ember-launchers-data`) and listed as
+  `Runner::Launchers` with `third_party_managed_app` set. App names are
+  `<launcher>:<id>` (`battlenet`, `ea`, `ubisoft`, `rockstar`). They start through the
+  launcher's flags or URI; Ember never installs, updates or removes them.
+- **Sessions follow the game, not the launcher** (`crates/services/src/follow.rs`):
+  while such a game runs, services look every 3 s for processes running from its
+  install folder; the session ends when they are gone, or when the launcher exits
+  without starting the game. Nothing polls when no launcher game runs.
 
 ## 5. Rust conventions
 

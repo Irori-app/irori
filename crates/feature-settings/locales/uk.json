@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Пошук компонентів Winetricks",
   "settings.winetricks.search_placeholder": "Пошук компонентів, шрифтів і налаштувань",
   "settings.winetricks.showing": "Показано {shown} з {total}. Уточніть пошук, щоб скоротити список.",
-  "settings.winetricks.verb_installed": "{verb} встановлено"
+  "settings.winetricks.verb_installed": "{verb} встановлено",
+  "settings.field.action_import_lutris.label": "Імпорт з Lutris",
+  "settings.field.action_import_lutris.help": "Перенести встановлені ігри, емульовані ігри, обране, категорії та час у грі з Lutris. Сам Lutris не зміниться.",
+  "settings.error.import_lutris": "Не вдалося імпортувати з Lutris"
 }

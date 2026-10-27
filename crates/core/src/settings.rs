@@ -7,6 +7,7 @@
 //! defaults, so changing a global default reaches every game that has not
 //! overridden that field.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -168,6 +169,47 @@ pub struct GameSettings {
     /// `RetinaMode`). Ember-only.
     #[serde(rename = "emberRetinaMode")]
     pub retina_mode: bool,
+    /// The emulator that plays this game (`duckstation`,
+    /// `retroarch:<core>`); empty for the system's default. Ember-only.
+    #[serde(rename = "emberEngine")]
+    pub engine: String,
+    /// The installation of that emulator this game is pinned to
+    /// (`managed:<version>`, `flatpak`, `system`, …); empty for the
+    /// emulator's default. Ember-only.
+    #[serde(rename = "emberEngineVersion")]
+    pub engine_version: String,
+    /// Emulator option values by emulator id. Per game, only the options
+    /// set for that game; [`GameSettingsOverrides::apply`] merges them over
+    /// the defaults option by option. Ember-only.
+    #[serde(rename = "emberEngineOptions")]
+    pub engine_options: BTreeMap<String, Map<String, Value>>,
+    /// Leave the emulator's own configuration alone instead of the settings
+    /// Ember manages. Ember-only.
+    #[serde(rename = "emberEngineOwnSettings")]
+    pub engine_own_settings: bool,
+    /// The Lutris install script that installed this game, so it can be
+    /// reinstalled or updated later. Per game only. Ember-only.
+    #[serde(rename = "emberLutrisScript", skip_serializing_if = "Option::is_none")]
+    pub lutris_script: Option<LutrisScriptRecord>,
+}
+
+/// Which Lutris install script installed a game (`emberLutrisScript`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct LutrisScriptRecord {
+    /// The game's slug on lutris.net.
+    pub slug: String,
+    /// The installer's slug on lutris.net, when it has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installer_slug: Option<String>,
+    /// The installer's name ("GOG", "Setup"…).
+    pub version: String,
+    /// lutris.net's revision (or installer id) of the script.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
+    /// Where the script came from: its lutris.net page or the local file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
 }
 
 impl Default for GameSettings {
@@ -216,6 +258,11 @@ impl Default for GameSettings {
             advertise_avx_for_rosetta: false,
             enable_quick_saves_menu: false,
             retina_mode: false,
+            engine: String::new(),
+            engine_version: String::new(),
+            engine_options: BTreeMap::new(),
+            engine_own_settings: false,
+            lutris_script: None,
         }
     }
 }
@@ -248,6 +295,23 @@ impl GameSettingsOverrides {
         let mut base = serde_json::to_value(defaults).expect("settings serialize");
         if let Value::Object(map) = &mut base {
             for (k, v) in &self.0 {
+                // Emulator options merge per emulator and option, so a game
+                // that sets one option keeps the defaults of the others.
+                if k == "emberEngineOptions"
+                    && let (Some(Value::Object(base)), Value::Object(set)) = (map.get_mut(k), v)
+                {
+                    for (engine, options) in set {
+                        match (base.get_mut(engine), options) {
+                            (Some(Value::Object(b)), Value::Object(o)) => {
+                                b.extend(o.iter().map(|(k, v)| (k.clone(), v.clone())))
+                            }
+                            _ => {
+                                base.insert(engine.clone(), options.clone());
+                            }
+                        }
+                    }
+                    continue;
+                }
                 map.insert(k.clone(), v.clone());
             }
         }
@@ -358,6 +422,20 @@ pub struct AppSettings {
     /// `~/Library/Application Support/CrossOver/Bottles` ("" = there).
     #[serde(rename = "emberCrossoverBottlesPath")]
     pub crossover_bottles_path: String,
+    /// The default emulator of each system (`psx` → `duckstation`); systems
+    /// not listed use the first installed recommended emulator.
+    #[serde(rename = "emberSystemEngines")]
+    pub system_engines: BTreeMap<String, String>,
+    /// Folders scanned for console and retro games.
+    #[serde(rename = "emberRomFolders")]
+    pub rom_folders: Vec<String>,
+    /// Where the user keeps BIOS files ("" = not chosen).
+    #[serde(rename = "emberBiosFolder")]
+    pub bios_folder: String,
+    /// List games of Battle.net, EA app, Ubisoft Connect and Rockstar
+    /// (off until turned on). Ember-only.
+    #[serde(rename = "emberThirdPartyLaunchers")]
+    pub third_party_launchers: bool,
 }
 
 impl Default for AppSettings {
@@ -370,6 +448,10 @@ impl Default for AppSettings {
         Self {
             extras_path: extras.to_string_lossy().into_owned(),
             crossover_bottles_path: String::new(),
+            system_engines: BTreeMap::new(),
+            rom_folders: Vec::new(),
+            bios_folder: String::new(),
+            third_party_launchers: false,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,
@@ -508,7 +590,11 @@ impl ShownStores {
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
             Runner::Steam => self.steam,
-            Runner::Zoom | Runner::Itch | Runner::Sideload => true,
+            Runner::Zoom
+            | Runner::Itch
+            | Runner::Sideload
+            | Runner::Emulation
+            | Runner::Launchers => true,
         }
     }
 
@@ -520,7 +606,11 @@ impl ShownStores {
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
             Runner::Steam => self.steam = shown,
-            Runner::Zoom | Runner::Itch | Runner::Sideload => {}
+            Runner::Zoom
+            | Runner::Itch
+            | Runner::Sideload
+            | Runner::Emulation
+            | Runner::Launchers => {}
         }
     }
 
@@ -600,6 +690,37 @@ mod tests {
         assert_eq!(o.0.len(), 2);
         assert!(o.is_overridden("showFps"));
         assert_eq!(o.apply(&defaults), changed);
+    }
+
+    #[test]
+    fn engine_options_merge_option_by_option() {
+        let mut defaults = GameSettings::default();
+        let options = |pairs: &[(&str, Value)]| -> Map<String, Value> {
+            pairs
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.clone()))
+                .collect()
+        };
+        defaults.engine_options.insert(
+            "retroarch".into(),
+            options(&[
+                ("vsync", Value::Bool(true)),
+                ("show_fps", Value::Bool(true)),
+            ]),
+        );
+        let mut game = GameSettingsOverrides::default();
+        game.set(
+            "emberEngineOptions",
+            serde_json::json!({"retroarch": {"vsync": false}, "dolphin": {"fullscreen": false}}),
+        );
+        let effective = game.apply(&defaults);
+        let ra = &effective.engine_options["retroarch"];
+        assert_eq!(ra["vsync"], Value::Bool(false));
+        assert_eq!(ra["show_fps"], Value::Bool(true));
+        assert_eq!(
+            effective.engine_options["dolphin"]["fullscreen"],
+            Value::Bool(false)
+        );
     }
 
     #[test]

@@ -1,0 +1,81 @@
+{
+  "id": "duckstation",
+  "name": "DuckStation",
+  "license": "CC-BY-NC-ND-4.0",
+  "homepage": "https://www.duckstation.org",
+  "kind": "standalone",
+  "systems": [
+    "psx"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "stenzek/duckstation",
+      "assets": {
+        "linux-x86_64": "^DuckStation-x64\\.AppImage$",
+        "linux-aarch64": "^DuckStation-arm64\\.AppImage$",
+        "macos-aarch64": "^duckstation-mac-release\\.zip$",
+        "macos-x86_64": "^duckstation-mac-release\\.zip$",
+        "windows-x86_64": "^duckstation-windows-x64-release\\.zip$"
+      }
+    },
+    {
+      "type": "path",
+      "names": [
+        "duckstation-qt",
+        "duckstation"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "DuckStation.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%LOCALAPPDATA%\\Programs\\DuckStation\\duckstation-qt-x64-ReleaseLTCG.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "DuckStation-x64.AppImage",
+      "DuckStation-arm64.AppImage"
+    ],
+    "macos": [
+      "DuckStation.app"
+    ],
+    "windows": [
+      "duckstation-qt-x64-ReleaseLTCG.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      "-batch",
+      {
+        "if": "fullscreen",
+        "args": [
+          "-fullscreen"
+        ]
+      },
+      "--",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "biosDir": {
+    "linux": "{xdg_data}/duckstation/bios",
+    "macos": "{home}/Library/Application Support/DuckStation/bios",
+    "windows": "{engine_dir}/bios"
+  },
+  "portableMarker": {
+    "windows": "portable.txt"
+  },
+  "exitHotkey": "Esc"
+}

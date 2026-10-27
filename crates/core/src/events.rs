@@ -96,6 +96,8 @@ pub enum Event {
     AccountChanged(Runner),
     DownloadQueueChanged,
     WineVersionsChanged,
+    /// An emulator, core or BIOS folder was installed, removed or rescanned.
+    EnginesChanged,
     SettingsChanged,
     /// Per-game settings changed.
     GameSettingsChanged(GameId),

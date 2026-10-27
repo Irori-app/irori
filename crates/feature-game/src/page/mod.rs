@@ -378,7 +378,12 @@ impl GamePage {
         let Some(game) = self.game.clone() else {
             return;
         };
-        if game.runner() == ember_core::Runner::Sideload {
+        // PC compatibility data (ProtonDB, Steam Deck) says nothing about
+        // emulated games, and a title match would be another game.
+        if matches!(
+            game.runner(),
+            ember_core::Runner::Sideload | ember_core::Runner::Emulation
+        ) {
             return;
         }
         let Some(task) = hooks::fetch_compatibility(game, cx) else {

@@ -144,9 +144,18 @@ pub(super) fn build_menu(
                 },
             ));
         }
+        if id.runner == Runner::Emulation {
+            let i = id.clone();
+            menu = menu.item(item("game.play_with.menu", IconName::Joystick).on_click(
+                move |_, window, cx| crate::open_play_with_dialog(i.clone(), window, cx),
+            ));
+        }
         menu = menu.separator();
-        let store_managed =
-            !sideload && game.third_party_managed_app.is_none() && id.runner.manages_installs();
+        // ROMs are the user's files: nothing to verify, update or move.
+        let store_managed = !sideload
+            && id.runner != Runner::Emulation
+            && game.third_party_managed_app.is_none()
+            && id.runner.manages_installs();
         if store_managed {
             let i = id.clone();
             menu = menu.item(
@@ -308,7 +317,7 @@ pub(super) fn build_menu(
         menu = menu
             .item(PopupMenuItem::link(t("game.menu.store_page"), url).icon(IconName::ExternalLink));
     }
-    if game.is_installed && id.runner.manages_installs() {
+    if game.is_installed && id.runner.manages_installs() && id.runner != Runner::Emulation {
         menu = menu.separator();
         let i = id.clone();
         menu = menu.item(

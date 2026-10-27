@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Deine Bibliothek wird geladen…",
   "bigpicture.empty.title": "Noch keine Spiele",
   "bigpicture.empty.description": "Melde dich bei einem Store an oder füge in der Bibliothek ein Spiel hinzu und komm dann zurück.",
-  "bigpicture.menu.interface_size": "Größe der Oberfläche: {percent} %"
+  "bigpicture.menu.interface_size": "Größe der Oberfläche: {percent} %",
+  "bigpicture.menu.set_up_emulation": "Emulation einrichten"
 }

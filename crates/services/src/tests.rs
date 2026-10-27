@@ -190,3 +190,97 @@ fn never_touches_files_of_games_steam_manages() {
         assert!(e.contains("Steam installs, updates and removes"), "{e}");
     }
 }
+
+const MENU_SCRIPT: &str = r#"
+name: Test Game
+game_slug: test-game
+version: Local
+slug: test-game-local
+runner: linux
+script:
+  game:
+    exe: $GAMEDIR/lang.cfg
+  installer:
+  - input_menu:
+      id: lang
+      description: Choose the language
+      options:
+      - en: English
+      - de: Deutsch
+      preselect: en
+  - write_file:
+      file: $GAMEDIR/lang.cfg
+      content: lang=$INPUT_lang
+"#;
+
+fn script_install(game_dir: &Path) -> crate::ScriptInstall {
+    let script = ember_scripts::Script::parse(MENU_SCRIPT).unwrap();
+    let ctx = crate::scripts::script_context(&Default::default(), &script, game_dir);
+    let approvals = ember_scripts::Approvals::all(&ember_scripts::consent(&script, &ctx));
+    crate::ScriptInstall {
+        script: Arc::new(script),
+        game_dir: game_dir.to_path_buf(),
+        approvals,
+        picked: Default::default(),
+        source_url: Some("file:///scripts/test-game.yml".into()),
+        resolution: None,
+    }
+}
+
+#[test]
+fn script_installs_ask_the_ui_and_produce_a_library_entry() {
+    use futures::StreamExt as _;
+    isolate_paths();
+    let b = Backend::start_headless(|_, _| Vec::new()).unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let game_dir = tmp.path().join("test-game");
+    let mut run = b.start_script_install(script_install(&game_dir));
+    let rt = b.runtime();
+    match rt.block_on(run.prompts.next()) {
+        Some(crate::ScriptPrompt::Menu { request, reply }) => {
+            assert_eq!(request.preselect.as_deref(), Some("en"));
+            reply.send(Some("de".into())).unwrap();
+        }
+        other => panic!("expected the language menu, got {other:?}"),
+    }
+    let outcome = rt.block_on(run.result).unwrap().unwrap();
+    assert_eq!(
+        std::fs::read_to_string(game_dir.join("lang.cfg")).unwrap(),
+        "lang=de"
+    );
+    let progress = run.progress.lock().clone();
+    assert_eq!(progress.step.map(|s| (s.number, s.total)), Some((2, 2)));
+    assert!(progress.wine.is_none(), "a Linux script uses no Wine");
+    assert!(run.log_file.is_file());
+
+    let game = crate::scripts::script_game(&outcome, &game_dir, None, None).unwrap();
+    assert!(matches!(
+        game.entry,
+        crate::scripts::ScriptLibraryEntry::App { windows: false, .. }
+    ));
+    let record = game
+        .settings
+        .iter()
+        .find(|(k, _)| *k == "emberLutrisScript")
+        .map(|(_, v)| v.clone())
+        .unwrap();
+    assert_eq!(record["slug"], "test-game");
+    assert_eq!(record["sourceUrl"], "file:///scripts/test-game.yml");
+}
+
+#[test]
+fn unanswered_script_questions_cancel_and_roll_back() {
+    use futures::StreamExt as _;
+    isolate_paths();
+    let b = Backend::start_headless(|_, _| Vec::new()).unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let game_dir = tmp.path().join("test-game");
+    let mut run = b.start_script_install(script_install(&game_dir));
+    let rt = b.runtime();
+    // The window closed the question: its reply sender is dropped.
+    drop(rt.block_on(run.prompts.next()));
+    let e = rt.block_on(run.result).unwrap().unwrap_err();
+    assert!(ember_runtime::is_cancelled(&e), "{e:#}");
+    assert!(!game_dir.exists());
+    assert!(run.progress.lock().rolling_back);
+}

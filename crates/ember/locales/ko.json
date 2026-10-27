@@ -3,6 +3,7 @@
   "shell.nav.downloads": "다운로드",
   "shell.nav.stores": "스토어",
   "shell.nav.wine": "Wine 및 Proton",
+  "shell.nav.emulators": "에뮬레이터",
   "shell.nav.accounts": "계정",
   "shell.nav.login": "스토어에 로그인",
   "shell.nav.settings": "설정",
@@ -53,5 +54,10 @@
   "shell.playing.stop_failed": "{title}을(를) 중지하지 못했습니다",
   "shell.nav.stats": "통계",
   "shell.palette.random": "무작위 게임 고르기",
-  "shell.palette.random_keywords": "무작위 랜덤 셔플 룰렛"
+  "shell.palette.random_keywords": "무작위 랜덤 셔플 룰렛",
+  "shell.notice.exit_hotkey": "{engine}: 게임에서 나가려면 {keys}",
+  "shell.palette.set_up_emulation": "에뮬레이션 설정",
+  "shell.palette.set_up_emulation_keywords": "에뮬레이터 ROM 콘솔 레트로 BIOS RetroArch",
+  "shell.palette.lutris_script": "Lutris 스크립트로 설치",
+  "shell.palette.lutris_script_keywords": "Lutris 스크립트 설치 프로그램 lutris.net 커뮤니티"
 }

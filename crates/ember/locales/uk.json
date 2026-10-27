@@ -3,6 +3,7 @@
   "shell.nav.downloads": "Завантаження",
   "shell.nav.stores": "Крамниці",
   "shell.nav.wine": "Wine і Proton",
+  "shell.nav.emulators": "Емулятори",
   "shell.nav.accounts": "Облікові записи",
   "shell.nav.login": "Увійти в крамницю",
   "shell.nav.settings": "Налаштування",
@@ -53,5 +54,10 @@
   "shell.playing.stop_failed": "Не вдалося зупинити {title}",
   "shell.nav.stats": "Статистика",
   "shell.palette.random": "Вибрати випадкову гру",
-  "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка"
+  "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка",
+  "shell.notice.exit_hotkey": "{engine}: щоб вийти з гри, натисніть {keys}",
+  "shell.palette.set_up_emulation": "Налаштувати емуляцію",
+  "shell.palette.set_up_emulation_keywords": "емулятор ROM консоль ретро BIOS RetroArch",
+  "shell.palette.lutris_script": "Встановити за скриптом Lutris",
+  "shell.palette.lutris_script_keywords": "Lutris скрипт встановлювач lutris.net спільнота"
 }

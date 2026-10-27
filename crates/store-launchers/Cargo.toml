@@ -1,0 +1,23 @@
+[package]
+name = "ember-launchers"
+description = "Games of official third-party launchers (Battle.net, EA app, Ubisoft Connect, Rockstar): setup and library"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-runtime.workspace = true
+ember-launchers-data.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

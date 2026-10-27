@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 ember-core.workspace = true
 ember-services.workspace = true
+ember-engines.workspace = true
+dirs.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 tokio.workspace = true

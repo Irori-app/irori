@@ -3,6 +3,7 @@
   "shell.nav.downloads": "Downloads",
   "shell.nav.stores": "Shops",
   "shell.nav.wine": "Wine & Proton",
+  "shell.nav.emulators": "Emulatoren",
   "shell.nav.accounts": "Konten",
   "shell.nav.login": "Bei einem Shop anmelden",
   "shell.nav.settings": "Einstellungen",
@@ -53,5 +54,10 @@
   "shell.playing.stop_failed": "{title} konnte nicht beendet werden",
   "shell.nav.stats": "Statistik",
   "shell.palette.random": "Zufälliges Spiel auswählen",
-  "shell.palette.random_keywords": "zufall überraschung mischen roulette"
+  "shell.palette.random_keywords": "zufall überraschung mischen roulette",
+  "shell.notice.exit_hotkey": "{engine}: Spiel verlassen mit {keys}",
+  "shell.palette.set_up_emulation": "Emulation einrichten",
+  "shell.palette.set_up_emulation_keywords": "emulator ROM konsole retro BIOS RetroArch",
+  "shell.palette.lutris_script": "Mit einem Lutris-Skript installieren",
+  "shell.palette.lutris_script_keywords": "Lutris Skript Installationsprogramm lutris.net Community"
 }

@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "正在載入你的遊戲庫…",
   "bigpicture.empty.title": "還沒有遊戲",
   "bigpicture.empty.description": "請登入商店或從遊戲庫新增遊戲，然後再回來。",
-  "bigpicture.menu.interface_size": "介面大小：{percent}%"
+  "bigpicture.menu.interface_size": "介面大小：{percent}%",
+  "bigpicture.menu.set_up_emulation": "設定模擬遊戲"
 }

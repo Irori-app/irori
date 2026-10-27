@@ -1,8 +1,10 @@
 //! Dialogs owned by the library: categories, adding or editing a manually
-//! added app, and editing a game's title and art.
+//! added app, editing a game's title and art, and installing with a Lutris
+//! script.
 
 pub mod categories;
 pub mod edit_game;
+pub mod lutris;
 pub mod sideload;
 pub mod steamgrid;
 

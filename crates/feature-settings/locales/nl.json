@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Winetricks-componenten doorzoeken",
   "settings.winetricks.search_placeholder": "Zoek componenten, lettertypen en instellingen",
   "settings.winetricks.showing": "{shown} van {total} getoond. Zoek om de lijst te verfijnen.",
-  "settings.winetricks.verb_installed": "{verb} geïnstalleerd"
+  "settings.winetricks.verb_installed": "{verb} geïnstalleerd",
+  "settings.field.action_import_lutris.label": "Importeren uit Lutris",
+  "settings.field.action_import_lutris.help": "Neem geïnstalleerde games, geëmuleerde games, favorieten, categorieën en speeltijd over uit Lutris. Lutris zelf blijft ongewijzigd.",
+  "settings.error.import_lutris": "Kan niet importeren uit Lutris"
 }

@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Instellingen en logboeken verwijderen",
   "game.uninstall.remove_settings_help": "Vergeet de aangepaste instellingen van deze game en verwijdert de logboeken.",
   "game.uninstall.running": "{title} is actief. Sluit de game om hem te verwijderen.",
-  "game.uninstall.title": "‘{title}’ verwijderen?"
+  "game.uninstall.title": "‘{title}’ verwijderen?",
+  "game.play_with.menu": "Spelen met…",
+  "game.play_with.title": "‘{title}’ spelen met",
+  "game.play_with.description": "Kies de emulator voor deze game. ‘Standaard’ volgt de standaardemulator van het systeem, die je op de pagina Emulators kunt wijzigen.",
+  "game.play_with.default": "Standaard",
+  "game.play_with.not_installed": "Niet geïnstalleerd",
+  "game.play_with.chosen": "Gekozen",
+  "game.play_with.versions": "Versie",
+  "game.play_with.versions_help": "Houd deze game op één versie als hij daar het best werkt; updates veranderen die niet.",
+  "game.play_with.version": "Versie {version}",
+  "game.play_with.version_default": "Standaard ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Door jou gekozen",
+  "game.play_with.system": "Geïnstalleerd op deze computer",
+  "game.play_with.manage": "Emulators beheren"
 }

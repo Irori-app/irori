@@ -3,6 +3,7 @@
   "shell.nav.downloads": "Stahování",
   "shell.nav.stores": "Obchody",
   "shell.nav.wine": "Wine a Proton",
+  "shell.nav.emulators": "Emulátory",
   "shell.nav.accounts": "Účty",
   "shell.nav.login": "Přihlásit se do obchodu",
   "shell.nav.settings": "Nastavení",
@@ -53,5 +54,10 @@
   "shell.playing.stop_failed": "{title} se nepodařilo ukončit",
   "shell.nav.stats": "Statistiky",
   "shell.palette.random": "Vybrat náhodnou hru",
-  "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta"
+  "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta",
+  "shell.notice.exit_hotkey": "{engine}: hru ukončíte pomocí {keys}",
+  "shell.palette.set_up_emulation": "Nastavit emulaci",
+  "shell.palette.set_up_emulation_keywords": "emulátor ROM konzole retro BIOS RetroArch",
+  "shell.palette.lutris_script": "Instalovat pomocí skriptu Lutris",
+  "shell.palette.lutris_script_keywords": "Lutris skript instalátor lutris.net komunita"
 }

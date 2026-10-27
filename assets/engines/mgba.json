@@ -1,0 +1,76 @@
+{
+  "id": "mgba",
+  "name": "mGBA",
+  "license": "MPL-2.0",
+  "homepage": "https://mgba.io",
+  "kind": "standalone",
+  "systems": [
+    "gb",
+    "gbc",
+    "gba"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "mgba-emu/mgba",
+      "assets": {
+        "linux-x86_64": "^mGBA-[\\d.]+-appimage-x64\\.appimage$",
+        "linux-aarch64": "^mGBA-[\\d.]+-appimage-arm64\\.appimage$",
+        "macos-aarch64": "^mGBA-[\\d.]+-macos\\.dmg$",
+        "macos-x86_64": "^mGBA-[\\d.]+-macos\\.dmg$",
+        "windows-x86_64": "^mGBA-[\\d.]+-win64\\.7z$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "io.mgba.mGBA"
+    },
+    {
+      "type": "path",
+      "names": [
+        "mgba-qt",
+        "mgba"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "mGBA.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\mGBA\\mGBA.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "mGBA-*.appimage"
+    ],
+    "macos": [
+      "mGBA.app"
+    ],
+    "windows": [
+      "mGBA.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "-f"
+        ]
+      },
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Ctrl+Q"
+}

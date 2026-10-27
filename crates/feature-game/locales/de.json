@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Einstellungen und Protokolle entfernen",
   "game.uninstall.remove_settings_help": "Vergisst die Einstellungsänderungen dieses Spiels und löscht seine Protokolle.",
   "game.uninstall.running": "{title} läuft. Schließen Sie das Spiel, um es zu deinstallieren.",
-  "game.uninstall.title": "„{title}“ deinstallieren?"
+  "game.uninstall.title": "„{title}“ deinstallieren?",
+  "game.play_with.menu": "Spielen mit …",
+  "game.play_with.title": "„{title}“ spielen mit",
+  "game.play_with.description": "Wähle den Emulator für dieses Spiel. „Standard“ folgt dem Standardemulator des Systems, den du auf der Seite „Emulatoren“ ändern kannst.",
+  "game.play_with.default": "Standard",
+  "game.play_with.not_installed": "Nicht installiert",
+  "game.play_with.chosen": "Gewählt",
+  "game.play_with.versions": "Version",
+  "game.play_with.versions_help": "Halte dieses Spiel auf einer Version, wenn es dort am besten läuft; Updates ändern sie nicht.",
+  "game.play_with.version": "Version {version}",
+  "game.play_with.version_default": "Standard ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Von dir gewählt",
+  "game.play_with.system": "Auf diesem Computer installiert",
+  "game.play_with.manage": "Emulatoren verwalten"
 }

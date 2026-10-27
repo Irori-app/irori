@@ -24,6 +24,8 @@ url.workspace = true
 time.workspace = true
 md5.workspace = true
 plist.workspace = true
+rusqlite.workspace = true
+serde_yaml_ng.workspace = true
 sysinfo.workspace = true
 image = { workspace = true, features = ["ico"] }
 

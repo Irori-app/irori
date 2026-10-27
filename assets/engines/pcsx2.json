@@ -1,0 +1,83 @@
+{
+  "id": "pcsx2",
+  "name": "PCSX2",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://pcsx2.net",
+  "kind": "standalone",
+  "systems": [
+    "ps2"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "PCSX2/pcsx2",
+      "assets": {
+        "linux-x86_64": "^pcsx2-v[\\d.]+-linux-appimage-x64-Qt\\.AppImage$",
+        "macos-aarch64": "^pcsx2-v[\\d.]+-macos-Qt\\.tar\\.xz$",
+        "macos-x86_64": "^pcsx2-v[\\d.]+-macos-Qt\\.tar\\.xz$",
+        "windows-x86_64": "^pcsx2-v[\\d.]+-windows-x64-Qt\\.7z$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "net.pcsx2.PCSX2"
+    },
+    {
+      "type": "path",
+      "names": [
+        "pcsx2-qt",
+        "pcsx2"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "PCSX2.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\PCSX2\\pcsx2-qt.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "pcsx2-*.AppImage"
+    ],
+    "macos": [
+      "PCSX2*.app"
+    ],
+    "windows": [
+      "pcsx2-qt.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      "-batch",
+      {
+        "if": "fullscreen",
+        "args": [
+          "-fullscreen"
+        ]
+      },
+      "--",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "biosDir": {
+    "linux": "{home}/.config/PCSX2/bios",
+    "macos": "{home}/Library/Application Support/PCSX2/bios",
+    "windows": "{engine_dir}/bios"
+  },
+  "portableMarker": {
+    "windows": "portable.ini"
+  },
+  "exitHotkey": "Esc"
+}
