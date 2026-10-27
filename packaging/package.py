@@ -131,7 +131,7 @@ def package(platform: str, binary_dir: Path, output: Path, dmg: bool = False) ->
         shutil.copy2(root / "packaging/irori.svg", resources)
         info = {
             "CFBundleName": "Irori", "CFBundleDisplayName": "Irori",
-            "CFBundleIdentifier": "io.github.irori-app.Irori", "CFBundleExecutable": "irori",
+            "CFBundleIdentifier": "app.irori.Irori", "CFBundleExecutable": "irori",
             "CFBundlePackageType": "APPL", "CFBundleVersion": version,
             "CFBundleShortVersionString": version, "LSMinimumSystemVersion": "12.0",
             "LSApplicationCategoryType": "public.app-category.games",

@@ -14,7 +14,7 @@ use crate::nav::Route;
 
 /// Identity Irori's notifications are shown under. Matches the macOS bundle
 /// id in `packaging/package.py`; Windows toasts need it set to show at all.
-const APP_ID: &str = "io.github.irori-app.Irori";
+const APP_ID: &str = "app.irori.Irori";
 /// Notifications whose click target is remembered.
 const REMEMBERED: usize = 32;
 
