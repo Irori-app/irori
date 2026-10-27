@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Impossible d’arrêter {title}",
   "shell.nav.stats": "Statistiques",
   "shell.palette.random": "Choisir un jeu au hasard",
-  "shell.palette.random_keywords": "hasard surprise mélanger roulette"
+  "shell.palette.random_keywords": "hasard surprise mélanger roulette",
+  "shell.notice.exit_hotkey": "{engine} : pour quitter un jeu, {keys}",
+  "shell.palette.set_up_emulation": "Configurer l’émulation",
+  "shell.palette.set_up_emulation_keywords": "émulateur ROM console rétro BIOS RetroArch"
 }

@@ -129,6 +129,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-itch` | `ember-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `emberItchIo` |
 | `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
+| `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
 | `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import |
 | `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime |
 | `crates/ui` | `ember-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
@@ -168,7 +169,7 @@ ember-core                        (depends on nothing internal)
   ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
   │                   (depot only, not core)
   ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
-  │                   ember-steam, ember-sideload
+  │                   ember-steam, ember-sideload, ember-emulation (+ engines)
   └─ ember-services   (core, depot, runtime, extras; stores reach it as `DynStore`)
 ember-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
@@ -227,7 +228,7 @@ and `launch.rs` before changing anything below the UI.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
     asks which saves to keep (`ember_ui::save_conflict`).
-- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam and Sideload. Their
+- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam, Sideload and Emulation. Their
   serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
   `epic` and `amazon`. Ember-only runners use their store's plain name (`itch`,
   `steam`).
@@ -354,7 +355,7 @@ which runs one instance per account ("slot") and merges them into one `Store`:
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
 GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
 registered; empty and signed out while `settings.itch_io` is off, so its account card
-can turn it on), Steam, then Sideload. Adding a
+can turn it on), Steam, Emulation (the ROM library), then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.
@@ -397,7 +398,7 @@ cx.spawn_in(window, async move |this, cx| {
 **Navigation** (`nav.rs`):
 
 - `Route` variants: Library, Game, Downloads, Settings(section), GameSettings,
-  WineManager, Accounts, Stores, Stats, BigPicture, Onboarding.
+  WineManager, Emulators, Accounts, Stores, Stats, BigPicture, Onboarding.
 - Use `navigate(route, cx)`, `go_back`, `go_forward`. The shell decides which pages it
   caches.
 
@@ -527,7 +528,20 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   hashed at launch. Files are linked under the expected names before a launch.
 - **Settings keys** are Ember-only: `emberEngine`, `emberEngineVersion`,
   `emberEngineOptions` (merged per engine and option over the defaults),
-  `emberEngineOwnSettings`, `emberSystemEngines`.
+  `emberEngineOwnSettings`, `emberSystemEngines`, `emberRomFolders`, `emberBiosFolder`.
+- **The ROM library** (`ember-emulation`, `Runner::Emulation`, serialized id
+  `emulation`, app names are a hash of the game's first file) scans `emberRomFolders`
+  incrementally (detections cached by path, size and mtime) and watches them with
+  `notify`. It never deletes ROMs: removing a game only hides it from the library.
+  Launch order: BIOS check (typed `BiosMissing`), engine choice (game, then system
+  default, then first installed recommended), missing RetroArch cores installed on the
+  way, version pin (typed `EngineMissing`), then the command. `GameInfo.system` and
+  `GameInfo.tags` (region, revision) drive the system filter, badges, the generated
+  cover and Big Picture's per-system shelves.
+- **Fix dialogs.** `ember_ui::save_conflict::resolve_launch_error` also turns
+  `EngineMissing` and `BiosMissing` into dialogs with a fix (install and play, use the
+  default version, choose the BIOS folder). Every place that starts a game already
+  calls it.
 - **UI.** The Emulators page (`Route::Emulators`, `ember-manage::emulators`) installs,
   updates and removes versions and cores, and picks each system's default emulator.
   Installs run through `ember_manage::start_install` so any screen can start one and the

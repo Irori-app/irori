@@ -339,5 +339,10 @@
   "library.update_first.description": "Há uma atualização disponível. Jogar agora inicia a versão instalada.",
   "library.update_first.play_now": "Jogar agora",
   "library.update_first.title": "Atualizar «{title}» primeiro?",
-  "library.update_first.update": "Atualizar"
+  "library.update_first.update": "Atualizar",
+  "library.filters.section.system": "Sistema",
+  "library.empty.set_up_emulation": "Configurar a emulação",
+  "library.sideload.rom_hint.title": "Isto é um jogo de consola",
+  "library.sideload.rom_hint.body": "O Ember reconhece este ficheiro como um jogo de {system}. Adicione-o aos seus jogos de consola e o Ember abre-o com o emulador certo.",
+  "library.sideload.rom_hint.add": "Adicionar como jogo de consola"
 }

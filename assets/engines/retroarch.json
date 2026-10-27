@@ -47,7 +47,7 @@
     },
     { "id": "pause_in_background", "kind": "toggle", "default": true, "advanced": true }
   ],
-  "exitHotkey": "Esc twice, or Select + Start",
+  "exitHotkey": "Esc ×2 · Select + Start",
   "cores": [
     { "id": "nestopia", "name": "Nestopia", "license": "GPL-2.0", "systems": ["nes"] },
     { "id": "mesen", "name": "Mesen", "license": "GPL-3.0", "systems": ["nes"] },

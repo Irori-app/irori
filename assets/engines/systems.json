@@ -7,22 +7,50 @@
       "short": "NES",
       "maker": "Nintendo",
       "year": 1983,
-      "colors": ["#b01e2a", "#2b2b2b"],
-      "extensions": ["nes", "fds", "unf", "unif"],
-      "folders": ["nes", "famicom", "fc", "nintendo entertainment system"],
-      "headers": [{ "offset": 0, "ascii": "NES\u001a" }, { "offset": 0, "ascii": "FDS\u001a" }],
+      "libretro": "Nintendo - Nintendo Entertainment System",
+      "colors": [
+        "#b01e2a",
+        "#2b2b2b"
+      ],
+      "extensions": [
+        "nes",
+        "fds",
+        "unf",
+        "unif"
+      ],
+      "folders": [
+        "nes",
+        "famicom",
+        "fc",
+        "nintendo entertainment system"
+      ],
+      "headers": [
+        {
+          "offset": 0,
+          "ascii": "NES\u001a"
+        },
+        {
+          "offset": 0,
+          "ascii": "FDS\u001a"
+        }
+      ],
       "bios": {
         "rule": "optional",
         "files": [
           {
             "name": "disksys.rom",
             "region": "JP",
-            "md5": ["ca30b50f880eb660a320674ed365ef7a"],
+            "md5": [
+              "ca30b50f880eb660a320674ed365ef7a"
+            ],
             "note": "fds"
           }
         ]
       },
-      "engines": ["retroarch:nestopia", "retroarch:mesen"]
+      "engines": [
+        "retroarch:nestopia",
+        "retroarch:mesen"
+      ]
     },
     {
       "id": "snes",
@@ -30,10 +58,28 @@
       "short": "SNES",
       "maker": "Nintendo",
       "year": 1990,
-      "colors": ["#4f43ae", "#d9d9d9"],
-      "extensions": ["sfc", "smc", "fig", "swc", "bs"],
-      "folders": ["snes", "sfc", "super nintendo", "super famicom"],
-      "engines": ["retroarch:snes9x", "retroarch:bsnes"]
+      "libretro": "Nintendo - Super Nintendo Entertainment System",
+      "colors": [
+        "#4f43ae",
+        "#d9d9d9"
+      ],
+      "extensions": [
+        "sfc",
+        "smc",
+        "fig",
+        "swc",
+        "bs"
+      ],
+      "folders": [
+        "snes",
+        "sfc",
+        "super nintendo",
+        "super famicom"
+      ],
+      "engines": [
+        "retroarch:snes9x",
+        "retroarch:bsnes"
+      ]
     },
     {
       "id": "n64",
@@ -41,15 +87,37 @@
       "short": "N64",
       "maker": "Nintendo",
       "year": 1996,
-      "colors": ["#1c7a3c", "#e3b23c"],
-      "extensions": ["n64", "z64", "v64"],
-      "folders": ["n64", "nintendo 64"],
-      "headers": [
-        { "offset": 0, "hex": "80371240" },
-        { "offset": 0, "hex": "37804012" },
-        { "offset": 0, "hex": "40123780" }
+      "libretro": "Nintendo - Nintendo 64",
+      "colors": [
+        "#1c7a3c",
+        "#e3b23c"
       ],
-      "engines": ["retroarch:mupen64plus_next"]
+      "extensions": [
+        "n64",
+        "z64",
+        "v64"
+      ],
+      "folders": [
+        "n64",
+        "nintendo 64"
+      ],
+      "headers": [
+        {
+          "offset": 0,
+          "hex": "80371240"
+        },
+        {
+          "offset": 0,
+          "hex": "37804012"
+        },
+        {
+          "offset": 0,
+          "hex": "40123780"
+        }
+      ],
+      "engines": [
+        "retroarch:mupen64plus_next"
+      ]
     },
     {
       "id": "gb",
@@ -57,10 +125,23 @@
       "short": "GB",
       "maker": "Nintendo",
       "year": 1989,
-      "colors": ["#8b956d", "#2f3a1f"],
-      "extensions": ["gb"],
-      "folders": ["gb", "game boy", "gameboy"],
-      "engines": ["retroarch:gambatte", "retroarch:mgba"]
+      "libretro": "Nintendo - Game Boy",
+      "colors": [
+        "#8b956d",
+        "#2f3a1f"
+      ],
+      "extensions": [
+        "gb"
+      ],
+      "folders": [
+        "gb",
+        "game boy",
+        "gameboy"
+      ],
+      "engines": [
+        "retroarch:gambatte",
+        "retroarch:mgba"
+      ]
     },
     {
       "id": "gbc",
@@ -68,10 +149,23 @@
       "short": "GBC",
       "maker": "Nintendo",
       "year": 1998,
-      "colors": ["#6a2bb5", "#f2c230"],
-      "extensions": ["gbc"],
-      "folders": ["gbc", "game boy color", "gameboy color"],
-      "engines": ["retroarch:gambatte", "retroarch:mgba"]
+      "libretro": "Nintendo - Game Boy Color",
+      "colors": [
+        "#6a2bb5",
+        "#f2c230"
+      ],
+      "extensions": [
+        "gbc"
+      ],
+      "folders": [
+        "gbc",
+        "game boy color",
+        "gameboy color"
+      ],
+      "engines": [
+        "retroarch:gambatte",
+        "retroarch:mgba"
+      ]
     },
     {
       "id": "gba",
@@ -79,15 +173,39 @@
       "short": "GBA",
       "maker": "Nintendo",
       "year": 2001,
-      "colors": ["#3b2a8f", "#9aa3c7"],
-      "extensions": ["gba"],
-      "folders": ["gba", "game boy advance", "gameboy advance"],
-      "headers": [{ "offset": 4, "hex": "24ffae51699aa2213d84820a84e409ad" }],
+      "libretro": "Nintendo - Game Boy Advance",
+      "colors": [
+        "#3b2a8f",
+        "#9aa3c7"
+      ],
+      "extensions": [
+        "gba"
+      ],
+      "folders": [
+        "gba",
+        "game boy advance",
+        "gameboy advance"
+      ],
+      "headers": [
+        {
+          "offset": 4,
+          "hex": "24ffae51699aa2213d84820a84e409ad"
+        }
+      ],
       "bios": {
         "rule": "optional",
-        "files": [{ "name": "gba_bios.bin", "md5": ["a860e8c0b6d573d191e4ec7db1b1e4f6"] }]
+        "files": [
+          {
+            "name": "gba_bios.bin",
+            "md5": [
+              "a860e8c0b6d573d191e4ec7db1b1e4f6"
+            ]
+          }
+        ]
       },
-      "engines": ["retroarch:mgba"]
+      "engines": [
+        "retroarch:mgba"
+      ]
     },
     {
       "id": "nds",
@@ -95,18 +213,43 @@
       "short": "DS",
       "maker": "Nintendo",
       "year": 2004,
-      "colors": ["#3d3d3d", "#c8c8c8"],
-      "extensions": ["nds", "dsi"],
-      "folders": ["nds", "ds", "nintendo ds"],
+      "libretro": "Nintendo - Nintendo DS",
+      "colors": [
+        "#3d3d3d",
+        "#c8c8c8"
+      ],
+      "extensions": [
+        "nds",
+        "dsi"
+      ],
+      "folders": [
+        "nds",
+        "ds",
+        "nintendo ds"
+      ],
       "bios": {
         "rule": "optional",
         "files": [
-          { "name": "bios7.bin", "md5": ["df692a80a5b1bc90728bc3dfc76cd948"] },
-          { "name": "bios9.bin", "md5": ["a392174eb3e572fed6447e956bde4b25"] },
-          { "name": "firmware.bin" }
+          {
+            "name": "bios7.bin",
+            "md5": [
+              "df692a80a5b1bc90728bc3dfc76cd948"
+            ]
+          },
+          {
+            "name": "bios9.bin",
+            "md5": [
+              "a392174eb3e572fed6447e956bde4b25"
+            ]
+          },
+          {
+            "name": "firmware.bin"
+          }
         ]
       },
-      "engines": ["retroarch:melondsds"]
+      "engines": [
+        "retroarch:melondsds"
+      ]
     },
     {
       "id": "gamecube",
@@ -114,12 +257,35 @@
       "short": "GC",
       "maker": "Nintendo",
       "year": 2001,
-      "colors": ["#5a3e9e", "#1b1b1b"],
-      "extensions": ["gcm", "gcz", "rvz", "ciso", "dol", "iso"],
-      "folders": ["gc", "gamecube", "ngc", "gcn"],
-      "headers": [{ "offset": 28, "hex": "c2339f3d" }],
+      "libretro": "Nintendo - GameCube",
+      "colors": [
+        "#5a3e9e",
+        "#1b1b1b"
+      ],
+      "extensions": [
+        "gcm",
+        "gcz",
+        "rvz",
+        "ciso",
+        "dol",
+        "iso"
+      ],
+      "folders": [
+        "gc",
+        "gamecube",
+        "ngc",
+        "gcn"
+      ],
+      "headers": [
+        {
+          "offset": 28,
+          "hex": "c2339f3d"
+        }
+      ],
       "multiDisc": true,
-      "engines": ["dolphin"]
+      "engines": [
+        "dolphin"
+      ]
     },
     {
       "id": "wii",
@@ -127,11 +293,34 @@
       "short": "Wii",
       "maker": "Nintendo",
       "year": 2006,
-      "colors": ["#2fa7d8", "#f0f0f0"],
-      "extensions": ["wbfs", "wad", "rvz", "gcz", "iso"],
-      "folders": ["wii"],
-      "headers": [{ "offset": 24, "hex": "5d1c9ea3" }, { "offset": 0, "ascii": "WBFS" }],
-      "engines": ["dolphin"]
+      "libretro": "Nintendo - Wii",
+      "colors": [
+        "#2fa7d8",
+        "#f0f0f0"
+      ],
+      "extensions": [
+        "wbfs",
+        "wad",
+        "rvz",
+        "gcz",
+        "iso"
+      ],
+      "folders": [
+        "wii"
+      ],
+      "headers": [
+        {
+          "offset": 24,
+          "hex": "5d1c9ea3"
+        },
+        {
+          "offset": 0,
+          "ascii": "WBFS"
+        }
+      ],
+      "engines": [
+        "dolphin"
+      ]
     },
     {
       "id": "sms",
@@ -139,10 +328,23 @@
       "short": "SMS",
       "maker": "Sega",
       "year": 1985,
-      "colors": ["#c8102e", "#1a1a1a"],
-      "extensions": ["sms"],
-      "folders": ["sms", "master system", "mastersystem", "mark iii"],
-      "engines": ["retroarch:genesis_plus_gx"]
+      "libretro": "Sega - Master System - Mark III",
+      "colors": [
+        "#c8102e",
+        "#1a1a1a"
+      ],
+      "extensions": [
+        "sms"
+      ],
+      "folders": [
+        "sms",
+        "master system",
+        "mastersystem",
+        "mark iii"
+      ],
+      "engines": [
+        "retroarch:genesis_plus_gx"
+      ]
     },
     {
       "id": "genesis",
@@ -150,11 +352,32 @@
       "short": "MD",
       "maker": "Sega",
       "year": 1988,
-      "colors": ["#141414", "#d62b2b"],
-      "extensions": ["md", "gen", "smd", "sg"],
-      "folders": ["genesis", "megadrive", "mega drive", "md"],
-      "headers": [{ "offset": 256, "ascii": "SEGA" }],
-      "engines": ["retroarch:genesis_plus_gx"]
+      "libretro": "Sega - Mega Drive - Genesis",
+      "colors": [
+        "#141414",
+        "#d62b2b"
+      ],
+      "extensions": [
+        "md",
+        "gen",
+        "smd",
+        "sg"
+      ],
+      "folders": [
+        "genesis",
+        "megadrive",
+        "mega drive",
+        "md"
+      ],
+      "headers": [
+        {
+          "offset": 256,
+          "ascii": "SEGA"
+        }
+      ],
+      "engines": [
+        "retroarch:genesis_plus_gx"
+      ]
     },
     {
       "id": "gamegear",
@@ -162,10 +385,22 @@
       "short": "GG",
       "maker": "Sega",
       "year": 1990,
-      "colors": ["#202020", "#3a7bd5"],
-      "extensions": ["gg"],
-      "folders": ["gamegear", "game gear", "gg"],
-      "engines": ["retroarch:genesis_plus_gx"]
+      "libretro": "Sega - Game Gear",
+      "colors": [
+        "#202020",
+        "#3a7bd5"
+      ],
+      "extensions": [
+        "gg"
+      ],
+      "folders": [
+        "gamegear",
+        "game gear",
+        "gg"
+      ],
+      "engines": [
+        "retroarch:genesis_plus_gx"
+      ]
     },
     {
       "id": "segacd",
@@ -173,20 +408,55 @@
       "short": "SCD",
       "maker": "Sega",
       "year": 1991,
-      "colors": ["#1f1f1f", "#2b6fd6"],
-      "extensions": ["cue", "chd", "iso", "m3u"],
+      "libretro": "Sega - Mega-CD - Sega CD",
+      "colors": [
+        "#1f1f1f",
+        "#2b6fd6"
+      ],
+      "extensions": [
+        "cue",
+        "chd",
+        "iso",
+        "m3u"
+      ],
       "discImages": true,
       "multiDisc": true,
-      "folders": ["segacd", "sega cd", "megacd", "mega cd", "mega-cd"],
+      "folders": [
+        "segacd",
+        "sega cd",
+        "megacd",
+        "mega cd",
+        "mega-cd"
+      ],
       "bios": {
         "rule": "anyOf",
         "files": [
-          { "name": "bios_CD_U.bin", "region": "US", "md5": ["2efd74e3232ff260e371b99f84024f7f"] },
-          { "name": "bios_CD_E.bin", "region": "EU", "md5": ["e66fa1dc5820d254611fdcdba0662372"] },
-          { "name": "bios_CD_J.bin", "region": "JP", "md5": ["278a9397d192149e84e820ac621a8edd"] }
+          {
+            "name": "bios_CD_U.bin",
+            "region": "US",
+            "md5": [
+              "2efd74e3232ff260e371b99f84024f7f"
+            ]
+          },
+          {
+            "name": "bios_CD_E.bin",
+            "region": "EU",
+            "md5": [
+              "e66fa1dc5820d254611fdcdba0662372"
+            ]
+          },
+          {
+            "name": "bios_CD_J.bin",
+            "region": "JP",
+            "md5": [
+              "278a9397d192149e84e820ac621a8edd"
+            ]
+          }
         ]
       },
-      "engines": ["retroarch:genesis_plus_gx"]
+      "engines": [
+        "retroarch:genesis_plus_gx"
+      ]
     },
     {
       "id": "pce",
@@ -194,10 +464,26 @@
       "short": "PCE",
       "maker": "NEC",
       "year": 1987,
-      "colors": ["#f2f2f2", "#e03a3a"],
-      "extensions": ["pce", "sgx"],
-      "folders": ["pce", "pcengine", "pc engine", "tg16", "turbografx", "turbografx-16"],
-      "engines": ["retroarch:mednafen_pce_fast"]
+      "libretro": "NEC - PC Engine - TurboGrafx 16",
+      "colors": [
+        "#f2f2f2",
+        "#e03a3a"
+      ],
+      "extensions": [
+        "pce",
+        "sgx"
+      ],
+      "folders": [
+        "pce",
+        "pcengine",
+        "pc engine",
+        "tg16",
+        "turbografx",
+        "turbografx-16"
+      ],
+      "engines": [
+        "retroarch:mednafen_pce_fast"
+      ]
     },
     {
       "id": "psx",
@@ -205,22 +491,73 @@
       "short": "PS1",
       "maker": "Sony",
       "year": 1994,
-      "colors": ["#9a9a9a", "#2a2a2a"],
-      "extensions": ["cue", "chd", "pbp", "ecm", "iso", "img", "m3u", "exe"],
+      "libretro": "Sony - PlayStation",
+      "colors": [
+        "#9a9a9a",
+        "#2a2a2a"
+      ],
+      "extensions": [
+        "cue",
+        "chd",
+        "pbp",
+        "ecm",
+        "iso",
+        "img",
+        "m3u",
+        "exe"
+      ],
       "discImages": true,
       "multiDisc": true,
-      "folders": ["psx", "ps1", "playstation", "playstation 1"],
+      "folders": [
+        "psx",
+        "ps1",
+        "playstation",
+        "playstation 1"
+      ],
       "bios": {
         "rule": "anyOf",
         "files": [
-          { "name": "scph5501.bin", "region": "US", "md5": ["490f666e1afb15b7362b406ed1cea246"] },
-          { "name": "scph1001.bin", "region": "US", "md5": ["924e392ed05558ffdb115408c263dccf"] },
-          { "name": "scph5502.bin", "region": "EU", "md5": ["32736f17079d0b2b7024407c39bd3050"] },
-          { "name": "scph5500.bin", "region": "JP", "md5": ["8dd7d5296a650fac7319bce665a6a53c"] },
-          { "name": "scph101.bin", "region": "US", "md5": ["6e3735ff4c7dc899ee98981385f6f3d0"] }
+          {
+            "name": "scph5501.bin",
+            "region": "US",
+            "md5": [
+              "490f666e1afb15b7362b406ed1cea246"
+            ]
+          },
+          {
+            "name": "scph1001.bin",
+            "region": "US",
+            "md5": [
+              "924e392ed05558ffdb115408c263dccf"
+            ]
+          },
+          {
+            "name": "scph5502.bin",
+            "region": "EU",
+            "md5": [
+              "32736f17079d0b2b7024407c39bd3050"
+            ]
+          },
+          {
+            "name": "scph5500.bin",
+            "region": "JP",
+            "md5": [
+              "8dd7d5296a650fac7319bce665a6a53c"
+            ]
+          },
+          {
+            "name": "scph101.bin",
+            "region": "US",
+            "md5": [
+              "6e3735ff4c7dc899ee98981385f6f3d0"
+            ]
+          }
         ]
       },
-      "engines": ["duckstation", "retroarch:swanstation"]
+      "engines": [
+        "duckstation",
+        "retroarch:swanstation"
+      ]
     },
     {
       "id": "psp",
@@ -228,10 +565,27 @@
       "short": "PSP",
       "maker": "Sony",
       "year": 2004,
-      "colors": ["#101010", "#3c6fb8"],
-      "extensions": ["iso", "cso", "chd", "pbp", "elf", "prx"],
-      "folders": ["psp", "playstation portable"],
-      "engines": ["ppsspp", "retroarch:ppsspp"]
+      "libretro": "Sony - PlayStation Portable",
+      "colors": [
+        "#101010",
+        "#3c6fb8"
+      ],
+      "extensions": [
+        "iso",
+        "cso",
+        "chd",
+        "pbp",
+        "elf",
+        "prx"
+      ],
+      "folders": [
+        "psp",
+        "playstation portable"
+      ],
+      "engines": [
+        "ppsspp",
+        "retroarch:ppsspp"
+      ]
     },
     {
       "id": "dos",
@@ -239,11 +593,27 @@
       "short": "DOS",
       "maker": "Microsoft",
       "year": 1981,
-      "colors": ["#0000aa", "#aaaaaa"],
-      "extensions": ["exe", "com", "bat", "conf"],
-      "folders": ["dos", "msdos", "ms-dos", "pc dos"],
+      "libretro": "DOS",
+      "colors": [
+        "#0000aa",
+        "#aaaaaa"
+      ],
+      "extensions": [
+        "exe",
+        "com",
+        "bat",
+        "conf"
+      ],
+      "folders": [
+        "dos",
+        "msdos",
+        "ms-dos",
+        "pc dos"
+      ],
       "folderGames": true,
-      "engines": ["dosbox-staging"]
+      "engines": [
+        "dosbox-staging"
+      ]
     },
     {
       "id": "scummvm",
@@ -251,11 +621,22 @@
       "short": "SCUMM",
       "maker": "Various",
       "year": 1987,
-      "colors": ["#2e7d32", "#f9a825"],
-      "extensions": ["scummvm"],
-      "folders": ["scummvm", "scumm"],
+      "libretro": "ScummVM",
+      "colors": [
+        "#2e7d32",
+        "#f9a825"
+      ],
+      "extensions": [
+        "scummvm"
+      ],
+      "folders": [
+        "scummvm",
+        "scumm"
+      ],
       "folderGames": true,
-      "engines": ["scummvm"]
+      "engines": [
+        "scummvm"
+      ]
     }
   ]
 }

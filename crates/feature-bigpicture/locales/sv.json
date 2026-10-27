@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Laddar ditt bibliotek…",
   "bigpicture.empty.title": "Inga spel än",
   "bigpicture.empty.description": "Logga in i en butik eller lägg till ett spel från biblioteket och kom sedan tillbaka.",
-  "bigpicture.menu.interface_size": "Gränssnittets storlek: {percent} %"
+  "bigpicture.menu.interface_size": "Gränssnittets storlek: {percent} %",
+  "bigpicture.menu.set_up_emulation": "Konfigurera emulering"
 }

@@ -39,7 +39,7 @@ use serde_json::Value;
 
 pub use discovery::{Installation, Origin};
 pub use host::{Host, Os};
-pub use launch::{EngineMissing, GameFile};
+pub use launch::{BiosMissing, EngineMissing, GameFile};
 pub use manifest::{EngineKind, EngineManifest, EngineOption, OptionKind};
 pub use systems::System;
 
@@ -192,6 +192,38 @@ pub fn choices_for(system: &str) -> Vec<EngineRef> {
     }
     out.retain(|r| engine(&r.engine).is_some());
     out
+}
+
+/// The emulator a game of `system` plays with when it names none:
+/// `chosen` (the user's default for the system), else the first
+/// recommended choice that `plays` accepts, else the first recommended.
+pub fn default_choice(
+    system: &str,
+    chosen: Option<&str>,
+    plays: impl Fn(&EngineRef) -> bool,
+) -> Option<EngineRef> {
+    if let Some(chosen) = chosen.and_then(EngineRef::parse) {
+        return Some(chosen);
+    }
+    let choices = choices_for(system);
+    choices
+        .iter()
+        .find(|c| plays(c))
+        .or_else(|| choices.first())
+        .cloned()
+}
+
+/// Whether `choice` can play right now: its engine has an installation and,
+/// for RetroArch, the core is installed. Blocking (reads the disk).
+pub fn plays_now(choice: &EngineRef, state: &state::EngineState) -> bool {
+    let Some(m) = engine(&choice.engine) else {
+        return false;
+    };
+    !discovery::find(&m, state).is_empty()
+        && choice
+            .core
+            .as_deref()
+            .is_none_or(|c| retroarch::installed_core(c).is_some())
 }
 
 fn load_manifests() -> Vec<Arc<EngineManifest>> {

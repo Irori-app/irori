@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "{title} konnte nicht beendet werden",
   "shell.nav.stats": "Statistik",
   "shell.palette.random": "Zufälliges Spiel auswählen",
-  "shell.palette.random_keywords": "zufall überraschung mischen roulette"
+  "shell.palette.random_keywords": "zufall überraschung mischen roulette",
+  "shell.notice.exit_hotkey": "{engine}: Spiel verlassen mit {keys}",
+  "shell.palette.set_up_emulation": "Emulation einrichten",
+  "shell.palette.set_up_emulation_keywords": "emulator ROM konsole retro BIOS RetroArch"
 }

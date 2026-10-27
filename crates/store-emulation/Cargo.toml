@@ -1,0 +1,28 @@
+[package]
+name = "ember-emulation"
+description = "The ROM library store: console and retro games in the user's folders, played with emulators"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-engines.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+url.workspace = true
+sha1.workspace = true
+hex.workspace = true
+notify = "8"
+
+[dev-dependencies]
+tempfile = "3"

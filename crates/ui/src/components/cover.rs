@@ -6,9 +6,9 @@ use gpui_kit::component::skeleton::Skeleton;
 use gpui_kit::component::{ActiveTheme as _, Icon, Sizable as _, StyledExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Background, ElementId, Img, IntoElement, ObjectFit, ParentElement, Pixels,
-    Rems, RenderOnce, SharedString, Styled, StyledImage as _, Window, div, img, linear_color_stop,
-    linear_gradient, rems,
+    AnyElement, App, Background, ElementId, Hsla, Img, IntoElement, ObjectFit, ParentElement,
+    Pixels, Rems, RenderOnce, SharedString, Styled, StyledImage as _, Window, div, img,
+    linear_color_stop, linear_gradient, rems, rgb,
 };
 
 use crate::art::{Art, art_store};
@@ -93,6 +93,55 @@ pub fn art_missing(cx: &App) -> AnyElement {
         .into_any_element()
 }
 
+/// A `#rrggbb` colour of the systems catalog.
+fn catalog_color(hex: &str) -> Option<Hsla> {
+    let v = u32::from_str_radix(hex.strip_prefix('#')?, 16).ok()?;
+    Some(rgb(v).into())
+}
+
+/// The generated cover of an emulated game without box art: the system's
+/// colours, its short name and the title. Like box art, it carries its own
+/// colours in every theme, with text that stays legible on them.
+fn system_cover(system: &str, title: &SharedString, small: bool) -> Option<AnyElement> {
+    let sys = ember_engines::systems::get(system)?;
+    let (base, accent) = (
+        catalog_color(&sys.colors[0])?,
+        catalog_color(&sys.colors[1])?,
+    );
+    let text = if base.l > 0.6 {
+        gpui_kit::black()
+    } else {
+        gpui_kit::white()
+    };
+    Some(
+        v_flex()
+            .size_full()
+            .justify_between()
+            .p_3()
+            .bg(linear_gradient(
+                160.,
+                linear_color_stop(base, 0.55),
+                linear_color_stop(accent, 1.),
+            ))
+            .text_color(text)
+            .child(
+                div()
+                    .text_xs()
+                    .font_bold()
+                    .opacity(0.85)
+                    .child(sys.short.clone()),
+            )
+            .child(
+                div()
+                    .when_else(small, |d| d.text_sm(), |d| d.text_lg())
+                    .font_bold()
+                    .line_clamp(4)
+                    .child(title.clone()),
+            )
+            .into_any_element(),
+    )
+}
+
 /// Physical pixel width of a length in rems in this window.
 pub fn physical_width(width: Rems, window: &Window) -> u32 {
     let logical: f32 = (window.rem_size() * width.0).into();
@@ -163,6 +212,13 @@ impl RenderOnce for GameCover {
             ArtImage::Loading => base.child(art_loading()),
             // Tiny thumbnails (download rows, sidebar) have no room for a title.
             ArtImage::Missing if self.width.0 < 5. => base.child(art_missing(cx)),
+            ArtImage::Missing
+                if let Some(cover) = self.game.system.as_deref().and_then(|s| {
+                    system_cover(s, &self.game.title.clone().into(), self.width.0 < 9.)
+                }) =>
+            {
+                base.child(cover)
+            }
             ArtImage::Missing => base.child(
                 v_flex()
                     .size_full()

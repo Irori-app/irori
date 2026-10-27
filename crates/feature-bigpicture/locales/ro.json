@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Se încarcă biblioteca…",
   "bigpicture.empty.title": "Încă nu ai jocuri",
   "bigpicture.empty.description": "Conectează-te la un magazin sau adaugă un joc din bibliotecă, apoi revino.",
-  "bigpicture.menu.interface_size": "Dimensiunea interfeței: {percent}%"
+  "bigpicture.menu.interface_size": "Dimensiunea interfeței: {percent}%",
+  "bigpicture.menu.set_up_emulation": "Configurează emularea"
 }

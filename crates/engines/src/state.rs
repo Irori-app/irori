@@ -58,6 +58,8 @@ pub struct EngineState {
     pub custom: BTreeMap<String, PathBuf>,
     /// Installed cores by core id.
     pub cores: BTreeMap<String, CoreInstall>,
+    /// Engines whose exit hotkey the user has been shown.
+    pub hotkey_shown: std::collections::BTreeSet<String>,
 }
 
 fn file() -> PathBuf {

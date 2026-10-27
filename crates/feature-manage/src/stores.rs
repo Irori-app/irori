@@ -58,7 +58,7 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
         },
         // Steam's games come from its own client; Ember has nothing to
         // offer there beyond the library.
-        Runner::Steam | Runner::Sideload => return None,
+        Runner::Steam | Runner::Sideload | Runner::Emulation => return None,
     })
 }
 

@@ -23,10 +23,13 @@ pub enum Runner {
     Steam,
     /// Apps the user added manually.
     Sideload,
+    /// Console and retro games in the user's ROM folders, played with
+    /// emulators.
+    Emulation,
 }
 
 impl Runner {
-    pub const ALL: [Runner; 7] = [
+    pub const ALL: [Runner; 8] = [
         Runner::Legendary,
         Runner::Gog,
         Runner::Nile,
@@ -34,6 +37,7 @@ impl Runner {
         Runner::Itch,
         Runner::Steam,
         Runner::Sideload,
+        Runner::Emulation,
     ];
 
     /// Stable identifier used in paths, IDs and config keys.
@@ -46,6 +50,7 @@ impl Runner {
             Runner::Itch => "itch",
             Runner::Steam => "steam",
             Runner::Sideload => "sideload",
+            Runner::Emulation => "emulation",
         }
     }
 
@@ -59,6 +64,7 @@ impl Runner {
             Runner::Itch => "itch.io",
             Runner::Steam => "Steam",
             Runner::Sideload => "Added manually",
+            Runner::Emulation => "Emulated",
         }
     }
 
@@ -72,6 +78,7 @@ impl Runner {
             Runner::Itch => "itch.io",
             Runner::Steam => "Steam",
             Runner::Sideload => "Other",
+            Runner::Emulation => "Emulated",
         }
     }
 
@@ -84,13 +91,14 @@ impl Runner {
             "itch" | "itchio" => Runner::Itch,
             "steam" => Runner::Steam,
             "sideload" => Runner::Sideload,
+            "emulation" => Runner::Emulation,
             _ => return None,
         })
     }
 
     /// Whether this store has an account to log in to.
     pub fn has_account(self) -> bool {
-        !matches!(self, Runner::Sideload | Runner::Steam)
+        !matches!(self, Runner::Sideload | Runner::Steam | Runner::Emulation)
     }
 
     /// Whether Ember installs, updates, repairs, moves and removes this

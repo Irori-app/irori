@@ -5,11 +5,13 @@
 
 mod configure;
 mod ops;
+mod setup;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::time::Duration;
 
+use ember_engines::bios::{FileState, SystemBios, SystemState};
 use ember_engines::releases::{self, Release};
 use ember_engines::{EngineKind, EngineRef, Host, Installation, Origin, systems};
 use ember_services::EngineStatus;
@@ -17,6 +19,7 @@ use ember_ui::components::{EmptyState, PageHeader, SectionTitle};
 use ember_ui::i18n::{t, t_args};
 use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
+use gpui_kit::component::Icon;
 use gpui_kit::component::IndexPath;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -43,6 +46,7 @@ use crate::format;
 pub use configure::open_engine_settings;
 use ops::{EngineOps, OpLive, cancel_install, core_key, core_name, engine_key, engine_ops};
 pub use ops::{InstallTarget, start_install};
+pub use setup::open_emulation_setup;
 
 /// Translation keys of the built-in emulators' options.
 #[cfg(test)]
@@ -89,6 +93,12 @@ pub fn choice_name(choice: &EngineRef) -> String {
 pub struct EmulatorsView {
     tab_ix: usize,
     statuses: Option<Vec<EngineStatus>>,
+    /// BIOS status by system id.
+    bios: HashMap<String, SystemBios>,
+    /// Emulated games in the library by system id.
+    counts: BTreeMap<String, usize>,
+    /// A ROM or BIOS scan started here is running.
+    scanning: bool,
     /// Downloadable versions per engine (the cached list first).
     releases: HashMap<String, Result<Vec<Release>, SharedString>>,
     refreshing: bool,
@@ -131,11 +141,18 @@ impl EmulatorsView {
             cx.observe_in(&settings, window, |this, _, window, cx| {
                 this.load(window, cx)
             }),
+            cx.observe(&models(cx).library.clone(), |this, _, cx| {
+                this.counts = backend(cx).emulated_counts();
+                cx.notify();
+            }),
         ];
         let seen_revision = ops.read(cx).revision;
         let mut this = Self {
             tab_ix: 0,
             statuses: None,
+            bios: HashMap::new(),
+            counts: BTreeMap::new(),
+            scanning: false,
             releases: HashMap::new(),
             refreshing: false,
             show_cores: false,
@@ -157,11 +174,17 @@ impl EmulatorsView {
     /// Re-read installs from disk.
     fn load(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move { Ok(b.engine_statuses().await) });
+        self.counts = b.emulated_counts();
+        let task = ember_ui::run(cx, async move {
+            Ok((b.engine_statuses().await, b.bios_statuses().await))
+        });
         cx.spawn_in(window, async move |this, cx| {
-            let Ok(statuses) = task.await else { return };
+            let Ok((statuses, bios)) = task.await else {
+                return;
+            };
             let _ = this.update_in(cx, |this, window, cx| {
                 this.statuses = Some(statuses);
+                this.bios = bios.into_iter().map(|b| (b.system.clone(), b)).collect();
                 this.sync_system_selects(window, cx);
                 cx.notify();
             });
@@ -444,6 +467,198 @@ impl EmulatorsView {
             });
         })
         .detach();
+    }
+
+    fn pick_folder(&mut self, bios: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let paths = cx.prompt_for_paths(PathPromptOptions {
+            files: false,
+            directories: true,
+            multiple: false,
+            prompt: Some(if bios {
+                t("manage.emulators.bios.choose")
+            } else {
+                t("manage.emulators.folders.add")
+            }),
+        });
+        cx.spawn_in(window, async move |this, cx| {
+            let Ok(Ok(Some(paths))) = paths.await else {
+                return;
+            };
+            let Some(path) = paths.into_iter().next() else {
+                return;
+            };
+            let _ = this.update_in(cx, |this, window, cx| {
+                let b = backend(cx);
+                this.run_scan(window, cx, async move {
+                    if bios {
+                        b.set_bios_folder(path).await.map(|_| ())
+                    } else {
+                        b.add_rom_folder(path).await
+                    }
+                })
+            });
+        })
+        .detach();
+    }
+
+    /// Run a folder change or rescan, showing it as scanning.
+    fn run_scan(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        work: impl std::future::Future<Output = anyhow::Result<()>> + Send + 'static,
+    ) {
+        self.scanning = true;
+        cx.notify();
+        let task = ember_ui::run(cx, work);
+        cx.spawn_in(window, async move |this, cx| {
+            let result = task.await;
+            let _ = this.update_in(cx, |this, window, cx| {
+                this.scanning = false;
+                if let Err(e) = result {
+                    notify_error(t("manage.emulators.folders.scan_failed"), &e, window, cx);
+                }
+                this.load(window, cx);
+            });
+        })
+        .detach();
+    }
+
+    fn rescan(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let b = backend(cx);
+        let bios = b.settings.app().bios_folder.clone();
+        self.run_scan(window, cx, async move {
+            b.refresh_store(ember_core::Runner::Emulation, false)
+                .await?;
+            if !bios.trim().is_empty() {
+                b.rescan_bios(ember_core::paths::expand_home(&bios)).await?;
+            }
+            Ok(())
+        });
+    }
+
+    fn render_folders(&self, cx: &mut Context<Self>) -> AnyElement {
+        let muted = cx.theme().muted_foreground;
+        let app = models(cx).settings.read(cx).app.clone();
+        let folders: Vec<AnyElement> = app
+            .rom_folders
+            .iter()
+            .enumerate()
+            .map(|(ix, folder)| {
+                let remove = folder.clone();
+                h_flex()
+                    .id(ElementId::Name(format!("rom-folder-{ix}").into()))
+                    .gap_3()
+                    .child(Icon::new(IconName::Folder).small().text_color(muted))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .text_sm()
+                            .truncate()
+                            .child(folder.clone()),
+                    )
+                    .child(
+                        Button::new("remove-folder")
+                            .ghost()
+                            .small()
+                            .label(t("manage.emulators.folders.remove"))
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                let (b, folder) = (backend(cx), remove.clone());
+                                this.run_scan(window, cx, async move {
+                                    b.remove_rom_folder(&folder).await
+                                });
+                            })),
+                    )
+                    .into_any_element()
+            })
+            .collect();
+        let games: usize = self.counts.values().sum();
+        let summary = match (games, self.counts.len()) {
+            (0, _) => t("manage.emulators.folders.none_found"),
+            (1, _) => t("manage.emulators.folders.found_one"),
+            (n, systems) => t_args(
+                "manage.emulators.folders.found",
+                &[("games", &n.to_string()), ("systems", &systems.to_string())],
+            ),
+        };
+        let bios = app.bios_folder.trim().to_string();
+        h_flex()
+            .gap_4()
+            .flex_wrap()
+            .items_start()
+            .child(
+                card(cx)
+                    .w(rems(24.))
+                    .flex_grow(1.)
+                    .child(
+                        SectionTitle::new(t("manage.emulators.folders.title")).trailing(
+                            h_flex()
+                                .gap_1()
+                                .child(
+                                    Button::new("rescan")
+                                        .ghost()
+                                        .small()
+                                        .icon(IconName::RefreshCw)
+                                        .label(t("manage.emulators.folders.rescan"))
+                                        .loading(self.scanning)
+                                        .disabled(self.scanning)
+                                        .on_click(cx.listener(|this, _, window, cx| {
+                                            this.rescan(window, cx)
+                                        })),
+                                )
+                                .child(
+                                    Button::new("add-folder")
+                                        .small()
+                                        .icon(IconName::FolderPlus)
+                                        .label(t("manage.emulators.folders.add"))
+                                        .on_click(cx.listener(|this, _, window, cx| {
+                                            this.pick_folder(false, window, cx)
+                                        })),
+                                ),
+                        ),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(muted)
+                            .child(t("manage.emulators.folders.description")),
+                    )
+                    .children(folders)
+                    .child(div().text_sm().child(if self.scanning {
+                        t("manage.emulators.folders.scanning")
+                    } else {
+                        summary
+                    })),
+            )
+            .child(
+                card(cx)
+                    .w(rems(24.))
+                    .flex_grow(1.)
+                    .child(
+                        SectionTitle::new(t("manage.emulators.bios.title")).trailing(
+                            Button::new("choose-bios")
+                                .small()
+                                .icon(IconName::FolderOpen)
+                                .label(t("manage.emulators.bios.choose"))
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.pick_folder(true, window, cx)
+                                })),
+                        ),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(muted)
+                            .child(t("manage.emulators.bios.description")),
+                    )
+                    .child(div().text_sm().truncate().child(if bios.is_empty() {
+                        t("manage.emulators.bios.not_chosen")
+                    } else {
+                        bios.into()
+                    })),
+            )
+            .into_any_element()
     }
 
     fn render_engine(&self, status: &EngineStatus, cx: &mut Context<Self>) -> AnyElement {
@@ -959,8 +1174,11 @@ impl EmulatorsView {
         };
         let b = backend(cx);
         let query = self.query(cx);
-        let cards: Vec<AnyElement> = systems::all()
-            .iter()
+        // Systems with games first, each group in catalog order.
+        let mut ordered: Vec<&ember_engines::System> = systems::all().iter().collect();
+        ordered.sort_by_key(|s| !self.counts.contains_key(&s.id));
+        let cards: Vec<AnyElement> = ordered
+            .into_iter()
             .filter(|s| {
                 query.is_empty()
                     || s.name.to_lowercase().contains(&query)
@@ -1018,6 +1236,16 @@ impl EmulatorsView {
                         })
                         .into_any_element()
                 });
+                let count = self.counts.get(&system.id).copied().unwrap_or(0);
+                let bios_line = self.bios.get(&system.id).and_then(bios_line);
+                let count_text = match count {
+                    0 => t("manage.emulators.system.no_games"),
+                    1 => t("manage.emulators.system.games_one"),
+                    n => t_args(
+                        "manage.emulators.system.games_other",
+                        &[("count", &n.to_string())],
+                    ),
+                };
                 card(cx)
                     .id(ElementId::Name(format!("system-{}", system.id).into()))
                     .w(rems(20.))
@@ -1033,12 +1261,10 @@ impl EmulatorsView {
                                     .child(
                                         div().font_semibold().truncate().child(system.name.clone()),
                                     )
-                                    .child(
-                                        div()
-                                            .text_xs()
-                                            .text_color(muted)
-                                            .child(format!("{} · {}", system.maker, system.year)),
-                                    ),
+                                    .child(div().text_xs().text_color(muted).child(format!(
+                                        "{} · {} · {count_text}",
+                                        system.maker, system.year
+                                    ))),
                             )
                             .child(state),
                     )
@@ -1055,6 +1281,28 @@ impl EmulatorsView {
                                 d.child(Select::new(select).small())
                             }),
                     )
+                    .when_some(bios_line, |d, (warn, text)| {
+                        d.child(
+                            h_flex()
+                                .gap_2()
+                                .items_start()
+                                .text_xs()
+                                .child(
+                                    Icon::new(if warn {
+                                        IconName::TriangleAlert
+                                    } else {
+                                        IconName::CircleCheck
+                                    })
+                                    .xsmall()
+                                    .text_color(if warn {
+                                        cx.theme().warning
+                                    } else {
+                                        cx.theme().success
+                                    }),
+                                )
+                                .child(div().flex_1().min_w_0().child(text)),
+                        )
+                    })
                     .when_some(fix, |d, fix| d.child(fix))
                     .into_any_element()
             })
@@ -1067,9 +1315,54 @@ impl EmulatorsView {
                     .text_color(muted)
                     .child(t("manage.emulators.systems.description")),
             )
+            .child(self.render_folders(cx))
             .child(h_flex().flex_wrap().gap_4().items_start().children(cards))
             .into_any_element()
     }
+}
+
+/// The BIOS line of a system card: whether it is a warning, and its text.
+/// `None` for systems that need no BIOS.
+pub(crate) fn bios_line(status: &SystemBios) -> Option<(bool, SharedString)> {
+    if status.files.is_empty() {
+        return None;
+    }
+    let names = |state: FileState| {
+        status
+            .files
+            .iter()
+            .filter(|f| f.state == state)
+            .map(|f| match &f.region {
+                Some(r) => format!("{} ({r})", f.name),
+                None => f.name.clone(),
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    Some(match status.state {
+        SystemState::Ready => (false, t("manage.emulators.bios.ready")),
+        SystemState::Unrecognized => (
+            true,
+            t_args(
+                "manage.emulators.bios.unrecognized",
+                &[("files", &names(FileState::Unrecognized))],
+            ),
+        ),
+        SystemState::Missing => (
+            true,
+            t_args(
+                "manage.emulators.bios.missing",
+                &[("files", &names(FileState::Missing))],
+            ),
+        ),
+        SystemState::Optional => (
+            false,
+            t_args(
+                "manage.emulators.bios.optional",
+                &[("files", &names(FileState::Missing))],
+            ),
+        ),
+    })
 }
 
 /// Inline progress of a running install.
@@ -1149,15 +1442,27 @@ impl Render for EmulatorsView {
                         PageHeader::new(t("manage.emulators.title"))
                             .description(t("manage.emulators.description"))
                             .action(
-                                Button::new("refresh-emulators")
-                                    .icon(IconName::RefreshCw)
-                                    .label(t("manage.emulators.refresh"))
-                                    .loading(self.refreshing)
-                                    .disabled(self.refreshing)
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        this.load_releases(true, window, cx);
-                                        this.load(window, cx);
-                                    })),
+                                h_flex()
+                                    .gap_2()
+                                    .child(
+                                        Button::new("setup-emulation")
+                                            .icon(IconName::WandSparkles)
+                                            .label(t("manage.setup.open"))
+                                            .on_click(|_, window, cx| {
+                                                open_emulation_setup(window, cx)
+                                            }),
+                                    )
+                                    .child(
+                                        Button::new("refresh-emulators")
+                                            .icon(IconName::RefreshCw)
+                                            .label(t("manage.emulators.refresh"))
+                                            .loading(self.refreshing)
+                                            .disabled(self.refreshing)
+                                            .on_click(cx.listener(|this, _, window, cx| {
+                                                this.load_releases(true, window, cx);
+                                                this.load(window, cx);
+                                            })),
+                                    ),
                             ),
                     )
                     .child(

@@ -84,6 +84,9 @@ pub struct System {
     pub short: String,
     pub maker: String,
     pub year: u16,
+    /// The system's name in libretro's databases and thumbnail sets.
+    #[serde(default)]
+    pub libretro: String,
     /// Background and accent colours of the generated cover.
     pub colors: [String; 2],
     /// Game file extensions, lower case, without the dot.

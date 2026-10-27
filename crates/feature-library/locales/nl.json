@@ -339,5 +339,10 @@
   "library.update_first.description": "Er is een update beschikbaar. Nu spelen start de geïnstalleerde versie.",
   "library.update_first.play_now": "Nu spelen",
   "library.update_first.title": "‘{title}’ eerst bijwerken?",
-  "library.update_first.update": "Bijwerken"
+  "library.update_first.update": "Bijwerken",
+  "library.filters.section.system": "Systeem",
+  "library.empty.set_up_emulation": "Emulatie instellen",
+  "library.sideload.rom_hint.title": "Dit is een consolegame",
+  "library.sideload.rom_hint.body": "Ember herkent dit bestand als een {system}-game. Voeg het toe aan je consolegames, dan speelt Ember het met de juiste emulator.",
+  "library.sideload.rom_hint.add": "Toevoegen als consolegame"
 }

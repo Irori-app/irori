@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Odstranit nastavení a protokoly",
   "game.uninstall.remove_settings_help": "Zapomene vlastní nastavení této hry a smaže její protokoly.",
   "game.uninstall.running": "{title} je spuštěna. Ukončete hru, abyste ji mohli odinstalovat.",
-  "game.uninstall.title": "Odinstalovat „{title}“?"
+  "game.uninstall.title": "Odinstalovat „{title}“?",
+  "game.play_with.menu": "Hrát s…",
+  "game.play_with.title": "Hrát „{title}“ pomocí",
+  "game.play_with.description": "Vyberte emulátor pro tuto hru. „Výchozí“ se řídí výchozím emulátorem systému, který můžete změnit na stránce Emulátory.",
+  "game.play_with.default": "Výchozí",
+  "game.play_with.not_installed": "Nenainstalováno",
+  "game.play_with.chosen": "Vybráno",
+  "game.play_with.versions": "Verze",
+  "game.play_with.versions_help": "Ponechte hru na jedné verzi, pokud v ní funguje nejlépe; aktualizace ji nezmění.",
+  "game.play_with.version": "Verze {version}",
+  "game.play_with.version_default": "Výchozí ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Vybráno vámi",
+  "game.play_with.system": "Nainstalováno v tomto počítači",
+  "game.play_with.manage": "Spravovat emulátory"
 }

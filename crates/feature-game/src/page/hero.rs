@@ -208,7 +208,13 @@ impl GamePage {
             .flex_1()
             .min_w_0()
             .gap_3()
-            .child(caption(game.runner().store_name(), cx))
+            .child(caption(
+                game.system
+                    .as_deref()
+                    .and_then(ember_engines::systems::get)
+                    .map_or(game.runner().store_name(), |s| s.name.as_str()),
+                cx,
+            ))
             .child(heading)
             .children(credits)
             .children(tags)
@@ -243,7 +249,10 @@ impl GamePage {
             .ready()
             .map(|e| e.genres.clone())
             .filter(|g| !g.is_empty())
-            .unwrap_or_else(|| game.genres.clone());
+            .unwrap_or_else(|| game.genres.clone())
+            .into_iter()
+            .chain(game.tags.iter().cloned())
+            .collect::<Vec<_>>();
         let compat = self.compat.ready();
         let protondb = compat.and_then(|c| c.protondb_tier.clone());
         let deck = compat
@@ -796,6 +805,8 @@ impl GamePage {
             return play.into_any_element();
         }
         let current = self.selected_option.clone();
+        let emulated = self.id.runner == ember_core::Runner::Emulation;
+        let id = self.id.clone();
         DropdownButton::new("play-split")
             .primary()
             .large()
@@ -817,6 +828,18 @@ impl GamePage {
                 }
                 if !options.is_empty() {
                     menu = menu.separator();
+                }
+                if emulated {
+                    let id = id.clone();
+                    menu = menu
+                        .item(
+                            PopupMenuItem::new(t("game.play_with.menu"))
+                                .icon(IconName::Joystick)
+                                .on_click(move |_, window, cx| {
+                                    crate::open_play_with_dialog(id.clone(), window, cx)
+                                }),
+                        )
+                        .separator();
                 }
                 for (label, icon, params) in super::menu::PLAY_VARIANTS {
                     let page = page.clone();

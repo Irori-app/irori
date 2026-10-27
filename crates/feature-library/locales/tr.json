@@ -339,5 +339,10 @@
   "library.update_first.description": "Bir güncelleme mevcut. Şimdi oynarsanız yüklü sürüm başlar.",
   "library.update_first.play_now": "Şimdi oyna",
   "library.update_first.title": "Önce “{title}” güncellensin mi?",
-  "library.update_first.update": "Güncelle"
+  "library.update_first.update": "Güncelle",
+  "library.filters.section.system": "Sistem",
+  "library.empty.set_up_emulation": "Emülasyonu kur",
+  "library.sideload.rom_hint.title": "Bu bir konsol oyunu",
+  "library.sideload.rom_hint.body": "Ember bu dosyayı bir {system} oyunu olarak tanıyor. Konsol oyunlarına ekle, Ember onu doğru emülatörle açsın.",
+  "library.sideload.rom_hint.add": "Konsol oyunu olarak ekle"
 }

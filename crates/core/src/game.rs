@@ -67,6 +67,12 @@ pub struct GameInfo {
     /// The user hid the game on the store's own website.
     pub store_hidden: bool,
     pub extra: Option<ExtraInfo>,
+    /// The console or platform of an emulated game (a systems catalog id
+    /// such as `snes`).
+    pub system: Option<String>,
+    /// Short labels shown as badges: a ROM's region and revision ("USA",
+    /// "Rev 1").
+    pub tags: Vec<String>,
 }
 
 impl GameInfo {

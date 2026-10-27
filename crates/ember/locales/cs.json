@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "{title} se nepodařilo ukončit",
   "shell.nav.stats": "Statistiky",
   "shell.palette.random": "Vybrat náhodnou hru",
-  "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta"
+  "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta",
+  "shell.notice.exit_hotkey": "{engine}: hru ukončíte pomocí {keys}",
+  "shell.palette.set_up_emulation": "Nastavit emulaci",
+  "shell.palette.set_up_emulation_keywords": "emulátor ROM konzole retro BIOS RetroArch"
 }

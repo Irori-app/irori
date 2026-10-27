@@ -339,5 +339,10 @@
   "library.update_first.description": "有可用更新。現在開始遊戲將啟動已安裝的版本。",
   "library.update_first.play_now": "立即開始遊戲",
   "library.update_first.title": "先更新「{title}」嗎？",
-  "library.update_first.update": "更新"
+  "library.update_first.update": "更新",
+  "library.filters.section.system": "系統",
+  "library.empty.set_up_emulation": "設定模擬遊戲",
+  "library.sideload.rom_hint.title": "這是主機遊戲",
+  "library.sideload.rom_hint.body": "Ember 識別出此檔案是 {system} 遊戲。將其加入主機遊戲中，Ember 會用合適的模擬器執行它。",
+  "library.sideload.rom_hint.add": "加入為主機遊戲"
 }

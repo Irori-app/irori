@@ -833,6 +833,11 @@ impl BigPictureView {
                 task.detach();
             }
             MenuItem::ToggleFullscreen => window.toggle_fullscreen(),
+            MenuItem::SetUpEmulation => {
+                self.close_overlay(cx);
+                crate::exit_big_picture(cx);
+                ember_ui::hooks::open_emulation_setup(window, cx);
+            }
             MenuItem::ExitBigPicture => {
                 self.close_overlay(cx);
                 crate::exit_big_picture(cx);

@@ -339,5 +339,10 @@
   "library.update_first.description": "Este disponibilă o actualizare. Dacă joci acum, pornește versiunea instalată.",
   "library.update_first.play_now": "Joacă acum",
   "library.update_first.title": "Actualizezi mai întâi „{title}”?",
-  "library.update_first.update": "Actualizează"
+  "library.update_first.update": "Actualizează",
+  "library.filters.section.system": "Sistem",
+  "library.empty.set_up_emulation": "Configurează emularea",
+  "library.sideload.rom_hint.title": "Acesta este un joc de consolă",
+  "library.sideload.rom_hint.body": "Ember recunoaște acest fișier ca joc pentru {system}. Adaugă-l la jocurile de consolă și Ember îl va porni cu emulatorul potrivit.",
+  "library.sideload.rom_hint.add": "Adaugă ca joc de consolă"
 }

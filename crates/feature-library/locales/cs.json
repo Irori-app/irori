@@ -339,5 +339,10 @@
   "library.update_first.description": "Je k dispozici aktualizace. Hraní teď spustí nainstalovanou verzi.",
   "library.update_first.play_now": "Hrát hned",
   "library.update_first.title": "Nejprve aktualizovat „{title}“?",
-  "library.update_first.update": "Aktualizovat"
+  "library.update_first.update": "Aktualizovat",
+  "library.filters.section.system": "Systém",
+  "library.empty.set_up_emulation": "Nastavit emulaci",
+  "library.sideload.rom_hint.title": "Tohle je konzolová hra",
+  "library.sideload.rom_hint.body": "Ember tento soubor rozpoznal jako hru pro {system}. Přidejte ji mezi konzolové hry a Ember ji spustí ve správném emulátoru.",
+  "library.sideload.rom_hint.add": "Přidat jako konzolovou hru"
 }

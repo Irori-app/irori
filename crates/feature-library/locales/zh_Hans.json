@@ -339,5 +339,10 @@
   "library.update_first.description": "有可用更新。现在开始游戏将启动已安装的版本。",
   "library.update_first.play_now": "立即开始游戏",
   "library.update_first.title": "先更新“{title}”吗？",
-  "library.update_first.update": "更新"
+  "library.update_first.update": "更新",
+  "library.filters.section.system": "系统",
+  "library.empty.set_up_emulation": "设置模拟游戏",
+  "library.sideload.rom_hint.title": "这是主机游戏",
+  "library.sideload.rom_hint.body": "Ember 识别出此文件是 {system} 游戏。将其添加到主机游戏中，Ember 会用合适的模拟器运行它。",
+  "library.sideload.rom_hint.add": "添加为主机游戏"
 }

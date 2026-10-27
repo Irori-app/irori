@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Nie udało się zatrzymać {title}",
   "shell.nav.stats": "Statystyki",
   "shell.palette.random": "Wylosuj grę",
-  "shell.palette.random_keywords": "losowo niespodzianka losuj ruletka"
+  "shell.palette.random_keywords": "losowo niespodzianka losuj ruletka",
+  "shell.notice.exit_hotkey": "{engine}: aby wyjść z gry, {keys}",
+  "shell.palette.set_up_emulation": "Skonfiguruj emulację",
+  "shell.palette.set_up_emulation_keywords": "emulator ROM konsola retro BIOS RetroArch"
 }

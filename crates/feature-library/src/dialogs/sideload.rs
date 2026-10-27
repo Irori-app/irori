@@ -531,11 +531,60 @@ impl SideloadDialog {
     }
 }
 
+impl SideloadDialog {
+    /// The system a picked file is a game of, when it is a ROM rather than
+    /// a program (DOS programs count as programs here).
+    fn rom_system(&self, cx: &App) -> Option<&'static ember_engines::System> {
+        let path = PathBuf::from(text(&self.executable, cx));
+        let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+        if matches!(
+            ext.as_str(),
+            "exe" | "com" | "bat" | "sh" | "appimage" | "msi" | "lnk" | "desktop" | "app"
+        ) {
+            return None;
+        }
+        match ember_engines::systems::by_extension(&ext).as_slice() {
+            [one] => Some(one),
+            _ => None,
+        }
+    }
+
+    /// Put the picked ROM in the ROM library and open its page.
+    fn add_as_rom(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(store) = crate::emulation_store(cx) else {
+            return;
+        };
+        let path = PathBuf::from(text(&self.executable, cx));
+        let title = optional_text(&self.title, cx);
+        self.saving = true;
+        cx.notify();
+        let task = ember_ui::run(cx, async move { store.add_game(&path, None, title).await });
+        cx.spawn_in(window, async move |this, cx| {
+            let result = task.await;
+            this.update_in(cx, |this, window, cx| {
+                this.saving = false;
+                match result {
+                    Ok(id) => {
+                        this.discard_provisional(cx);
+                        window.close_dialog(cx);
+                        navigate(Route::Game(id), cx);
+                    }
+                    Err(e) => this.error = Some(format!("{e:#}").into()),
+                }
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+}
+
 impl Render for SideloadDialog {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(picker) = &self.picker {
             return v_flex().id("sideload-art").child(picker.clone());
         }
+        let rom_system = self.rom_system(cx).filter(|_| self.editing.is_none());
         let browser = self.platform == SideloadPlatform::Browser;
         let windows = self.platform == SideloadPlatform::Windows;
         let adding = self.editing.is_none();
@@ -546,7 +595,32 @@ impl Render for SideloadDialog {
         v_flex()
             .id("sideload-form")
             .gap_4()
-            .when(adding, |this| {
+            .when_some(rom_system, |this, system| {
+                this.child(
+                    Alert::info(
+                        "sideload-rom-hint",
+                        t_args(
+                            "library.sideload.rom_hint.body",
+                            &[("system", &system.name)],
+                        ),
+                    )
+                    .title(t("library.sideload.rom_hint.title")),
+                )
+                .child(
+                    h_flex().justify_end().child(
+                        Button::new("sideload-add-rom")
+                            .primary()
+                            .small()
+                            .icon(IconName::Joystick)
+                            .label(t("library.sideload.rom_hint.add"))
+                            .loading(self.saving)
+                            .on_click(
+                                cx.listener(|this, _, window, cx| this.add_as_rom(window, cx)),
+                            ),
+                    ),
+                )
+            })
+            .when(adding && rom_system.is_none(), |this| {
                 this.child(
                     Alert::info("sideload-store-hint", t("library.sideload.store_hint.body"))
                         .title(t("library.sideload.store_hint.title")),

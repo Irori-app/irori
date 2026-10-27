@@ -51,6 +51,37 @@ impl EngineMissing {
     }
 }
 
+/// A system's games need BIOS files the user hasn't provided. The UI
+/// offers to choose the BIOS folder and shows what is needed.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("{name} games need a startup file from your console (BIOS): {}", files.join(", "))]
+pub struct BiosMissing {
+    pub system: String,
+    pub name: String,
+    /// The file names that would do.
+    pub files: Vec<String>,
+}
+
+impl BiosMissing {
+    pub fn of(error: &anyhow::Error) -> Option<&BiosMissing> {
+        error.downcast_ref()
+    }
+
+    /// The error for `system` when its required BIOS is missing from
+    /// `index`.
+    pub fn check(system: &crate::System, index: &BiosIndex) -> Result<(), BiosMissing> {
+        let status = crate::bios::status(system, index);
+        if status.state != crate::bios::SystemState::Missing {
+            return Ok(());
+        }
+        Err(BiosMissing {
+            system: system.id.clone(),
+            name: system.name.clone(),
+            files: status.files.into_iter().map(|f| f.name).collect(),
+        })
+    }
+}
+
 /// The installation to use: the game's pin when set, else the engine's
 /// default, else the best one found.
 pub fn resolve<'a>(

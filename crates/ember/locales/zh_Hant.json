@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "無法停止 {title}",
   "shell.nav.stats": "統計",
   "shell.palette.random": "隨機挑選一款遊戲",
-  "shell.palette.random_keywords": "隨機 驚喜 打亂 輪盤"
+  "shell.palette.random_keywords": "隨機 驚喜 打亂 輪盤",
+  "shell.notice.exit_hotkey": "{engine}：離開遊戲請按 {keys}",
+  "shell.palette.set_up_emulation": "設定模擬遊戲",
+  "shell.palette.set_up_emulation_keywords": "模擬器 ROM 主機 復古 BIOS RetroArch"
 }

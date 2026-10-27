@@ -2050,6 +2050,7 @@ dependencies = [
  "ember-amazon",
  "ember-bigpicture",
  "ember-core",
+ "ember-emulation",
  "ember-epic",
  "ember-extras",
  "ember-game",
@@ -2141,6 +2142,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "ember-core",
+ "ember-engines",
  "ember-services",
  "ember-ui",
  "futures",
@@ -2202,6 +2204,28 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "ember-emulation"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "ember-core",
+ "ember-engines",
+ "hex",
+ "notify",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha1",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -2315,6 +2339,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ember-core",
+ "ember-engines",
  "ember-epic",
  "ember-extras",
  "ember-gog",
@@ -2448,6 +2473,8 @@ dependencies = [
  "anyhow",
  "chrono",
  "ember-core",
+ "ember-emulation",
+ "ember-engines",
  "ember-extras",
  "ember-runtime",
  "ember-services",
@@ -2621,6 +2648,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ember-core",
+ "ember-engines",
  "ember-services",
  "futures",
  "gpui-kit",

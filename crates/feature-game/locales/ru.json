@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Удалить настройки и журналы",
   "game.uninstall.remove_settings_help": "Сбрасывает изменённые настройки этой игры и удаляет её журналы.",
   "game.uninstall.running": "{title} запущена. Закройте игру, чтобы удалить её.",
-  "game.uninstall.title": "Удалить «{title}»?"
+  "game.uninstall.title": "Удалить «{title}»?",
+  "game.play_with.menu": "Играть с…",
+  "game.play_with.title": "Играть в «{title}» с помощью",
+  "game.play_with.description": "Выберите эмулятор для этой игры. «По умолчанию» означает эмулятор системы по умолчанию, который можно сменить на странице «Эмуляторы».",
+  "game.play_with.default": "По умолчанию",
+  "game.play_with.not_installed": "Не установлен",
+  "game.play_with.chosen": "Выбран",
+  "game.play_with.versions": "Версия",
+  "game.play_with.versions_help": "Закрепите игру на одной версии, если она лучше всего работает в ней; обновления её не изменят.",
+  "game.play_with.version": "Версия {version}",
+  "game.play_with.version_default": "По умолчанию ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Выбран вами",
+  "game.play_with.system": "Установлен на этом компьютере",
+  "game.play_with.manage": "Управление эмуляторами"
 }
