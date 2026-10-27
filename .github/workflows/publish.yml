@@ -154,7 +154,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/homebrew-tap
-          token: ${{ secrets.PACKAGING_TOKEN }}
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
           path: tap
       - name: Update the cask
         working-directory: tap
@@ -179,7 +179,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/scoop-bucket
-          token: ${{ secrets.PACKAGING_TOKEN }}
+          ssh-key: ${{ secrets.SCOOP_BUCKET_DEPLOY_KEY }}
           path: bucket
       - name: Update the manifest
         working-directory: bucket

@@ -71,13 +71,21 @@ policy `release-signing`, and two artifact configurations:
 Served at `https://packages.irori.app` from this repository's GitHub Pages
 (`PACKAGES_URL` in `publish.yml`).
 
-1. DNS for `irori.app`: a `CNAME` record from `packages` to `irori-app.github.io`.
-2. *Settings → Pages*: **Source** = **GitHub Actions**, **Custom domain** =
+1. Verify `irori.app` for the organization (*Organization settings → Pages →
+   Add a domain*, a `TXT` record), so no other account can serve Pages on its
+   subdomains.
+2. DNS for `irori.app`: a `CNAME` record from `packages` to `irori-app.github.io`,
+   not proxied, so GitHub can issue its certificate.
+3. *Settings → Pages*: **Source** = **GitHub Actions**, **Custom domain** =
    `packages.irori.app`, then **Enforce HTTPS** once the certificate is issued.
-3. Make a signing key with no passphrase, used only for this:
-   `gpg --quick-gen-key "Irori packages" ed25519 sign never`.
-4. Secret `PACKAGES_GPG_PRIVATE_KEY`: `gpg --armor --export-secret-keys <fingerprint>`.
-5. Variable `PUBLISH_PACKAGE_REPOSITORIES` = `true`.
+4. *Settings → Environments → github-pages*: allow the `v*` tag pattern besides
+   `main`, because `publish.yml` runs from the release's tag.
+5. Make a signing key with no passphrase, used only for this. RSA, because
+   older `rpm` releases (openSUSE Leap, for one) cannot verify ed25519
+   signatures: `gpg --quick-gen-key "Irori packages" rsa4096 sign never`.
+   Keep a backup of the private key outside GitHub.
+6. Secret `PACKAGES_GPG_PRIVATE_KEY`: `gpg --armor --export-secret-keys <fingerprint>`.
+7. Variable `PUBLISH_PACKAGE_REPOSITORIES` = `true`.
 
 Users then follow the instructions on that page (`index.html`). Each release
 replaces the repositories, which hold the latest version only.
@@ -92,8 +100,9 @@ replaces the repositories, which hold the latest version only.
 ### Homebrew and Scoop
 
 1. Create the repositories `<owner>/homebrew-tap` and `<owner>/scoop-bucket`.
-2. Secret `PACKAGING_TOKEN`: a fine-grained token with *Contents: read and write*
-   on those two repositories.
+2. Give each a deploy key with write access (*Settings → Deploy keys*), and store
+   the private halves as the secrets `HOMEBREW_TAP_DEPLOY_KEY` and
+   `SCOOP_BUCKET_DEPLOY_KEY`. A deploy key can push to its one repository only.
 3. Variables `PUBLISH_HOMEBREW` = `true` and `PUBLISH_SCOOP` = `true`.
 
 Users install with `brew install --cask <owner>/tap/irori` and
