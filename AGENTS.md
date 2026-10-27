@@ -64,6 +64,7 @@ Run everything from the repository root.
 | PR-rule tests | `python3 -m unittest discover -s .github/scripts -p "test_*.py"` |
 | Check a PR name locally | `python3 .github/scripts/pr_rules.py --title "fix(epic): …" --head fix/epic-login` |
 | Package | `python3 packaging/package.py --platform linux\|macos\|windows --binary-dir target/release --output dist` |
+| Release | Push a `vX.Y.Z` tag; see `docs/RELEASING.md` |
 | Install for this user (Linux) | `packaging/install.sh` |
 | Profile with symbols | `cargo build --profile profiling -p irori` |
 

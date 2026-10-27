@@ -93,6 +93,10 @@ Both binaries are required, so a package never silently omits store sign-in.
 
 CI builds and tests Linux, Windows x64, macOS Intel and Apple silicon and uploads
 unsigned validation packages using the small `ci` Cargo profile. It does not publish a release.
+`release.yml` builds the release packages (tarball, `.deb`, `.rpm`, Flatpak, macOS
+disk images, the Windows installer and zip), tests that they install and start, and
+drafts a GitHub release for a `v*` tag; [RELEASING.md](RELEASING.md) covers signing
+and the package channels.
 
 ## Paths and desktop behavior
 

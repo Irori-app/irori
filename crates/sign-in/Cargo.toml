@@ -25,3 +25,25 @@ wry = "0.53"
 gtk = "0.18"
 # The version Wry pins, so pop-ups share its WebKitGTK types.
 webkit2gtk = { version = "=2.0.1", features = ["v2_40"] }
+
+# Packaged on its own (see `crates/irori/Cargo.toml`), so Irori's package never
+# requires WebKitGTK.
+[package.metadata.deb]
+maintainer = "Diaconu Radu-Mihai <52667211+countradooku@users.noreply.github.com>"
+copyright = "Irori developers"
+license-file = ["../../LICENSE", "0"]
+extended-description = """\
+The window Irori shows a store's sign-in page in. Without it, Irori opens \
+sign-in pages in the browser."""
+section = "games"
+priority = "optional"
+depends = "$auto"
+assets = [["target/release/irori-sign-in", "usr/bin/", "755"]]
+
+[package.metadata.generate-rpm]
+summary = "Irori's store sign-in window"
+url = "https://github.com/irori-app/irori"
+assets = [
+    { source = "target/release/irori-sign-in", dest = "/usr/bin/irori-sign-in", mode = "755" },
+    { source = "LICENSE", dest = "/usr/share/licenses/irori-sign-in/LICENSE", mode = "644", doc = true },
+]

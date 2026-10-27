@@ -15,6 +15,7 @@ import shutil
 import struct
 import subprocess
 import tarfile
+import tempfile
 import tomllib
 import zipfile
 
@@ -31,6 +32,25 @@ def validate_macos_dependencies(binary: Path) -> None:
                 f"{binary.name} depends on a library outside macOS: {dependency}. "
                 "Enable static linking or explicitly bundle and relocate that dependency."
             )
+
+
+def macos_arch(binary: Path) -> str:
+    """`arm64`, `x86_64` or `universal`, read from the binary rather than the build host."""
+    archs = subprocess.run(["lipo", "-archs", str(binary)], check=True, capture_output=True, text=True).stdout.split()
+    return "universal" if len(archs) > 1 else archs[0]
+
+
+def make_dmg(app: Path, dmg: Path, identity: str) -> None:
+    """A compressed disk image showing the app beside a link to /Applications."""
+    with tempfile.TemporaryDirectory() as temporary:
+        folder = Path(temporary) / "Irori"
+        folder.mkdir()
+        subprocess.run(["ditto", str(app), str(folder / app.name)], check=True)
+        (folder / "Applications").symlink_to("/Applications")
+        subprocess.run(["hdiutil", "create", "-quiet", "-volname", "Irori", "-srcfolder", str(folder),
+                        "-fs", "HFS+", "-format", "UDZO", str(dmg)], check=True)
+    if identity != "-":
+        subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp", str(dmg)], check=True)
 
 
 WINDOWS_CRT_FILES = ("vcruntime140.dll", "vcruntime140_1.dll")
@@ -79,7 +99,9 @@ def windows_crt_directory() -> Path:
     )
 
 
-def package(platform: str, binary_dir: Path, output: Path) -> Path:
+def package(platform: str, binary_dir: Path, output: Path, dmg: bool = False) -> Path:
+    """Package the binaries and return the archive. On macOS, `dmg` also writes a
+    disk image next to it."""
     root = Path(__file__).resolve().parent.parent
     version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
     suffix = ".exe" if platform == "windows" else ""
@@ -135,14 +157,18 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
                 command += ["--options", "runtime", "--timestamp", "--entitlements", str(root / "packaging/macos.entitlements")]
             subprocess.run([*command, str(path)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(staging)], check=True)
-        archive = output / f"Irori-{version}-macos.zip"
+        arch = macos_arch(destination / "irori")
+        archive = output / f"Irori-{version}-macos-{arch}.zip"
         subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(staging), str(archive)], check=True)
+        if dmg:
+            make_dmg(staging, output / f"Irori-{version}-macos-{arch}.dmg", identity)
     elif platform == "windows":
         for library in windows_runtime:
             shutil.copy2(library, staging / library.name)
         shutil.copy2(root / "packaging/install-windows.ps1", staging / "install.ps1")
         shutil.copy2(root / "packaging/irori.svg", staging)
         shutil.copy2(root / "packaging/irori.ico", staging)
+        shutil.copy2(root / "LICENSE", staging / "LICENSE.txt")
         archive = output / f"Irori-{version}-windows.zip"
         with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as zip_file:
             for file in staging.rglob("*"):
@@ -151,6 +177,8 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     else:
         shutil.copy2(root / "packaging/irori.desktop", staging)
         shutil.copy2(root / "packaging/irori.svg", staging)
+        shutil.copy2(root / "packaging/linux/io.github.irori_app.Irori.metainfo.xml", staging)
+        shutil.copy2(root / "LICENSE", staging)
         archive = output / f"Irori-{version}-linux.tar.gz"
         with tarfile.open(archive, "x:gz") as tar:
             tar.add(staging, arcname="Irori")
@@ -162,5 +190,6 @@ if __name__ == "__main__":
     parser.add_argument("--platform", choices=["linux", "macos", "windows"], required=True)
     parser.add_argument("--binary-dir", type=Path, default=Path("target/release"))
     parser.add_argument("--output", type=Path, default=Path("dist"))
+    parser.add_argument("--dmg", action="store_true", help="macOS: also build a disk image")
     args = parser.parse_args()
-    print(package(args.platform, args.binary_dir.resolve(), args.output.resolve()))
+    print(package(args.platform, args.binary_dir.resolve(), args.output.resolve(), args.dmg))
