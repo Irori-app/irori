@@ -805,10 +805,12 @@ impl EmulatorsView {
                 )
             })
             .when(!status.is_installed() && !m.downloadable_on(host), |d| {
-                d.child(div().text_sm().text_color(muted).child(t_args(
-                    "manage.emulators.not_downloadable",
-                    &[("engine", &m.name)],
-                )))
+                d.child(
+                    div()
+                        .text_sm()
+                        .text_color(muted)
+                        .child(not_downloadable_text(m, host)),
+                )
             })
             .when(!installs.is_empty(), |d| {
                 d.child(v_flex().gap_1().children(installs))
@@ -1507,4 +1509,26 @@ impl Render for EmulatorsView {
                     })),
             )
     }
+}
+
+/// Why an engine has no Install button on this computer.
+fn not_downloadable_text(m: &ember_engines::EngineManifest, host: Host) -> SharedString {
+    // Engines Ember can find once the user installs them say how; engines
+    // with builds only for other computers say which.
+    let found_elsewhere = m.sources.iter().any(|s| !s.is_managed());
+    let hosts = match ember_engines::EngineUnavailable::no_build(m, host).map(|e| e.reason) {
+        Some(ember_engines::Unavailable::NoBuild { hosts }) => hosts,
+        _ => Vec::new(),
+    };
+    if found_elsewhere || hosts.is_empty() {
+        return t_args("manage.emulators.not_downloadable", &[("engine", &m.name)]);
+    }
+    let hosts: Vec<String> = hosts
+        .iter()
+        .map(|h| ember_engines::host::label(h))
+        .collect();
+    t_args(
+        "manage.emulators.no_build",
+        &[("engine", &m.name), ("hosts", &hosts.join(", "))],
+    )
 }

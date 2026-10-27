@@ -834,6 +834,34 @@
       "engines": [
         "shadps4"
       ]
+    },
+    {
+      "id": "ps5",
+      "name": "PlayStation 5",
+      "short": "PS5",
+      "maker": "Sony",
+      "year": 2020,
+      "libretro": "Sony - PlayStation 5",
+      "colors": [
+        "#0d1b3d",
+        "#e8ecf4"
+      ],
+      "extensions": [
+        "bin"
+      ],
+      "folders": [
+        "ps5",
+        "playstation 5"
+      ],
+      "folderOnly": true,
+      "folderGames": true,
+      "folderMain": [
+        "eboot.bin"
+      ],
+      "folderTitle": "sce_sys/param.json",
+      "engines": [
+        "anyps5"
+      ]
     }
   ]
 }

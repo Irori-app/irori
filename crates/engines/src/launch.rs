@@ -17,8 +17,8 @@ use serde_json::Value;
 
 use crate::bios::BiosIndex;
 use crate::discovery::{Installation, Origin};
-use crate::host::Os;
-use crate::manifest::{Arg, EngineKind, EngineManifest};
+use crate::host::{Host, Os};
+use crate::manifest::{Arg, EngineKind, EngineManifest, Source};
 
 /// The engine (or the core, or the pinned version) a game needs is not
 /// installed. The UI offers to install it.
@@ -48,6 +48,78 @@ impl fmt::Display for EngineMissing {
 impl EngineMissing {
     pub fn of(error: &anyhow::Error) -> Option<&EngineMissing> {
         error.downcast_ref()
+    }
+}
+
+/// The engine a game needs cannot run on this computer, so installing it
+/// would not help. The UI explains why instead of offering an install.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub struct EngineUnavailable {
+    pub engine: String,
+    pub name: String,
+    pub reason: Unavailable,
+}
+
+/// Why an engine can't run here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Unavailable {
+    /// Ember has no build of it for this computer. `hosts` are the
+    /// computers it has builds for (`linux-x86_64`, …).
+    NoBuild { hosts: Vec<String> },
+    /// The processor lacks features the engine's games use (`avx2`, …).
+    Processor { missing: Vec<String> },
+}
+
+impl fmt::Display for EngineUnavailable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.reason {
+            Unavailable::NoBuild { hosts } if hosts.is_empty() => {
+                write!(f, "Ember can't download {} for this computer", self.name)
+            }
+            Unavailable::NoBuild { hosts } => write!(
+                f,
+                "{} is not available for this computer; it runs on {}",
+                self.name,
+                hosts.join(", ")
+            ),
+            Unavailable::Processor { missing } => write!(
+                f,
+                "{} games need a processor with {}, which this one lacks",
+                self.name,
+                missing.join(", ")
+            ),
+        }
+    }
+}
+
+impl EngineUnavailable {
+    pub fn of(error: &anyhow::Error) -> Option<&EngineUnavailable> {
+        error.downcast_ref()
+    }
+
+    /// The error for `manifest` when Ember can't download it for `host`.
+    pub fn no_build(manifest: &EngineManifest, host: Host) -> Option<Self> {
+        if manifest.downloadable_on(host) {
+            return None;
+        }
+        let mut hosts: Vec<String> = manifest
+            .sources
+            .iter()
+            .filter_map(|s| match s {
+                Source::Github { assets, .. }
+                | Source::Buildbot { assets, .. }
+                | Source::Page { assets, .. } => Some(assets.keys().cloned()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        hosts.sort();
+        hosts.dedup();
+        Some(Self {
+            engine: manifest.id.clone(),
+            name: manifest.name.clone(),
+            reason: Unavailable::NoBuild { hosts },
+        })
     }
 }
 
@@ -281,6 +353,21 @@ pub fn command(input: &LaunchInput) -> Result<CommandSpec> {
                 args.push(game.path.clone().into_os_string());
             }
         }
+        // The converted program is the game; it takes no game file.
+        EngineKind::Relinker => {}
+    }
+
+    if manifest.kind == EngineKind::Relinker {
+        let out = crate::relink::output(&manifest.id, game);
+        if !out.program.is_file() {
+            bail!("{} has not converted this game yet", manifest.name);
+        }
+        let mut spec = CommandSpec::new(&out.program).args(args);
+        for (k, v) in &manifest.launch.env {
+            spec = spec.env(k.clone(), vars.expand(v));
+        }
+        spec.cwd = Some(out.dir);
+        return Ok(spec);
     }
 
     let mut spec = match installation.origin {
@@ -380,6 +467,33 @@ fn expand_args(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn engines_without_a_build_here_say_where_they_run() {
+        let _root = crate::test_root("no-build");
+        let anyps5 = crate::engine("anyps5").unwrap();
+        let mac = Host {
+            os: Os::Macos,
+            arch: "aarch64",
+        };
+        let e = EngineUnavailable::no_build(&anyps5, mac).unwrap();
+        assert_eq!(
+            e.reason,
+            Unavailable::NoBuild {
+                hosts: vec!["linux-x86_64".into(), "windows-x86_64".into()]
+            }
+        );
+        assert!(e.to_string().contains("runs on linux-x86_64"));
+        let linux = Host {
+            os: Os::Linux,
+            arch: "x86_64",
+        };
+        assert!(EngineUnavailable::no_build(&anyps5, linux).is_none());
+        // MAME is only detected: Ember downloads it nowhere.
+        let mame = crate::engine("mame").unwrap();
+        let e = EngineUnavailable::no_build(&mame, linux).unwrap();
+        assert_eq!(e.reason, Unavailable::NoBuild { hosts: Vec::new() });
+    }
 
     fn installation(engine: &str, origin: Origin, program: &Path) -> Installation {
         Installation {

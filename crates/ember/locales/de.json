@@ -56,6 +56,7 @@
   "shell.palette.random": "Zufälliges Spiel auswählen",
   "shell.palette.random_keywords": "zufall überraschung mischen roulette",
   "shell.notice.exit_hotkey": "{engine}: Spiel verlassen mit {keys}",
+  "shell.notice.udmabuf": "{engine}: Dieses Konto kann /dev/udmabuf nicht nutzen, daher laufen Spiele womöglich langsam. Füge dich der Gruppe hinzu, der es gehört (oft kvm), und melde dich neu an.",
   "shell.palette.set_up_emulation": "Emulation einrichten",
   "shell.palette.set_up_emulation_keywords": "emulator ROM konsole retro BIOS RetroArch",
   "shell.palette.lutris_script": "Mit einem Lutris-Skript installieren",

@@ -298,3 +298,29 @@ fn play_twice_with_a_missing_emulator_opens_one_dialog(cx: &mut TestAppContext) 
     play(cx);
     assert!(has_dialog(cx));
 }
+
+#[gpui_kit::test]
+fn an_emulator_without_a_build_here_is_explained(cx: &mut TestAppContext) {
+    let id = test_game().id();
+    let (_b, handle, _page) = open_page(cx, id.clone());
+    let error = anyhow::Error::new(ember_engines::EngineUnavailable {
+        engine: "anyps5".into(),
+        name: "AnyPS5".into(),
+        reason: ember_engines::Unavailable::NoBuild {
+            hosts: vec!["linux-x86_64".into(), "windows-x86_64".into()],
+        },
+    });
+    cx.update_window(handle, |_, window, cx| {
+        let params = ember_services::LaunchParams::default();
+        assert!(ember_ui::save_conflict::resolve_launch_error(
+            &id, params, &error, window, cx
+        ));
+    })
+    .expect("window");
+    cx.run_until_parked();
+    // It explains why in a dialog rather than failing silently.
+    let has_dialog = cx
+        .update_window(handle, |_, window, cx| window.has_active_dialog(cx))
+        .expect("window");
+    assert!(has_dialog);
+}

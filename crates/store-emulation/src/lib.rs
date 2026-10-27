@@ -31,7 +31,9 @@ use ember_core::{
     UserInfo, json_store,
 };
 use ember_engines::launch::{GameFile, LaunchInput};
-use ember_engines::{BiosMissing, EngineMissing, EngineRef, bios, systems};
+use ember_engines::{
+    BiosMissing, EngineKind, EngineMissing, EngineRef, EngineUnavailable, Host, bios, systems,
+};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +44,8 @@ pub use scan::{RomEntry, dos_program};
 const SETTLE: Duration = Duration::from_secs(2);
 /// Availability checks give up on hung network mounts after this.
 const AVAILABILITY_TIMEOUT: Duration = Duration::from_secs(3);
+/// The `/dev/udmabuf` warning is shown once per run.
+static UDMABUF_WARNED: AtomicBool = AtomicBool::new(false);
 
 const NOT_INSTALLABLE: &str =
     "Games in your ROM folders are not installed by Ember; add the folder that holds them";
@@ -619,24 +623,69 @@ impl Store for EmulationStore {
             settings.engine_own_settings,
             choice.core.clone(),
         );
-        let first_time_hotkey = tokio::task::spawn_blocking(move || -> Result<_> {
+        let game = GameFile {
+            path: game_path,
+            system: sys_id,
+        };
+        let m2 = m.clone();
+        let installation = tokio::task::spawn_blocking(move || -> Result<_> {
             let state = ember_engines::state::load();
-            let installs = ember_engines::discovery::find(&m, &state);
-            let installation = ember_engines::launch::resolve(
-                &m,
+            let installs = ember_engines::discovery::find(&m2, &state);
+            let found = ember_engines::launch::resolve(
+                &m2,
                 &installs,
                 Some(pin.as_str()),
-                state.preferred.get(&m.id).map(String::as_str),
-            )?
-            .clone();
+                state.preferred.get(&m2.id).map(String::as_str),
+            );
+            match found {
+                Ok(installation) => Ok(installation.clone()),
+                // Offering to install an engine Ember can't download here
+                // would only fail: say why instead.
+                Err(missing) if missing.pinned.is_none() => {
+                    Err(match EngineUnavailable::no_build(&m2, Host::current()) {
+                        Some(unavailable) => unavailable.into(),
+                        None => missing.into(),
+                    })
+                }
+                Err(missing) => Err(missing.into()),
+            }
+        })
+        .await
+        .context("finding the emulator stopped")??;
+
+        if manifest.kind == EngineKind::Relinker {
+            if ember_engines::relink::udmabuf_denied()
+                && !UDMABUF_WARNED.swap(true, Ordering::Relaxed)
+            {
+                self.bus.notice(
+                    Notice::new(
+                        NoticeLevel::Warning,
+                        format!(
+                            "{}: this account can't use /dev/udmabuf, so games may run slowly. Add yourself to the group that owns it (often kvm) and sign in again.",
+                            manifest.name
+                        ),
+                    )
+                    .keys(
+                        "shell.notice.udmabuf",
+                        None,
+                        &[("engine", &manifest.name)],
+                    ),
+                );
+            }
+            if ember_engines::relink::prepare(&manifest, &installation, &game, &ctx)
+                .await?
+                .is_none()
+            {
+                bail!("The game's conversion was stopped");
+            }
+        }
+
+        let first_time_hotkey = tokio::task::spawn_blocking(move || -> Result<_> {
             let values = m.option_values(&values_set);
             let command = ember_engines::launch::command(&LaunchInput {
                 manifest: &m,
                 installation: &installation,
-                game: &GameFile {
-                    path: game_path,
-                    system: sys_id,
-                },
+                game: &game,
                 core: core.as_deref(),
                 values: &values,
                 bios: &index,

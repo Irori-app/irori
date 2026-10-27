@@ -264,6 +264,7 @@
   "manage.emulators.update": "Actualizează la {version}",
   "manage.emulators.cancel": "Anulează",
   "manage.emulators.not_downloadable": "Ember nu poate descărca {engine} pentru acest computer. Instalează-l din Flathub sau din centrul de software al distribuției tale și Ember îl va găsi, ori alege mai jos programul lui.",
+  "manage.emulators.no_build": "{engine} nu are încă o versiune pentru acest computer. Rulează pe {hosts}.",
   "manage.emulators.releases_failed": "Nu s-a putut verifica dacă există versiuni noi: {error}",
   "manage.emulators.homepage": "Site web",
   "manage.emulators.use_program": "Folosește un program de pe acest computer…",

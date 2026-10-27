@@ -264,6 +264,7 @@
   "manage.emulators.update": "Uppdatera till {version}",
   "manage.emulators.cancel": "Avbryt",
   "manage.emulators.not_downloadable": "Ember kan inte ladda ned {engine} för den här datorn. Installera den från Flathub eller din distributions programcenter så hittar Ember den, eller välj dess program nedan.",
+  "manage.emulators.no_build": "{engine} finns ännu inte för den här datorn. Den körs på {hosts}.",
   "manage.emulators.releases_failed": "Det gick inte att söka efter nya versioner: {error}",
   "manage.emulators.homepage": "Webbplats",
   "manage.emulators.use_program": "Använd ett program på den här datorn…",

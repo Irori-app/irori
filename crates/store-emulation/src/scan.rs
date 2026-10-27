@@ -309,7 +309,10 @@ fn is_dos_helper(path: &Path) -> bool {
 /// A DOS or ScummVM game folder.
 fn folder_game(system: &System, folder: &Path, root: &Path) -> Option<RomEntry> {
     let folder_name = folder.file_name()?.to_string_lossy().into_owned();
-    let name = names::parse(&folder_name);
+    let mut name = names::parse(&folder_name);
+    if let Some(title) = systems::folder_title(system, folder) {
+        name.title = title;
+    }
     let path = if system.id == "dos" {
         dos_program(folder)?
     } else if !system.folder_main.is_empty() {
@@ -457,6 +460,12 @@ mod tests {
             b"x",
         );
         touch(&roms.join("PS3/Empty Folder/readme.txt"), b"x");
+        // PS5 dumps are named by title id; `param.json` names the game.
+        touch(&roms.join("PS5/PPSA00000/eboot.bin"), b"\x7fELF");
+        touch(
+            &roms.join("PS5/PPSA00000/sce_sys/param.json"),
+            br#"{"localizedParameters": {"en-US": {"titleName": "Zone of Test"}}}"#,
+        );
         touch(&roms.join("MAME/pacman.zip"), b"PK");
         touch(&roms.join("PS1/unknown.zip"), b"PK");
         touch(&roms.join("other/mystery.iso"), &[0u8; 64]);
@@ -485,6 +494,7 @@ mod tests {
                 ("arcade", "pacman"),
                 ("psx", "unknown"),
                 ("psx", "Vagrant Story"),
+                ("ps5", "Zone of Test"),
             ]
         );
         let ff7 = &found.entries[3];

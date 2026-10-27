@@ -56,6 +56,7 @@
   "shell.palette.random": "随机挑选一款游戏",
   "shell.palette.random_keywords": "随机 惊喜 打乱 轮盘",
   "shell.notice.exit_hotkey": "{engine}：退出游戏请按 {keys}",
+  "shell.notice.udmabuf": "{engine}：此帐户无法使用 /dev/udmabuf，游戏可能会运行缓慢。请将自己加入拥有它的用户组（通常是 kvm），然后重新登录。",
   "shell.palette.set_up_emulation": "设置模拟游戏",
   "shell.palette.set_up_emulation_keywords": "模拟器 ROM 主机 复古 BIOS RetroArch",
   "shell.palette.lutris_script": "使用 Lutris 脚本安装",

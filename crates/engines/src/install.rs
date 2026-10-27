@@ -17,7 +17,7 @@ use ember_depot::{Algorithm, Digest, FileEntry, Finished, Job, Options};
 use crate::discovery::locate_program;
 use crate::host::Os;
 use crate::manifest::EngineManifest;
-use crate::releases::Release;
+use crate::releases::{Release, ReleaseFile};
 use crate::state::{self, ManagedInstall};
 
 /// Download `release` of `manifest` into the cache, resuming a partial
@@ -27,21 +27,36 @@ pub async fn download(
     release: &Release,
     ctx: &OpContext,
 ) -> Result<Option<PathBuf>> {
+    let main = ReleaseFile {
+        url: release.url.clone(),
+        file_name: release.file_name.clone(),
+        size: release.size,
+    };
+    download_file(manifest, release, &main, ctx).await
+}
+
+/// Download one file of `release` (the main one or an extra).
+async fn download_file(
+    manifest: &EngineManifest,
+    release: &Release,
+    file: &ReleaseFile,
+    ctx: &OpContext,
+) -> Result<Option<PathBuf>> {
     let folder = crate::dirs::cache().join("downloads").join(&manifest.id);
-    let name = format!("{}-{}", sanitize(&release.version), release.file_name);
+    let name = format!("{}-{}", sanitize(&release.version), file.file_name);
     let expected = match &release.checksum_url {
-        Some(url) => Some(expected_sha256(url, &release.file_name).await?),
+        Some(url) => Some(expected_sha256(url, &file.file_name).await?),
         None => None,
     };
-    let size = match release.size {
+    let size = match file.size {
         Some(size) => size,
-        None => content_length(&release.url).await?,
+        None => content_length(&file.url).await?,
     };
     let entry = FileEntry::whole(
         name.clone(),
         size,
         expected.map(|v| Digest::new(Algorithm::Sha256, v)),
-        vec![release.url.clone()],
+        vec![file.url.clone()],
     );
     let progress_sink = ctx.progress.clone();
     let progress = Arc::new(move |p: ember_depot::Progress| {
@@ -142,6 +157,13 @@ pub async fn install(
     let Some(file) = download(manifest, release, ctx).await? else {
         return Ok(None);
     };
+    let mut extras = Vec::with_capacity(release.extras.len());
+    for extra in &release.extras {
+        let Some(path) = download_file(manifest, release, extra, ctx).await? else {
+            return Ok(None);
+        };
+        extras.push((path, extra.file_name.clone()));
+    }
     (ctx.step)("Unpacking");
     let root = crate::dirs::engine(&manifest.id);
     let dir = root.join(sanitize(&release.version));
@@ -161,6 +183,20 @@ pub async fn install(
         tokio::task::spawn_blocking(move || crate::archive::unpack(&file, &name, &staging, &cancel))
             .await
             .context("unpacking stopped")?
+    };
+    let unpacked = match unpacked {
+        Ok(()) if !extras.is_empty() => {
+            // Runtime files unpack beside the program.
+            let (extras, staging, cancel) = (extras.clone(), staging.clone(), ctx.cancel.clone());
+            tokio::task::spawn_blocking(move || {
+                extras.iter().try_for_each(|(extra, name)| {
+                    crate::archive::unpack(extra, name, &staging, &cancel)
+                })
+            })
+            .await
+            .context("unpacking stopped")?
+        }
+        other => other,
     };
     if let Err(e) = unpacked {
         let _ = tokio::fs::remove_dir_all(&staging).await;
@@ -228,6 +264,9 @@ pub async fn install(
     .await
     .context("saving the install")??;
     let _ = tokio::fs::remove_file(&file).await;
+    for (extra, _) in &extras {
+        let _ = tokio::fs::remove_file(extra).await;
+    }
     Ok(Some(installed))
 }
 
@@ -356,6 +395,7 @@ mod tests {
             file_name: "emu.zip".into(),
             size: None,
             checksum_url: None,
+            extras: Vec::new(),
         };
         let installed = install(&manifest, &release, &OpContext::detached())
             .await
@@ -379,5 +419,60 @@ mod tests {
         let s = state::load();
         assert!(s.managed_versions("emu").is_empty());
         assert!(!s.preferred.contains_key("emu"));
+    }
+
+    #[tokio::test]
+    async fn installs_extra_files_beside_the_program() {
+        let _root = crate::test_root("install-extras");
+        let libs = {
+            use std::io::Write as _;
+            let mut out = std::io::Cursor::new(Vec::new());
+            let mut z = zip::ZipWriter::new(&mut out);
+            z.start_file(
+                "libs/libkernel.prx",
+                zip::write::SimpleFileOptions::default(),
+            )
+            .unwrap();
+            z.write_all(b"prx").unwrap();
+            z.finish().unwrap();
+            out.into_inner()
+        };
+        let server = ember_depot::test_server::TestServer::start(move |req| {
+            if req.path.starts_with("/libs.zip") {
+                ember_depot::test_server::serve_bytes(req, &libs, true)
+            } else {
+                ember_depot::test_server::serve_bytes(req, b"tool", true)
+            }
+        });
+        let manifest = EngineManifest::parse(
+            &serde_json::json!({
+                "id": "tool", "name": "Tool", "license": "MIT", "systems": ["ps5"], "sources": [],
+                "binaries": {"linux": ["tool-v*"], "macos": ["tool-v*"], "windows": ["tool-v*"]}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let release = Release {
+            version: "0.1".into(),
+            date: None,
+            url: server.url("/tool-v0.1"),
+            file_name: "tool-v0.1".into(),
+            size: None,
+            checksum_url: None,
+            extras: vec![ReleaseFile {
+                url: server.url("/libs.zip"),
+                file_name: "libs.zip".into(),
+                size: None,
+            }],
+        };
+        let installed = install(&manifest, &release, &OpContext::detached())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(installed.program.ends_with("tool-v0.1"));
+        assert_eq!(
+            std::fs::read(installed.dir.join("libs/libkernel.prx")).unwrap(),
+            b"prx"
+        );
     }
 }

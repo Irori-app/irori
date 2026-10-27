@@ -264,6 +264,7 @@
   "manage.emulators.update": "{version}(으)로 업데이트",
   "manage.emulators.cancel": "취소",
   "manage.emulators.not_downloadable": "Ember는 이 컴퓨터용 {engine}을(를) 다운로드할 수 없습니다. Flathub나 배포판의 소프트웨어 센터에서 설치하면 Ember가 찾아내며, 아래에서 프로그램을 직접 선택할 수도 있습니다.",
+  "manage.emulators.no_build": "{engine}은(는) 아직 이 컴퓨터용 버전이 없습니다. 지원 환경: {hosts}.",
   "manage.emulators.releases_failed": "새 버전을 확인할 수 없습니다: {error}",
   "manage.emulators.homepage": "웹사이트",
   "manage.emulators.use_program": "이 컴퓨터의 프로그램 사용…",
