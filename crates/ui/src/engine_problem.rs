@@ -3,6 +3,8 @@
 //! pinned one is gone, or choose the BIOS folder. Every place that starts a
 //! game reaches this through [`crate::save_conflict::resolve_launch_error`].
 
+use std::collections::HashMap;
+
 use ember_core::process::CancellationToken;
 use ember_core::{GameId, OpContext};
 use ember_engines::{BiosMissing, EngineMissing};
@@ -11,10 +13,28 @@ use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::dialog::DialogFooter;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{ActiveTheme as _, WindowExt as _, v_flex};
-use gpui_kit::{App, ParentElement as _, PathPromptOptions, Styled as _, Window, div};
+use gpui_kit::{
+    App, AppContext as _, Entity, Global, ParentElement as _, PathPromptOptions, Styled as _,
+    WeakEntity, Window, div,
+};
 
 use crate::i18n::{t, t_args};
 use crate::state::{backend, run};
+
+/// A game whose fix is under way: its dialog is open, or the install chosen
+/// there is running. The dialog and then the install hold the entity; the fix
+/// is over once both have dropped it.
+struct PendingFix {
+    /// The emulator or core being installed, once the user chose to.
+    installing: Option<String>,
+}
+
+/// Pending fixes by [`GameId::key`]. Pressing Play again while one is under
+/// way must not stack a second dialog or start the install twice.
+#[derive(Default)]
+struct PendingFixes(HashMap<String, WeakEntity<PendingFix>>);
+
+impl Global for PendingFixes {}
 
 /// Handle an emulator problem of `error`. Returns whether it did.
 pub(crate) fn resolve(
@@ -24,15 +44,33 @@ pub(crate) fn resolve(
     window: &mut Window,
     cx: &mut App,
 ) -> bool {
-    if let Some(missing) = EngineMissing::of(error).cloned() {
-        open_missing_engine(id.clone(), params.clone(), missing, window, cx);
+    let engine = EngineMissing::of(error).cloned();
+    let bios = BiosMissing::of(error).cloned();
+    if engine.is_none() && bios.is_none() {
+        return false;
+    }
+    let pending = cx
+        .default_global::<PendingFixes>()
+        .0
+        .get(&id.key())
+        .and_then(WeakEntity::upgrade);
+    if let Some(pending) = pending {
+        // Its dialog is already on screen; an install says it's still going.
+        if let Some(name) = pending.read(cx).installing.clone() {
+            notify_installing(&name, window, cx);
+        }
         return true;
     }
-    if let Some(missing) = BiosMissing::of(error).cloned() {
-        open_missing_bios(id.clone(), params.clone(), missing, window, cx);
-        return true;
+    let fix = cx.new(|_| PendingFix { installing: None });
+    let fixes = &mut cx.default_global::<PendingFixes>().0;
+    fixes.retain(|_, fix| fix.upgrade().is_some());
+    fixes.insert(id.key(), fix.downgrade());
+    if let Some(missing) = engine {
+        open_missing_engine(id.clone(), params.clone(), missing, fix, window, cx);
+    } else if let Some(missing) = bios {
+        open_missing_bios(id.clone(), params.clone(), missing, fix, window, cx);
     }
-    false
+    true
 }
 
 fn title_of(id: &GameId, cx: &App) -> String {
@@ -66,6 +104,7 @@ fn open_missing_engine(
     id: GameId,
     params: LaunchParams,
     missing: EngineMissing,
+    fix: Entity<PendingFix>,
     window: &mut Window,
     cx: &mut App,
 ) {
@@ -103,7 +142,7 @@ fn open_missing_engine(
     };
     window.open_dialog(cx, move |dialog, _, cx| {
         let pinned = missing.pinned.is_some() && missing.core.is_none();
-        let (id, params, missing) = (id.clone(), params.clone(), missing.clone());
+        let (id, params, missing, fix) = (id.clone(), params.clone(), missing.clone(), fix.clone());
         let primary = if pinned {
             Button::new("engine-use-default")
                 .primary()
@@ -123,7 +162,14 @@ fn open_missing_engine(
                 .label(t("ui.engine.install_and_play"))
                 .on_click(move |_, window, cx| {
                     window.close_dialog(cx);
-                    install_then_play(id.clone(), params.clone(), missing.clone(), window, cx);
+                    install_then_play(
+                        id.clone(),
+                        params.clone(),
+                        missing.clone(),
+                        fix.clone(),
+                        window,
+                        cx,
+                    );
                 })
         };
         dialog
@@ -156,20 +202,26 @@ fn open_missing_engine(
     });
 }
 
+fn notify_installing(name: &str, window: &mut Window, cx: &mut App) {
+    window.push_notification(
+        Notification::info(t("ui.engine.installing_detail"))
+            .title(t_args("ui.engine.installing", &[("engine", name)])),
+        cx,
+    );
+}
+
 /// Install the missing emulator or core, then start the game.
 fn install_then_play(
     id: GameId,
     params: LaunchParams,
     missing: EngineMissing,
+    fix: Entity<PendingFix>,
     window: &mut Window,
     cx: &mut App,
 ) {
     let name = missing.core.clone().unwrap_or_else(|| missing.name.clone());
-    window.push_notification(
-        Notification::info(t("ui.engine.installing_detail"))
-            .title(t_args("ui.engine.installing", &[("engine", &name)])),
-        cx,
-    );
+    fix.update(cx, |fix, _| fix.installing = Some(name.clone()));
+    notify_installing(&name, window, cx);
     let b = backend(cx);
     let task = run(cx, async move {
         let ctx = OpContext {
@@ -188,6 +240,8 @@ fn install_then_play(
     });
     window
         .spawn(cx, async move |cx| {
+            // Held until the game starts again or the install fails.
+            let _fix = fix;
             let result = task.await;
             let _ = cx.update(|window, cx| match result {
                 Ok(()) => relaunch(id.clone(), params.clone(), window, cx),
@@ -205,13 +259,14 @@ fn open_missing_bios(
     id: GameId,
     params: LaunchParams,
     missing: BiosMissing,
+    fix: Entity<PendingFix>,
     window: &mut Window,
     cx: &mut App,
 ) {
     let width = window.rem_size() * 32.;
     window.open_dialog(cx, move |dialog, _, cx| {
         let muted = cx.theme().muted_foreground;
-        let (id, params) = (id.clone(), params.clone());
+        let (id, params, fix) = (id.clone(), params.clone(), fix.clone());
         dialog
             .title(t_args("ui.engine.bios_title", &[("system", &missing.name)]))
             .w(width)
@@ -253,14 +308,26 @@ fn open_missing_bios(
                             .label(t("ui.engine.choose_bios"))
                             .on_click(move |_, window, cx| {
                                 window.close_dialog(cx);
-                                choose_bios_then_play(id.clone(), params.clone(), window, cx);
+                                choose_bios_then_play(
+                                    id.clone(),
+                                    params.clone(),
+                                    fix.clone(),
+                                    window,
+                                    cx,
+                                );
                             }),
                     ),
             )
     });
 }
 
-fn choose_bios_then_play(id: GameId, params: LaunchParams, window: &mut Window, cx: &mut App) {
+fn choose_bios_then_play(
+    id: GameId,
+    params: LaunchParams,
+    fix: Entity<PendingFix>,
+    window: &mut Window,
+    cx: &mut App,
+) {
     let paths = cx.prompt_for_paths(PathPromptOptions {
         files: false,
         directories: true,
@@ -270,6 +337,8 @@ fn choose_bios_then_play(id: GameId, params: LaunchParams, window: &mut Window, 
     let b = backend(cx);
     window
         .spawn(cx, async move |cx| {
+            // Held until the game starts again or the user gives up.
+            let _fix = fix;
             let Ok(Ok(Some(paths))) = paths.await else {
                 return;
             };
