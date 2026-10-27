@@ -56,6 +56,7 @@
   "shell.palette.random": "Rastgele bir oyun seç",
   "shell.palette.random_keywords": "rastgele sürpriz karıştır rulet",
   "shell.notice.exit_hotkey": "{engine}: oyundan çıkmak için {keys}",
+  "shell.notice.udmabuf": "{engine}: bu hesap /dev/udmabuf kullanamıyor, bu yüzden oyunlar yavaş çalışabilir. Kendinizi onun sahibi olan gruba (genellikle kvm) ekleyin ve yeniden oturum açın.",
   "shell.palette.set_up_emulation": "Emülasyonu kur",
   "shell.palette.set_up_emulation_keywords": "emülatör ROM konsol retro BIOS RetroArch",
   "shell.palette.lutris_script": "Lutris betiğiyle kur",

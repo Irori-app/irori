@@ -264,6 +264,7 @@
   "manage.emulators.update": "更新至 {version}",
   "manage.emulators.cancel": "取消",
   "manage.emulators.not_downloadable": "Ember 無法為此電腦下載 {engine}。請從 Flathub 或發行版的軟體中心安裝，Ember 會自動找到它；也可以在下方選擇它的程式。",
+  "manage.emulators.no_build": "{engine} 尚無適用於此電腦的版本。支援的平台：{hosts}。",
   "manage.emulators.releases_failed": "無法檢查新版本：{error}",
   "manage.emulators.homepage": "網站",
   "manage.emulators.use_program": "使用此電腦上的程式…",

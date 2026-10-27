@@ -11,6 +11,8 @@
 //! - managed installs with several versions side by side ([`install`]);
 //! - RetroArch cores ([`retroarch`]);
 //! - the BIOS index and per-system BIOS status ([`bios`]);
+//! - converting games for engines that turn them into programs of this
+//!   computer ([`relink`]);
 //! - turning a game file into a command ([`launch`]).
 //!
 //! Nothing here has a UI or blocks a Tokio worker: discovery and hashing run
@@ -24,6 +26,7 @@ pub mod install;
 pub mod launch;
 pub mod manifest;
 pub mod releases;
+pub mod relink;
 pub mod retroarch;
 pub mod state;
 pub mod systems;
@@ -39,7 +42,7 @@ use serde_json::Value;
 
 pub use discovery::{Installation, Origin};
 pub use host::{Host, Os};
-pub use launch::{BiosMissing, EngineMissing, GameFile};
+pub use launch::{BiosMissing, EngineMissing, EngineUnavailable, GameFile, Unavailable};
 pub use manifest::{EngineKind, EngineManifest, EngineOption, OptionKind};
 pub use systems::System;
 
@@ -86,6 +89,10 @@ pub const BUILT_IN: &[(&str, &str)] = &[
     (
         "shadps4",
         include_str!("../../../assets/engines/shadps4.json"),
+    ),
+    (
+        "anyps5",
+        include_str!("../../../assets/engines/anyps5.json"),
     ),
 ];
 

@@ -522,14 +522,19 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   names, app bundle, Windows paths), the launch template, options with **one** visibility
   rule (`visibleWhen`), BIOS folder, exit hotkey and licence. Never pin a download URL;
   describe where versions are listed. The only per-engine code is the `kind` match in
-  `crates/engines/src/launch.rs` (RetroArch cores, DOSBox, ScummVM, MAME). Users may
+  `crates/engines/src/launch.rs` (RetroArch cores, DOSBox, ScummVM, MAME, relinkers). Users may
   override a manifest with `<config>/engines/<id>.json` (merge patch).
 - **Engines shipped:** RetroArch (12 cores), DuckStation, PPSSPP, Dolphin, ScummVM,
   DOSBox Staging, PCSX2, melonDS, mGBA, Azahar, MAME (detected only), and the
-  experimental Cemu, RPCS3, xemu and shadPS4 (never a system's default while another
-  engine plays it). Systems may be `folderOnly` (arcade zips, Xbox images) and folder
-  games may name the file engines open (`folderMain`); BIOS files with many names
-  match a `pattern`.
+  experimental Cemu, RPCS3, xemu, shadPS4 and AnyPS5 (never a system's default while
+  another engine plays it). Systems may be `folderOnly` (arcade zips, Xbox images) and
+  folder games may name the file engines open (`folderMain`) and the file naming them
+  (`folderTitle`); BIOS files with many names match a `pattern`.
+- **Converting engines.** AnyPS5 (`kind: relinker`, `ember_engines::relink`) turns a PS5
+  game into a program of this computer before it plays, in Ember's data folder with the
+  game's files linked into `app0/`; it never writes the game folder. Its releases are a
+  program plus a library archive (`extraAssets`), for Linux and Windows x86-64 only, so
+  macOS explains it isn't available (`EngineUnavailable`) instead of offering an install.
 - **Option texts** are `manage.engines.option.<id>.label` / `.help` (and
   `.<choice>` for choice values) in `ember-manage`; a test fails when a built-in option
   has no English text.

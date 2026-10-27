@@ -1,0 +1,49 @@
+{
+  "id": "anyps5",
+  "name": "AnyPS5",
+  "license": "GPL-2.0-only",
+  "homepage": "https://github.com/boykopovar/AnyPS5",
+  "kind": "relinker",
+  "systems": [
+    "ps5"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "boykopovar/AnyPS5",
+      "assets": {
+        "linux-x86_64": "^relinker-v[\\d.]+$",
+        "windows-x86_64": "^relinker-v[\\d.]+\\.exe$"
+      },
+      "extraAssets": {
+        "linux-x86_64": [
+          "^prx-linux-v[\\d.]+\\.tar\\.gz$"
+        ],
+        "windows-x86_64": [
+          "^prx-windows-v[\\d.]+\\.zip$"
+        ]
+      }
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "relinker-v*",
+      "relinker"
+    ],
+    "windows": [
+      "relinker-v*.exe",
+      "relinker.exe"
+    ]
+  },
+  "cpuFeatures": [
+    "avx2",
+    "fma",
+    "f16c",
+    "bmi1",
+    "bmi2",
+    "lzcnt",
+    "movbe"
+  ],
+  "exitHotkey": "Alt+F4",
+  "experimental": true
+}

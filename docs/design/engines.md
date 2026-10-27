@@ -93,9 +93,9 @@ executed; it is data.
 | Key | Meaning |
 | --- | --- |
 | `id`, `name`, `license`, `homepage` | Identity. `license` is shown on the engine card. |
-| `kind` | `standalone`, `retroarch`, `dosbox`, `scummvm` or `mame`: the only per-engine code paths (the `Engine` behaviour of the brief), each a small `match` arm in `launch.rs`. |
+| `kind` | `standalone`, `retroarch`, `dosbox`, `scummvm`, `mame` or `relinker`: the only per-engine code paths (the `Engine` behaviour of the brief), each a small `match` arm in `launch.rs`; `relinker` also converts the game first (`relink.rs`). |
 | `systems` | System ids it plays. |
-| `sources` | In priority order: `github` (repo + per-host asset regex + optional checksum asset), `buildbot` (libretro: version folders of an index), `page` (a download page or JSON with a `version` regex group), `flatpak` (id), `path` (program names), `macApp` (bundle name), `windows` (`%VAR%` paths). The first three are managed downloads; the rest are detected and labelled, never installed. |
+| `sources` | In priority order: `github` (repo + per-host asset regex + optional checksum asset + optional `extraAssets`, more files per host that unpack beside the program), `buildbot` (libretro: version folders of an index), `page` (a download page or JSON with a `version` regex group), `flatpak` (id), `path` (program names), `macApp` (bundle name), `windows` (`%VAR%` paths). The first three are managed downloads; the rest are detected and labelled, never installed. |
 | `binaries` | Per OS, the program inside a managed download (may contain one `*`, may be an `.app`). |
 | `launch.args` | The argument template: strings with `{rom}`, `{rom_dir}`, `{engine_home}`, `{engine_dir}`, `{opt.<id>}`; `{"if": "<toggle>", "args": […]}` and `{"unless": …}`. |
 | `launch.env` | Extra environment, placeholders expanded. |
@@ -104,6 +104,7 @@ executed; it is data.
 | `portableMarker` | Per OS, a file that makes a managed install keep its settings beside itself. |
 | `exitHotkey` | Shown once per engine, the first time a game starts with it. |
 | `experimental` | Never recommended; shown with a warning. |
+| `cpuFeatures` | x86-64 features the engine's games use unchecked (`avx2`, `bmi2`, …); a processor lacking one gets an explanation instead of a crash. |
 | `cores` | RetroArch only: id, name, licence and systems of each core Ember offers. |
 
 Download links are never pinned in a manifest: each source says where versions are
@@ -151,13 +152,46 @@ images and PS3/PS4 games count as games only inside a folder of their system
 (`folderOnly`), so a loose zip is never taken for an arcade game. PS3 and PS4 games are
 folders; the catalog names the file inside that engines open (`folderMain`).
 
-### 3.2.2 Legal review of the experimental engines
+### 3.2.2 AnyPS5
 
-- All four are open source (MPL-2.0 or GPL-2.0), developed in public, and distributed by
+[AnyPS5](https://github.com/boykopovar/AnyPS5) (GPL-2.0-only, experimental) plays
+PlayStation 5 games without emulating the console: its relinker converts a game's
+decrypted `eboot.bin` and modules into a program of this computer, which runs against
+AnyPS5's own system libraries. Its `kind` is `relinker`.
+
+- **Download.** Each release has a relinker program and a library archive per OS
+  (`relinker-v….exe` + `prx-windows-v….zip`, `relinker-v…` + `prx-linux-v….tar.gz`);
+  the manifest's `extraAssets` names the archive, which unpacks to `libs/` beside the
+  relinker. Releases exist for Linux and Windows on x86-64 only.
+- **macOS.** AnyPS5 publishes no macOS build: its relinker can produce Mac programs,
+  but the libraries they need are not released, and the port is still open work
+  upstream. Ember lists PS5 games there but explains, on the Emulators page and when
+  Play is pressed, that AnyPS5 has no version for this computer and where it runs. The
+  manifest needs no change once a macOS release appears; Ember offers it then.
+- **Games.** PS5 games are folders inside a `PS5` folder, holding `eboot.bin`; the
+  title comes from `sce_sys/param.json` (`folderTitle`), since dumps are usually named
+  by title id.
+- **Converting.** On Play, Ember checks the processor (AVX2, FMA, F16C, BMI1/2, LZCNT,
+  MOVBE, from `cpuFeatures`) and that `eboot.bin` is a plain ELF file, then runs the
+  relinker into `<data>/engines/relinked/anyps5/<key>/`: `app.elf` or `app.exe`, with
+  `--rpath` at the installed `libs/` (copied beside the program on Windows when that
+  path is not ASCII), `--windows --windows-gui` on Windows, and an empty module folder
+  outside the game for games without one. Everything else in the game folder is linked
+  into the output's `app0/` (symbolic links; junctions and hard links on Windows), so the
+  user's folder is never written. A stamp of the relinker, `eboot.bin` and the modules
+  (size and modification time) skips converting again until one changes. Output goes to
+  the game's operation log.
+- **Linux.** Without access to `/dev/udmabuf`, AnyPS5 games run slowly on drivers other
+  than NVIDIA's; Ember says so once per run and names the usual fix (the `kvm` group).
+
+### 3.2.3 Legal review of the experimental engines
+
+- All five are open source (MPL-2.0 or GPL-2.0), developed in public, and distributed by
   their projects from GitHub. Ember downloads the projects' own unmodified releases when
   the user asks, exactly as for the other engines; it redistributes nothing.
 - None of them needs Ember to handle copyrighted material, and Ember never does:
-  firmware (PS3 system software from Sony's site, PS4 modules), console keys (Wii U
+  firmware (PS3 system software from Sony's site, PS4 modules), decrypted PS5 games
+  (AnyPS5 needs no firmware or keys, but only converts dumps the user made), console keys (Wii U
   `keys.txt`) and Xbox BIOS, MCPX boot ROM and hard-disk image are set up in each
   emulator's own settings by the user, from hardware they own. Ember neither downloads,
   links to, nor names a source for them; it only explains that they are needed.
@@ -219,6 +253,8 @@ Typed errors that the failed-start sheet turns into fix buttons:
 | `EngineMissing { core }` | Install the «core» core |
 | `EngineMissing { pinned }` | Install «version» · Use the default version |
 | `BiosMissing { system }` | Choose BIOS folder · Show what's needed |
+| `EngineUnavailable { NoBuild }` | none: says where the engine runs · Open Emulators |
+| `EngineUnavailable { Processor }` | none: names the missing processor features |
 | unknown system or format | Choose the system · Play with… |
 | a crash right after start with Vulkan in the log | Use OpenGL for this game (RetroArch `video_driver`) |
 
@@ -451,3 +487,4 @@ Stacked pull requests, each retargeted to `main` once its parent merges:
 | P4.5 | `feat/third-party-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar setup and library import. |
 | P4.6 | — | Not built; see [10](#10-humble-bundle-not-shipped). |
 | P4.7 | `feat/more-engines` | PCSX2, melonDS, mGBA, Azahar, MAME, then the experimental engines. |
+| P4.8 | `feat/anyps5` | PlayStation 5 games with AnyPS5 on Linux and Windows. |

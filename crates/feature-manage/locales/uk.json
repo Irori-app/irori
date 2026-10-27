@@ -264,6 +264,7 @@
   "manage.emulators.update": "Оновити до {version}",
   "manage.emulators.cancel": "Скасувати",
   "manage.emulators.not_downloadable": "Ember не може завантажити {engine} для цього комп’ютера. Встановіть його з Flathub або центру застосунків вашого дистрибутива — Ember його знайде — або виберіть його програму нижче.",
+  "manage.emulators.no_build": "{engine} ще не має версії для цього комп’ютера. Він працює на {hosts}.",
   "manage.emulators.releases_failed": "Не вдалося перевірити нові версії: {error}",
   "manage.emulators.homepage": "Вебсайт",
   "manage.emulators.use_program": "Вибрати програму на цьому комп’ютері…",

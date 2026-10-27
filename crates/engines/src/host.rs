@@ -58,8 +58,41 @@ impl Host {
     }
 }
 
+/// A readable name for a manifest host key: `linux-x86_64` is
+/// "Linux (x86-64)". Product names aren't translated; an unknown key is
+/// shown as it is.
+pub fn label(key: &str) -> String {
+    let Some((os, arch)) = key.split_once('-') else {
+        return key.to_string();
+    };
+    let os = match os {
+        "linux" => "Linux",
+        "macos" => "macOS",
+        "windows" => "Windows",
+        _ => return key.to_string(),
+    };
+    let arch = match arch {
+        "x86_64" => "x86-64",
+        "aarch64" => "Arm64",
+        other => other,
+    };
+    format!("{os} ({arch})")
+}
+
 impl fmt::Display for Host {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.key())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn labels_host_keys() {
+        assert_eq!(label("linux-x86_64"), "Linux (x86-64)");
+        assert_eq!(label("macos-aarch64"), "macOS (Arm64)");
+        assert_eq!(label("haiku-x86"), "haiku-x86");
     }
 }

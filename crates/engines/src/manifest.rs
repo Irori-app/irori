@@ -32,6 +32,9 @@ pub enum EngineKind {
     Scummvm,
     /// MAME: runs a machine by its short name from a ROM folder.
     Mame,
+    /// A converter (AnyPS5's relinker): turns the game into a program of
+    /// this computer once, which then runs on its own.
+    Relinker,
 }
 
 /// One way to get or find an engine, in priority order.
@@ -40,6 +43,7 @@ pub enum EngineKind {
 pub enum Source {
     /// Releases on GitHub; `assets` maps a host key (`linux-x86_64`,
     /// `macos-aarch64`, `windows-x86_64`) to a regex matching the asset name.
+    #[serde(rename_all = "camelCase")]
     Github {
         repo: String,
         assets: BTreeMap<String, String>,
@@ -47,6 +51,11 @@ pub enum Source {
         /// publishes one.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         checksums: Option<String>,
+        /// More assets of the same release a host needs (a program's
+        /// runtime libraries), by host key. They unpack into the same
+        /// folder; a release missing one is skipped.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        extra_assets: BTreeMap<String, Vec<String>>,
     },
     /// The libretro buildbot: versions are the folders of `index` matching
     /// `version_pattern`; `assets` maps a host key to a path template under
@@ -94,6 +103,17 @@ impl Source {
             _ => return None,
         };
         assets.get(&host.key()).map(String::as_str)
+    }
+
+    /// Patterns of the further assets `host` needs beside the main one.
+    pub fn extras_for(&self, host: Host) -> &[String] {
+        match self {
+            Source::Github { extra_assets, .. } => extra_assets
+                .get(&host.key())
+                .map(Vec::as_slice)
+                .unwrap_or_default(),
+            _ => &[],
+        }
     }
 }
 
@@ -237,6 +257,10 @@ pub struct EngineManifest {
     /// The engine is experimental: shown with a warning, never recommended.
     #[serde(default)]
     pub experimental: bool,
+    /// x86-64 processor features the engine's games use without checking
+    /// (`avx2`, `bmi2`, …). A game doesn't start on a processor lacking one.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cpu_features: Vec<String>,
     /// Libretro cores (RetroArch only).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cores: Vec<Core>,
@@ -294,9 +318,15 @@ impl EngineManifest {
         check(&self.launch.args, &ids, &self.id)?;
         for source in &self.sources {
             let patterns: Vec<&String> = match source {
-                Source::Github { assets, .. } | Source::Page { assets, .. } => {
-                    assets.values().collect()
-                }
+                Source::Github {
+                    assets,
+                    extra_assets,
+                    ..
+                } => assets
+                    .values()
+                    .chain(extra_assets.values().flatten())
+                    .collect(),
+                Source::Page { assets, .. } => assets.values().collect(),
                 Source::Buildbot {
                     version_pattern, ..
                 } => vec![version_pattern],

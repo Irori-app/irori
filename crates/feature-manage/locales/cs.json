@@ -264,6 +264,7 @@
   "manage.emulators.update": "Aktualizovat na {version}",
   "manage.emulators.cancel": "Zrušit",
   "manage.emulators.not_downloadable": "Ember nemůže stáhnout {engine} pro tento počítač. Nainstalujte ho z Flathub nebo z centra softwaru vaší distribuce a Ember ho najde, nebo níže vyberte jeho program.",
+  "manage.emulators.no_build": "{engine} pro tento počítač zatím nemá verzi. Běží na: {hosts}.",
   "manage.emulators.releases_failed": "Nové verze se nepodařilo zkontrolovat: {error}",
   "manage.emulators.homepage": "Web",
   "manage.emulators.use_program": "Použít program v tomto počítači…",

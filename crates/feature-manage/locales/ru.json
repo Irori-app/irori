@@ -264,6 +264,7 @@
   "manage.emulators.update": "Обновить до {version}",
   "manage.emulators.cancel": "Отмена",
   "manage.emulators.not_downloadable": "Ember не может скачать {engine} для этого компьютера. Установите его из Flathub или центра приложений вашего дистрибутива — Ember его найдёт — или выберите его программу ниже.",
+  "manage.emulators.no_build": "У {engine} пока нет версии для этого компьютера. Он работает на {hosts}.",
   "manage.emulators.releases_failed": "Не удалось проверить новые версии: {error}",
   "manage.emulators.homepage": "Сайт",
   "manage.emulators.use_program": "Выбрать программу на этом компьютере…",

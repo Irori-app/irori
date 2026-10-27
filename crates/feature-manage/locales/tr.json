@@ -264,6 +264,7 @@
   "manage.emulators.update": "{version} sürümüne güncelle",
   "manage.emulators.cancel": "İptal",
   "manage.emulators.not_downloadable": "Ember bu bilgisayar için {engine} indiremiyor. Flathub’dan ya da dağıtımının yazılım merkezinden yükle, Ember onu bulur; ya da aşağıdan programını seç.",
+  "manage.emulators.no_build": "{engine} için bu bilgisayara uygun bir sürüm henüz yok. Şu sistemlerde çalışır: {hosts}.",
   "manage.emulators.releases_failed": "Yeni sürümler denetlenemedi: {error}",
   "manage.emulators.homepage": "Web sitesi",
   "manage.emulators.use_program": "Bu bilgisayardaki bir programı kullan…",

@@ -30,6 +30,10 @@ hex.workspace = true
 crc32fast = "1"
 sevenz-rust2 = { version = "0.24", default-features = false, features = ["util"] }
 
+[target.'cfg(windows)'.dependencies]
+# Links game folders into converted games without developer mode.
+junction = "1"
+
 [dev-dependencies]
 ember-depot = { workspace = true, features = ["test-server"] }
 tempfile = "3"

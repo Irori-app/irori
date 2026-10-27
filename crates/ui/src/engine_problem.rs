@@ -1,13 +1,14 @@
 //! Emulated games that can't start yet, with the fix one click away: install
 //! the missing emulator (then play), go back to the default version when a
-//! pinned one is gone, or choose the BIOS folder. Every place that starts a
+//! pinned one is gone, or choose the BIOS folder. An emulator that can't run
+//! on this computer at all is explained instead. Every place that starts a
 //! game reaches this through [`crate::save_conflict::resolve_launch_error`].
 
 use std::collections::HashMap;
 
 use ember_core::process::CancellationToken;
 use ember_core::{GameId, OpContext};
-use ember_engines::{BiosMissing, EngineMissing};
+use ember_engines::{BiosMissing, EngineMissing, EngineUnavailable, Unavailable};
 use ember_services::LaunchParams;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::dialog::DialogFooter;
@@ -46,7 +47,8 @@ pub(crate) fn resolve(
 ) -> bool {
     let engine = EngineMissing::of(error).cloned();
     let bios = BiosMissing::of(error).cloned();
-    if engine.is_none() && bios.is_none() {
+    let unavailable = EngineUnavailable::of(error).cloned();
+    if engine.is_none() && bios.is_none() && unavailable.is_none() {
         return false;
     }
     let pending = cx
@@ -69,8 +71,86 @@ pub(crate) fn resolve(
         open_missing_engine(id.clone(), params.clone(), missing, fix, window, cx);
     } else if let Some(missing) = bios {
         open_missing_bios(id.clone(), params.clone(), missing, fix, window, cx);
+    } else if let Some(unavailable) = unavailable {
+        open_unavailable(id, unavailable, fix, window, cx);
     }
     true
+}
+
+/// Explain why the game's emulator can't run here. There is nothing to
+/// install, so the dialog only points to the Emulators page.
+fn open_unavailable(
+    id: &GameId,
+    unavailable: EngineUnavailable,
+    fix: Entity<PendingFix>,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let title = title_of(id, cx);
+    let engine = unavailable.name.as_str();
+    let (heading, body) = match &unavailable.reason {
+        Unavailable::NoBuild { hosts } if hosts.is_empty() => (
+            t_args("ui.engine.unavailable_title", &[("engine", engine)]),
+            t_args(
+                "ui.engine.no_download",
+                &[("title", &title), ("engine", engine)],
+            ),
+        ),
+        Unavailable::NoBuild { hosts } => {
+            let hosts: Vec<String> = hosts
+                .iter()
+                .map(|h| ember_engines::host::label(h))
+                .collect();
+            (
+                t_args("ui.engine.unavailable_title", &[("engine", engine)]),
+                t_args(
+                    "ui.engine.no_build",
+                    &[
+                        ("title", &title),
+                        ("engine", engine),
+                        ("hosts", &hosts.join(", ")),
+                    ],
+                ),
+            )
+        }
+        Unavailable::Processor { missing } => (
+            t_args("ui.engine.processor_title", &[("engine", engine)]),
+            t_args(
+                "ui.engine.processor",
+                &[
+                    ("engine", engine),
+                    ("features", &missing.join(", ").to_uppercase()),
+                ],
+            ),
+        ),
+    };
+    let width = window.rem_size() * 32.;
+    window.open_dialog(cx, move |dialog, _, _| {
+        // Held while the dialog is open, so Play doesn't open another.
+        let _fix = &fix;
+        dialog
+            .title(heading.clone())
+            .w(width)
+            .child(div().text_sm().child(body.clone()))
+            .footer(
+                DialogFooter::new()
+                    .child(
+                        Button::new("engine-unavailable-emulators")
+                            .ghost()
+                            .label(t("ui.engine.open_emulators"))
+                            .on_click(|_, window, cx| {
+                                window.close_dialog(cx);
+                                crate::navigate(crate::Route::Emulators, cx);
+                            }),
+                    )
+                    .child(
+                        Button::new("engine-unavailable-close")
+                            .primary()
+                            .label(t("ui.engine.close"))
+                            .on_click(|_, window, cx| window.close_dialog(cx)),
+                    ),
+            )
+    });
 }
 
 fn title_of(id: &GameId, cx: &App) -> String {

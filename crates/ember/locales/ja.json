@@ -56,6 +56,7 @@
   "shell.palette.random": "ランダムにゲームを選ぶ",
   "shell.palette.random_keywords": "ランダム おまかせ シャッフル ルーレット",
   "shell.notice.exit_hotkey": "{engine}: ゲームを終了するには {keys}",
+  "shell.notice.udmabuf": "{engine}: このアカウントは /dev/udmabuf を使用できないため、ゲームの動作が遅くなる可能性があります。所有グループ (多くは kvm) に自分を追加して、サインインし直してください。",
   "shell.palette.set_up_emulation": "エミュレーションを設定",
   "shell.palette.set_up_emulation_keywords": "エミュレーター ROM ゲーム機 コンソール レトロ BIOS RetroArch",
   "shell.palette.lutris_script": "Lutris スクリプトでインストール",

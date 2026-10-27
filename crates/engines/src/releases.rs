@@ -48,6 +48,20 @@ pub struct Release {
     /// Where the expected digest is published, fetched at install time.
     #[serde(default)]
     pub checksum_url: Option<String>,
+    /// Further files of the release this computer needs, unpacked beside
+    /// the main one (see `extraAssets` in the manifest).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extras: Vec<ReleaseFile>,
+}
+
+/// A further file of a [`Release`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseFile {
+    pub url: String,
+    pub file_name: String,
+    #[serde(default)]
+    pub size: Option<u64>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -126,20 +140,21 @@ pub async fn fetch(manifest: &EngineManifest, host: Host) -> Result<Vec<Release>
         bail!("{} has no download for {host}", manifest.name);
     };
     let pattern = source.asset_for(host).unwrap_or_default();
+    let extras = source.extras_for(host);
     let mut releases = match source {
         Source::Github {
             repo, checksums, ..
         } => {
             let url = format!("https://api.github.com/repos/{repo}/releases?per_page=100");
             let body = get_text(&url).await?;
-            let mut found = from_github(&body, pattern, checksums.as_deref())?;
+            let mut found = from_github(&body, pattern, extras, checksums.as_deref())?;
             // Projects publishing nightly pre-releases (PCSX2) can push every
             // stable release off the list; GitHub's "latest" is the newest
             // stable one.
             if found.is_empty() {
                 let latest = format!("https://api.github.com/repos/{repo}/releases/latest");
                 let body = get_text(&latest).await?;
-                found = from_github(&format!("[{body}]"), pattern, checksums.as_deref())?;
+                found = from_github(&format!("[{body}]"), pattern, extras, checksums.as_deref())?;
             }
             found
         }
@@ -210,14 +225,39 @@ fn date_of(stamp: Option<&str>) -> Option<String> {
     stamp.and_then(|s| s.get(..10)).map(str::to_string)
 }
 
-fn from_github(body: &str, pattern: &str, checksums: Option<&str>) -> Result<Vec<Release>> {
+fn from_github(
+    body: &str,
+    pattern: &str,
+    extras: &[String],
+    checksums: Option<&str>,
+) -> Result<Vec<Release>> {
     let list: Vec<GhRelease> =
         serde_json::from_str(body).context("unexpected answer from GitHub")?;
     let asset_re = Regex::new(pattern)?;
+    let extra_res = extras
+        .iter()
+        .map(|p| Regex::new(p))
+        .collect::<Result<Vec<_>, _>>()?;
     let sums_re = checksums.map(Regex::new).transpose()?;
     let mut out = Vec::new();
     for r in list.into_iter().filter(|r| !r.draft && !r.prerelease) {
         let Some(asset) = r.assets.iter().find(|a| asset_re.is_match(&a.name)) else {
+            continue;
+        };
+        let Some(extras) = extra_res
+            .iter()
+            .map(|re| {
+                r.assets
+                    .iter()
+                    .find(|a| re.is_match(&a.name))
+                    .map(|a| ReleaseFile {
+                        url: a.browser_download_url.clone(),
+                        file_name: a.name.clone(),
+                        size: (a.size > 0).then_some(a.size),
+                    })
+            })
+            .collect::<Option<Vec<_>>>()
+        else {
             continue;
         };
         // Rolling releases ("latest") are told apart by their build date.
@@ -240,6 +280,7 @@ fn from_github(body: &str, pattern: &str, checksums: Option<&str>) -> Result<Vec
                     .find(|a| re.is_match(&a.name))
                     .map(|a| a.browser_download_url.clone())
             }),
+            extras,
         });
     }
     Ok(out)
@@ -275,6 +316,7 @@ fn from_buildbot(
                 date: None,
                 size: None,
                 checksum_url: None,
+                extras: Vec::new(),
             })
         })
         .collect())
@@ -299,6 +341,7 @@ fn from_page(body: &str, pattern: &str, base: &str) -> Result<Vec<Release>> {
                 date: None,
                 size: None,
                 checksum_url: None,
+                extras: Vec::new(),
             })
         })
         .collect())
@@ -342,17 +385,44 @@ mod tests {
             ]}
         ])
         .to_string();
-        let r = from_github(&body, "^DuckStation-x64\\.AppImage$", None).unwrap();
+        let r = from_github(&body, "^DuckStation-x64\\.AppImage$", &[], None).unwrap();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].version, "2025-10-01");
         assert_eq!(r[0].size, Some(10));
         let r = from_github(
             &body,
             "^dosbox-staging-linux-x86_64-v[\\d.]+\\.tar\\.xz$",
+            &[],
             None,
         )
         .unwrap();
         assert_eq!(r[0].version, "0.82.2");
+    }
+
+    #[test]
+    fn github_releases_carry_extra_assets_and_skip_incomplete_ones() {
+        let body = serde_json::json!([
+            {"tag_name": "v0.1.3", "assets": [
+                {"name": "relinker-v0.1.3", "browser_download_url": "https://x/r3", "size": 4},
+                {"name": "prx-linux-v0.1.3.tar.gz", "browser_download_url": "https://x/p3", "size": 100}
+            ]},
+            {"tag_name": "v0.1.2", "assets": [
+                {"name": "relinker-v0.1.2", "browser_download_url": "https://x/r2"}
+            ]}
+        ])
+        .to_string();
+        let extras = ["^prx-linux-v[\\d.]+\\.tar\\.gz$".to_string()];
+        let r = from_github(&body, "^relinker-v[\\d.]+$", &extras, None).unwrap();
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].version, "0.1.3");
+        assert_eq!(
+            r[0].extras,
+            [ReleaseFile {
+                url: "https://x/p3".into(),
+                file_name: "prx-linux-v0.1.3.tar.gz".into(),
+                size: Some(100),
+            }]
+        );
     }
 
     #[test]

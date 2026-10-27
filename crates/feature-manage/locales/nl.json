@@ -264,6 +264,7 @@
   "manage.emulators.update": "Bijwerken naar {version}",
   "manage.emulators.cancel": "Annuleren",
   "manage.emulators.not_downloadable": "Ember kan {engine} niet downloaden voor deze computer. Installeer het via Flathub of het softwarecentrum van je distributie en Ember vindt het, of kies hieronder het programma.",
+  "manage.emulators.no_build": "{engine} heeft nog geen versie voor deze computer. Het werkt op {hosts}.",
   "manage.emulators.releases_failed": "Kan niet controleren op nieuwe versies: {error}",
   "manage.emulators.homepage": "Website",
   "manage.emulators.use_program": "Een programma op deze computer gebruiken…",

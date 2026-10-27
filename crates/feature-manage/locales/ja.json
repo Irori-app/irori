@@ -264,6 +264,7 @@
   "manage.emulators.update": "{version} にアップデート",
   "manage.emulators.cancel": "キャンセル",
   "manage.emulators.not_downloadable": "Ember はこのコンピューター向けの {engine} をダウンロードできません。Flathub またはディストリビューションのソフトウェアセンターからインストールすると Ember が見つけます。または、下でプログラムを選択してください。",
+  "manage.emulators.no_build": "{engine} にはこのコンピューター向けのバージョンがまだありません。対応環境: {hosts}。",
   "manage.emulators.releases_failed": "新しいバージョンを確認できませんでした: {error}",
   "manage.emulators.homepage": "Web サイト",
   "manage.emulators.use_program": "このコンピューター上のプログラムを使用…",

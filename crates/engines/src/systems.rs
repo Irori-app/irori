@@ -117,6 +117,11 @@ pub struct System {
     /// match wins (`PS3_GAME/USRDIR/EBOOT.BIN`). Empty opens the folder.
     #[serde(default)]
     pub folder_main: Vec<String>,
+    /// For folder games: a file inside the folder naming the game
+    /// (`sce_sys/param.json` of PlayStation 5 games), read instead of the
+    /// folder's name, which is often only a title id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder_title: Option<String>,
     /// Files count as this system's games only inside one of its folders
     /// (arcade `.zip` sets, Xbox `.iso` images), never by extension alone.
     #[serde(default)]
@@ -228,9 +233,77 @@ fn read_header(path: &Path) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
+/// Title files bigger than this are not what they claim to be.
+const TITLE_FILE_MAX: u64 = 1 << 20;
+
+/// The title the game folder `folder` gives itself through the system's
+/// [`System::folder_title`] file, if it has one. Blocking.
+pub fn folder_title(system: &System, folder: &Path) -> Option<String> {
+    let rel = system.folder_title.as_deref()?;
+    let path = folder.join(rel);
+    if std::fs::metadata(&path).ok()?.len() > TITLE_FILE_MAX {
+        return None;
+    }
+    let text = std::fs::read_to_string(&path).ok()?;
+    match Path::new(rel).file_name()?.to_str()? {
+        "param.json" => title_of_param_json(&text),
+        _ => None,
+    }
+}
+
+/// The title in a PlayStation 5 `param.json`: the entry of
+/// `localizedParameters` named by `defaultLanguage` (inside it or at the top
+/// level), else `en-US`, else the first language listed.
+pub fn title_of_param_json(text: &str) -> Option<String> {
+    let json: serde_json::Value = serde_json::from_str(text).ok()?;
+    let langs = json.get("localizedParameters")?.as_object()?;
+    let default = langs
+        .get("defaultLanguage")
+        .or_else(|| json.get("defaultLanguage"))
+        .and_then(|v| v.as_str());
+    let title_in = |lang: &serde_json::Value| {
+        lang.get("titleName")
+            .and_then(|t| t.as_str())
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+            .map(str::to_string)
+    };
+    default
+        .and_then(|d| langs.get(d))
+        .and_then(title_in)
+        .or_else(|| langs.get("en-US").and_then(title_in))
+        .or_else(|| langs.values().filter(|v| v.is_object()).find_map(title_in))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_ps5_titles_from_param_json() {
+        let json = r#"{"titleId": "PPSA00000", "localizedParameters": {
+            "defaultLanguage": "fr-FR",
+            "en-US": {"titleName": "Sample Game"},
+            "fr-FR": {"titleName": "Jeu d'exemple"}}}"#;
+        assert_eq!(title_of_param_json(json).as_deref(), Some("Jeu d'exemple"));
+        let no_default = r#"{"localizedParameters": {
+            "de-DE": {"titleName": "Beispiel"}, "en-US": {"titleName": " Sample "}}}"#;
+        assert_eq!(title_of_param_json(no_default).as_deref(), Some("Sample"));
+        let first = r#"{"localizedParameters": {"ja-JP": {"titleName": "サンプル"}}}"#;
+        assert_eq!(title_of_param_json(first).as_deref(), Some("サンプル"));
+        assert!(title_of_param_json(r#"{"localizedParameters": {}}"#).is_none());
+        assert!(title_of_param_json("not json").is_none());
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("sce_sys")).unwrap();
+        std::fs::write(dir.path().join("sce_sys/param.json"), json).unwrap();
+        let ps5 = get("ps5").unwrap();
+        assert_eq!(
+            folder_title(ps5, dir.path()).as_deref(),
+            Some("Jeu d'exemple")
+        );
+        assert!(folder_title(get("ps4").unwrap(), dir.path()).is_none());
+    }
 
     #[test]
     fn catalog_is_consistent() {
