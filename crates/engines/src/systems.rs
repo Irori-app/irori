@@ -66,6 +66,11 @@ pub struct BiosFile {
     /// Known-good MD5 digests, lower case. Empty when any dump works.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub md5: Vec<String>,
+    /// For systems whose BIOS files have many names (PlayStation 2): a regex
+    /// any of the user's file names may match. `name` then only describes
+    /// the file, and a match is linked under its own name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -108,6 +113,14 @@ pub struct System {
     /// Each game is a folder (DOS, ScummVM) rather than one file.
     #[serde(default)]
     pub folder_games: bool,
+    /// For folder games: the file inside the folder engines open, first
+    /// match wins (`PS3_GAME/USRDIR/EBOOT.BIN`). Empty opens the folder.
+    #[serde(default)]
+    pub folder_main: Vec<String>,
+    /// Files count as this system's games only inside one of its folders
+    /// (arcade `.zip` sets, Xbox `.iso` images), never by extension alone.
+    #[serde(default)]
+    pub folder_only: bool,
 }
 
 impl System {
@@ -157,9 +170,13 @@ fn normalize_folder(name: &str) -> String {
         .join(" ")
 }
 
-/// Systems claiming the extension `ext`.
+/// Systems claiming the extension `ext` on its own (not the systems that
+/// need their folder).
 pub fn by_extension(ext: &str) -> Vec<&'static System> {
-    SYSTEMS.iter().filter(|s| s.has_extension(ext)).collect()
+    SYSTEMS
+        .iter()
+        .filter(|s| !s.folder_only && s.has_extension(ext))
+        .collect()
 }
 
 /// The system of the game file at `path`. `folder_hint` is a system already
@@ -241,6 +258,18 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn folder_only_systems_need_their_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip = dir.path().join("pacman.zip");
+        std::fs::write(&zip, b"PK").unwrap();
+        assert!(detect(&zip, None).is_none());
+        assert_eq!(detect(&zip, by_folder("MAME")).unwrap().id, "arcade");
+        assert!(by_extension("zip").is_empty());
+        let ps3 = get("ps3").unwrap();
+        assert!(ps3.folder_games && !ps3.folder_main.is_empty());
     }
 
     #[test]

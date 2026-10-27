@@ -130,6 +130,42 @@ SwanStation (PS1, GPL-3.0), PPSSPP (GPL-2.0-or-later).
 P4.7 adds PCSX2 (PS2), melonDS and mGBA standalone, Azahar (3DS) and MAME (arcade), then
 the experimental engines Cemu (Wii U), RPCS3 (PS3), xemu (Xbox) and shadPS4 (PS4).
 
+### 3.2.1 Engines added in P4.7
+
+| Engine | Systems | Managed download | Detected | Licence |
+| --- | --- | --- | --- | --- |
+| PCSX2 | PS2 | GitHub releases (AppImage, macOS tar.xz with a versioned `PCSX2-v….app`, Windows 7z) | Flatpak, `PATH`, `PCSX2.app` | GPL-3.0-or-later |
+| melonDS | DS | GitHub releases (AppImage in a zip, macOS universal zip, Windows zip) | Flatpak, `PATH`, `melonDS.app` | GPL-3.0-or-later |
+| mGBA | GB, GBC, GBA | GitHub releases (AppImage, macOS dmg, Windows 7z) | Flatpak, `PATH`, `mGBA.app` | MPL-2.0 |
+| Azahar | 3DS | GitHub releases (AppImage, macOS universal zip, Windows zip) | Flatpak, `PATH`, `Azahar.app` | GPL-2.0-or-later |
+| MAME | Arcade | none: official builds are Windows-only self-extracting archives | Flatpak, `PATH`, Windows locations | GPL-2.0-or-later |
+| Cemu *(experimental)* | Wii U | GitHub releases (AppImage, macOS x64 dmg, Windows zip) | Flatpak, `PATH`, `Cemu.app` | MPL-2.0 |
+| RPCS3 *(experimental)* | PS3 | Linux x64 AppImage from `RPCS3/rpcs3-binaries-linux`; macOS and Windows detected only | Flatpak, `PATH`, `RPCS3.app` | GPL-2.0-only |
+| xemu *(experimental)* | Xbox | GitHub releases (AppImage, macOS universal zip, Windows zip) | Flatpak, `PATH`, `xemu.app` | GPL-2.0-only |
+| shadPS4 *(experimental)* | PS4 | GitHub releases (SDL builds) | `PATH` | GPL-2.0-or-later |
+
+New systems: PlayStation 2 (BIOS required; its files have many names, so the catalog
+matches them by a name pattern and links them under their own names), Nintendo 3DS,
+Arcade, Wii U, PlayStation 3, Xbox and PlayStation 4. Arcade sets (`.zip`/`.7z`), Xbox
+images and PS3/PS4 games count as games only inside a folder of their system
+(`folderOnly`), so a loose zip is never taken for an arcade game. PS3 and PS4 games are
+folders; the catalog names the file inside that engines open (`folderMain`).
+
+### 3.2.2 Legal review of the experimental engines
+
+- All four are open source (MPL-2.0 or GPL-2.0), developed in public, and distributed by
+  their projects from GitHub. Ember downloads the projects' own unmodified releases when
+  the user asks, exactly as for the other engines; it redistributes nothing.
+- None of them needs Ember to handle copyrighted material, and Ember never does:
+  firmware (PS3 system software from Sony's site, PS4 modules), console keys (Wii U
+  `keys.txt`) and Xbox BIOS, MCPX boot ROM and hard-disk image are set up in each
+  emulator's own settings by the user, from hardware they own. Ember neither downloads,
+  links to, nor names a source for them; it only explains that they are needed.
+- They are marked `experimental`: shown with an "Experimental" tag, never picked as a
+  system's default while another emulator plays it, and their compatibility is game by
+  game. No experimental engine is offered for a system an established engine covers.
+- Nothing here changes the conclusions of section 11.
+
 ### 3.3 Installations and versions
 
 - Discovery (`discovery.rs`) only looks at the filesystem: managed versions recorded in

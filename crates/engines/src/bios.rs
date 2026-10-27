@@ -56,11 +56,22 @@ fn known_names() -> Vec<String> {
         .collect()
 }
 
+/// The compiled name patterns of every BIOS file that has one.
+fn known_patterns() -> Vec<regex::Regex> {
+    systems::all()
+        .iter()
+        .flat_map(|s| s.bios.files.iter())
+        .filter_map(|f| f.pattern.as_deref())
+        .filter_map(|p| regex::Regex::new(p).ok())
+        .collect()
+}
+
 /// Index `root`, reusing digests from `previous` for unchanged files, and
 /// save the result. Only plausible BIOS files are hashed: known names, or
 /// `.bin`/`.rom`/`.img` files of BIOS size. Blocking.
 pub fn scan(root: &Path, previous: &BiosIndex) -> Result<BiosIndex> {
     let names = known_names();
+    let patterns = known_patterns();
     let mut reuse: BTreeMap<&Path, &IndexedFile> = BTreeMap::new();
     for f in &previous.files {
         reuse.insert(f.path.as_path(), f);
@@ -85,8 +96,9 @@ pub fn scan(root: &Path, previous: &BiosIndex) -> Result<BiosIndex> {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().to_lowercase();
-            let plausible =
-                names.contains(&name) || [".bin", ".rom", ".img"].iter().any(|e| name.ends_with(e));
+            let plausible = names.contains(&name)
+                || patterns.iter().any(|p| p.is_match(&name))
+                || [".bin", ".rom", ".img"].iter().any(|e| name.ends_with(e));
             if !plausible {
                 continue;
             }
@@ -151,6 +163,9 @@ pub enum FileState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileStatus {
     pub name: String,
+    /// Found by a name pattern rather than one exact name.
+    #[serde(default)]
+    pub pattern: bool,
     pub region: Option<String>,
     pub state: FileState,
     /// The user's file that provides it.
@@ -187,11 +202,19 @@ pub fn status(system: &System, index: &BiosIndex) -> SystemBios {
         .iter()
         .map(|want| {
             let by_digest = index.files.iter().find(|f| want.md5.contains(&f.md5));
+            let pattern = want
+                .pattern
+                .as_deref()
+                .and_then(|p| regex::Regex::new(p).ok());
             let by_name = || {
                 index.files.iter().find(|f| {
-                    f.path
-                        .file_name()
-                        .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(&want.name))
+                    f.path.file_name().is_some_and(|n| {
+                        let n = n.to_string_lossy();
+                        match &pattern {
+                            Some(p) => p.is_match(&n),
+                            None => n.eq_ignore_ascii_case(&want.name),
+                        }
+                    })
                 })
             };
             let (state, found) = match (by_digest, by_name()) {
@@ -202,6 +225,7 @@ pub fn status(system: &System, index: &BiosIndex) -> SystemBios {
             };
             FileStatus {
                 name: want.name.clone(),
+                pattern: want.pattern.is_some(),
                 region: want.region.clone(),
                 state,
                 found,
@@ -239,7 +263,16 @@ pub fn link_into(system: &System, index: &BiosIndex, target: &Path) -> Result<us
         let Some(found) = file.found else { continue };
         std::fs::create_dir_all(target)
             .with_context(|| format!("creating {}", target.display()))?;
-        let dest = target.join(&file.name);
+        // Files found by a pattern keep their own name.
+        let name = if file.pattern {
+            found
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| file.name.clone())
+        } else {
+            file.name.clone()
+        };
+        let dest = target.join(&name);
         if dest == found {
             continue;
         }
@@ -323,6 +356,31 @@ mod tests {
         assert_eq!(status(gba, &empty).state, SystemState::Optional);
         let snes = systems::get("snes").unwrap();
         assert_eq!(status(snes, &empty).state, SystemState::Ready);
+    }
+
+    #[test]
+    fn patterns_find_bios_files_with_many_names() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("SCPH-70012_BIOS_V12.bin");
+        std::fs::write(&file, b"x").unwrap();
+        let index = BiosIndex {
+            root: dir.path().into(),
+            files: vec![IndexedFile {
+                path: file.clone(),
+                size: 1,
+                mtime: 0,
+                md5: "00".into(),
+            }],
+        };
+        let ps2 = systems::get("ps2").unwrap();
+        assert_eq!(status(ps2, &index).state, SystemState::Ready);
+        assert_eq!(
+            status(ps2, &BiosIndex::default()).state,
+            SystemState::Missing
+        );
+        let target = dir.path().join("bios");
+        assert_eq!(link_into(ps2, &index, &target).unwrap(), 1);
+        assert!(target.join("SCPH-70012_BIOS_V12.bin").exists());
     }
 
     #[test]

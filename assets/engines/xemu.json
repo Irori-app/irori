@@ -1,0 +1,69 @@
+{
+  "id": "xemu",
+  "name": "xemu",
+  "license": "GPL-2.0-only",
+  "homepage": "https://xemu.app",
+  "kind": "standalone",
+  "systems": [
+    "xbox"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "xemu-project/xemu",
+      "assets": {
+        "linux-x86_64": "^xemu-[\\d.]+-x86_64\\.AppImage$",
+        "linux-aarch64": "^xemu-[\\d.]+-aarch64\\.AppImage$",
+        "macos-aarch64": "^xemu-[\\d.]+-macos-universal\\.zip$",
+        "macos-x86_64": "^xemu-[\\d.]+-macos-universal\\.zip$",
+        "windows-x86_64": "^xemu-[\\d.]+-windows-x86_64\\.zip$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "app.xemu.xemu"
+    },
+    {
+      "type": "path",
+      "names": [
+        "xemu"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "xemu.app"
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "xemu-*.AppImage"
+    ],
+    "macos": [
+      "xemu.app"
+    ],
+    "windows": [
+      "xemu.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      {
+        "if": "fullscreen",
+        "args": [
+          "-full-screen"
+        ]
+      },
+      "-dvd_path",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc",
+  "experimental": true
+}

@@ -69,6 +69,24 @@ pub const BUILT_IN: &[(&str, &str)] = &[
         "dosbox-staging",
         include_str!("../../../assets/engines/dosbox-staging.json"),
     ),
+    ("pcsx2", include_str!("../../../assets/engines/pcsx2.json")),
+    (
+        "melonds",
+        include_str!("../../../assets/engines/melonds.json"),
+    ),
+    ("mgba", include_str!("../../../assets/engines/mgba.json")),
+    (
+        "azahar",
+        include_str!("../../../assets/engines/azahar.json"),
+    ),
+    ("mame", include_str!("../../../assets/engines/mame.json")),
+    ("cemu", include_str!("../../../assets/engines/cemu.json")),
+    ("rpcs3", include_str!("../../../assets/engines/rpcs3.json")),
+    ("xemu", include_str!("../../../assets/engines/xemu.json")),
+    (
+        "shadps4",
+        include_str!("../../../assets/engines/shadps4.json"),
+    ),
 ];
 
 /// An engine choice as stored in settings: `duckstation`, or
@@ -196,7 +214,8 @@ pub fn choices_for(system: &str) -> Vec<EngineRef> {
 
 /// The emulator a game of `system` plays with when it names none:
 /// `chosen` (the user's default for the system), else the first
-/// recommended choice that `plays` accepts, else the first recommended.
+/// recommended choice that `plays` accepts, else the first recommended;
+/// experimental engines only when nothing else is offered.
 pub fn default_choice(
     system: &str,
     chosen: Option<&str>,
@@ -206,9 +225,14 @@ pub fn default_choice(
         return Some(chosen);
     }
     let choices = choices_for(system);
+    let experimental = |c: &EngineRef| engine(&c.engine).is_some_and(|m| m.experimental);
+    // Experimental engines are a last resort, never the pick while an
+    // established one plays the system.
     choices
         .iter()
-        .find(|c| plays(c))
+        .find(|c| plays(c) && !experimental(c))
+        .or_else(|| choices.iter().find(|c| !experimental(c)))
+        .or_else(|| choices.iter().find(|c| plays(c)))
         .or_else(|| choices.first())
         .cloned()
 }
@@ -361,6 +385,7 @@ mod tests {
         assert!(psx.iter().any(|r| r.to_string() == "retroarch:swanstation"));
         let gb = choices_for("gb");
         assert_eq!(gb[0].to_string(), "retroarch:gambatte");
-        assert_eq!(gb.len(), 2);
+        assert_eq!(gb.len(), 3);
+        assert_eq!(gb[2].to_string(), "mgba");
     }
 }

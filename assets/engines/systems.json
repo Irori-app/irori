@@ -140,7 +140,8 @@
       ],
       "engines": [
         "retroarch:gambatte",
-        "retroarch:mgba"
+        "retroarch:mgba",
+        "mgba"
       ]
     },
     {
@@ -164,7 +165,8 @@
       ],
       "engines": [
         "retroarch:gambatte",
-        "retroarch:mgba"
+        "retroarch:mgba",
+        "mgba"
       ]
     },
     {
@@ -204,7 +206,8 @@
         ]
       },
       "engines": [
-        "retroarch:mgba"
+        "retroarch:mgba",
+        "mgba"
       ]
     },
     {
@@ -248,7 +251,8 @@
         ]
       },
       "engines": [
-        "retroarch:melondsds"
+        "retroarch:melondsds",
+        "melonds"
       ]
     },
     {
@@ -636,6 +640,199 @@
       "folderGames": true,
       "engines": [
         "scummvm"
+      ]
+    },
+    {
+      "id": "ps2",
+      "name": "PlayStation 2",
+      "short": "PS2",
+      "maker": "Sony",
+      "year": 2000,
+      "libretro": "Sony - PlayStation 2",
+      "colors": [
+        "#1f2a6b",
+        "#8a93c6"
+      ],
+      "extensions": [
+        "iso",
+        "chd",
+        "cso",
+        "gz",
+        "bin"
+      ],
+      "folders": [
+        "ps2",
+        "playstation 2"
+      ],
+      "discImages": true,
+      "bios": {
+        "rule": "anyOf",
+        "files": [
+          {
+            "name": "PS2 BIOS (scph…bin)",
+            "pattern": "(?i)^(scph|ps2).*\\.bin$"
+          }
+        ]
+      },
+      "engines": [
+        "pcsx2"
+      ]
+    },
+    {
+      "id": "3ds",
+      "name": "Nintendo 3DS",
+      "short": "3DS",
+      "maker": "Nintendo",
+      "year": 2011,
+      "libretro": "Nintendo - Nintendo 3DS",
+      "colors": [
+        "#b3121c",
+        "#2b2b2b"
+      ],
+      "extensions": [
+        "3ds",
+        "cci",
+        "cxi",
+        "cia",
+        "3dsx",
+        "app"
+      ],
+      "folders": [
+        "3ds",
+        "nintendo 3ds"
+      ],
+      "engines": [
+        "azahar"
+      ]
+    },
+    {
+      "id": "arcade",
+      "name": "Arcade",
+      "short": "ARC",
+      "maker": "Various",
+      "year": 1978,
+      "libretro": "MAME",
+      "colors": [
+        "#111111",
+        "#f2c94c"
+      ],
+      "extensions": [
+        "zip",
+        "7z"
+      ],
+      "folders": [
+        "arcade",
+        "mame",
+        "fbneo",
+        "fba"
+      ],
+      "folderOnly": true,
+      "engines": [
+        "mame"
+      ]
+    },
+    {
+      "id": "wiiu",
+      "name": "Wii U",
+      "short": "WiiU",
+      "maker": "Nintendo",
+      "year": 2012,
+      "libretro": "Nintendo - Wii U",
+      "colors": [
+        "#0094c8",
+        "#1e1e1e"
+      ],
+      "extensions": [
+        "wua",
+        "wud",
+        "wux",
+        "rpx"
+      ],
+      "folders": [
+        "wiiu",
+        "wii u"
+      ],
+      "engines": [
+        "cemu"
+      ]
+    },
+    {
+      "id": "ps3",
+      "name": "PlayStation 3",
+      "short": "PS3",
+      "maker": "Sony",
+      "year": 2006,
+      "libretro": "Sony - PlayStation 3",
+      "colors": [
+        "#111111",
+        "#6b6b6b"
+      ],
+      "extensions": [
+        "iso"
+      ],
+      "folders": [
+        "ps3",
+        "playstation 3"
+      ],
+      "folderOnly": true,
+      "folderGames": true,
+      "folderMain": [
+        "PS3_GAME/USRDIR/EBOOT.BIN",
+        "USRDIR/EBOOT.BIN"
+      ],
+      "engines": [
+        "rpcs3"
+      ]
+    },
+    {
+      "id": "xbox",
+      "name": "Xbox",
+      "short": "XBOX",
+      "maker": "Microsoft",
+      "year": 2001,
+      "libretro": "Microsoft - Xbox",
+      "colors": [
+        "#107c10",
+        "#0f0f0f"
+      ],
+      "extensions": [
+        "iso",
+        "xiso"
+      ],
+      "folders": [
+        "xbox",
+        "original xbox"
+      ],
+      "folderOnly": true,
+      "engines": [
+        "xemu"
+      ]
+    },
+    {
+      "id": "ps4",
+      "name": "PlayStation 4",
+      "short": "PS4",
+      "maker": "Sony",
+      "year": 2013,
+      "libretro": "Sony - PlayStation 4",
+      "colors": [
+        "#003791",
+        "#0c0c0c"
+      ],
+      "extensions": [
+        "bin"
+      ],
+      "folders": [
+        "ps4",
+        "playstation 4"
+      ],
+      "folderOnly": true,
+      "folderGames": true,
+      "folderMain": [
+        "eboot.bin"
+      ],
+      "engines": [
+        "shadps4"
       ]
     }
   ]

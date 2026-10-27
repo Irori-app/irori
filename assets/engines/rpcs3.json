@@ -1,0 +1,65 @@
+{
+  "id": "rpcs3",
+  "name": "RPCS3",
+  "license": "GPL-2.0-only",
+  "homepage": "https://rpcs3.net",
+  "kind": "standalone",
+  "systems": [
+    "ps3"
+  ],
+  "sources": [
+    {
+      "type": "github",
+      "repo": "RPCS3/rpcs3-binaries-linux",
+      "assets": {
+        "linux-x86_64": "^rpcs3-v[\\w.-]+_linux64\\.AppImage$"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "net.rpcs3.RPCS3"
+    },
+    {
+      "type": "path",
+      "names": [
+        "rpcs3"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "RPCS3.app"
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "rpcs3-*.AppImage"
+    ],
+    "macos": [
+      "RPCS3.app"
+    ],
+    "windows": [
+      "rpcs3.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      "--no-gui",
+      {
+        "if": "fullscreen",
+        "args": [
+          "--fullscreen"
+        ]
+      },
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "exitHotkey": "Esc",
+  "experimental": true
+}

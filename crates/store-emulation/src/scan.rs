@@ -312,6 +312,13 @@ fn folder_game(system: &System, folder: &Path, root: &Path) -> Option<RomEntry> 
     let name = names::parse(&folder_name);
     let path = if system.id == "dos" {
         dos_program(folder)?
+    } else if !system.folder_main.is_empty() {
+        // Not a game folder unless the program engines open is inside.
+        system
+            .folder_main
+            .iter()
+            .map(|rel| folder.join(rel))
+            .find(|p| p.is_file())?
     } else {
         // ScummVM finds the game itself; an empty folder is not a game.
         std::fs::read_dir(folder).ok()?.next()?.ok()?;
@@ -445,6 +452,12 @@ mod tests {
         touch(&roms.join("DOS/Commander Keen/KEEN1.EXE"), b"MZ");
         touch(&roms.join("DOS/Commander Keen/SETUP.EXE"), b"MZ");
         touch(&roms.join("ScummVM/Monkey Island/MONKEY.000"), b"x");
+        touch(
+            &roms.join("PS3/Demon's Souls/PS3_GAME/USRDIR/EBOOT.BIN"),
+            b"x",
+        );
+        touch(&roms.join("PS3/Empty Folder/readme.txt"), b"x");
+        touch(&roms.join("MAME/pacman.zip"), b"PK");
         touch(&roms.join("PS1/unknown.zip"), b"PK");
         touch(&roms.join("other/mystery.iso"), &[0u8; 64]);
 
@@ -465,14 +478,16 @@ mod tests {
             [
                 ("snes", "Chrono Trigger"),
                 ("dos", "Commander Keen"),
+                ("ps3", "Demon's Souls"),
                 ("psx", "Final Fantasy VII"),
                 ("gba", "Metroid Fusion"),
                 ("scummvm", "Monkey Island"),
+                ("arcade", "pacman"),
                 ("psx", "unknown"),
                 ("psx", "Vagrant Story"),
             ]
         );
-        let ff7 = &found.entries[2];
+        let ff7 = &found.entries[3];
         assert_eq!(ff7.discs.len(), 2);
         assert_eq!(ff7.path.extension().unwrap(), "m3u");
         let playlist = std::fs::read_to_string(&ff7.path).unwrap();

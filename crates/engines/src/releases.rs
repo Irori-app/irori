@@ -130,9 +130,18 @@ pub async fn fetch(manifest: &EngineManifest, host: Host) -> Result<Vec<Release>
         Source::Github {
             repo, checksums, ..
         } => {
-            let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
+            let url = format!("https://api.github.com/repos/{repo}/releases?per_page=100");
             let body = get_text(&url).await?;
-            from_github(&body, pattern, checksums.as_deref())?
+            let mut found = from_github(&body, pattern, checksums.as_deref())?;
+            // Projects publishing nightly pre-releases (PCSX2) can push every
+            // stable release off the list; GitHub's "latest" is the newest
+            // stable one.
+            if found.is_empty() {
+                let latest = format!("https://api.github.com/repos/{repo}/releases/latest");
+                let body = get_text(&latest).await?;
+                found = from_github(&format!("[{body}]"), pattern, checksums.as_deref())?;
+            }
+            found
         }
         Source::Buildbot {
             index,
@@ -213,7 +222,7 @@ fn from_github(body: &str, pattern: &str, checksums: Option<&str>) -> Result<Vec
         };
         // Rolling releases ("latest") are told apart by their build date.
         let version = if r.tag_name.chars().any(|c| c.is_ascii_digit()) {
-            r.tag_name.trim_start_matches('v').to_string()
+            r.tag_name.trim_start_matches(['v', 'V', '.']).to_string()
         } else {
             date_of(asset.updated_at.as_deref())
                 .or_else(|| date_of(r.published_at.as_deref()))
