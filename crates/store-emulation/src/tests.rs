@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::{AppSettings, GameSettings, LaunchEnvironment, LaunchRequest, OpContext};
+use irori_core::{AppSettings, GameSettings, LaunchEnvironment, LaunchRequest, OpContext};
 use once_cell::sync::Lazy;
 
 use super::*;
@@ -103,8 +103,8 @@ async fn launches_with_the_chosen_emulator_and_checks_bios() {
     let duck = dir.join("bin/duckstation");
     touch(&dosbox, b"#!/bin/sh");
     touch(&duck, b"#!/bin/sh");
-    ember_engines::install::set_custom("dosbox-staging", Some(&dosbox)).unwrap();
-    ember_engines::install::set_custom("duckstation", Some(&duck)).unwrap();
+    irori_engines::install::set_custom("dosbox-staging", Some(&dosbox)).unwrap();
+    irori_engines::install::set_custom("duckstation", Some(&duck)).unwrap();
     let bios_dir = dir.join("bios");
     std::fs::create_dir_all(&bios_dir).unwrap();
     let app = AppSettings {
@@ -148,7 +148,7 @@ async fn launches_with_the_chosen_emulator_and_checks_bios() {
 
     // A file with the expected name is used even when its digest is unknown.
     touch(&bios_dir.join("scph5501.bin"), b"dump");
-    ember_engines::bios::scan(&bios_dir, &ember_engines::bios::BiosIndex::default()).unwrap();
+    irori_engines::bios::scan(&bios_dir, &irori_engines::bios::BiosIndex::default()).unwrap();
     let plan = s
         .launch(
             &ps1.app_name,

@@ -1,13 +1,8 @@
 //! "Play with…" for an emulated game: which emulator (and RetroArch core)
 //! plays it, and which installed version. Choices are saved in the game's
-//! settings (`emberEngine`, `emberEngineVersion`); "Default" follows the
+//! settings (`iroriEngine`, `iroriEngineVersion`); "Default" follows the
 //! system's default emulator.
 
-use ember_core::GameId;
-use ember_engines::{EngineRef, Installation, Origin};
-use ember_services::EngineStatus;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::spinner::Spinner;
@@ -20,6 +15,11 @@ use gpui_kit::{
     AnyElement, App, AppContext as _, Context, IntoElement, ParentElement as _, Render,
     SharedString, Styled as _, Subscription, Window, div,
 };
+use irori_core::GameId;
+use irori_engines::{EngineRef, Installation, Origin};
+use irori_services::EngineStatus;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models, navigate};
 use serde_json::Value;
 
 /// Open "Play with…" for `id`.
@@ -62,7 +62,7 @@ impl PlayWith {
 
     fn load(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move { Ok(b.engine_statuses().await) });
+        let task = irori_ui::run(cx, async move { Ok(b.engine_statuses().await) });
         cx.spawn_in(window, async move |this, cx| {
             let Ok(statuses) = task.await else { return };
             let _ = this.update(cx, |this, cx| {
@@ -82,9 +82,9 @@ impl PlayWith {
     }
 
     fn choose(&self, choice: Option<&EngineRef>, cx: &mut App) {
-        self.set("emberEngine", choice.map(ToString::to_string), cx);
+        self.set("iroriEngine", choice.map(ToString::to_string), cx);
         // A version belongs to one emulator.
-        self.set("emberEngineVersion", None, cx);
+        self.set("iroriEngineVersion", None, cx);
     }
 
     fn render_versions(
@@ -116,7 +116,7 @@ impl PlayWith {
                     &[("version", &default_name)],
                 ))
                 .selected(pinned.is_empty())
-                .on_click(cx.listener(|this, _, _, cx| this.set("emberEngineVersion", None, cx)))
+                .on_click(cx.listener(|this, _, _, cx| this.set("iroriEngineVersion", None, cx)))
                 .into_any_element(),
         ];
         for (ix, i) in status.installations.iter().enumerate() {
@@ -128,7 +128,7 @@ impl PlayWith {
                     .label(label(i))
                     .selected(pinned == id)
                     .on_click(cx.listener(move |this, _, _, cx| {
-                        this.set("emberEngineVersion", Some(id.clone()), cx)
+                        this.set("iroriEngineVersion", Some(id.clone()), cx)
                     }))
                     .into_any_element(),
             );
@@ -164,7 +164,7 @@ impl Render for PlayWith {
         let chosen = EngineRef::parse(&settings.engine);
         let default = backend(cx).system_engine(&self.system, &statuses);
         let name = |c: &EngineRef| -> String {
-            let Some(m) = ember_engines::engine(&c.engine) else {
+            let Some(m) = irori_engines::engine(&c.engine) else {
                 return c.to_string();
             };
             match c.core.as_deref().and_then(|core| m.core(core)) {
@@ -216,7 +216,7 @@ impl Render for PlayWith {
                 .on_click(cx.listener(|this, _, _, cx| this.choose(None, cx)))
                 .into_any_element(),
         ];
-        for (ix, c) in ember_engines::choices_for(&self.system)
+        for (ix, c) in irori_engines::choices_for(&self.system)
             .into_iter()
             .enumerate()
         {

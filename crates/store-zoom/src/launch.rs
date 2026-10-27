@@ -12,8 +12,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{CommandSpec, split_args};
-use ember_core::{LaunchOption, LaunchPlan, LaunchRequest, WineKind};
+use irori_core::process::{CommandSpec, split_args};
+use irori_core::{LaunchOption, LaunchPlan, LaunchRequest, WineKind};
 
 use crate::records::InstalledRecord;
 
@@ -177,7 +177,7 @@ fn ensure_executable(path: &Path) {
 mod tests {
     use std::collections::BTreeMap;
 
-    use ember_core::{GameSettings, InstallPlatform, LaunchEnvironment, WineLaunch};
+    use irori_core::{GameSettings, InstallPlatform, LaunchEnvironment, WineLaunch};
 
     use super::*;
 

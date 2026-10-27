@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-use ember_depot::FileEntry;
+use irori_depot::FileEntry;
 
 use crate::api::{Client, GameDownload};
 use crate::manifest::{Manifest, ManifestFile};

@@ -26,7 +26,7 @@ pub const GAME_DIRS: &[&str] = &["Program Files/EA Games", "Program Files (x86)/
 /// The manifest inside a game's folder.
 pub const INSTALLER_DATA: &str = "__Installer/installerdata.xml";
 
-/// The locale whose title Ember prefers when the manifest has several.
+/// The locale whose title Irori prefers when the manifest has several.
 const PREFERRED_LOCALE: &str = "en_US";
 
 /// How the EA app launches a game with these content ids.
@@ -158,7 +158,7 @@ fn decode_text(bytes: &[u8]) -> String {
 }
 
 /// `[HKEY_…\Install Dir]Game\x.exe` → `Game\x.exe`: the registry value is the
-/// game's own folder, which Ember already knows.
+/// game's own folder, which Irori already knows.
 fn strip_registry_placeholder(path: &str) -> String {
     match path.strip_prefix('[').and_then(|rest| rest.split_once(']')) {
         Some((_, relative)) => relative.trim_start_matches(['\\', '/']).to_string(),

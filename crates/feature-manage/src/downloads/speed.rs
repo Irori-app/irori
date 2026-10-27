@@ -3,7 +3,7 @@
 
 use std::collections::VecDeque;
 
-use ember_core::{GameId, InstallProgress};
+use irori_core::{GameId, InstallProgress};
 
 /// Samples kept; at the backend's 250 ms progress cadence this is the last
 /// half minute or so.
@@ -85,7 +85,7 @@ impl SpeedHistory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn p(down: u64, disk: u64) -> Option<InstallProgress> {
         Some(InstallProgress {

@@ -8,9 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
-use ember_core::process::CancellationToken;
-use ember_core::{Event, ExtraFile, GameId};
-use ember_depot::{FileEntry, Finished, Job, Options};
+use irori_core::process::CancellationToken;
+use irori_core::{Event, ExtraFile, GameId};
+use irori_depot::{FileEntry, Finished, Job, Options};
 use serde::{Deserialize, Serialize};
 
 use crate::Backend;
@@ -212,7 +212,7 @@ impl Backend {
             ..Options::default()
         };
         let (b, key) = (self.clone(), item.key.clone());
-        let progress = Arc::new(move |p: ember_depot::Progress| {
+        let progress = Arc::new(move |p: irori_depot::Progress| {
             {
                 let mut files = b.files.lock();
                 if let Some(f) = files.list.iter_mut().find(|f| f.key == key) {
@@ -222,8 +222,8 @@ impl Backend {
             }
             b.bus.emit(Event::DownloadQueueChanged);
         });
-        ember_depot::download(
-            ember_core::http::client(),
+        irori_depot::download(
+            irori_core::http::client(),
             Job {
                 root: &item.folder,
                 files: &[entry],

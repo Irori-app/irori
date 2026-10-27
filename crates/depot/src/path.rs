@@ -42,7 +42,7 @@ pub fn join(root: &Path, rel: &str) -> PathBuf {
 /// Where a file is assembled before it replaces the real one.
 pub fn part_path(dest: &Path) -> PathBuf {
     let mut name = dest.file_name().unwrap_or_default().to_os_string();
-    name.push(".ember-part");
+    name.push(".irori-part");
     dest.with_file_name(name)
 }
 
@@ -84,7 +84,7 @@ mod tests {
         let root = dir.path();
         let file = join(root, "a/b/c.txt");
         assert_eq!(file, root.join("a").join("b").join("c.txt"));
-        assert_eq!(part_path(&file), root.join("a/b/c.txt.ember-part"));
+        assert_eq!(part_path(&file), root.join("a/b/c.txt.irori-part"));
         std::fs::create_dir_all(root.join("a/b")).unwrap();
         std::fs::write(root.join("a/keep"), b"").unwrap();
         prune_empty_parents(root, "a/b/c.txt");

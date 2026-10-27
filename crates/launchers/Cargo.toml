@@ -1,5 +1,5 @@
 [package]
-name = "ember-launchers-data"
+name = "irori-launchers-data"
 description = "Reads the local data of official PC launchers (Battle.net, EA app, Ubisoft Connect, Rockstar Games Launcher) to list their installed games"
 version.workspace = true
 edition.workspace = true

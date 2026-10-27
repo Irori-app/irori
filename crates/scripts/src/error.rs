@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::context::Outcome;
 
-/// A launcher Ember supports natively, which scripts must not install
+/// A launcher Irori supports natively, which scripts must not install
 /// inside Wine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeLauncher {
@@ -36,9 +36,9 @@ pub enum ScriptError {
     NotAScript(String),
     #[error("The file holds {0} install scripts; choose one")]
     SeveralScripts(usize),
-    #[error("Step {step}: “{name}” is not a command Ember supports, so the script was refused")]
+    #[error("Step {step}: “{name}” is not a command Irori supports, so the script was refused")]
     UnknownCommand { step: usize, name: String },
-    #[error("Step {step}: “{name}” is not a task Ember supports, so the script was refused")]
+    #[error("Step {step}: “{name}” is not a task Irori supports, so the script was refused")]
     UnknownTask { step: usize, name: String },
     #[error("{location}: unknown setting “{key}”, so the script was refused")]
     UnknownKey { location: String, key: String },
@@ -50,14 +50,14 @@ pub enum ScriptError {
     UnknownVariable { location: String, name: String },
     #[error("{location}: the variable ${name} has no value yet at this point")]
     UnsetVariable { location: String, name: String },
-    #[error("The script defines “{name}”, which would replace Ember’s own ${name}")]
+    #[error("The script defines “{name}”, which would replace Irori’s own ${name}")]
     ShadowedVariable { name: String },
     #[error("The file “{id}” is listed twice")]
     DuplicateFile { id: String },
-    #[error("The file “{id}” uses an address Ember does not download from: {url}")]
+    #[error("The file “{id}” uses an address Irori does not download from: {url}")]
     UnsupportedUrl { id: String, url: String },
     #[error(
-        "This script installs {launcher} inside Wine. Ember supports it natively; use the store or launcher setup instead"
+        "This script installs {launcher} inside Wine. Irori supports it natively; use the store or launcher setup instead"
     )]
     PreferNative { launcher: NativeLauncher },
     #[error("“{file}” is damaged or not the expected file (expected {expected}, got {actual})")]

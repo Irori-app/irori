@@ -1,36 +1,36 @@
 # Parity spec: Lutris runners, options, database, installer scripts and services
 
 Reference: Lutris at commit **`1f32fe0`** (22 October 2026), Python/GTK, licensed
-GPL-3.0-or-later. This document describes the Lutris behaviour Ember matches when it
-replaces Lutris. It is a **behaviour reference only**: Ember is not a fork or port of
+GPL-3.0-or-later. This document describes the Lutris behaviour Irori matches when it
+replaces Lutris. It is a **behaviour reference only**: Irori is not a fork or port of
 Lutris, and every engine, importer and installer feature is fresh Rust. Nothing here
 should be read as a code listing; where a Lutris file holds data (JSON runner files,
 option help texts), this document summarises what the data does instead of quoting it.
 
 All `file:line` references are relative to the root of the Lutris repository at that
-commit. The companion design for Ember's side is `docs/design/engines.md`; this file
-says what Lutris does, that one says what Ember builds.
+commit. The companion design for Irori's side is `docs/design/engines.md`; this file
+says what Lutris does, that one says what Irori builds.
 
 Notation:
 
 - **[QUIRK]** marks Lutris behaviour that is a bug, an inconsistency or a weak spot.
-  Ember does not copy it.
-- **[QUIRK]** followed by **Ember instead:** marks a dangerous behaviour (arbitrary
+  Irori does not copy it.
+- **[QUIRK]** followed by **Irori instead:** marks a dangerous behaviour (arbitrary
   code, unconfined writes, weakened TLS, silent fallbacks that change what runs) and
-  says what Ember does in its place.
+  says what Irori does in its place.
 
 ### Terminology
 
-Lutris and Ember use the same words for different things. This document uses Lutris's
-words when it describes Lutris and Ember's words when it describes Ember.
+Lutris and Irori use the same words for different things. This document uses Lutris's
+words when it describes Lutris and Irori's words when it describes Irori.
 
-| Lutris | Ember | Notes |
+| Lutris | Irori | Notes |
 | --- | --- | --- |
-| runner | **engine** | The program that plays a game: an emulator, ScummVM, DOSBox, Wine. Ember's `Runner` type means a *store backend* (`Runner::Legendary`, `Runner::Gog`, …), so Ember calls Lutris runners "engines" (`crates/engines`, package `ember-engines`). Wine and Proton stay in `ember-runtime`. |
-| platform | **system** | The machine a game was made for ("Sony PlayStation", "Nintendo DS"). Ember's systems are listed in `assets/engines/systems.json`. |
-| service | store | A library source (GOG, Epic, Battle.net). Ember's stores implement the `Store` trait. |
-| installer / script | (no direct equivalent) | Ember does not run Lutris scripts as Lutris does; see section 4. |
-| game config (`configpath`) | per-game settings | Ember keeps sparse overrides in `config/games/<runner>/<app>.json`. |
+| runner | **engine** | The program that plays a game: an emulator, ScummVM, DOSBox, Wine. Irori's `Runner` type means a *store backend* (`Runner::Legendary`, `Runner::Gog`, …), so Irori calls Lutris runners "engines" (`crates/engines`, package `irori-engines`). Wine and Proton stay in `irori-runtime`. |
+| platform | **system** | The machine a game was made for ("Sony PlayStation", "Nintendo DS"). Irori's systems are listed in `assets/engines/systems.json`. |
+| service | store | A library source (GOG, Epic, Battle.net). Irori's stores implement the `Store` trait. |
+| installer / script | (no direct equivalent) | Irori does not run Lutris scripts as Lutris does; see section 4. |
+| game config (`configpath`) | per-game settings | Irori keeps sparse overrides in `config/games/<runner>/<app>.json`. |
 
 Contents:
 
@@ -41,7 +41,7 @@ Contents:
 5. [lutris.net API](#5-lutrisnet-api)
 6. [Services](#6-services)
 7. [Launch and process monitoring](#7-launch-and-process-monitoring)
-8. [User complaints Ember addresses](#8-user-complaints-ember-addresses)
+8. [User complaints Irori addresses](#8-user-complaints-irori-addresses)
 
 ---
 
@@ -63,7 +63,7 @@ Contents:
 - **[QUIRK]** Instantiating every runner to list installed ones has side effects:
   the libretro constructor can start a synchronous network download (section 1.5).
 
-Ember: the engine registry is a list of manifests (built in under `assets/engines/`,
+Irori: the engine registry is a list of manifests (built in under `assets/engines/`,
 overridable by the user). Listing engines never touches the network and never runs a
 program. Discovery runs on the blocking pool.
 
@@ -145,7 +145,7 @@ That is enough to describe most emulators: 23 runners in `share/lutris/json/` ar
 nothing but data. JSON runners may also set extra environment variables and may run
 from the runner's own folder (`working_dir: runner`).
 
-Weak spots in the JSON loader that Ember's manifest format must avoid:
+Weak spots in the JSON loader that Irori's manifest format must avoid:
 
 - **[QUIRK]** A string or choice option with no value still appends the flag followed
   by the literal text `None` (the AGS filter option and Ruffle's proxy option).
@@ -181,14 +181,14 @@ with their own validation and their own bugs:
   `~/.snes9x/snes9x.xml`, yuzu and Ryujinx copy key files). These are silent edits to
   files the user owns.
 
-Ember instead: every engine is a manifest (`assets/engines/<id>.json`) with sources
+Irori instead: every engine is a manifest (`assets/engines/<id>.json`) with sources
 per OS, a launch template with conditional arguments, typed options with defaults and
 an entry-point kind (file, folder or identifier). One generic, tested Rust function
 turns manifest plus settings into a command. Engine-specific Rust exists only where
 the engine needs real logic (RetroArch cores, BIOS, ScummVM game detection), and
-Ember never edits an emulator's own config files without saying so in the UI.
+Irori never edits an emulator's own config files without saying so in the UI.
 
-### 1.4 Emulator runners Ember cares about
+### 1.4 Emulator runners Irori cares about
 
 "Fixed URL" means `download_url`; "API" means the archive comes from the lutris.net
 runners endpoint (section 1.6). Every row also accepts a custom executable path.
@@ -213,7 +213,7 @@ runners endpoint (section 1.6). Every row also accepts a custom executable path.
 | `shadps4` | Sony PlayStation 4 | `RUNNER_DIR/shadps4/shadPS4QtLauncher-qt.AppImage`; no Flatpak; runtime off (`runners/shadps4.py:11-97`) | `<launcher> (-e <emulator> \| -d) -g <game folder> -- --fullscreen true\|false` | Option picks the bundled SDL emulator, a custom one, or the launcher's default. |
 
 Outside this list, `ryujinx` and `yuzu` (Switch) copy user-provided key files into
-the emulator's data folder before launch (`runners/ryujinx.py:72-104`). Ember does
+the emulator's data folder before launch (`runners/ryujinx.py:72-104`). Irori does
 not fetch or place console keys or firmware (terms-notes section 4).
 
 ### 1.5 RetroArch cores and BIOS
@@ -226,7 +226,7 @@ not fetch or place console keys or firmware (terms-notes section 4).
 - Only info files whose categories include "Emulator" are offered. The label is the
   core's display name; the system is the core's `systemname`, mapped to a Lutris
   platform through a large table (`:21-141`); unmapped systems keep RetroArch's name.
-- **[QUIRK]** HTTP, not HTTPS. Ember fetches core metadata over HTTPS only.
+- **[QUIRK]** HTTP, not HTTPS. Irori fetches core metadata over HTTPS only.
 - **[QUIRK]** The runner's constructor lists cores (`:244-252`), so creating the
   runner object (which happens when Lutris lists installed runners) can trigger a
   synchronous download on whatever thread asked.
@@ -268,7 +268,7 @@ under `RUNNER_DIR/retroarch/`. An existing file is never touched. The format is
 Quirks:
 
 - **[QUIRK]** The whole BIOS folder is re-hashed on **every launch**, which is slow
-  for users who keep BIOS files next to large ROM sets. Ember keeps a hash index keyed
+  for users who keep BIOS files next to large ROM sets. Irori keeps a hash index keyed
   by path, size and modification time, and rehashes only what changed.
 - **[QUIRK]** The variable holding RetroArch's config is reassigned to the core info
   file before the system folder is read (`libretro.py:386`, `:395`), so the system
@@ -283,10 +283,10 @@ Quirks:
   ad hoc BIOS folder rules (`runners/atari800.py:88-103`, `runners/hatari.py:121-140`,
   `runners/o2em.py`).
 
-Ember instead: one BIOS index for every engine, a per-system list of expected files
+Irori instead: one BIOS index for every engine, a per-system list of expected files
 with hashes, a status the user can see before launch ("PlayStation: SCPH-5501 found,
 hash matches"), and files linked or copied into the engine's folder only when the
-engine needs them there. Ember never ships or downloads BIOS files or console keys.
+engine needs them there. Irori never ships or downloads BIOS files or console keys.
 
 ### 1.6 Runner downloads and versions
 
@@ -323,16 +323,16 @@ engine needs them there. Ember never ships or downloads BIOS files or console ke
   components 8 at a time (`runtime.py:219-237`, `:405-455`). A newer client version in
   the response prompts the user to update (`:200-216`).
   - **[QUIRK]** File names from the server are joined into local paths without
-    checking for `..` or absolute paths. **Ember instead:** every path that comes from
+    checking for `..` or absolute paths. **Irori instead:** every path that comes from
     a server or an archive is checked to stay inside its destination before anything
     is written.
 
-Ember instead: engines come from their upstream's own release URLs (GitHub releases,
+Irori instead: engines come from their upstream's own release URLs (GitHub releases,
 buildbot, the project's download site), always pinned to a version the user can see
 and choose, several versions side by side, and a size and SHA-256 check whenever
 upstream publishes one. "Update available" is a prompt, never a silent swap. Flatpak,
 `PATH`, macOS app bundles and Windows install locations are discovered as equals of
-Ember-managed installs, not as a fallback that only triggers on misconfiguration.
+Irori-managed installs, not as a fallback that only triggers on misconfiguration.
 
 ---
 
@@ -373,7 +373,7 @@ Lutris keeps settings in three kinds of YAML file (`lutris/config.py:164-178`):
 - Per-folder `lutris.json` settings exist too (`settings.py:84-131`). **[QUIRK]** a
   file that is not a JSON object is logged as an error but still returned.
 
-Ember mapping: Ember has the same three ideas with two levels of storage. Global
+Irori mapping: Irori has the same three ideas with two levels of storage. Global
 defaults live in app settings; per-engine defaults live with the engine's settings;
 per-game overrides are sparse (`GameSettingsOverrides`). Every mapping field has one
 documented merge rule, and the UI shows which level a value comes from and offers a
@@ -425,7 +425,7 @@ vanish depending on the GPU count, whether `gamescope` is on `PATH`, the display
 server and the level they are editing, and cannot tell whether a hidden value still
 affects the game.
 
-Ember instead: an option has one availability rule. An unavailable option is shown
+Irori instead: an option has one availability rule. An unavailable option is shown
 disabled with the reason ("Needs gamescope", "X11 only"), and its stored value is
 never applied while it is unavailable. Advanced options are collapsed, not removed.
 
@@ -474,7 +474,7 @@ Lutris finds a game's main file by looking for these game-section keys, in this 
 - **[QUIRK]** `rom` is in the search list but no runner uses it, while
   `project_path`, `story`, `appid` and `title_id` are missing from it.
 
-Ember's Lutris import must therefore look up the key per runner, using the table
+Irori's Lutris import must therefore look up the key per runner, using the table
 above, not the generic list.
 
 ---
@@ -493,8 +493,8 @@ The `games` table, which is what an importer reads:
 | `slug` | TEXT | lutris.net game slug. |
 | `installer_slug` | TEXT | Installer used; service imports use `<slug>-<service>`. |
 | `parent_slug` | TEXT | The base game this one requires (DLC, mods). |
-| `platform` | TEXT | Lutris platform name (Ember: system). |
-| `runner` | TEXT | Runner id (Ember: engine). Set to an empty string on uninstall (`game.py:470`). **[QUIRK]** the uninstalled game forgets which runner it used. |
+| `platform` | TEXT | Lutris platform name (Irori: system). |
+| `runner` | TEXT | Runner id (Irori: engine). Set to an empty string on uninstall (`game.py:470`). **[QUIRK]** the uninstalled game forgets which runner it used. |
 | `executable` | TEXT | Legacy, unused. |
 | `directory` | TEXT | Install folder. |
 | `updated` | DATETIME | Last change. |
@@ -521,21 +521,21 @@ Other tables:
 - `sources` (id, unique uri) and `saved_searches` (id, unique name, search).
 - Migrations only add missing columns (`schema.py:117-141`).
 
-Import rules for Ember:
+Import rules for Irori:
 
 - Open the database read only and never write to it; Lutris data is reference
   material, as Heroic's is.
-- Convert `playtime` hours to Ember's minutes (rounding to the nearest minute) and
-  `lastplayed` seconds to Ember's timestamps; zero means never.
-- Map `favorite` and `.hidden` to Ember favourites and hidden games, and every other
-  category to an Ember category of the same name.
-- Rows with `service` set belong to a store Ember may already manage (GOG, Epic,
+- Convert `playtime` hours to Irori's minutes (rounding to the nearest minute) and
+  `lastplayed` seconds to Irori's timestamps; zero means never.
+- Map `favorite` and `.hidden` to Irori favourites and hidden games, and every other
+  category to an Irori category of the same name.
+- Rows with `service` set belong to a store Irori may already manage (GOG, Epic,
   Amazon, itch.io, Steam, ZOOM); match them by store id and merge playtime by keeping
   the larger total, never creating a duplicate entry.
 - Rows with an emulator runner become engine games: runner → engine, platform →
   system, entry key per section 2.4, resolved against `directory`.
 - Wine and Linux rows become sideloaded games, keeping the prefix and Wine version
-  where Ember can find them.
+  where Irori can find them.
 
 ### 3.2 Paths (`lutris/settings.py`)
 
@@ -556,14 +556,14 @@ Import rules for Ember:
 | Site | Setting `website`, else `https://lutris.net` (`:56`). |
 
 - **[QUIRK]** `CONFIG_DIR` depends on whether a folder exists, so two Lutris installs
-  on one machine can read different files. Ember's importer checks both
+  on one machine can read different files. Irori's importer checks both
   `~/.config/lutris` and `~/.local/share/lutris` for YAML.
 - **Flatpak** (`net.lutris.Lutris`): there is no Flatpak-specific code in
   `settings.py`; the XDG folders resolve inside the sandbox, giving
-  `~/.var/app/net.lutris.Lutris/{config,data,cache}/lutris`. Ember's importer checks
+  `~/.var/app/net.lutris.Lutris/{config,data,cache}/lutris`. Irori's importer checks
   the native and Flatpak roots, as it does for Heroic.
 - **[QUIRK]** A Steam Web API key is embedded in the source as a default (`:67`),
-  shared by every Lutris user. Ember reads Steam libraries from local files and does
+  shared by every Lutris user. Irori reads Steam libraries from local files and does
   not embed third-party keys.
 
 ---
@@ -572,8 +572,8 @@ Import rules for Ember:
 
 Lutris installers are YAML (or JSON) programs that download files, run commands and
 write a game config. They come from lutris.net (section 5) or a local file. This
-section describes them so Ember can read what a script intends and help users who
-come from Lutris. **Ember does not execute Lutris scripts the way Lutris does**; see
+section describes them so Irori can read what a script intends and help users who
+come from Lutris. **Irori does not execute Lutris scripts the way Lutris does**; see
 section 4.8 for why and what it does instead.
 
 ### 4.1 Format
@@ -669,8 +669,8 @@ lower-cased, `-` becomes `_`, outer underscores are stripped, and the method is 
 up by name (`interpreter.py:369-388`).
 
 **[QUIRK]** This exposes internal methods (`launch_install`, `revert`, `cleanup`,
-`install_runners`, `create_game_folder`, …) to scripts. **Ember instead:** any script
-reader Ember has works from a fixed list of known commands and rejects everything
+`install_runners`, `create_game_folder`, …) to scripts. **Irori instead:** any script
+reader Irori has works from a fixed list of known commands and rejects everything
 else.
 
 The commands scripts actually use (`installer/commands.py`):
@@ -764,7 +764,7 @@ a "removable" check (`gui/installerwindow.py:225-273`).
   database rows are never rolled back. A cancelled install can leave a half-configured
   prefix and files anywhere a script wrote.
 
-### 4.8 Dangers, and what Ember does instead
+### 4.8 Dangers, and what Irori does instead
 
 - **[QUIRK]** `execute` runs arbitrary shell commands and arbitrary programs, from a
   script downloaded from a community website, **without asking the user**. The only
@@ -779,17 +779,17 @@ a "removable" check (`gui/installerwindow.py:225-273`).
 - **[QUIRK]** Scripts pin Wine builds and runner versions by name; when the build is
   removed from the server, the script fails (section 8).
 
-**Ember instead:**
+**Irori instead:**
 
-- Ember never runs a shell command, a downloaded program or a script step without
+- Irori never runs a shell command, a downloaded program or a script step without
   showing the user what it will run and getting a confirmation for that script.
 - Every path a script names is resolved and must stay inside the game folder, the
-  prefix or Ember's cache; anything else is refused with a message naming the path.
+  prefix or Irori's cache; anything else is refused with a message naming the path.
 - Archive entries are checked before extraction.
 - Only known commands are accepted, through a fixed table.
-- Where a script names a Wine or runner version that no longer exists, Ember shows the
+- Where a script names a Wine or runner version that no longer exists, Irori shows the
   substitution it proposes instead of falling back silently.
-- Ember's first goal is to need fewer scripts at all: GOG, Epic, Amazon, itch.io and
+- Irori's first goal is to need fewer scripts at all: GOG, Epic, Amazon, itch.io and
   ZOOM are native stores, emulated games need only a file and an engine, and Windows
   setup programs go through the sideload flow. Scripts are a fallback for the long
   tail, fetched on request (section 5).
@@ -846,7 +846,7 @@ a "removable" check (`gui/installerwindow.py:225-273`).
 
 - lutris.net publishes **no terms of service, privacy policy or API documentation**;
   `/api/` itself returns 404, and the site's email template links "Terms" to `#`.
-- The website code is AGPL-3.0; that covers code, not data, and Ember reuses no code.
+- The website code is AGPL-3.0; that covers code, not data, and Irori reuses no code.
 - **Installer scripts carry no licence.** They are user-submitted and moderated, so
   each contributor keeps default copyright.
 - The production site throttles anonymous clients at **4 requests per second** and
@@ -858,19 +858,19 @@ a "removable" check (`gui/installerwindow.py:225-273`).
 - Many small third-party launchers call `/api/installers` and `/api/games`; there is
   no sign Lutris has objected.
 
-### 5.4 Conclusion for Ember
+### 5.4 Conclusion for Irori
 
-- **Fetch on user request only.** Ember asks lutris.net when the user searches for a
+- **Fetch on user request only.** Irori asks lutris.net when the user searches for a
   game or opens "Find an install script" for one game; it never crawls, prefetches
   the catalogue or refreshes in the background.
 - **Cache** responses per slug on disk and reuse them; scripts change rarely.
-- **Honest user agent**: `Ember/<version> (+<repository URL>)`, never Lutris's.
+- **Honest user agent**: `Irori/<version> (+<repository URL>)`, never Lutris's.
 - **Rate limit** client-side, well under 4 requests per second, and back off on 429.
 - **Attribute**: show that a script comes from lutris.net, its author and revision
   where the API gives them, and link to its page.
-- **No mirroring**: Ember's repository and packages contain no lutris.net scripts or
+- **No mirroring**: Irori's repository and packages contain no lutris.net scripts or
   catalogue data.
-- Ember does not sign in to lutris.net, does not send GPU ids, and does not use the
+- Irori does not sign in to lutris.net, does not send GPU ids, and does not use the
   runtime or runner endpoints: engines come from upstream (section 1.6).
 
 ---
@@ -967,7 +967,7 @@ a "removable" check (`gui/installerwindow.py:225-273`).
   expire), pick the platform, and score the file variants (RPM penalised, 32-bit
   penalised on 64-bit hosts, non-`.deb` preferred).
 
-### 6.5 Humble Bundle: terms, and why Ember has no Humble store
+### 6.5 Humble Bundle: terms, and why Irori has no Humble store
 
 From terms-notes section 2 (Humble's terms dated 24 December 2024):
 
@@ -982,12 +982,12 @@ From terms-notes section 2 (Humble's terms dated 24 December 2024):
   Lutris itself tells users that Humble restricts such clients. Heroic has no Humble
   support.
 
-**Conclusion: Ember will not ship a Humble Bundle store.** A third-party client that
+**Conclusion: Irori will not ship a Humble Bundle store.** A third-party client that
 signs in and fetches the library is, by definition, a means Humble has not provided
-or authorised, which clause (xi) forbids, and Ember does not build store integrations
+or authorised, which clause (xi) forbids, and Irori does not build store integrations
 that depend on breaking a store's terms. Users who buy on Humble download the files
-from Humble's own site and add the game through Ember's sideload flow (Windows setup
-programs, Linux installers, or a ROM for an engine). Ember can read a Humble entry
+from Humble's own site and add the game through Irori's sideload flow (Windows setup
+programs, Linux installers, or a ROM for an engine). Irori can read a Humble entry
 from an imported Lutris library as a sideloaded game, without contacting Humble.
 
 ### 6.6 EA app (`services/ea_app.py`)
@@ -995,7 +995,7 @@ from an imported Lutris library as a sideloaded game, without contacting Humble.
 - **Sign-in** (`:180-215`): OAuth through EA's accounts site with the Origin web
   client id; the token goes in `CACHE_DIR/ea_app/auth_token`.
   - **[QUIRK]** Requests go through a TLS adapter that allows unsafe legacy
-    renegotiation. **Ember instead:** Ember uses its shared rustls client with
+    renegotiation. **Irori instead:** Irori uses its shared rustls client with
     default settings for every request and never weakens TLS for a store.
 - **Library** (`:349-473`, `:167-178`): EA's GraphQL service: owned PC products (paged),
   base games only, then titles, slugs and art in batches of 100 offer ids; the app id
@@ -1009,22 +1009,22 @@ from an imported Lutris library as a sideloaded game, without contacting Humble.
 
 ### 6.7 Other services, briefly
 
-- **Stores Ember already has natively**: GOG (`services/gog.py`, installs through
+- **Stores Irori already has natively**: GOG (`services/gog.py`, installs through
   `gogdl_setup`, cloud saves around launch, `game.py:778-799`, `:1077-1093`), Epic
   (`services/egs.py`, runs the official launcher in Wine and reads its `.item`
   manifests, `util/egs/egs_launcher.py:10-21`), itch.io (`services/itchio.py`, pasted
   API key), Amazon (`services/amazon.py:676-716`, `autosetup_amazon`) and ZOOM
-  (`services/zoom.py`). Ember's own stores need neither scripts nor official clients.
+  (`services/zoom.py`). Irori's own stores need neither scripts nor official clients.
 - **Steam** (`services/steam.py:90-245`): library from the Steam Web API with the
   embedded key (public profile required), installs from `appmanifest_*.acf`,
-  playtime copied in hours. Ember reads Steam's local files and needs no key.
+  playtime copied in hours. Irori reads Steam's local files and needs no key.
 - **Flathub** (`services/flathub.py:160-200`): the generated script is an `execute`
   command running `flatpak install`.
 - **Local** sources (`.desktop` files, Dolphin's game cache, ScummVM's config) are
   imported straight into the library; GameJolt and DLsite are online stores with
   manual-file fallbacks.
 
-Ember's plan for the launcher services (Battle.net, Ubisoft Connect, EA app) is in
+Irori's plan for the launcher services (Battle.net, Ubisoft Connect, EA app) is in
 `docs/design/engines.md`; the Lutris behaviour above is what users will compare it to.
 
 ---
@@ -1154,11 +1154,11 @@ client with a launch argument (section 6), so the wrapper monitors the client:
 - **[QUIRK]** The fixed sleeps (15 s for clients, 3 s for each display change) are
   guesses: too short on slow machines, wasted time on fast ones.
 
-Ember instead: playtime and running state follow the **game's** process, not the
-launcher's. Ember identifies the game process by its executable path inside the
+Irori instead: playtime and running state follow the **game's** process, not the
+launcher's. Irori identifies the game process by its executable path inside the
 install folder (and the prefix's process list for Wine), waits for readiness by
 watching for that process instead of sleeping, and offers to close a launcher it
-started once the game exits. Ember uses no fixed sleeps in the launch path.
+started once the game exits. Irori uses no fixed sleeps in the launch path.
 
 Two more weak spots: uninstall clears the game's runner (`game.py:464-485`), and
 moving a game rewrites the old path in the YAML by text replacement before moving the
@@ -1167,22 +1167,22 @@ files, so a failed move leaves the config pointing at the new location
 
 ---
 
-## 8. User complaints Ember addresses
+## 8. User complaints Irori addresses
 
 These are long-standing Lutris complaints from its issue tracker and community. Each
-line gives Ember's answer; the details are in `docs/design/engines.md`.
+line gives Irori's answer; the details are in `docs/design/engines.md`.
 
-| Complaint | Lutris issues | Ember's answer |
+| Complaint | Lutris issues | Irori's answer |
 | --- | --- | --- |
 | Dated GTK interface, poor 4K and fractional scaling | lutris/lutris#3886, #1719 | GPU-rendered GPUI interface with resolution-independent layout (rem units), tested on every bundled theme in light and dark. |
-| Install scripts break because they pin a Wine build that no longer exists | #958, #4299 | Ember manages Wine and Proton versions itself and shows a proposed substitute when a requested version is gone, never a silent failure or silent swap. |
+| Install scripts break because they pin a Wine build that no longer exists | #958, #4299 | Irori manages Wine and Proton versions itself and shows a proposed substitute when a requested version is gone, never a silent failure or silent swap. |
 | Changing a default (for example the default Wine) breaks games that relied on it | #6426 | Each game records the engine or Wine version it was installed or last launched with; changing a default never changes an existing game without asking. |
 | Store sign-ins break: EA, Ubisoft, Humble, itch.io | #4235, #4836, #4099, #6215 | Native store protocols (Epic, GOG, Amazon, itch.io, ZOOM) with a separate sign-in window and a browser fallback; no Humble store (section 6.5); clear "signed out, sign in again" state instead of an empty library. |
-| Official launchers running in Wine are slow and fragile | #6259 | Native stores need no official launcher. Where one is unavoidable, Ember tracks the game process, not the launcher, and can close the launcher afterwards. |
+| Official launchers running in Wine are slow and fragile | #6259 | Native stores need no official launcher. Where one is unavoidable, Irori tracks the game process, not the launcher, and can close the launcher afterwards. |
 | No unified library across stores and emulators | #4770, #2887 | One library for store games, sideloaded games and emulated games, with shared categories, favourites, playtime and search. |
 | About 40 system options and about 34 Wine options, mostly unexplained | (general) | Fewer options, each with a one-line description in the UI, grouped by what they affect; unavailable options shown disabled with the reason. |
 | Hard to debug a game that does not start | (general) | Per-game log with the exact command, environment changes and engine version; readable errors for missing BIOS, missing engine, missing file and bad prefix before the game starts. |
 | Wrong running state: games shown as running after exit, or stopped while running | #973 | Running state and playtime follow the game's own process; no fixed sleeps. |
 | Adding a local game is confusing (runner first, then options in tabs) | #4899 | "Add game" asks for the file, detects the system, and suggests the engine; Windows setup programs and folders take the sideload flow. |
-| Scripts run shell commands without confirmation | (section 4.8) | Ember shows what a script will run and asks first; writes are confined to the game folder, prefix and cache. |
-| Linux only | (by design) | Ember runs on Linux, macOS and Windows; engines come from each upstream's builds for that OS. |
+| Scripts run shell commands without confirmation | (section 4.8) | Irori shows what a script will run and asks first; writes are confined to the game folder, prefix and cache. |
+| Linux only | (by design) | Irori runs on Linux, macOS and Windows; engines come from each upstream's builds for that OS. |

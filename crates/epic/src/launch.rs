@@ -71,7 +71,7 @@ pub fn launch_params(i: &LaunchInput<'_>) -> Result<LaunchParams> {
     if rel.is_empty() {
         bail!("The game's executable is unknown; choose one in the game settings");
     }
-    let executable = ember_depot::path::join(i.install_dir, &ember_depot::path::normalize(rel)?);
+    let executable = irori_depot::path::join(i.install_dir, &irori_depot::path::normalize(rel)?);
     let working_dir = executable
         .parent()
         .map_or_else(|| i.install_dir.to_path_buf(), Path::to_path_buf);

@@ -1,6 +1,6 @@
 [package]
-name = "ember-core"
-description = "Domain types, settings schema, store contract and shared services for Ember"
+name = "irori-core"
+description = "Domain types, settings schema, store contract and shared services for Irori"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

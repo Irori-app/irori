@@ -3,10 +3,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::Paths;
-use ember_runtime::sysinfo::{self, SystemInfo};
-use ember_ui::components::{EmptyState, PageHeader};
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -20,6 +16,10 @@ use gpui_kit::{
     InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString, Styled as _,
     Subscription, Window, div, rems,
 };
+use irori_core::Paths;
+use irori_runtime::sysinfo::{self, SystemInfo};
+use irori_ui::components::{EmptyState, PageHeader};
+use irori_ui::i18n::{t, t_args};
 
 use crate::backup::BackupPanel;
 use crate::form::{FormTarget, SettingsForm};
@@ -193,7 +193,7 @@ impl SettingsView {
         // The upload name identifies the log at the paste service and in the
         // upload history, so it stays the same in every language.
         let log =
-            cx.new(|cx| LogViewer::new(Paths::get().launcher_log_file(), "Ember log", window, cx));
+            cx.new(|cx| LogViewer::new(Paths::get().launcher_log_file(), "Irori log", window, cx));
         let mut this = Self {
             section: SettingsSection::General,
             search,
@@ -296,7 +296,7 @@ impl SettingsView {
             return;
         }
         self.sysinfo.loading = true;
-        let task = ember_ui::run(cx, async move { Ok(sysinfo::get(true).await) });
+        let task = irori_ui::run(cx, async move { Ok(sysinfo::get(true).await) });
         cx.spawn_in(window, async move |this, cx| {
             let info = task.await.ok();
             this.update(cx, |this, cx| {
@@ -434,8 +434,8 @@ impl SettingsView {
                 t_args(
                     "settings.sysinfo.memory_value",
                     &[
-                        ("used", &ember_core::util::format_bytes(info.memory.used)),
-                        ("total", &ember_core::util::format_bytes(info.memory.total)),
+                        ("used", &irori_core::util::format_bytes(info.memory.used)),
+                        ("total", &irori_core::util::format_bytes(info.memory.total)),
                     ],
                 ),
             ),
@@ -506,7 +506,7 @@ impl SettingsView {
             ));
         }
         let software = &info.software;
-        rows.push(("Ember".into(), software.ember.clone().into()));
+        rows.push(("Irori".into(), software.irori.clone().into()));
         for (name, v) in [
             ("Wine", &software.wine),
             ("gamescope", &software.gamescope),
@@ -561,7 +561,7 @@ impl SettingsView {
                         div()
                             .text_xl()
                             .font_semibold()
-                            .child(format!("Ember {}", env!("CARGO_PKG_VERSION"))),
+                            .child(format!("Irori {}", env!("CARGO_PKG_VERSION"))),
                     )
                     .child(muted(t("settings.about.tagline"), cx)),
             )

@@ -1,7 +1,5 @@
 //! The "Connected controllers" panel of General → Controller.
 
-use ember_bigpicture::gamepad::{self, Battery, ControllerInfo, ControllerKind};
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::tag::Tag;
@@ -11,6 +9,8 @@ use gpui_kit::{
     Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Render,
     SharedString, Styled as _, Subscription, Window, div,
 };
+use irori_bigpicture::gamepad::{self, Battery, ControllerInfo, ControllerKind};
+use irori_ui::i18n::{t, t_args};
 
 use crate::widgets::{muted, panel};
 

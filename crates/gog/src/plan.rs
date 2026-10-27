@@ -1,14 +1,14 @@
 //! Download plans: the files of a build (v1 or v2 depots, redistributables,
-//! Linux installers) as [`ember_depot`] entries, and the difference between
+//! Linux installers) as [`irori_depot`] entries, and the difference between
 //! an installed build and a new one.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
-use ember_depot::{Algorithm, Chunk, Codec, Digest, FileEntry, Part, Reuse};
 use futures::StreamExt as _;
 use futures::future::BoxFuture;
+use irori_depot::{Algorithm, Chunk, Codec, Digest, FileEntry, Part, Reuse};
 use serde::{Deserialize, Serialize};
 
 use crate::content::{
@@ -199,9 +199,9 @@ fn destination(item: &DepotItem) -> Result<(bool, String)> {
             ..
         } => Ok((
             true,
-            ember_depot::path::normalize(&format!("{product}/{path}"))?,
+            irori_depot::path::normalize(&format!("{product}/{path}"))?,
         )),
-        other => Ok((false, ember_depot::path::normalize(other.path())?)),
+        other => Ok((false, irori_depot::path::normalize(other.path())?)),
     }
 }
 
@@ -318,10 +318,10 @@ pub fn plan(
             let (support, rel) = if f.support {
                 (
                     true,
-                    ember_depot::path::normalize(&format!("{}/{}", f.product, f.path))?,
+                    irori_depot::path::normalize(&format!("{}/{}", f.product, f.path))?,
                 )
             } else {
-                (false, ember_depot::path::normalize(&f.path)?)
+                (false, irori_depot::path::normalize(&f.path)?)
             };
             let unchanged = old_files
                 .get(&f.path.to_lowercase())
@@ -365,10 +365,10 @@ pub fn plan(
         gone.sort_by_key(|(p, _)| p.as_str());
         for (_, f) in gone {
             {
-                let rel = ember_depot::path::normalize(&f.path)?;
+                let rel = irori_depot::path::normalize(&f.path)?;
                 if f.support {
                     out.remove_support
-                        .push(ember_depot::path::normalize(&format!(
+                        .push(irori_depot::path::normalize(&format!(
                             "{}/{rel}",
                             f.product
                         ))?);
@@ -380,7 +380,7 @@ pub fn plan(
         out.dirs = new
             .v1_dirs
             .iter()
-            .filter_map(|d| ember_depot::path::normalize(d).ok())
+            .filter_map(|d| irori_depot::path::normalize(d).ok())
             .collect();
         return Ok(out);
     }
@@ -400,13 +400,13 @@ pub fn plan(
         present.insert(path_key(item.path()));
         match item {
             DepotItem::Dir { path } => {
-                if let Ok(p) = ember_depot::path::normalize(path) {
+                if let Ok(p) = irori_depot::path::normalize(path) {
                     out.dirs.push(p);
                 }
             }
             DepotItem::Link { path, target } => out
                 .links
-                .push((ember_depot::path::normalize(path)?, target.clone())),
+                .push((irori_depot::path::normalize(path)?, target.clone())),
             DepotItem::File { chunks, .. } => {
                 let (support, rel) = destination(item)?;
                 let previous = old_items.get(&path_key(item.path()));
@@ -452,7 +452,7 @@ pub fn plan(
     Ok(out)
 }
 
-/// What Ember records about an installed Linux build.
+/// What Irori records about an installed Linux build.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LinuxFiles {
     /// Install path → CRC-32.
@@ -472,7 +472,7 @@ pub fn linux_plan(
             let Some(path) = e.install_path() else {
                 continue;
             };
-            let rel = ember_depot::path::normalize(path)?;
+            let rel = irori_depot::path::normalize(path)?;
             record.files.insert(rel.clone(), e.crc32);
             if e.symlink {
                 // The link target is the entry's (stored) content.
@@ -619,7 +619,7 @@ impl Signer {
     }
 }
 
-impl ember_depot::UrlSigner for Signer {
+impl irori_depot::UrlSigner for Signer {
     fn sign<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, Result<HashMap<String, String>>> {
         Box::pin(async move {
             let mut out = HashMap::new();
@@ -811,8 +811,8 @@ mod tests {
             ("scripts/postinst", b"x", false, None),
         ]);
         let served = data.clone();
-        let server = ember_depot::test_server::TestServer::start(move |req| {
-            ember_depot::test_server::serve_bytes(req, &served, true)
+        let server = irori_depot::test_server::TestServer::start(move |req| {
+            irori_depot::test_server::serve_bytes(req, &served, true)
         });
         let http = reqwest::Client::new();
         let inst = crate::linux::read_installer(&http, &server.url("/i.sh"))
@@ -821,7 +821,7 @@ mod tests {
         let installers = vec![("1".to_string(), inst)];
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path().join("Game");
-        let exists = |rel: &str| ember_depot::path::join(&root, rel).is_file();
+        let exists = |rel: &str| irori_depot::path::join(&root, rel).is_file();
         let (mut p, files) = linux_plan(&installers, None, &exists).unwrap();
         resolve_linux_links(&http, &installers, &mut p)
             .await
@@ -831,39 +831,39 @@ mod tests {
             [("game/lib.so".to_string(), "lib.so.1".to_string())]
         );
         assert_eq!(files.files.len(), 3);
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &http,
-            ember_depot::Job {
+            irori_depot::Job {
                 root: &root,
                 files: &p.game,
                 remove: &p.remove_game,
             },
             &Default::default(),
-            ember_depot::ignore_progress(),
+            irori_depot::ignore_progress(),
             &Default::default(),
         )
         .await
         .unwrap();
-        assert_eq!(finished, ember_depot::Finished::Done);
+        assert_eq!(finished, irori_depot::Finished::Done);
         assert_eq!(std::fs::read(root.join("game/big.pak")).unwrap(), big);
         assert_eq!(
             std::fs::read(root.join("start.sh")).unwrap(),
             b"#!/bin/sh\necho hi\n"
         );
-        let verified = ember_depot::verify(
+        let verified = irori_depot::verify(
             &root,
             &p.game,
             0,
-            ember_depot::ignore_progress(),
+            irori_depot::ignore_progress(),
             &Default::default(),
         )
         .await
         .unwrap();
-        assert_eq!(verified, ember_depot::Verified::Checked(Vec::new()));
+        assert_eq!(verified, irori_depot::Verified::Checked(Vec::new()));
 
         // Nothing changed: an update plans nothing; a file gone from the
         // new installer is removed.
-        let exists = |rel: &str| ember_depot::path::join(&root, rel).is_file();
+        let exists = |rel: &str| irori_depot::path::join(&root, rel).is_file();
         let (again, _) = linux_plan(&installers, Some(&files), &exists).unwrap();
         assert!(again.game.is_empty());
         let mut older = files.clone();
@@ -874,19 +874,19 @@ mod tests {
 
     #[tokio::test]
     async fn signs_keys_with_secure_links() {
-        let server = ember_depot::test_server::TestServer::start(|req| {
+        let server = irori_depot::test_server::TestServer::start(|req| {
             let p = &req.path;
             if p.starts_with("/products/1/secure_link") {
                 let gen1 = p.contains("type=depot");
-                ember_depot::test_server::Resp::json(json!({"urls": [{
+                irori_depot::test_server::Resp::json(json!({"urls": [{
                     "url_format": "{base}{path}?sig={sig}",
                     "parameters": {"base": "https://cdn", "path": if gen1 { "/v1/1" } else { "/v2/1" }, "sig": "s"}}]}))
             } else if p.starts_with("/open_link") {
-                ember_depot::test_server::Resp::json(
+                irori_depot::test_server::Resp::json(
                     json!({"urls": [{"url": "https://redist/store"}]}),
                 )
             } else {
-                ember_depot::test_server::Resp::status(404)
+                irori_depot::test_server::Resp::status(404)
             }
         });
         let client = Client::new(crate::content::Endpoints {
@@ -900,12 +900,12 @@ mod tests {
             "v1/1/100/50".to_string(),
             format!("v2/{REDIST}/abcdef"),
         ];
-        let urls = ember_depot::UrlSigner::sign(&signer, &keys).await.unwrap();
+        let urls = irori_depot::UrlSigner::sign(&signer, &keys).await.unwrap();
         assert_eq!(urls[&keys[0]], format!("https://cdn/v2/1/z0/cc/z{A}?sig=s"));
         assert_eq!(urls[&keys[1]], "https://cdn/v1/1/main.bin?sig=s");
         assert_eq!(urls[&keys[2]], "https://redist/store/ab/cd/abcdef");
         let before = server.requests().len();
-        ember_depot::UrlSigner::sign(&signer, &keys[..1])
+        irori_depot::UrlSigner::sign(&signer, &keys[..1])
             .await
             .unwrap();
         assert_eq!(

@@ -19,11 +19,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Result};
-use ember_core::Paths;
 use gpui_kit::{
     App, AppContext as _, Context, Entity, Global, ImageCache, ImageCacheError, ImageCacheItem,
     RenderImage, Resource, SharedString, Window, hash,
 };
+use irori_core::Paths;
 use sha2::{Digest, Sha256};
 use tokio::sync::Semaphore;
 
@@ -343,14 +343,14 @@ async fn original(url: &str) -> Result<PathBuf> {
     }
     let orig = original_path(url);
     if !orig.is_file() {
-        let bytes = ember_core::http::client()
+        let bytes = irori_core::http::client()
             .get(url)
             .send()
             .await?
             .error_for_status()?
             .bytes()
             .await?;
-        ember_core::json_store::write_bytes(&orig, &bytes)?;
+        irori_core::json_store::write_bytes(&orig, &bytes)?;
     }
     Ok(orig)
 }
@@ -574,7 +574,7 @@ mod tests {
 
     #[test]
     fn ambient_round_trips_through_disk() {
-        let dir = std::env::temp_dir().join(format!("ember-ambient-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("irori-ambient-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let src = dir.join("src.png");
         image::RgbImage::from_pixel(1000, 500, image::Rgb([200, 60, 30]))
@@ -597,7 +597,7 @@ mod tests {
 
     #[test]
     fn resizes_and_keeps_alpha() {
-        let dir = std::env::temp_dir().join(format!("ember-art-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("irori-art-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let src = dir.join("src.png");
         image::RgbaImage::from_pixel(800, 400, image::Rgba([255, 0, 0, 128]))

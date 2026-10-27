@@ -29,10 +29,10 @@ const NOT_GAMES: &[&str] = &[
     "Social Club",
 ];
 
-/// A Rockstar title Ember knows by name.
+/// A Rockstar title Irori knows by name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Title {
-    /// Ember's id for the title.
+    /// Irori's id for the title.
     pub id: &'static str,
     /// The registry key names the title may be installed under.
     pub keys: &'static [&'static str],
@@ -166,7 +166,7 @@ pub fn installed_games(registry: &Registry) -> Vec<InstalledGame> {
     games
 }
 
-/// `Some Title: Edition` → `some-title-edition`, the id of titles Ember doesn't know.
+/// `Some Title: Edition` → `some-title-edition`, the id of titles Irori doesn't know.
 fn slug(name: &str) -> String {
     let mut out = String::new();
     for c in name.chars().flat_map(char::to_lowercase) {

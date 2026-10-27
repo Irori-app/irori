@@ -1,27 +1,27 @@
 //! On-disk layout of the GOG store.
 //!
 //! Credentials, install records and support files live in the store config
-//! dir (`~/.config/ember/stores/gog`), caches and download journals in the
-//! store cache dir and the Galaxy redistributables under Ember's tools dir.
+//! dir (`~/.config/irori/stores/gog`), caches and download journals in the
+//! store cache dir and the Galaxy redistributables under Irori's tools dir.
 
 use std::path::{Path, PathBuf};
 
-use ember_core::{Paths, Runner};
+use irori_core::{Paths, Runner};
 
 /// Every file and directory the GOG store reads or writes.
 #[derive(Debug, Clone)]
 pub struct GogPaths {
-    /// `stores/gog` under Ember's config dir.
+    /// `stores/gog` under Irori's config dir.
     pub config: PathBuf,
-    /// `stores/gog` under Ember's cache dir.
+    /// `stores/gog` under Irori's cache dir.
     pub cache: PathBuf,
     /// Galaxy common redistributables (`gog-redist`).
     pub redist: PathBuf,
 }
 
 impl GogPaths {
-    /// Layout under Ember's process-wide [`Paths`].
-    pub fn from_ember() -> Self {
+    /// Layout under Irori's process-wide [`Paths`].
+    pub fn from_irori() -> Self {
         let p = Paths::get();
         Self {
             config: p.store_config_dir(Runner::Gog),
@@ -108,7 +108,7 @@ impl GogPaths {
         self.cache.join("resume").join(format!("{app_name}.json"))
     }
 
-    /// gogdl's config dir from earlier Ember versions (migrated on startup).
+    /// gogdl's config dir from earlier Irori versions (migrated on startup).
     pub fn legacy_gogdl_dir(&self) -> PathBuf {
         self.config.join("gogdl").join("heroic_gogdl")
     }
@@ -137,6 +137,6 @@ impl GogPaths {
 
     /// What is downloaded of the redistributables (`redist::RedistRecord`).
     pub fn redist_record(&self) -> PathBuf {
-        self.redist.join(".ember-redist.json")
+        self.redist.join(".irori-redist.json")
     }
 }

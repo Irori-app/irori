@@ -1,13 +1,13 @@
-//! GOG account: sign-in and tokens come from [`ember_gog_api::auth`]; this
+//! GOG account: sign-in and tokens come from [`irori_gog_api::auth`]; this
 //! module adds the account details shown in the UI.
 
 use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_core::http;
+use irori_core::http;
 
-pub use ember_gog_api::auth::{
+pub use irori_gog_api::auth::{
     CLIENT_ID, Credentials, LOGIN_CAPTURE, LOGIN_URL, TokenStore as Auth, extract_login_code,
 };
 

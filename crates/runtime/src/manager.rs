@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{AppSettings, OpContext, Paths, WineInstallation};
+use irori_core::{AppSettings, OpContext, Paths, WineInstallation};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -46,24 +46,24 @@ impl ReleaseKind {
     pub const DEFAULT: [ReleaseKind; 2] = [ReleaseKind::GeProton, ReleaseKind::ProtonCachyOs];
 
     /// Sources offered on a host, in display order.
-    pub fn for_host(host: ember_core::HostPlatform) -> &'static [Self] {
+    pub fn for_host(host: irori_core::HostPlatform) -> &'static [Self] {
         match host {
-            ember_core::HostPlatform::Linux => &[
+            irori_core::HostPlatform::Linux => &[
                 Self::GeProton,
                 Self::ProtonCachyOs,
                 Self::WineGe,
                 Self::WineKron4ek,
             ],
-            ember_core::HostPlatform::Mac => &[
+            irori_core::HostPlatform::Mac => &[
                 Self::GamePortingToolkit,
                 Self::WineCrossover,
                 Self::WineStagingMac,
             ],
-            ember_core::HostPlatform::Windows => &[],
+            irori_core::HostPlatform::Windows => &[],
         }
     }
     pub fn available() -> &'static [Self] {
-        Self::for_host(ember_core::HostPlatform::current())
+        Self::for_host(irori_core::HostPlatform::current())
     }
 
     /// The `type` string stored in release entries.
@@ -163,7 +163,7 @@ impl Release {
         }
         if self.release_kind() == Some(ReleaseKind::GamePortingToolkit) {
             let mut wine = discovery::wine_build(&dir, &self.version);
-            wine.kind = ember_core::WineKind::Toolkit;
+            wine.kind = irori_core::WineKind::Toolkit;
             return Some(wine);
         }
         let is_wine = self.kind.contains("Wine");
@@ -417,11 +417,11 @@ fn merge(cached: Vec<Release>, fresh: Vec<Release>, fetched: &[ReleaseKind]) -> 
 }
 
 fn read_store() -> ReleaseStore {
-    ember_core::json_store::read_or_default(&locations::releases_file())
+    irori_core::json_store::read_or_default(&locations::releases_file())
 }
 
 fn write_store(store: &ReleaseStore) -> Result<()> {
-    ember_core::json_store::write(&locations::releases_file(), store)
+    irori_core::json_store::write(&locations::releases_file(), store)
 }
 
 static STORE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
@@ -451,7 +451,7 @@ pub async fn update_releases(fetch: bool, kinds: &[ReleaseKind]) -> Result<Vec<R
                 fetched.push(kind);
                 store
                     .fetched_at
-                    .insert(kind.type_str().into(), ember_core::util::unix_now());
+                    .insert(kind.type_str().into(), irori_core::util::unix_now());
             }
             Err(e) => {
                 tracing::warn!("{e:#}");
@@ -479,7 +479,7 @@ pub async fn available_releases(kind: ReleaseKind) -> Result<Vec<Release>> {
     let fresh_enough = store
         .fetched_at
         .get(kind.type_str())
-        .is_some_and(|t| ember_core::util::unix_now().saturating_sub(*t) < 24 * 3600);
+        .is_some_and(|t| irori_core::util::unix_now().saturating_sub(*t) < 24 * 3600);
     let has_any = store.releases.iter().any(|r| r.kind == kind.type_str());
     let list = if has_any && fresh_enough {
         store.releases
@@ -525,7 +525,7 @@ pub fn install_base(release: &Release, app: &AppSettings) -> PathBuf {
             return steam.join("compatibilitytools.d");
         }
         tracing::warn!(
-            "Steam was not found at {}; installing Proton into Ember's tools",
+            "Steam was not found at {}; installing Proton into Irori's tools",
             steam.display()
         );
     }
@@ -798,13 +798,13 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires the local Postman runtime-releases simulation"]
     async fn simulated_macos_releases() {
-        let base = std::env::var("EMBER_RELEASE_TEST_URL").expect("Set the simulator's local URL");
+        let base = std::env::var("IRORI_RELEASE_TEST_URL").expect("Set the simulator's local URL");
         let url = url::Url::parse(&base).unwrap();
         assert!(
             matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "::1")),
             "This test only talks to a local simulator"
         );
-        for kind in ReleaseKind::for_host(ember_core::HostPlatform::Mac) {
+        for kind in ReleaseKind::for_host(irori_core::HostPlatform::Mac) {
             let path = kind.url().strip_prefix("https://api.github.com").unwrap();
             let releases =
                 fetch_releases_at(*kind, &format!("{base}/github{path}?per_page=1"), "aarch64")
@@ -826,7 +826,7 @@ mod tests {
 
     #[test]
     fn mac_sources_and_asset_architectures() {
-        use ember_core::HostPlatform;
+        use irori_core::HostPlatform;
         assert!(ReleaseKind::for_host(HostPlatform::Windows).is_empty());
         assert_eq!(
             ReleaseKind::for_host(HostPlatform::Mac),
@@ -1052,15 +1052,15 @@ mod tests {
     }
 
     /// Opt-in real archive verification; never downloads during ordinary CI.
-    /// Run alone with a dedicated empty EMBER_HOME and EMBER_RUNTIME_SMOKE set
+    /// Run alone with a dedicated empty IRORI_HOME and IRORI_RUNTIME_SMOKE set
     /// to one of the three macOS source names.
     #[cfg(target_os = "macos")]
     #[tokio::test]
     #[ignore = "downloads and runs a real macOS Wine runtime; requires Rosetta on Apple silicon"]
     async fn macos_runtime_archive_smoke() {
-        let root = std::env::var_os("EMBER_HOME").expect("set a dedicated EMBER_HOME");
+        let root = std::env::var_os("IRORI_HOME").expect("set a dedicated IRORI_HOME");
         assert!(Path::new(&root).is_absolute());
-        let source = std::env::var("EMBER_RUNTIME_SMOKE").expect("set EMBER_RUNTIME_SMOKE");
+        let source = std::env::var("IRORI_RUNTIME_SMOKE").expect("set IRORI_RUNTIME_SMOKE");
         let kind = ReleaseKind::from_type(&source).expect("unknown source");
         assert!(ReleaseKind::available().contains(&kind));
         let releases = update_releases(true, &[kind]).await.unwrap();
@@ -1078,7 +1078,7 @@ mod tests {
         let wine = installed.installation().unwrap();
         assert!(discovery::is_usable(&wine));
         let spec =
-            ember_core::process::CommandSpec::new(discovery::unquote(&wine.bin)).arg("--version");
+            irori_core::process::CommandSpec::new(discovery::unquote(&wine.bin)).arg("--version");
         let result = discovery::run_with_timeout(&spec, std::time::Duration::from_secs(30))
             .await
             .expect("Wine timed out or could not start");
@@ -1094,17 +1094,17 @@ mod tests {
             .tempdir_in(&Paths::get().data)
             .unwrap();
         let prefix = prefix_owner.path().to_path_buf();
-        let settings = ember_core::GameSettings {
+        let settings = irori_core::GameSettings {
             wine_version: wine.clone(),
             wine_prefix: prefix.to_string_lossy().into_owned(),
             ..Default::default()
         };
-        let game = ember_core::GameInfo {
+        let game = irori_core::GameInfo {
             app_name: "runtime-smoke".into(),
             title: "Runtime smoke".into(),
             ..Default::default()
         };
-        let id = ember_core::GameId::new(ember_core::Runner::Sideload, "runtime-smoke");
+        let id = irori_core::GameId::new(irori_core::Runner::Sideload, "runtime-smoke");
         let context = OpContext::detached();
         let environment = tokio::time::timeout(
             std::time::Duration::from_secs(120),
@@ -1114,7 +1114,7 @@ mod tests {
                 crate::Target {
                     id: &id,
                     game: &game,
-                    platform: ember_core::InstallPlatform::Windows,
+                    platform: irori_core::InstallPlatform::Windows,
                 },
                 &context,
             ),
@@ -1124,8 +1124,8 @@ mod tests {
         .unwrap();
         assert!(prefix.join("user.reg").is_file());
         assert!(!environment.env.contains_key("STEAM_COMPAT_DATA_PATH"));
-        let spec = ember_core::process::CommandSpec::new(discovery::unquote(&wine.bin))
-            .args(["cmd", "/c", "echo", "EMBER_RUNTIME_OK"])
+        let spec = irori_core::process::CommandSpec::new(discovery::unquote(&wine.bin))
+            .args(["cmd", "/c", "echo", "IRORI_RUNTIME_OK"])
             .envs(environment.env);
         let result = discovery::run_with_timeout(&spec, std::time::Duration::from_secs(30))
             .await
@@ -1133,7 +1133,7 @@ mod tests {
         let _ = crate::prefix::kill(&wine, &prefix).await;
         assert!(result.success(), "{}", result.error_summary());
         assert!(
-            result.stdout.contains("EMBER_RUNTIME_OK"),
+            result.stdout.contains("IRORI_RUNTIME_OK"),
             "{}",
             result.stdout
         );

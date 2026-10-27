@@ -12,14 +12,14 @@ use anyhow::{Context as _, Result, bail};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use ember_core::{
+use irori_core::{
     CloudSaveLocation, InstallPlatform, OpContext, SaveConflict, SyncDirection, util,
 };
-use ember_gog_api::saves::{Action, Preference, Storage};
+use irori_gog_api::saves::{Action, Preference, Storage};
 
 use crate::installed::InstalledRecord;
 use crate::{GogStore, api, load_json, save_json};
-use ember_core::Store as _;
+use irori_core::Store as _;
 
 /// Cloud folder name used when GOG lists no location (as Galaxy does).
 pub const DEFAULT_LOCATION: &str = "__default";

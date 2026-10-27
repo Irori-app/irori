@@ -1,4 +1,4 @@
-//! Ember core: the domain model and contracts shared by every other crate.
+//! Irori core: the domain model and contracts shared by every other crate.
 //! No UI dependency; everything here is usable from tests and headless tools.
 
 pub mod archive_guard;

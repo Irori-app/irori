@@ -2,10 +2,10 @@
 //! DLC toggle maps onto store operations. No views or contexts, so every
 //! transition is unit-tested.
 
-use ember_core::{GameInfo, Runner, StatusKind};
-use ember_services::{DownloadQueueSnapshot, DownloadState};
-use ember_ui::i18n::t;
 use gpui_kit::SharedString;
+use irori_core::{GameInfo, Runner, StatusKind};
+use irori_services::{DownloadQueueSnapshot, DownloadState};
+use irori_ui::i18n::t;
 
 /// Facts about a game that decide its primary action.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub struct ActionInputs {
     pub installed: bool,
     /// The store can install it (false for owned-but-uninstallable entries).
     pub installable: bool,
-    /// Needs a third-party launcher Ember cannot drive.
+    /// Needs a third-party launcher Irori cannot drive.
     pub unsupported: bool,
     /// Live status from the status registry.
     pub status: Option<StatusKind>,
@@ -56,7 +56,7 @@ impl ActionInputs {
     }
 }
 
-/// Whether a game needs a third-party launcher Ember cannot drive (anything
+/// Whether a game needs a third-party launcher Irori cannot drive (anything
 /// but the EA app and Ubisoft Connect).
 pub fn is_unsupported_third_party(game: &GameInfo) -> bool {
     game.runner() != Runner::Sideload
@@ -91,7 +91,7 @@ pub enum PrimaryAction {
     Missing,
     /// Owned but not installable (e.g. GOG goodies).
     NotInstallable,
-    /// Requires a third-party launcher Ember does not support.
+    /// Requires a third-party launcher Irori does not support.
     Unsupported,
 }
 
@@ -229,8 +229,8 @@ pub fn completion_percent(unlocked: usize, total: usize) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::GameInfo;
-    use ember_services::{DownloadItem, DownloadKind};
+    use irori_core::GameInfo;
+    use irori_services::{DownloadItem, DownloadKind};
 
     fn base() -> ActionInputs {
         ActionInputs {

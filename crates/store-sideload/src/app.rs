@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::paths::expand_home;
-use ember_core::{GameInfo, InstallPlatform, InstalledInfo, Runner};
+use irori_core::paths::expand_home;
+use irori_core::{GameInfo, InstallPlatform, InstalledInfo, Runner};
 use serde::{Deserialize, Serialize};
 
 /// Platform of a sideloaded app.

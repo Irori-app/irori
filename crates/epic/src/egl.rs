@@ -89,7 +89,7 @@ impl EglItem {
     }
 }
 
-/// Fields of a record written for an Ember install.
+/// Fields of a record written for an Irori install.
 pub struct ExportInfo<'a> {
     pub app_name: &'a str,
     pub title: &'a str,

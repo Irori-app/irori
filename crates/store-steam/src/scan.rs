@@ -5,7 +5,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use ember_runtime::vdf::{self, Vdf};
+use irori_runtime::vdf::{self, Vdf};
 
 /// An app the Steam client installed.
 #[derive(Debug, Clone, PartialEq, Eq)]

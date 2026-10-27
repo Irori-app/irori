@@ -1,4 +1,4 @@
-//! Mapping the Wine build a script names to one Ember has. Scripts pin
+//! Mapping the Wine build a script names to one Irori has. Scripts pin
 //! Lutris build names that disappear from its server; instead of failing
 //! (or silently using another build), the caller gets a typed answer it can
 //! show: the exact build, a close one with the same family and version, or

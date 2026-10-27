@@ -18,9 +18,9 @@
 //!    Menu opens the command palette (Ctrl+K) and the shoulders page.
 //! 3. Guide toggles Big Picture from anywhere.
 //!
-//! Input is ignored while `disable_controller` is set. When Ember is not the
+//! Input is ignored while `disable_controller` is set. When Irori is not the
 //! active window only Guide is honoured, and only while no game is running:
-//! it brings Ember to the front in Big Picture instead of acting on input
+//! it brings Irori to the front in Big Picture instead of acting on input
 //! meant for a game. Guide acts on a short press, so holding it to switch a
 //! controller off does nothing.
 //!
@@ -39,14 +39,14 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
-use ember_ui::Route;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::nav::{self, navigator};
 use futures::StreamExt as _;
 use gpui_kit::{
     Action, AnyWindowHandle, App, AppContext as _, Entity, Global, KeyUpEvent, Keystroke,
     PlatformInput, Window, actions,
 };
+use irori_ui::Route;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::nav::{self, navigator};
 use parking_lot::RwLock;
 
 pub use input::{
@@ -56,7 +56,7 @@ pub use input::{
 use reader::{Message, SharedConfig};
 
 actions!(
-    ember_gamepad,
+    irori_gamepad,
     [
         /// Move up (D-pad, left stick, or the Up arrow in Big Picture).
         Up,
@@ -199,7 +199,7 @@ pub fn model(cx: &App) -> Option<Entity<GamepadModel>> {
 }
 
 /// Start controller support: the reader thread and the GPUI task that routes
-/// its inputs. Call once after `ember_ui::init`; later calls do nothing.
+/// its inputs. Call once after `irori_ui::init`; later calls do nothing.
 /// Follows `disable_controller`, `gamepad_initial_repeat_delay` and
 /// `gamepad_repeat_delay` live.
 pub fn install(cx: &mut App) {
@@ -207,7 +207,7 @@ pub fn install(cx: &mut App) {
         return;
     }
     let settings = cx
-        .try_global::<ember_ui::Models>()
+        .try_global::<irori_ui::Models>()
         .map(|m| m.settings.clone());
     let shared = {
         let (disabled, initial, repeat) = settings
@@ -248,7 +248,7 @@ pub fn install(cx: &mut App) {
     let (tx, mut rx) = futures::channel::mpsc::unbounded();
     let thread_shared = shared.clone();
     if let Err(e) = std::thread::Builder::new()
-        .name("ember-gamepad".into())
+        .name("irori-gamepad".into())
         .spawn(move || reader::run(thread_shared, tx))
     {
         tracing::warn!("starting the controller reader: {e}");
@@ -282,7 +282,7 @@ pub fn install(cx: &mut App) {
 }
 
 thread_local! {
-    /// Set while Ember types a key itself for a controller input, so the
+    /// Set while Irori types a key itself for a controller input, so the
     /// echo filter lets it through.
     static SYNTHESIZING: Cell<bool> = const { Cell::new(false) };
 }
@@ -339,7 +339,7 @@ pub fn action_for(input: GamepadInput) -> Box<dyn Action> {
 }
 
 fn game_running(cx: &App) -> bool {
-    cx.try_global::<ember_ui::Models>()
+    cx.try_global::<irori_ui::Models>()
         .is_some_and(|m| m.statuses.read(cx).playing().next().is_some())
 }
 

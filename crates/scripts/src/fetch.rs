@@ -1,4 +1,4 @@
-//! Downloads into the install cache, resumable through `ember-depot`, and
+//! Downloads into the install cache, resumable through `irori-depot`, and
 //! checksum verification. Finished files stay in the cache, so a retry after
 //! a failure or a cancel reuses them.
 
@@ -7,9 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context as _, Result};
-use ember_core::process::CancellationToken;
-use ember_runtime::Cancelled;
 use futures::StreamExt as _;
+use irori_core::process::CancellationToken;
+use irori_runtime::Cancelled;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
@@ -115,7 +115,7 @@ fn percent_decode(s: &str) -> String {
 
 fn client_for(referer: Option<&str>) -> Result<reqwest::Client> {
     let Some(referer) = referer else {
-        return Ok(ember_core::http::download_client().clone());
+        return Ok(irori_core::http::download_client().clone());
     };
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
@@ -124,7 +124,7 @@ fn client_for(referer: Option<&str>) -> Result<reqwest::Client> {
             .context("the script's referer is not valid")?,
     );
     Ok(reqwest::Client::builder()
-        .user_agent(ember_core::http::USER_AGENT)
+        .user_agent(irori_core::http::USER_AGENT)
         .default_headers(headers)
         .connect_timeout(Duration::from_secs(15))
         .read_timeout(Duration::from_secs(60))
@@ -169,14 +169,14 @@ pub(crate) async fn download(
     let client = client_for(referer)?;
     let size = remote_size(&client, url).await;
     let rel = format!("{id}/{name}");
-    let normalised = ember_depot::path::normalize(&rel)
+    let normalised = irori_depot::path::normalize(&rel)
         .ok()
         .filter(|n| *n == rel);
     match (size, normalised) {
         (Some(size), Some(rel)) => {
             let file_id = id.to_string();
             let report = progress.clone();
-            let depot_progress: ember_depot::ProgressFn = Arc::new(move |p| {
+            let depot_progress: irori_depot::ProgressFn = Arc::new(move |p| {
                 report(Progress::Download {
                     file_id: file_id.clone(),
                     bytes_done: p.bytes_done,
@@ -184,27 +184,27 @@ pub(crate) async fn download(
                     bytes_per_sec: p.download_speed,
                 });
             });
-            let files = [ember_depot::FileEntry::whole(
+            let files = [irori_depot::FileEntry::whole(
                 rel,
                 size,
                 None,
                 vec![url.to_string()],
             )];
-            let job = ember_depot::Job {
+            let job = irori_depot::Job {
                 root: cache_dir,
                 files: &files,
                 remove: &[],
             };
-            let finished = ember_depot::download(
+            let finished = irori_depot::download(
                 &client,
                 job,
-                &ember_depot::Options::default(),
+                &irori_depot::Options::default(),
                 depot_progress,
                 cancel,
             )
             .await
             .with_context(|| format!("Could not download {url}"))?;
-            if finished == ember_depot::Finished::Cancelled {
+            if finished == irori_depot::Finished::Cancelled {
                 return Err(Cancelled.into());
             }
         }
@@ -228,7 +228,7 @@ async fn stream(
             .await
             .with_context(|| format!("Could not create {}", dir.display()))?;
     }
-    let part = ember_depot::path::part_path(dest);
+    let part = irori_depot::path::part_path(dest);
     let have = tokio::fs::metadata(&part)
         .await
         .map(|m| m.len())

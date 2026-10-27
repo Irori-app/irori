@@ -1,13 +1,13 @@
 //! Game icons for shortcuts: picks the best source art, converts it to a
-//! square PNG and stores it under Ember's data directory.
+//! square PNG and stores it under Irori's data directory.
 
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, anyhow};
-use ember_core::{GameInfo, Paths, Runner};
 use image::{DynamicImage, GenericImageView as _, ImageFormat, RgbaImage, imageops};
+use irori_core::{GameInfo, Paths, Runner};
 use serde::Deserialize;
 
 use crate::util;
@@ -15,7 +15,7 @@ use crate::util;
 /// Edge length of generated icons, in pixels.
 const ICON_SIZE: u32 = 256;
 
-/// `<data>/icons`, owned by Ember.
+/// `<data>/icons`, owned by Irori.
 pub fn icons_dir() -> PathBuf {
     Paths::get().data.join("icons")
 }
@@ -25,7 +25,7 @@ pub fn icon_path(game: &GameInfo) -> PathBuf {
     icons_dir().join(format!(
         "{}-{}.png",
         game.runner().id(),
-        ember_core::paths::sanitize(&game.app_name)
+        irori_core::paths::sanitize(&game.app_name)
     ))
 }
 

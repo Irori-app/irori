@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context as _, Result};
-use ember_core::process::CancellationToken;
-use ember_runtime::Cancelled;
+use irori_core::process::CancellationToken;
+use irori_runtime::Cancelled;
 use serde_json::{Map, Value};
 
 use crate::archive;
@@ -29,7 +29,7 @@ use crate::vars::{Mode, Vars, references};
 /// Run `script`. Nothing runs unless `approvals` accepts its
 /// [`consent`] plan (and acknowledges its shell commands). On failure or
 /// cancel the game folder is rolled back and the error returned; a cancel
-/// is `ember_runtime::Cancelled` in the error chain. An install that only
+/// is `irori_runtime::Cancelled` in the error chain. An install that only
 /// lacks the game's program is not rolled back: it fails with
 /// [`UnfinishedInstall`], which carries the outcome so the user can choose
 /// the program.
@@ -187,7 +187,7 @@ impl Runner<'_> {
         }
     }
 
-    /// The prefix a Wine task uses: its own, else Ember's, else the game
+    /// The prefix a Wine task uses: its own, else Irori's, else the game
     /// section's, else the game folder. Checked as a write target.
     async fn prefix(&self, own: Option<&str>, loc: &str) -> Result<PathBuf> {
         let p = match (own, &self.ctx.prefix, &self.script.game.prefix) {
@@ -577,7 +577,7 @@ impl Runner<'_> {
         let dst = self.path(e.dst.as_deref().unwrap_or("$GAMEDIR"), loc)?;
         for (i, archive) in archives.into_iter().enumerate() {
             self.check_cancel()?;
-            let staging = dst.join(format!(".ember-extract-{i}"));
+            let staging = dst.join(format!(".irori-extract-{i}"));
             let (l, d, s) = (loc.to_string(), dst.clone(), staging.clone());
             self.with_fs(move |fs| {
                 fs.mkdir(&d, &l)?;

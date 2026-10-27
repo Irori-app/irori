@@ -2,8 +2,8 @@
 //! values travel through JSON in the environment, never through script text.
 use super::LauncherCommand;
 use anyhow::{Context as _, Result, ensure};
-use ember_core::process::{CommandSpec, RunOptions};
-use ember_core::{GameInfo, Paths};
+use irori_core::process::{CommandSpec, RunOptions};
+use irori_core::{GameInfo, Paths};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -37,13 +37,13 @@ fn menu_dir() -> Result<PathBuf> {
     {
         Ok(dirs::home_dir()
             .context("No home directory")?
-            .join("Applications/Ember Games"))
+            .join("Applications/Irori Games"))
     }
     #[cfg(windows)]
     {
         Ok(dirs::config_dir()
             .context("No application data directory")?
-            .join("Microsoft/Windows/Start Menu/Programs/Ember Games"))
+            .join("Microsoft/Windows/Start Menu/Programs/Irori Games"))
     }
 }
 fn file_name(game: &GameInfo) -> String {
@@ -55,7 +55,7 @@ fn file_name(game: &GameInfo) -> String {
         .collect();
     let hash = md5::compute(game.id().key());
     format!(
-        "Ember - {title} - {hash:x}.{}",
+        "Irori - {title} - {hash:x}.{}",
         if cfg!(windows) { "lnk" } else { "app" }
     )
 }
@@ -70,14 +70,14 @@ async fn shell_link(
         l.launch_args(&game.id())
             .into_iter()
             .skip(1)
-            .map(|a| ember_core::process::windows_arg(&a))
+            .map(|a| irori_core::process::windows_arg(&a))
             .collect::<Vec<_>>()
             .join(" ")
     });
-    let data = serde_json::json!({"path": path, "owner": format!("Ember:{}", game.id().key()),
+    let data = serde_json::json!({"path": path, "owner": format!("Irori:{}", game.id().key()),
         "program": launcher.map(|l| &l.program), "cwd": launcher.map(|l| &l.working_dir), "args": args});
     const SCRIPT: &str = r#"$ErrorActionPreference = 'Stop'
-$d = $env:EMBER_SHORTCUT | ConvertFrom-Json
+$d = $env:IRORI_SHORTCUT | ConvertFrom-Json
 $shell = New-Object -ComObject WScript.Shell
 $exists = Test-Path -LiteralPath $d.path
 $link = $shell.CreateShortcut($d.path)
@@ -90,7 +90,7 @@ if ($null -ne $d.program) {
   $link.Save()
 } elseif ($exists) { Write-Output 'owned' }
 "#;
-    let result = ember_core::process::run(
+    let result = irori_core::process::run(
         &CommandSpec::new("powershell.exe")
             .args([
                 "-NoLogo",
@@ -99,7 +99,7 @@ if ($null -ne $d.program) {
                 "-Command",
                 SCRIPT,
             ])
-            .env("EMBER_SHORTCUT", data.to_string()),
+            .env("IRORI_SHORTCUT", data.to_string()),
         RunOptions::default(),
     )
     .await?;
@@ -117,7 +117,7 @@ fn owned_bundle(path: &Path, game: &GameInfo) -> bool {
         .ok()
         .and_then(|v| {
             v.as_dictionary()?
-                .get("EmberGame")?
+                .get("IroriGame")?
                 .as_string()
                 .map(str::to_owned)
         })
@@ -161,9 +161,12 @@ async fn write_shortcut(path: &Path, game: &GameInfo, launcher: &LauncherCommand
             ("CFBundlePackageType", "APPL".into()),
             (
                 "CFBundleIdentifier",
-                format!("org.ember.game.{:x}", md5::compute(game.id().key())),
+                format!(
+                    "io.github.irori-app.game.{:x}",
+                    md5::compute(game.id().key())
+                ),
             ),
-            ("EmberGame", game.id().key()),
+            ("IroriGame", game.id().key()),
         ] {
             info.insert(key.into(), plist::Value::String(value));
         }
@@ -258,11 +261,11 @@ pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
             .ancestors()
             .find(|p| p.extension().is_some_and(|e| e == "app"))
         {
-            let result = ember_core::process::run(&CommandSpec::new("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+            let result = irori_core::process::run(&CommandSpec::new("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
                 .arg("-f").arg(bundle), RunOptions::default()).await?;
             ensure!(
                 result.success(),
-                "Could not register Ember URL handler: {}",
+                "Could not register Irori URL handler: {}",
                 result.error_summary()
             );
         }
@@ -272,14 +275,14 @@ pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
         let command = std::iter::once(launcher.program.as_str())
             .chain(launcher.prefix_args.iter().map(String::as_str))
             .chain(std::iter::once("%1"))
-            .map(ember_core::process::windows_arg)
+            .map(irori_core::process::windows_arg)
             .collect::<Vec<_>>()
             .join(" ");
         for (key, name, value) in [
-            (r"HKCU\Software\Classes\ember", None, "URL:Ember"),
-            (r"HKCU\Software\Classes\ember", Some("URL Protocol"), ""),
+            (r"HKCU\Software\Classes\irori", None, "URL:Irori"),
+            (r"HKCU\Software\Classes\irori", Some("URL Protocol"), ""),
             (
-                r"HKCU\Software\Classes\ember\shell\open\command",
+                r"HKCU\Software\Classes\irori\shell\open\command",
                 None,
                 command.as_str(),
             ),
@@ -291,10 +294,10 @@ pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
             } else {
                 spec.arg("/ve")
             };
-            let result = ember_core::process::run(&spec, RunOptions::default()).await?;
+            let result = irori_core::process::run(&spec, RunOptions::default()).await?;
             ensure!(
                 result.success(),
-                "Could not register Ember URL handler: {}",
+                "Could not register Irori URL handler: {}",
                 result.error_summary()
             );
         }
@@ -314,16 +317,16 @@ mod tests {
             ..Default::default()
         };
         let launcher = LauncherCommand {
-            program: "/tmp/a'b/ember".into(),
+            program: "/tmp/a'b/irori".into(),
             prefix_args: vec![],
             working_dir: "/tmp".into(),
         };
         let path = temp.path().join(file_name(&game));
         write_shortcut(&path, &game, &launcher).await.unwrap();
         assert!(owned_bundle(&path, &game));
-        let exe = ember_core::platform::bundle_executable(&path).unwrap();
+        let exe = irori_core::platform::bundle_executable(&path).unwrap();
         let script = std::fs::read_to_string(exe).unwrap();
-        assert!(script.contains("'/tmp/a'\\''b/ember'"));
+        assert!(script.contains("'/tmp/a'\\''b/irori'"));
         let other = GameInfo {
             app_name: "other".into(),
             ..game.clone()

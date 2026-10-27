@@ -2,7 +2,7 @@
 use crate::{InstallPlatform, WineKind};
 use std::path::{Path, PathBuf};
 
-/// The desktop operating systems supported by Ember.
+/// The desktop operating systems supported by Irori.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostPlatform {
     Linux,
@@ -62,7 +62,7 @@ pub fn steam_dir() -> PathBuf {
     }
 }
 
-/// Whether Ember runs inside Steam's controller interface: the Steam Deck's
+/// Whether Irori runs inside Steam's controller interface: the Steam Deck's
 /// Game Mode (a gamescope session) or Steam Big Picture, which marks the
 /// programs it starts with `SteamGamepadUI=1`.
 pub fn in_steam_gamepad_ui() -> bool {

@@ -56,7 +56,7 @@ impl Platforms {
         let mut p = Platforms::default();
         if let Some(Value::Object(map)) = platforms {
             // Architectures ("all", "amd64") from the API; booleans from
-            // Ember's own cache.
+            // Irori's own cache.
             let set = |key: &str| match map.get(key) {
                 None | Some(Value::Null) => false,
                 Some(Value::String(s)) => !s.is_empty(),
@@ -351,7 +351,7 @@ mod tests {
         .unwrap();
         assert!(game.platforms.windows && game.is_playable_kind());
         assert_eq!(game.short_text, "");
-        // What Ember caches reads back the same.
+        // What Irori caches reads back the same.
         let again: Game = serde_json::from_value(serde_json::to_value(&game).unwrap()).unwrap();
         assert_eq!(again, game);
         let cached: Upload = serde_json::from_value(serde_json::to_value(&old).unwrap()).unwrap();

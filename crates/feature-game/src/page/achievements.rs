@@ -6,10 +6,6 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use ember_core::Achievement;
-use ember_core::util::{parse_rfc3339, unix_now};
-use ember_ui::components::art_img;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::tab::{Tab, TabBar};
 use gpui_kit::component::{
@@ -21,6 +17,10 @@ use gpui_kit::{
     AnyElement, Context, InteractiveElement as _, IntoElement, ObjectFit, ParentElement, Pixels,
     SharedString, Size, Styled, StyledImage as _, Window, div, px, rems, size,
 };
+use irori_core::Achievement;
+use irori_core::util::{parse_rfc3339, unix_now};
+use irori_ui::components::art_img;
+use irori_ui::i18n::{t, t_args};
 
 use super::GamePage;
 use crate::load::format_day;

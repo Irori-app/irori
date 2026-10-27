@@ -1,9 +1,6 @@
 //! The library's view criteria as an observable model, and the Filters
 //! popover that edits them.
 
-use ember_core::InstallPlatform;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::models;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonGroup, ButtonVariants as _};
 use gpui_kit::component::checkbox::Checkbox;
@@ -17,6 +14,9 @@ use gpui_kit::{
     IntoElement, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _,
     Styled as _, Subscription, Task, WeakEntity, Window, div,
 };
+use irori_core::InstallPlatform;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::models;
 
 use crate::filter::{self, CategoryFilter, HiddenMode, InstallFilter, ReleaseWindow, ViewFilter};
 
@@ -193,7 +193,7 @@ impl FiltersPanel {
             .filter_map(|g| g.system.clone())
             .collect();
         present.sort_by_key(|id| {
-            ember_engines::systems::all()
+            irori_engines::systems::all()
                 .iter()
                 .position(|s| &s.id == id)
                 .unwrap_or(usize::MAX)
@@ -211,7 +211,7 @@ impl FiltersPanel {
                         .flex_wrap()
                         .gap_1()
                         .children(present.into_iter().map(|id| {
-                            let label = ember_engines::systems::get(&id)
+                            let label = irori_engines::systems::get(&id)
                                 .map_or(id.clone(), |s| s.short.clone());
                             let selected = f.systems.contains(&id);
                             Button::new(SharedString::from(format!("system-{id}")))

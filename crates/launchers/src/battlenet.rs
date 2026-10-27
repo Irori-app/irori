@@ -27,7 +27,7 @@ pub const PRODUCT_DB: &str = "ProgramData/Battle.net/Agent/product.db";
 /// Product codes that are Blizzard's own software, not games.
 const NOT_GAMES: &[&str] = &["agent", "bna", "battle.net"];
 
-/// The hand-written subset of Blizzard's `ProductDb` schema Ember reads.
+/// The hand-written subset of Blizzard's `ProductDb` schema Irori reads.
 /// Fields not declared here are skipped by prost.
 pub(crate) mod proto {
     #[derive(Clone, PartialEq, prost::Message)]
@@ -73,7 +73,7 @@ pub(crate) mod proto {
     }
 }
 
-/// A Blizzard product Ember knows by name.
+/// A Blizzard product Irori knows by name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Product {
     /// The product code in `product.db`.
@@ -190,7 +190,7 @@ pub fn parse_product_db(bytes: &[u8]) -> anyhow::Result<Vec<InstalledGame>> {
             .or_else(|| folder_name(&install_path).map(str::to_string))
             .unwrap_or_else(|| code.to_string());
         // Battle.net also accepts the product code for products whose launch
-        // code Ember doesn't know.
+        // code Irori doesn't know.
         let launch_code = known.map_or(code, |p| p.launch_code);
         games.push(InstalledGame {
             launcher: Launcher::BattleNet,

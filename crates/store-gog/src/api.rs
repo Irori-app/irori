@@ -1,4 +1,4 @@
-//! GOG web APIs used by the store. Thin request functions; mapping to Ember
+//! GOG web APIs used by the store. Thin request functions; mapping to Irori
 //! types lives with the callers.
 
 use std::time::Duration;
@@ -8,7 +8,7 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde::Deserialize;
 use serde_json::Value;
 
-use ember_core::{CloudSaveLocation, http};
+use irori_core::{CloudSaveLocation, http};
 
 use crate::auth::Credentials;
 
@@ -59,7 +59,7 @@ impl GalaxyItem {
         secs(&self.owned_since)
             .or_else(|| secs(&self.date_created))
             .filter(|s| *s > 0)
-            .and_then(ember_core::util::rfc3339_from_unix)
+            .and_then(irori_core::util::rfc3339_from_unix)
     }
 }
 
@@ -408,7 +408,7 @@ pub async fn achievements(creds: &Credentials, id: &str, language: &str) -> Resu
 
 pub async fn set_presence(creds: &Credentials, game_id: Option<&str>) -> Result<()> {
     let mut body = serde_json::json!({
-        "application_type": "Ember",
+        "application_type": "Irori",
         "force_update": false,
         "presence": "online",
         "version": env!("CARGO_PKG_VERSION"),

@@ -9,10 +9,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::GameId;
-use ember_extras::logs::{self as log_uploads, UploadedLog};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::checkbox::Checkbox;
@@ -26,6 +22,10 @@ use gpui_kit::{
     App, AppContext as _, ClipboardItem, Context, InteractiveElement as _, IntoElement,
     ParentElement, Pixels, Render, SharedString, Size, Styled, Task, Window, div, px, rems, size,
 };
+use irori_core::GameId;
+use irori_extras::logs::{self as log_uploads, UploadedLog};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 
 use crate::load::Load;
 use crate::ops::{notify_error, notify_success, open_path};
@@ -229,7 +229,7 @@ impl LogViewer {
         if self.upload_name.is_none() {
             return;
         }
-        let task = ember_ui::run(cx, log_uploads::list_uploaded());
+        let task = irori_ui::run(cx, log_uploads::list_uploaded());
         cx.spawn(async move |this, cx| {
             let result = task.await;
             let _ = this.update(cx, |this, cx| {
@@ -273,7 +273,7 @@ impl LogViewer {
         self.uploading = true;
         cx.notify();
         let path = self.path.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             log_uploads::upload(&path, name.as_ref()).await
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -310,7 +310,7 @@ impl LogViewer {
         cx.notify();
         let token = entry.delete_token.clone();
         let url = entry.url.clone();
-        let task = ember_ui::run(
+        let task = irori_ui::run(
             cx,
             async move { log_uploads::delete_uploaded(&token).await },
         );
@@ -331,7 +331,7 @@ impl LogViewer {
     fn render_uploads(&self, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
         let list = self.uploads.ready().filter(|l| !l.is_empty())?;
         let muted = cx.theme().muted_foreground;
-        let now = ember_core::util::unix_now();
+        let now = irori_core::util::unix_now();
         let rows = list.iter().enumerate().map(|(ix, entry)| {
             let copy_url = entry.url.clone();
             let del = entry.clone();
@@ -399,7 +399,7 @@ impl LogViewer {
     /// Re-read the tail of the file.
     pub fn reload(&mut self, cx: &mut Context<Self>) {
         let path = self.path.clone();
-        let task = ember_ui::run(cx, read_tail(path));
+        let task = irori_ui::run(cx, read_tail(path));
         cx.spawn(async move |this, cx| {
             let result = task.await;
             let _ = this.update(cx, |this, cx| {

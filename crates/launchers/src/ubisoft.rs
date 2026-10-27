@@ -95,7 +95,7 @@ pub fn parse_configurations(bytes: &[u8]) -> (Vec<Product>, Vec<String>) {
             5 => skip(bytes, &mut pos, 4).map(|_| None),
             _ => {
                 warnings.push(
-                    "Ubisoft Connect's configuration cache has data Ember doesn't understand; \
+                    "Ubisoft Connect's configuration cache has data Irori doesn't understand; \
                      some games may be missing."
                         .to_string(),
                 );

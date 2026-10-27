@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo};
+use irori_core::{GameId, GameInfo};
 
 #[derive(Debug, Default)]
 pub struct Selection {
@@ -102,7 +102,7 @@ impl Selection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn order(n: usize) -> Vec<Arc<GameInfo>> {
         (0..n)

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use ember_core::{Bottleneck, PrepareStage, Preparing};
+use irori_core::{Bottleneck, PrepareStage, Preparing};
 
 /// A progress report. Byte counts are in file (disk) bytes so they are
 /// comparable across compressed and uncompressed stores.

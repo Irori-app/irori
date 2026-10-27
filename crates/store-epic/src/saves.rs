@@ -3,8 +3,8 @@
 use std::path::Path;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{OpContext, SaveConflict, Store as _, SyncDirection};
-use ember_epic_api::saves::{self, Filters, SaveLocation, SaveStatus};
+use irori_core::{OpContext, SaveConflict, Store as _, SyncDirection};
+use irori_epic_api::saves::{self, Filters, SaveLocation, SaveStatus};
 
 use crate::EpicStore;
 use crate::state::real_prefix;

@@ -10,17 +10,17 @@
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use ember_core::{
-    DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
-    InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
-    Runner, Store, StoreAccount, UpdateRequest, UserInfo, async_trait,
-};
-use ember_services::Backend;
 use gpui_kit::component::WindowExt as _;
 use gpui_kit::{
     AnyWindowHandle, AppContext as _, Entity, Keystroke, TestAppContext, VisualTestContext,
     WindowOptions,
 };
+use irori_core::{
+    DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
+    InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
+    Runner, Store, StoreAccount, UpdateRequest, UserInfo, async_trait,
+};
+use irori_services::Backend;
 
 use crate::{GamePage, PrimaryAction};
 
@@ -146,7 +146,7 @@ fn backend() -> Backend {
         Paths::init(Paths::under(&root));
         // No catalogue refresh at startup: it would emit events from the
         // backend runtime while the test runs.
-        ember_core::json_store::write(
+        irori_core::json_store::write(
             &Paths::get().settings_file(),
             &serde_json::json!({ "checkForUpdatesOnStartup": false }),
         )
@@ -179,7 +179,7 @@ fn open_page(cx: &mut TestAppContext, id: GameId) -> (Backend, AnyWindowHandle, 
     let shared = b.clone();
     cx.update(|cx| {
         gpui_kit::init(cx);
-        ember_ui::init(shared, cx);
+        irori_ui::init(shared, cx);
         crate::init(cx);
         // Keep the compatibility panel off the network.
         crate::install_hooks(
@@ -264,7 +264,7 @@ fn download_queue_drives_the_primary_action(cx: &mut TestAppContext) {
 fn play_twice_with_a_missing_emulator_opens_one_dialog(cx: &mut TestAppContext) {
     let id = test_game().id();
     let (_b, handle, _page) = open_page(cx, id.clone());
-    let error = anyhow::Error::new(ember_engines::EngineMissing {
+    let error = anyhow::Error::new(irori_engines::EngineMissing {
         engine: "retroarch".into(),
         name: "RetroArch".into(),
         core: None,
@@ -272,8 +272,8 @@ fn play_twice_with_a_missing_emulator_opens_one_dialog(cx: &mut TestAppContext) 
     });
     let play = |cx: &mut TestAppContext| {
         cx.update_window(handle, |_, window, cx| {
-            let params = ember_services::LaunchParams::default();
-            assert!(ember_ui::save_conflict::resolve_launch_error(
+            let params = irori_services::LaunchParams::default();
+            assert!(irori_ui::save_conflict::resolve_launch_error(
                 &id, params, &error, window, cx
             ));
         })
@@ -303,16 +303,16 @@ fn play_twice_with_a_missing_emulator_opens_one_dialog(cx: &mut TestAppContext) 
 fn an_emulator_without_a_build_here_is_explained(cx: &mut TestAppContext) {
     let id = test_game().id();
     let (_b, handle, _page) = open_page(cx, id.clone());
-    let error = anyhow::Error::new(ember_engines::EngineUnavailable {
+    let error = anyhow::Error::new(irori_engines::EngineUnavailable {
         engine: "anyps5".into(),
         name: "AnyPS5".into(),
-        reason: ember_engines::Unavailable::NoBuild {
+        reason: irori_engines::Unavailable::NoBuild {
             hosts: vec!["linux-x86_64".into(), "windows-x86_64".into()],
         },
     });
     cx.update_window(handle, |_, window, cx| {
-        let params = ember_services::LaunchParams::default();
-        assert!(ember_ui::save_conflict::resolve_launch_error(
+        let params = irori_services::LaunchParams::default();
+        assert!(irori_ui::save_conflict::resolve_launch_error(
             &id, params, &error, window, cx
         ));
     })

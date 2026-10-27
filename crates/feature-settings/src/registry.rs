@@ -4,7 +4,7 @@
 //! (`AppSettings` for application fields, `GameSettings` for launch fields;
 //! the two share keys because `AppSettings` flattens its game defaults). A
 //! dotted path reaches into an object (`gamescope.fpsLimiter`,
-//! `emberUi.fontSize`). The first segment of a game field's path is the key
+//! `iroriUi.fontSize`). The first segment of a game field's path is the key
 //! stored in a game's sparse override map.
 //!
 //! Labels, help, group names, tags, placeholders and option names are
@@ -15,8 +15,8 @@
 //!
 //! The registry drives rendering order, grouping and the settings search.
 
-use ember_ui::i18n::{LANGUAGES as UI_LANGUAGES, t};
 use gpui_kit::SharedString;
+use irori_ui::i18n::{LANGUAGES as UI_LANGUAGES, t};
 use serde_json::Value;
 
 /// Text shown for a registry item.
@@ -188,7 +188,7 @@ const fn opt(value: ChoiceValue, label: Label) -> ChoiceOption {
 /// Fields rendered by dedicated editors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CustomKind {
-    /// Wine/Proton build picker fed by `ember_runtime::wine_installations`.
+    /// Wine/Proton build picker fed by `irori_runtime::wine_installations`.
     WineVersion,
     /// `KEY=VALUE` environment variable rows.
     EnvVars,
@@ -389,15 +389,15 @@ impl FieldSpec {
     /// Whether the field is shown for application settings, game defaults
     /// (`game == false`) or one game (`game == true`).
     pub fn supported_on_host(&self) -> bool {
-        use ember_core::HostPlatform;
+        use irori_core::HostPlatform;
         let host = HostPlatform::current();
         let mac_only = matches!(
             self.path,
             "enableMsync"
                 | "wineCrossoverBottle"
                 | "advertiseAvxForRosetta"
-                | "emberRetinaMode"
-                | "emberCrossoverBottlesPath"
+                | "iroriRetinaMode"
+                | "iroriCrossoverBottlesPath"
         );
         if mac_only && host != HostPlatform::Mac {
             return false;
@@ -750,7 +750,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.default_steam_path.help")
     .keywords(&["steam", "proton", "path"]),
     app(
-        "emberCrossoverBottlesPath",
+        "iroriCrossoverBottlesPath",
         "settings.field.crossover_bottles_path.label",
         General,
         "settings.group.folders",
@@ -853,7 +853,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["console", "gamepad", "fullscreen", "big picture"]),
     app(
-        "emberUi.bigPictureInGameMode",
+        "iroriUi.bigPictureInGameMode",
         "settings.field.big_picture_in_game_mode.label",
         General,
         "settings.group.tray_and_window",
@@ -902,7 +902,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["recent", "favourites", "top"]),
     app(
-        "emberUi.stores.epic",
+        "iroriUi.stores.epic",
         "settings.field.show_store_epic.label",
         General,
         "settings.group.stores",
@@ -911,7 +911,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.show_stores.help")
     .keywords(&["store", "hide", "epic", "legendary"]),
     app(
-        "emberUi.stores.gog",
+        "iroriUi.stores.gog",
         "settings.field.show_store_gog.label",
         General,
         "settings.group.stores",
@@ -920,7 +920,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.show_stores.help")
     .keywords(&["store", "hide", "gog"]),
     app(
-        "emberUi.stores.amazon",
+        "iroriUi.stores.amazon",
         "settings.field.show_store_amazon.label",
         General,
         "settings.group.stores",
@@ -999,7 +999,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["zoom", "store"]),
     app(
-        "emberItchIo",
+        "iroriItchIo",
         "settings.field.itch_io.label",
         General,
         "settings.group.integrations",
@@ -1086,7 +1086,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .requires(NEEDS_CONTROLLER),
     // ---- Appearance ----
     app(
-        "emberUi.theme",
+        "iroriUi.theme",
         "settings.field.ui_theme.label",
         Appearance,
         "settings.group.theme",
@@ -1094,7 +1094,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["dark", "light", "system", "mode"]),
     app(
-        "emberUi.themeName",
+        "iroriUi.themeName",
         "settings.field.ui_theme_name.label",
         Appearance,
         "settings.group.theme",
@@ -1102,7 +1102,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["colors", "palette", "catppuccin", "gruvbox"]),
     app(
-        "emberUi.translucency",
+        "iroriUi.translucency",
         "settings.field.ui_translucency.label",
         Appearance,
         "settings.group.theme",
@@ -1119,7 +1119,7 @@ pub static FIELDS: &[FieldSpec] = &[
         "acrylic",
     ]),
     app(
-        "emberUi.fontSize",
+        "iroriUi.fontSize",
         "settings.field.ui_font_size.label",
         Appearance,
         "settings.group.size",
@@ -1128,7 +1128,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.ui_font_size.help")
     .keywords(&["zoom", "font", "scale", "text size"]),
     app(
-        "emberUi.tileSize",
+        "iroriUi.tileSize",
         "settings.field.ui_tile_size.label",
         Appearance,
         "settings.group.size",
@@ -1137,7 +1137,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.ui_tile_size.help")
     .keywords(&["tile", "grid", "cover", "library"]),
     app(
-        "emberUi.bigPictureScale",
+        "iroriUi.bigPictureScale",
         "settings.field.ui_big_picture_scale.label",
         Appearance,
         "settings.group.size",
@@ -1153,7 +1153,7 @@ pub static FIELDS: &[FieldSpec] = &[
         "steam deck",
     ]),
     app(
-        "emberUi.libraryLayout",
+        "iroriUi.libraryLayout",
         "settings.field.ui_library_layout.label",
         Appearance,
         "settings.group.library",
@@ -1161,7 +1161,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["grid", "list", "view"]),
     app(
-        "emberUi.showStoreBadges",
+        "iroriUi.showStoreBadges",
         "settings.field.ui_show_store_badges.label",
         Appearance,
         "settings.group.library",
@@ -1169,7 +1169,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .keywords(&["badge", "store", "label"]),
     app(
-        "emberUi.reduceMotion",
+        "iroriUi.reduceMotion",
         "settings.field.ui_reduce_motion.label",
         Appearance,
         "settings.group.motion",
@@ -1376,7 +1376,7 @@ pub static FIELDS: &[FieldSpec] = &[
     .tag(Verbatim("macOS"))
     .keywords(&["msync", "sync", "mac"]),
     game(
-        "emberRetinaMode",
+        "iroriRetinaMode",
         "settings.field.retina_mode.label",
         Wine,
         "settings.group.display",
@@ -1825,7 +1825,7 @@ pub fn search(query: &str) -> impl Iterator<Item = &'static FieldSpec> + '_ {
 mod tests {
     use super::*;
     use crate::value::get_path;
-    use ember_core::{AppSettings, GameSettings};
+    use irori_core::{AppSettings, GameSettings};
     use std::collections::HashSet;
 
     #[test]
@@ -1937,18 +1937,18 @@ mod tests {
     fn mac_options_show_on_macos_only() {
         let mac = cfg!(target_os = "macos");
         for path in [
-            "emberRetinaMode",
+            "iroriRetinaMode",
             "wineCrossoverBottle",
-            "emberCrossoverBottlesPath",
+            "iroriCrossoverBottlesPath",
         ] {
             assert_eq!(find(path).unwrap().supported_on_host(), mac, "{path}");
         }
         assert!(
-            !find("emberCrossoverBottlesPath")
+            !find("iroriCrossoverBottlesPath")
                 .unwrap()
                 .applies_to_game(true)
         );
-        assert!(find("emberRetinaMode").unwrap().applies_to_game(true));
+        assert!(find("iroriRetinaMode").unwrap().applies_to_game(true));
     }
 
     #[test]

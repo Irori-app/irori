@@ -1,14 +1,11 @@
 //! The settings dialog of one emulator: its options from the manifest, with
 //! plain help under each, advanced ones collapsed, and the default for
 //! every game played with it. Values are saved as they change
-//! (`emberEngineOptions` of the game defaults); a game can override them in
+//! (`iroriEngineOptions` of the game defaults); a game can override them in
 //! its own settings.
 
 use std::collections::BTreeMap;
 
-use ember_engines::{EngineManifest, EngineOption, OptionKind, Os};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::models;
 use gpui_kit::component::IndexPath;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::select::{Select, SelectEvent, SelectItem, SelectState};
@@ -21,6 +18,9 @@ use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render,
     SharedString, Styled as _, Subscription, Window, div,
 };
+use irori_engines::{EngineManifest, EngineOption, OptionKind, Os};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::models;
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -60,7 +60,7 @@ impl SelectItem for ValueChoice {
 /// Open the settings of `engine`.
 pub fn open_engine_settings(engine: &str, window: &mut Window, cx: &mut App) {
     crate::i18n::register();
-    let Some(manifest) = ember_engines::engine(engine) else {
+    let Some(manifest) = irori_engines::engine(engine) else {
         return;
     };
     let dialog = cx.new(|cx| EngineSettings::new(manifest.clone(), window, cx));
@@ -198,7 +198,7 @@ impl EngineSettings {
     }
 }
 
-/// Save one option for every game (`None` restores Ember's default).
+/// Save one option for every game (`None` restores Irori's default).
 fn set_option(engine: &str, option: &str, value: Option<Value>, cx: &mut App) {
     let (engine, option) = (engine.to_string(), option.to_string());
     crate::common::backend_op(cx, move |b| {
@@ -327,7 +327,7 @@ impl Render for EngineSettings {
 #[cfg(test)]
 pub fn required_keys() -> Vec<String> {
     let mut keys = Vec::new();
-    for (_, json) in ember_engines::BUILT_IN {
+    for (_, json) in irori_engines::BUILT_IN {
         let m = EngineManifest::parse(json).expect("built-in manifest");
         for o in &m.options {
             keys.push(label_key(&o.id));

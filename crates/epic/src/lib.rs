@@ -1,9 +1,9 @@
 //! Epic Games Store protocol client (a Rust port of the parts of legendary
-//! Ember needs, GPL-3.0).
+//! Irori needs, GPL-3.0).
 //!
 //! * [`Manifest`]: binary and JSON build manifests, including encrypted
 //!   builds, and [`chunk`]s.
-//! * [`install`]: turning manifests into [`ember_depot`] download plans
+//! * [`install`]: turning manifests into [`irori_depot`] download plans
 //!   (selective downloads, updates that reuse unchanged data, signed chunk
 //!   addresses).
 //! * [`Client`] and [`library`]: accounts, owned games and store metadata.

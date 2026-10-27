@@ -74,7 +74,7 @@ pub struct StoreAccount {
 pub enum LoginFlow {
     /// Open `url` in the browser. After signing in, the user copies what the
     /// page shows (an authorization code, a JSON blob or the final redirect URL)
-    /// and Ember passes it to [`Store::login`]. The UI also watches the
+    /// and Irori passes it to [`Store::login`]. The UI also watches the
     /// clipboard and submits a match of `capture` automatically.
     Browser {
         url: String,

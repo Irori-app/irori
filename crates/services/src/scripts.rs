@@ -1,7 +1,7 @@
-//! Lutris install scripts run with Ember's runtime (`docs/design/engines.md`
+//! Lutris install scripts run with Irori's runtime (`docs/design/engines.md`
 //! section 8): lutris.net search and script lists on request, the Wine
 //! build a script gets, the [`ScriptHost`] that runs Wine, DOSBox and
-//! programs for [`ember_scripts::run`], and what a finished install becomes
+//! programs for [`irori_scripts::run`], and what a finished install becomes
 //! in the library.
 //!
 //! The UI drives an install through [`ScriptRun`]: progress to poll, the
@@ -14,21 +14,21 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, anyhow};
-use ember_core::process::{self, CancellationToken, CommandSpec, RunOptions};
-use ember_core::{
+use futures::channel::{mpsc, oneshot};
+use irori_core::process::{self, CancellationToken, CommandSpec, RunOptions};
+use irori_core::{
     AppSettings, EnvVar, GameId, GameSettings, LutrisScriptRecord, OpContext, Paths, Runner,
     WineInstallation, WineKind, async_trait,
 };
-use ember_runtime::Cancelled;
-use ember_runtime::prefix::{self, WineCommand, WineContext};
-use ember_scripts::model::{AutosetupStore, RegType};
-use ember_scripts::{
+use irori_runtime::Cancelled;
+use irori_runtime::prefix::{self, WineCommand, WineContext};
+use irori_scripts::model::{AutosetupStore, RegType};
+use irori_scripts::{
     Approvals, AutosetupRequest, Context, DiscRequest, DosExecRequest, ExecRequest, FileRequest,
     GameResult, InstallerListing, LutrisClient, MenuRequest, Outcome, PrefixRequest, Progress,
     ProgressFn, RegistryRequest, Script, ScriptHost, ScriptRecord, ShellRequest, WineExecRequest,
     WineKillRequest, WineMatch, WinetricksRequest, match_wine_version,
 };
-use futures::channel::{mpsc, oneshot};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use serde_json::{Value, json};
@@ -117,7 +117,7 @@ pub struct ScriptRun {
     /// Cancel the install: the game folder is rolled back, downloads kept.
     pub cancel: CancellationToken,
     /// The outcome, or why the install stopped. An
-    /// [`ember_scripts::UnfinishedInstall`] keeps the files and carries the
+    /// [`irori_scripts::UnfinishedInstall`] keeps the files and carries the
     /// outcome so the user can choose the game's program.
     pub result: oneshot::Receiver<Result<Outcome>>,
     /// The full log, with the output of every program the script ran.
@@ -149,7 +149,7 @@ pub fn pick_wine(
         default
             .filter(|d| d.kind != WineKind::Crossover && d.is_set())
             .cloned()
-            .or_else(|| ember_runtime::recommended(&usable).cloned())
+            .or_else(|| irori_runtime::recommended(&usable).cloned())
     };
     let Some(requested) = requested.map(str::trim).filter(|r| !r.is_empty()) else {
         return fallback().map(|build| WinePick {
@@ -174,7 +174,7 @@ pub fn pick_wine(
 
 /// Whether `script` runs anything with Wine.
 pub fn uses_wine(script: &Script) -> bool {
-    use ember_scripts::{Command, Task};
+    use irori_scripts::{Command, Task};
     script.info.runner == "wine"
         || script.steps.iter().any(|s| {
             matches!(
@@ -190,12 +190,12 @@ pub fn uses_wine(script: &Script) -> bool {
         })
 }
 
-/// Whether Ember can add games of the Lutris runner `runner` to its library.
+/// Whether Irori can add games of the Lutris runner `runner` to its library.
 pub fn runner_supported(runner: &str) -> bool {
-    matches!(runner, "wine" | "linux") || ember_extras::lutris_import::is_emulator_runner(runner)
+    matches!(runner, "wine" | "linux") || irori_extras::lutris_import::is_emulator_runner(runner)
 }
 
-/// The store a script's autosetup belongs to, by Ember's name.
+/// The store a script's autosetup belongs to, by Irori's name.
 pub fn autosetup_store_name(store: AutosetupStore) -> &'static str {
     match store {
         AutosetupStore::Gog => Runner::Gog.store_name(),
@@ -204,7 +204,7 @@ pub fn autosetup_store_name(store: AutosetupStore) -> &'static str {
     }
 }
 
-/// A script tried to install its game through a store Ember has natively.
+/// A script tried to install its game through a store Irori has natively.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InstallFromStore(pub AutosetupStore);
 
@@ -213,7 +213,7 @@ impl std::fmt::Display for InstallFromStore {
         let store = autosetup_store_name(self.0);
         write!(
             f,
-            "This script sets the game up through {store}. Install it from {store} in Ember instead"
+            "This script sets the game up through {store}. Install it from {store} in Irori instead"
         )
     }
 }
@@ -249,7 +249,7 @@ pub struct ScriptGame {
     pub settings: Vec<(&'static str, Value)>,
 }
 
-/// The `emberLutrisScript` record of an install.
+/// The `iroriLutrisScript` record of an install.
 pub fn script_record(record: &ScriptRecord) -> LutrisScriptRecord {
     LutrisScriptRecord {
         slug: record.slug.clone(),
@@ -270,7 +270,7 @@ fn env_value(env: &BTreeMap<String, String>) -> Value {
 
 /// Describe what `outcome` becomes in the library. `wine` is the build the
 /// install used; `program` replaces the game's program (the user's choice
-/// after [`ember_scripts::ScriptError::MissingExecutable`]).
+/// after [`irori_scripts::ScriptError::MissingExecutable`]).
 pub fn script_game(
     outcome: &Outcome,
     game_dir: &Path,
@@ -279,7 +279,7 @@ pub fn script_game(
 ) -> Result<ScriptGame> {
     let game = outcome.game.as_ref().with_context(|| {
         format!(
-            "This script adds to “{}” instead of installing a game, which Ember doesn’t support",
+            "This script adds to “{}” instead of installing a game, which Irori doesn’t support",
             outcome.record.slug
         )
     })?;
@@ -292,7 +292,7 @@ pub fn script_game(
                 .map(Path::to_path_buf)
                 .or_else(|| game.exe.clone())
                 .or_else(|| game.main_file.clone())
-                .ok_or(ember_scripts::ScriptError::MissingExecutable { expected: None })?;
+                .ok_or(irori_scripts::ScriptError::MissingExecutable { expected: None })?;
             let mut env = game.env.clone();
             if windows {
                 if let Some(prefix) = &game.prefix {
@@ -345,7 +345,7 @@ pub fn script_game(
             };
             let core = option("core");
             let platform = option("platform");
-            let (system, engine) = match ember_extras::lutris_import::emulator_target(
+            let (system, engine) = match irori_extras::lutris_import::emulator_target(
                 runner,
                 &file,
                 core.as_deref(),
@@ -354,24 +354,24 @@ pub fn script_game(
                 Some(Ok(target)) => target,
                 Some(Err(reason)) => {
                     return Err(anyhow!(
-                        "Ember can’t tell which system this {runner} game is for ({})",
+                        "Irori can’t tell which system this {runner} game is for ({})",
                         reason.id()
                     ));
                 }
                 None => {
                     return Err(anyhow!(
-                        "Ember can’t add games of the Lutris runner “{runner}” to the library"
+                        "Irori can’t add games of the Lutris runner “{runner}” to the library"
                     ));
                 }
             };
             anyhow::ensure!(
-                ember_engines::systems::get(&system).is_some(),
-                "Ember doesn’t support {system} games yet"
+                irori_engines::systems::get(&system).is_some(),
+                "Irori doesn’t support {system} games yet"
             );
-            if ember_engines::EngineRef::parse(&engine)
-                .is_some_and(|r| ember_engines::engine(&r.engine).is_some())
+            if irori_engines::EngineRef::parse(&engine)
+                .is_some_and(|r| irori_engines::engine(&r.engine).is_some())
             {
-                settings.push(("emberEngine", Value::String(engine)));
+                settings.push(("iroriEngine", Value::String(engine)));
             }
             ScriptLibraryEntry::Emulated {
                 title: game.name.clone(),
@@ -380,7 +380,7 @@ pub fn script_game(
             }
         }
     };
-    settings.push(("emberLutrisScript", record));
+    settings.push(("iroriLutrisScript", record));
     Ok(ScriptGame { entry, settings })
 }
 
@@ -531,9 +531,9 @@ pub fn script_context(app: &AppSettings, script: &Script, game_dir: &Path) -> Co
     let cache_dir = Paths::get()
         .cache
         .join("lutris-installers")
-        .join(ember_core::paths::sanitize(&script.info.game_slug));
-    let mut ctx = Context::new(game_dir, cache_dir, ember_core::paths::expand_home("~"));
-    ctx.protected = ember_core::fs_guard::protected_dirs(app);
+        .join(irori_core::paths::sanitize(&script.info.game_slug));
+    let mut ctx = Context::new(game_dir, cache_dir, irori_core::paths::expand_home("~"));
+    ctx.protected = irori_core::fs_guard::protected_dirs(app);
     ctx
 }
 
@@ -576,9 +576,9 @@ impl Backend {
             return None;
         }
         let app = self.settings.app();
-        let available = ember_runtime::wine_installations(&app).await;
+        let available = irori_runtime::wine_installations(&app).await;
         let default = Some(&app.game.wine_version)
-            .filter(|w| ember_runtime::discovery::is_usable(w))
+            .filter(|w| irori_runtime::discovery::is_usable(w))
             .cloned();
         pick_wine(script.wine_version(), &available, default.as_ref())
     }
@@ -591,7 +591,7 @@ impl Backend {
         let progress = Arc::new(Mutex::new(ScriptProgress::default()));
         let log_file = Paths::get().logs_dir().join("lutris").join(format!(
             "{}.log",
-            ember_core::paths::sanitize(&install.script.info.game_slug)
+            irori_core::paths::sanitize(&install.script.info.game_slug)
         ));
         let backend = self.clone();
         let (p, c, l) = (progress.clone(), cancel.clone(), log_file.clone());
@@ -625,7 +625,7 @@ impl Backend {
         tokio::fs::write(
             &log_file,
             format!(
-                "Ember {} — Lutris script “{}” ({}) for {}\nSource: {}\nGame folder: {}\n\n",
+                "Irori {} — Lutris script “{}” ({}) for {}\nSource: {}\nGame folder: {}\n\n",
                 env!("CARGO_PKG_VERSION"),
                 script.info.version,
                 script.info.runner,
@@ -720,7 +720,7 @@ impl Backend {
             })
         };
         let result =
-            ember_scripts::run(&script, &ctx, &host, &install.approvals, &cancel, report).await;
+            irori_scripts::run(&script, &ctx, &host, &install.approvals, &cancel, report).await;
         if let Err(e) = &result {
             let line = format!("The install stopped: {e:#}");
             push_log(&progress, &line);
@@ -730,7 +730,7 @@ impl Backend {
     }
 }
 
-/// Ember's side of a script install.
+/// Irori's side of a script install.
 struct Host {
     backend: Backend,
     app: Arc<AppSettings>,
@@ -754,7 +754,7 @@ impl Host {
     fn op(&self, cancel: &CancellationToken) -> OpContext {
         let progress = self.progress.clone();
         OpContext {
-            progress: ember_core::ignore_progress(),
+            progress: irori_core::ignore_progress(),
             cancel: cancel.clone(),
             step: Arc::new(move |s| push_log(&progress, s)),
             log_file: Some(self.log_file.clone()),
@@ -765,7 +765,7 @@ impl Host {
     fn wine(&self) -> Result<WineInstallation> {
         if cfg!(windows) {
             anyhow::bail!(
-                "This script runs Windows programs through Wine, which Ember uses on Linux and macOS only"
+                "This script runs Windows programs through Wine, which Irori uses on Linux and macOS only"
             );
         }
         self.wine.clone().context(
@@ -809,10 +809,10 @@ impl Host {
         settings: &GameSettings,
         ctx: &OpContext,
     ) -> WineContext {
-        let mut uses_umu = ember_runtime::runtimes::is_umu_supported(settings, false);
+        let mut uses_umu = irori_runtime::runtimes::is_umu_supported(settings, false);
         let mut umu = PathBuf::new();
         if uses_umu {
-            match ember_runtime::runtimes::ensure_umu(ctx).await {
+            match irori_runtime::runtimes::ensure_umu(ctx).await {
                 Ok(p) => umu = p,
                 Err(e) => {
                     self.log(&format!("{e:#}; running Proton directly"));
@@ -1024,7 +1024,7 @@ impl ScriptHost for Host {
         let ctx = self.op(cancel);
         let wc = self.context(wine, &request.prefix, &settings, &ctx).await;
         prefix::verify_prefix(&self.app, &settings, &wc, &ctx).await?;
-        let res = ember_runtime::tools::run_winetricks(
+        let res = irori_runtime::tools::run_winetricks(
             &self.app,
             &settings,
             &wc,
@@ -1055,7 +1055,7 @@ impl ScriptHost for Host {
             data.extend(u.to_le_bytes());
         }
         tokio::fs::create_dir_all(&self.cache_dir).await?;
-        let file = self.cache_dir.join("ember-registry.reg");
+        let file = self.cache_dir.join("irori-registry.reg");
         tokio::fs::write(&file, data)
             .await
             .with_context(|| format!("Could not write {}", file.display()))?;
@@ -1086,17 +1086,17 @@ impl ScriptHost for Host {
 
     async fn dosexec(&self, request: &DosExecRequest, cancel: &CancellationToken) -> Result<i32> {
         const DOSBOX: &str = "dosbox-staging";
-        let manifest = ember_engines::engine(DOSBOX).context("DOSBox Staging is not available")?;
-        let state = tokio::task::spawn_blocking(ember_engines::state::load)
+        let manifest = irori_engines::engine(DOSBOX).context("DOSBox Staging is not available")?;
+        let state = tokio::task::spawn_blocking(irori_engines::state::load)
             .await
             .context("looking for DOSBox stopped")?;
         let m = manifest.clone();
         let installs = tokio::task::spawn_blocking(move || {
-            ember_engines::discovery::find(&m, &ember_engines::state::load())
+            irori_engines::discovery::find(&m, &irori_engines::state::load())
         })
         .await
         .context("looking for DOSBox stopped")?;
-        let install = ember_engines::launch::resolve(
+        let install = irori_engines::launch::resolve(
             &manifest,
             &installs,
             None,
@@ -1135,7 +1135,7 @@ impl ScriptHost for Host {
                 .arg(id)
                 .args(args),
             None if install.program.extension().is_some_and(|e| e == "app") => {
-                CommandSpec::new(ember_core::platform::bundle_executable(&install.program)?)
+                CommandSpec::new(irori_core::platform::bundle_executable(&install.program)?)
                     .args(args)
             }
             None => CommandSpec::new(&install.program).args(args),
@@ -1183,7 +1183,7 @@ impl ScriptHost for Host {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_scripts::{GameEntry, Script};
+    use irori_scripts::{GameEntry, Script};
     use serde_json::Map;
 
     fn build(name: &str, kind: WineKind) -> WineInstallation {
@@ -1295,7 +1295,7 @@ mod tests {
                 {"key": "WINEARCH", "value": "win32"}
             ]))
         );
-        let record = setting(&game, "emberLutrisScript").unwrap();
+        let record = setting(&game, "iroriLutrisScript").unwrap();
         assert_eq!(
             record,
             &json!({
@@ -1338,7 +1338,7 @@ mod tests {
             }
         );
         assert_eq!(
-            setting(&game, "emberEngine"),
+            setting(&game, "iroriEngine"),
             Some(&json!("dosbox-staging"))
         );
 

@@ -18,7 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Result, bail};
-use ember_core::{GameInfo, Runner};
+use irori_core::{GameInfo, Runner};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -106,7 +106,7 @@ fn cache_file(ids: &StoreIds) -> PathBuf {
     util::cache_dir("wiki").join(format!(
         "{}-{}.json",
         ids.runner.id(),
-        ember_core::paths::sanitize(&ids.app_name)
+        irori_core::paths::sanitize(&ids.app_name)
     ))
 }
 
@@ -215,7 +215,7 @@ pub async fn umu_id(runner: Runner, app_name: &str) -> Result<Option<String>> {
     let path = util::cache_dir("wiki").join(format!(
         "umu-{}-{}.json",
         runner.id(),
-        ember_core::paths::sanitize(app_name)
+        irori_core::paths::sanitize(app_name)
     ));
     match util::cache_read_entry::<Option<String>>(&path).await {
         Some((Some(id), _)) => return Ok(Some(id)),
@@ -282,7 +282,7 @@ mod tests {
         let game = GameInfo {
             runner: Some(Runner::Gog),
             app_name: "1".into(),
-            extra: Some(ember_core::ExtraInfo {
+            extra: Some(irori_core::ExtraInfo {
                 store_url: Some("https://www.gog.com/game/x".into()),
                 ..Default::default()
             }),

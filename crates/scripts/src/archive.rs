@@ -8,9 +8,9 @@ use std::io::{self, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::CancellationToken;
-use ember_runtime::Cancelled;
-use ember_runtime::download::{Compression, detect_compression};
+use irori_core::process::CancellationToken;
+use irori_runtime::Cancelled;
+use irori_runtime::download::{Compression, detect_compression};
 
 use crate::fsops::resolve;
 use crate::model::ArchiveFormat;

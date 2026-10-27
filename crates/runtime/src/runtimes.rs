@@ -2,14 +2,14 @@
 //! umu resolution.
 //!
 //! Heroic queries the Lutris runtime list on every launch to decide whether a
-//! runtime is current. Ember caches the list in memory for a few hours and
+//! runtime is current. Irori caches the list in memory for a few hours and
 //! treats an installed runtime as usable when the list cannot be fetched.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Result};
-use ember_core::{GameSettings, OpContext, WineKind};
+use irori_core::{GameSettings, OpContext, WineKind};
 use parking_lot::Mutex;
 use serde::Deserialize;
 
@@ -19,7 +19,7 @@ use crate::locations;
 const RUNTIMES_URL: &str = "https://lutris.net/api/runtimes";
 const LIST_TTL: Duration = Duration::from_secs(6 * 3600);
 
-/// A runtime Ember can download.
+/// A runtime Irori can download.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuntimeName {
     /// umu-launcher (`umu_run.py`).
@@ -76,13 +76,13 @@ pub async fn runtime_list(force: bool) -> Result<Vec<Runtime>> {
     Ok(list)
 }
 
-/// Ember's directory of a runtime.
+/// Irori's directory of a runtime.
 pub fn runtime_dir(name: RuntimeName) -> PathBuf {
     locations::runtimes_dir().join(name.id())
 }
 
-/// The runtime directory to point Proton at: Ember's when installed, else
-/// Heroic's when the user already has it there, else Ember's (which a launch
+/// The runtime directory to point Proton at: Irori's when installed, else
+/// Heroic's when the user already has it there, else Irori's (which a launch
 /// downloads).
 pub fn effective_runtime_dir(name: RuntimeName) -> PathBuf {
     let own = runtime_dir(name);
@@ -130,7 +130,7 @@ pub async fn is_installed(name: RuntimeName) -> bool {
     }
 }
 
-/// Download and unpack a runtime into Ember's runtimes directory.
+/// Download and unpack a runtime into Irori's runtimes directory.
 pub async fn download(name: RuntimeName, ctx: &OpContext) -> Result<()> {
     let base = locations::runtimes_dir();
     tokio::fs::create_dir_all(&base)
@@ -185,8 +185,8 @@ pub async fn ensure(name: RuntimeName, ctx: &OpContext) -> Result<()> {
     download(name, ctx).await
 }
 
-/// The umu-run to use: `umu-run` on `PATH`, else Ember's download, else
-/// Heroic's download. Returns Ember's default path (possibly missing) when
+/// The umu-run to use: `umu-run` on `PATH`, else Irori's download, else
+/// Heroic's download. Returns Irori's default path (possibly missing) when
 /// none exists.
 pub fn umu_path() -> PathBuf {
     if let Ok(p) = which::which("umu-run") {
@@ -216,7 +216,7 @@ pub fn is_umu_supported(settings: &GameSettings, check_installed: bool) -> bool 
         && (!check_installed || umu_path().is_file())
 }
 
-/// Make umu-run available: a system or Heroic copy is used as is; Ember's own
+/// Make umu-run available: a system or Heroic copy is used as is; Irori's own
 /// copy is downloaded or refreshed from lutris.net. Returns the path to run.
 pub async fn ensure_umu(ctx: &OpContext) -> Result<PathBuf> {
     anyhow::ensure!(cfg!(target_os = "linux"), "umu is only supported on Linux");

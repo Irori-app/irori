@@ -10,7 +10,7 @@ use std::io::{self, BufReader};
 use std::path::Path;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::CancellationToken;
+use irori_core::process::CancellationToken;
 
 /// How a downloaded file is unpacked, judged by its name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +22,7 @@ pub(crate) enum Kind {
     TarBz2,
     /// Copied as it is.
     Plain,
-    /// Disk images and archives Ember cannot read.
+    /// Disk images and archives Irori cannot read.
     Unsupported,
 }
 
@@ -76,7 +76,7 @@ pub(crate) fn unpack(
             Ok(())
         }
         Kind::Unsupported => bail!(
-            "{name} is a kind of file Ember cannot unpack yet. Download it from the game's itch.io page instead."
+            "{name} is a kind of file Irori cannot unpack yet. Download it from the game's itch.io page instead."
         ),
     }
 }

@@ -7,13 +7,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use ember_core::{DlcInfo, ExtraInfo, GameInfo, InstallPlatform, Runner};
+use irori_core::{DlcInfo, ExtraInfo, GameInfo, InstallPlatform, Runner};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_epic_api::library::GameRecord;
+use irori_epic_api::library::GameRecord;
 
 use crate::state::InstalledMap;
 

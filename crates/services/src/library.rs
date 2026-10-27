@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use ember_core::{Event, GameId, GameInfo, InstallPlatform, Runner};
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
+use irori_core::{Event, GameId, GameInfo, InstallPlatform, Runner};
 use serde::{Deserialize, Serialize};
 
 use crate::Backend;
@@ -22,7 +22,7 @@ pub struct LibrarySnapshot {
     pub games: Vec<Arc<GameInfo>>,
     index: HashMap<GameId, usize>,
     /// Account ids owning each game, for stores with several signed-in
-    /// accounts (see [`ember_core::Store::game_owners`]).
+    /// accounts (see [`irori_core::Store::game_owners`]).
     pub owners: HashMap<GameId, Vec<String>>,
 }
 
@@ -208,7 +208,7 @@ impl LibraryFilter {
             user.playtime
                 .get(&g.id().key())
                 .and_then(|p| p.last_played.as_deref())
-                .and_then(ember_core::util::parse_rfc3339)
+                .and_then(irori_core::util::parse_rfc3339)
                 .unwrap_or(i64::MIN)
         };
         let minutes = |g: &GameInfo| {

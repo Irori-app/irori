@@ -1,6 +1,6 @@
 //! The sign-in window: the store's page in a process of its own, which reports
-//! what the store's login returned. Ember's window never embeds a web engine.
-//! The process is the `ember-sign-in` helper or, on macOS and Windows, Ember
+//! what the store's login returned. Irori's window never embeds a web engine.
+//! The process is the `irori-sign-in` helper or, on macOS and Windows, Irori
 //! started in its sign-in mode; on Linux without the helper the dialog uses the
 //! browser.
 
@@ -8,14 +8,14 @@ use std::path::PathBuf;
 use std::process::Stdio;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::CancellationToken;
+use irori_core::process::CancellationToken;
 use tokio::io::AsyncReadExt as _;
 
 /// The helper's file name.
 const HELPER: &str = if cfg!(windows) {
-    "ember-sign-in.exe"
+    "irori-sign-in.exe"
 } else {
-    "ember-sign-in"
+    "irori-sign-in"
 };
 /// The helper's exit status when its window was closed without signing in.
 const CLOSED: i32 = 2;
@@ -29,7 +29,7 @@ pub(super) enum WindowOutcome {
     Closed,
 }
 
-/// Ember's first argument for its sign-in mode (`ember_sign_in::SIGN_IN_FLAG`).
+/// Irori's first argument for its sign-in mode (`irori_sign_in::SIGN_IN_FLAG`).
 const SIGN_IN_FLAG: &str = "--sign-in-window";
 
 /// The program that shows the sign-in window.
@@ -40,8 +40,8 @@ pub(super) struct Helper {
     args: &'static [&'static str],
 }
 
-/// The helper installed next to Ember or on `PATH`; otherwise, on macOS and
-/// Windows, Ember itself (which a plain `cargo run -p ember` leaves without the
+/// The helper installed next to Irori or on `PATH`; otherwise, on macOS and
+/// Windows, Irori itself (which a plain `cargo run -p irori` leaves without the
 /// helper).
 pub(super) fn helper() -> Option<Helper> {
     let exe = std::env::current_exe().ok();

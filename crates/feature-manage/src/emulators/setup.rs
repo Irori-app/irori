@@ -1,16 +1,11 @@
 //! "Set up emulation": a short guide from a ROM folder to playing. Pick the
 //! folders, see what was found, install the recommended emulators in one
-//! go, point Ember at the BIOS folder, done. Every step can be skipped and
+//! go, point Irori at the BIOS folder, done. Every step can be skipped and
 //! everything it does is also on the Emulators page.
 
 use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
-use ember_engines::bios::SystemBios;
-use ember_engines::{EngineRef, systems};
-use ember_services::EngineStatus;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::spinner::Spinner;
@@ -25,6 +20,11 @@ use gpui_kit::{
     IntoElement, ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _,
     Subscription, Task, Window, div,
 };
+use irori_engines::bios::SystemBios;
+use irori_engines::{EngineRef, systems};
+use irori_services::EngineStatus;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models, navigate};
 
 use super::ops::{EngineOps, core_key, engine_key, engine_ops};
 use super::{InstallTarget, bios_line, choice_name, start_install};
@@ -86,7 +86,7 @@ impl SetupGuide {
 
     fn load(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             Ok((b.engine_statuses().await, b.bios_statuses().await))
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -148,7 +148,7 @@ impl SetupGuide {
                 let b = backend(cx);
                 this.scanning = true;
                 cx.notify();
-                let task = ember_ui::run(cx, async move {
+                let task = irori_ui::run(cx, async move {
                     for path in paths {
                         if bios {
                             b.set_bios_folder(path).await?;

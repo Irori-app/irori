@@ -88,12 +88,12 @@ pub fn decode(raw: &[u8], secrets: &HashMap<String, String>) -> Result<Chunk> {
     })
 }
 
-/// [`ember_depot::Decoder`] for Epic chunks.
+/// [`irori_depot::Decoder`] for Epic chunks.
 pub struct ChunkDecoder {
     pub secrets: Arc<HashMap<String, String>>,
 }
 
-impl ember_depot::Decoder for ChunkDecoder {
+impl irori_depot::Decoder for ChunkDecoder {
     fn decode(&self, data: Vec<u8>) -> Result<Vec<u8>> {
         Ok(decode(&data, &self.secrets)?.data)
     }
@@ -217,7 +217,7 @@ mod tests {
             secrets: Arc::new(secrets),
         };
         assert_eq!(
-            ember_depot::Decoder::decode(&decoder, file).unwrap(),
+            irori_depot::Decoder::decode(&decoder, file).unwrap(),
             b"top secret"
         );
     }

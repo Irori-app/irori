@@ -1,5 +1,5 @@
 [package]
-name = "ember-itch-api"
+name = "irori-itch-api"
 description = "itch.io protocol client: API-key login, owned games, uploads and download links"
 version.workspace = true
 edition.workspace = true
@@ -18,5 +18,5 @@ once_cell.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tokio.workspace = true

@@ -6,12 +6,12 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_core::{Achievement, ExtraInfo, InstallPlatform, Requirement, util};
+use irori_core::{Achievement, ExtraInfo, InstallPlatform, Requirement, util};
 
 use crate::api;
 use crate::manifest;
 use crate::{GogStore, load_json, save_json};
-use ember_core::Store as _;
+use irori_core::Store as _;
 
 const EXTRA_TTL_SECS: u64 = 6 * 3600;
 const ACHIEVEMENTS_TTL_SECS: u64 = 3600;

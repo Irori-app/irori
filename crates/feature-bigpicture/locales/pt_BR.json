@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Pausar downloads",
   "bigpicture.menu.resume_downloads": "Retomar downloads",
   "bigpicture.menu.toggle_fullscreen": "Alternar tela cheia",
-  "bigpicture.menu.quit": "Sair do Ember",
+  "bigpicture.menu.quit": "Sair do Irori",
   "bigpicture.menu.no_downloads": "Nenhum download",
   "bigpicture.error.launch": "Não foi possível iniciar {title}",
   "bigpicture.error.stop": "Não foi possível parar {title}",

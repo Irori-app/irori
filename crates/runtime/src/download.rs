@@ -7,10 +7,10 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::InstallProgress;
-use ember_core::archive_guard;
-use ember_core::install::ProgressSink;
-use ember_core::process::CancellationToken;
+use irori_core::InstallProgress;
+use irori_core::archive_guard;
+use irori_core::install::ProgressSink;
+use irori_core::process::CancellationToken;
 use once_cell::sync::Lazy;
 use sha2::{Digest, Sha512};
 use tokio::io::AsyncWriteExt;
@@ -36,7 +36,7 @@ pub fn is_cancelled(err: &anyhow::Error) -> bool {
 /// of MiB), but stalled connections fail after 60 s without data.
 static DOWNLOAD_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::Client::builder()
-        .user_agent(ember_core::http::USER_AGENT)
+        .user_agent(irori_core::http::USER_AGENT)
         .connect_timeout(Duration::from_secs(15))
         .read_timeout(Duration::from_secs(60))
         .build()
@@ -46,7 +46,7 @@ static DOWNLOAD_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
 /// Client for small API requests, with a short overall timeout.
 static API_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::Client::builder()
-        .user_agent(ember_core::http::USER_AGENT)
+        .user_agent(irori_core::http::USER_AGENT)
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(20))
         .build()
@@ -483,7 +483,7 @@ mod tests {
             &archive,
             &dest,
             1,
-            ember_core::install::ignore_progress(),
+            irori_core::install::ignore_progress(),
             &CancellationToken::new(),
         )
         .unwrap();
@@ -526,7 +526,7 @@ mod tests {
             &archive,
             &dir.path().join("out"),
             1,
-            ember_core::install::ignore_progress(),
+            irori_core::install::ignore_progress(),
             &CancellationToken::new(),
         );
         assert!(res.is_err());
@@ -615,7 +615,7 @@ mod tests {
                 &archive,
                 &self.dest(),
                 strip,
-                ember_core::install::ignore_progress(),
+                irori_core::install::ignore_progress(),
                 &CancellationToken::new(),
             )
         }

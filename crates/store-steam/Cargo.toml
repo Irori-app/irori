@@ -1,6 +1,6 @@
 [package]
-name = "ember-steam"
-description = "Read-only Steam library for Ember: games the Steam client installed on this computer"
+name = "irori-steam"
+description = "Read-only Steam library for Irori: games the Steam client installed on this computer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,8 +8,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-runtime.workspace = true
+irori-core.workspace = true
+irori-runtime.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

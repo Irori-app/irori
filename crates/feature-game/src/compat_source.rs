@@ -1,16 +1,16 @@
 //! Built-in compatibility source: PCGamingWiki/HLTB/ProtonDB/Steam Deck via
-//! `ember_extras::wiki`, AreWeAntiCheatYet via `ember_extras::anticheat`,
-//! and Heroic's known fixes via `ember_extras::known_fixes`.
+//! `irori_extras::wiki`, AreWeAntiCheatYet via `irori_extras::anticheat`,
+//! and Heroic's known fixes via `irori_extras::known_fixes`.
 
 use std::sync::Arc;
 
 use anyhow::Result;
-use ember_core::{GameInfo, Runner};
-use ember_extras::anticheat::{self, AntiCheatInfo, AntiCheatQuery, AntiCheatStatus};
-use ember_extras::known_fixes::{self, KnownFix};
-use ember_extras::wiki::{self, GameScore, ProtonDbTier, SteamDeckCompat, StoreIds, WikiInfo};
+use irori_core::{GameInfo, Runner};
+use irori_extras::anticheat::{self, AntiCheatInfo, AntiCheatQuery, AntiCheatStatus};
+use irori_extras::known_fixes::{self, KnownFix};
+use irori_extras::wiki::{self, GameScore, ProtonDbTier, SteamDeckCompat, StoreIds, WikiInfo};
 
-use ember_ui::i18n::t_args;
+use irori_ui::i18n::t_args;
 
 use crate::hooks::{
     AnticheatReport, AnticheatStatus, CompatibilityInfo, HowLongToBeat, ReviewScore,
@@ -204,7 +204,7 @@ fn url_query(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_extras::wiki::{PcGamingWikiInfo, SteamCompat};
+    use irori_extras::wiki::{PcGamingWikiInfo, SteamCompat};
 
     #[test]
     fn maps_wiki_anticheat_and_fixes() {

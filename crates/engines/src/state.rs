@@ -1,4 +1,4 @@
-//! What Ember installed and what the user chose, in `<state>/engines.json`:
+//! What Irori installed and what the user chose, in `<state>/engines.json`:
 //! managed versions per engine, the installation each engine uses by
 //! default, custom program paths and installed RetroArch cores.
 //!
@@ -9,12 +9,12 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use ember_core::{Paths, json_store};
+use irori_core::{Paths, json_store};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
-/// A version Ember downloaded.
+/// A version Irori downloaded.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ManagedInstall {
@@ -34,7 +34,7 @@ pub struct ManagedInstall {
     pub url: String,
 }
 
-/// A RetroArch core Ember downloaded.
+/// A RetroArch core Irori downloaded.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreInstall {
@@ -54,7 +54,7 @@ pub struct EngineState {
     /// The installation each engine uses unless a game says otherwise
     /// (an [`Installation::id`](crate::Installation::id)).
     pub preferred: BTreeMap<String, String>,
-    /// Programs the user pointed Ember at, by engine id.
+    /// Programs the user pointed Irori at, by engine id.
     pub custom: BTreeMap<String, PathBuf>,
     /// Installed cores by core id.
     pub cores: BTreeMap<String, CoreInstall>,

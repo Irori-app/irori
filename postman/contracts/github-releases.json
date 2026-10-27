@@ -3,7 +3,7 @@
   "info": {
     "title": "GitHub runtime releases",
     "version": "1.0.0",
-    "description": "Narrow contract for public release endpoints used by Ember. Examples captured from GitHub; no authentication or user data."
+    "description": "Narrow contract for public release endpoints used by Irori. Examples captured from GitHub; no authentication or user data."
   },
   "servers": [
     {
@@ -25,7 +25,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Ember",
+            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Irori",
             "content": {
               "application/json": {
                 "schema": {
@@ -80,7 +80,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Ember",
+            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Irori",
             "content": {
               "application/json": {
                 "schema": {
@@ -140,7 +140,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Ember",
+            "description": "Public GitHub release response captured 2026-10-25; fields consumed by Irori",
             "content": {
               "application/json": {
                 "schema": {

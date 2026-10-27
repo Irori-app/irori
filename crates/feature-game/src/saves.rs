@@ -4,9 +4,6 @@
 
 use std::sync::Arc;
 
-use ember_core::{CloudSaveLocation, GameId, GameInfo, InstallPlatform, Runner, SyncDirection};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
@@ -23,6 +20,9 @@ use gpui_kit::{
     App, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement, ParentElement,
     Render, SharedString, Styled, Subscription, Window, div, rems,
 };
+use irori_core::{CloudSaveLocation, GameId, GameInfo, InstallPlatform, Runner, SyncDirection};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 use serde_json::Value;
 
 use crate::choice::{Choice, ChoiceSelect, choice_select};
@@ -439,12 +439,12 @@ impl CloudSavesPanel {
         let b = backend(cx);
         let id = self.id.clone();
         let game = self.game.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(id.runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
             let prefix =
-                ember_runtime::prefix_path(&b.settings.app(), &b.settings.game(&id), &game);
+                irori_runtime::prefix_path(&b.settings.app(), &b.settings.game(&id), &game);
             let path = store.default_save_path(&id.app_name, Some(&prefix)).await?;
             // Detection may have taught the store the location names.
             let names = location_names(&b.game(&id).unwrap_or(game));
@@ -575,7 +575,7 @@ impl CloudSavesPanel {
         let b = backend(cx);
         let id = self.id.clone();
         let direction = self.direction;
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if !b.is_online() {
                 anyhow::bail!(t("game.saves.offline"));
             }
@@ -669,7 +669,7 @@ impl CloudSavesPanel {
                             .disabled(!has_path)
                             .on_click(move |_, window, cx| {
                                 open_path(
-                                    ember_core::paths::expand_home(path_value.trim()),
+                                    irori_core::paths::expand_home(path_value.trim()),
                                     window,
                                     cx,
                                 )
@@ -737,7 +737,7 @@ impl CloudSavesPanel {
                                     .disabled(!has_path)
                                     .on_click(move |_, window, cx| {
                                         open_path(
-                                            ember_core::paths::expand_home(value.trim()),
+                                            irori_core::paths::expand_home(value.trim()),
                                             window,
                                             cx,
                                         )
@@ -890,7 +890,7 @@ impl Render for CloudSavesPanel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::InstalledInfo;
+    use irori_core::InstalledInfo;
 
     #[test]
     fn support_reasons() {

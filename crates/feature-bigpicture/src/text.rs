@@ -1,9 +1,9 @@
 //! Localized text that is computed rather than looked up: status labels,
 //! store names, play time, percentages and the clock.
 
-use ember_core::{Runner, StatusKind};
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::SharedString;
+use irori_core::{Runner, StatusKind};
+use irori_ui::i18n::{t, t_args};
 
 /// Present-progressive label of a game status ("Installing").
 pub fn status_label(kind: StatusKind) -> SharedString {
@@ -77,7 +77,7 @@ pub enum HourCycle {
 
 /// The usual clock of an interface language code.
 ///
-/// English (Ember's English follows US/Canadian/Australian usage), Korean and
+/// English (Irori's English follows US/Canadian/Australian usage), Korean and
 /// Traditional Chinese (Taiwan, Hong Kong) commonly use a 12-hour clock with a
 /// day period. Every other shipped language uses 24 hours; Czech, Spanish and
 /// Japanese write the hour without a leading zero.
@@ -107,7 +107,7 @@ pub fn clock_parts(hour: u32, minute: u32, cycle: HourCycle) -> (String, Option<
 
 /// Clock text for `hour:minute` in the active interface language.
 pub fn clock(hour: u32, minute: u32) -> SharedString {
-    let (time, pm) = clock_parts(hour, minute, hour_cycle(&ember_ui::i18n::language()));
+    let (time, pm) = clock_parts(hour, minute, hour_cycle(&irori_ui::i18n::language()));
     match pm {
         None => time.into(),
         Some(pm) => {

@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use ember_ui::i18n::t;
 use gpui_kit::SharedString;
+use irori_ui::i18n::t;
 
 /// A normalized controller input, independent of the physical layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -436,7 +436,7 @@ pub enum InputSource {
 }
 
 /// Steam Input can turn controller presses into key presses (its desktop
-/// layout sends arrows, Enter and Escape) while Ember reads the same
+/// layout sends arrows, Enter and Escape) while Irori reads the same
 /// controller. Whichever source reports an input first wins; the same input
 /// from the other source right after is an echo and dropped.
 #[derive(Debug, Default)]

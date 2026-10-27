@@ -3,11 +3,11 @@
 
 use std::sync::OnceLock;
 
-use ember_core::{GameId, Paths, Runner};
-use ember_services::Backend;
 use gpui_kit::{
     AnyWindowHandle, AppContext as _, Entity, Focusable as _, TestAppContext, WindowOptions,
 };
+use irori_core::{GameId, Paths, Runner};
+use irori_services::Backend;
 use serde_json::Value;
 
 use crate::form::{FormTarget, SettingsForm};
@@ -34,7 +34,7 @@ fn open<V: gpui_kit::Render>(
     let backend = test_backend();
     cx.update(|cx| {
         gpui_kit::init(cx);
-        ember_ui::init(backend, cx);
+        irori_ui::init(backend, cx);
         crate::init(cx);
     });
     let opened = cx.update(|cx| {
@@ -98,7 +98,7 @@ fn per_game_override_marks_and_resets(cx: &mut TestAppContext) {
     let id = GameId::new(Runner::Sideload, "ui-test-game");
     let target = FormTarget::Game(id.clone());
     let (handle, form) = open(cx, move |window, cx| SettingsForm::new(target, window, cx));
-    let backend = cx.update(|cx| ember_ui::backend(cx));
+    let backend = cx.update(|cx| irori_ui::backend(cx));
     cx.update(|cx| assert_eq!(form.read(cx).overridden_count(), 0));
 
     cx.update_window(handle, |_, window, cx| {

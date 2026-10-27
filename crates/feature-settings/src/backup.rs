@@ -1,11 +1,8 @@
-//! Settings → Backup: save what the user set up in Ember to a file, restore
+//! Settings → Backup: save what the user set up in Irori to a file, restore
 //! it (on this or another computer), and export the game list.
 
 use std::path::{Path, PathBuf};
 
-use ember_services::{Backend, Backup, BackupParts, ExportFormat};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::checkbox::Checkbox;
@@ -15,6 +12,9 @@ use gpui_kit::{
     AsyncWindowContext, Context, IntoElement, ParentElement as _, PathPromptOptions, Render,
     SharedString, Styled as _, WeakEntity, Window,
 };
+use irori_services::{Backend, Backup, BackupParts, ExportFormat};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 
 use crate::widgets::{group_heading, muted, panel};
 
@@ -39,7 +39,7 @@ impl BackupPanel {
     /// Ask where to save a backup, then write it.
     fn save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let parts = self.parts;
-        let name = format!("ember-backup-{}.json", today());
+        let name = format!("irori-backup-{}.json", today());
         let rx = cx.prompt_for_new_path(&start_dir(), Some(&name));
         window
             .spawn(cx, async move |cx| {
@@ -113,7 +113,7 @@ impl BackupPanel {
             ExportFormat::Csv => "csv",
             ExportFormat::Json => "json",
         };
-        let name = format!("ember-games-{}.{ext}", today());
+        let name = format!("irori-games-{}.{ext}", today());
         let rx = cx.prompt_for_new_path(&start_dir(), Some(&name));
         window
             .spawn(cx, async move |cx| {
@@ -321,7 +321,7 @@ async fn run_backend<T: Send + 'static>(
 ) -> anyhow::Result<T> {
     let task = cx.update(|_, cx| {
         let b = backend(cx);
-        ember_ui::run(cx, async move { f(b) })
+        irori_ui::run(cx, async move { f(b) })
     })?;
     task.await
 }
@@ -359,7 +359,7 @@ fn start_dir() -> PathBuf {
 
 /// Today as `YYYY-MM-DD`, for file names.
 fn today() -> String {
-    ember_core::util::now_rfc3339().chars().take(10).collect()
+    irori_core::util::now_rfc3339().chars().take(10).collect()
 }
 
 fn file_name(path: &Path) -> String {

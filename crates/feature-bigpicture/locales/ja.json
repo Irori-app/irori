@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "ダウンロードを一時停止",
   "bigpicture.menu.resume_downloads": "ダウンロードを再開",
   "bigpicture.menu.toggle_fullscreen": "フルスクリーン切り替え",
-  "bigpicture.menu.quit": "Ember を終了",
+  "bigpicture.menu.quit": "Irori を終了",
   "bigpicture.menu.no_downloads": "ダウンロードはありません",
   "bigpicture.error.launch": "{title} を起動できませんでした",
   "bigpicture.error.stop": "{title} を停止できませんでした",

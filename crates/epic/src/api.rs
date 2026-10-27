@@ -91,7 +91,7 @@ impl Default for Endpoints {
     }
 }
 
-/// A signed-in account. Ember's own format.
+/// A signed-in account. Irori's own format.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Session {
     pub access_token: String,
@@ -604,7 +604,7 @@ impl Client {
     // ---- playtime ------------------------------------------------------
 
     /// Seconds played per app as Epic recorded them (its launcher's sessions
-    /// and those Ember uploaded).
+    /// and those Irori uploaded).
     pub async fn playtime(&self, session: &Session) -> Result<Vec<PlaytimeItem>> {
         let url = format!(
             "{}/library/api/public/playtime/account/{}/all",
@@ -962,7 +962,7 @@ fn parse_manifest_info(v: &Value) -> Result<ManifestInfo> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
 
     use super::*;
 

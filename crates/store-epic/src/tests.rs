@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use ember_core::{AppSettings, GameSettings, LaunchEnvironment, WineKind};
-use ember_depot::test_server::{Resp, TestServer};
-use ember_epic_api::chunk;
-use ember_epic_api::{ChunkInfo, ChunkPart, FileManifest, Guid};
+use irori_core::{AppSettings, GameSettings, LaunchEnvironment, WineKind};
+use irori_depot::test_server::{Resp, TestServer};
+use irori_epic_api::chunk;
+use irori_epic_api::{ChunkInfo, ChunkPart, FileManifest, Guid};
 use serde_json::json;
 use sha1::Digest as _;
 

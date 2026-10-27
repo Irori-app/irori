@@ -1,5 +1,5 @@
 //! The install pipeline: file list → downloads into a per-game staging folder
-//! (through [`ember_depot`], with fresh download links from the API) → native
+//! (through [`irori_depot`], with fresh download links from the API) → native
 //! extraction or a silent Windows installer through Wine → executable/DOSBox
 //! detection → installed record.
 //!
@@ -13,9 +13,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{self, CommandSpec, RunOptions};
-use ember_core::settings::GameSettingsOverrides;
-use ember_core::{
+use irori_core::process::{self, CommandSpec, RunOptions};
+use irori_core::settings::GameSettingsOverrides;
+use irori_core::{
     AppSettings, GameId, GameInfo, GameSettings, InstallPlatform, InstallProgress, OpContext,
     Outcome, Paths, Runner, Store as _, json_store, util,
 };
@@ -106,7 +106,7 @@ pub(crate) fn detect_installed(
         .collect();
     if let Some(game) = detect::dosbox_game(root, &new_confs) {
         let platform = if detect::system_dosbox().is_some() {
-            ember_core::HostPlatform::current().native()
+            irori_core::HostPlatform::current().native()
         } else {
             InstallPlatform::Windows
         };
@@ -196,8 +196,8 @@ fn log_line(ctx: &OpContext, line: &str) {
     }
 }
 
-fn checksum_of(f: &ZoomFile) -> Option<ember_depot::Digest> {
-    use ember_depot::{Algorithm, Digest};
+fn checksum_of(f: &ZoomFile) -> Option<irori_depot::Digest> {
+    use irori_depot::{Algorithm, Digest};
     f.sha256
         .as_deref()
         .and_then(|h| Digest::from_hex(Algorithm::Sha256, h.trim()).ok())
@@ -212,7 +212,7 @@ fn checksum_of(f: &ZoomFile) -> Option<ember_depot::Digest> {
 /// again when one expires): links are short-lived.
 struct LinkSigner(ZoomApi);
 
-impl ember_depot::UrlSigner for LinkSigner {
+impl irori_depot::UrlSigner for LinkSigner {
     fn sign<'a>(
         &'a self,
         keys: &'a [String],
@@ -230,7 +230,7 @@ impl ember_depot::UrlSigner for LinkSigner {
 
 /// Size of the file behind `url`, from a one-byte range request.
 async fn probe_size(url: &str) -> Result<u64> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .header(reqwest::header::RANGE, "bytes=0-0")
         .header(reqwest::header::ACCEPT_ENCODING, "identity")
@@ -253,25 +253,25 @@ async fn probe_size(url: &str) -> Result<u64> {
 }
 
 /// The depot entry of a ZOOM file (one part, keyed by the file id).
-fn file_entry(f: &ZoomFile, size: u64) -> Result<ember_depot::FileEntry> {
-    let chunk = Arc::new(ember_depot::Chunk {
+fn file_entry(f: &ZoomFile, size: u64) -> Result<irori_depot::FileEntry> {
+    let chunk = Arc::new(irori_depot::Chunk {
         key: f.id.clone(),
         download_size: size,
         size,
         ..Default::default()
     });
-    Ok(ember_depot::FileEntry {
-        path: ember_depot::path::normalize(&mapping::disk_name(f))?,
+    Ok(irori_depot::FileEntry {
+        path: irori_depot::path::normalize(&mapping::disk_name(f))?,
         size,
         hash: checksum_of(f),
-        parts: vec![ember_depot::Part::new(chunk, 0, size)],
+        parts: vec![irori_depot::Part::new(chunk, 0, size)],
         executable: false,
     })
 }
 
-fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
+fn progress_sink(ctx: &OpContext) -> irori_depot::ProgressFn {
     let sink = ctx.progress.clone();
-    Arc::new(move |p: ember_depot::Progress| {
+    Arc::new(move |p: irori_depot::Progress| {
         sink(InstallProgress {
             percent: Some(p.percent.clamp(0.0, 100.0)),
             bytes_done: Some(p.bytes_done),
@@ -291,7 +291,7 @@ fn free_space(path: &Path) -> Option<u64> {
     fs4::available_space(existing).ok()
 }
 
-/// Partial file of a download by earlier Ember versions.
+/// Partial file of a download by earlier Irori versions.
 fn legacy_part_path(dest: &Path) -> PathBuf {
     let mut name = dest.file_name().unwrap_or_default().to_os_string();
     name.push(".part");
@@ -301,7 +301,7 @@ fn legacy_part_path(dest: &Path) -> PathBuf {
 async fn local_len(dest: &Path) -> u64 {
     for p in [
         dest.to_path_buf(),
-        ember_depot::path::part_path(dest),
+        irori_depot::path::part_path(dest),
         legacy_part_path(dest),
     ] {
         if let Ok(m) = tokio::fs::metadata(&p).await {
@@ -373,7 +373,7 @@ impl ZoomStore {
             .to_path_buf();
         let staging = base
             .join(".zoom-download")
-            .join(ember_core::paths::sanitize(app));
+            .join(irori_core::paths::sanitize(app));
         self.begin_pending(app, &staging, install_path, platform)
             .await?;
 
@@ -410,7 +410,7 @@ impl ZoomStore {
         for f in &list {
             let dest = staging.join(mapping::disk_name(f));
             // Continue partial files of earlier versions.
-            let (old, new) = (legacy_part_path(&dest), ember_depot::path::part_path(&dest));
+            let (old, new) = (legacy_part_path(&dest), irori_depot::path::part_path(&dest));
             if old.is_file() && !new.exists() {
                 let _ = tokio::fs::rename(&old, &new).await;
             }
@@ -424,24 +424,24 @@ impl ZoomStore {
             local.push(dest);
         }
         let settings = (self.settings)();
-        let finished = ember_depot::download(
-            ember_core::http::client(),
-            ember_depot::Job {
+        let finished = irori_depot::download(
+            irori_core::http::client(),
+            irori_depot::Job {
                 root: &staging,
                 files: &entries,
                 remove: &[],
             },
-            &ember_depot::Options {
+            &irori_depot::Options {
                 workers: settings.max_workers as usize,
                 max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
-                signer: Some(ember_depot::Signer(Arc::new(LinkSigner(api.clone())))),
+                signer: Some(irori_depot::Signer(Arc::new(LinkSigner(api.clone())))),
                 ..Default::default()
             },
             progress_sink(ctx),
             &ctx.cancel,
         )
         .await?;
-        if finished == ember_depot::Finished::Cancelled {
+        if finished == irori_depot::Finished::Cancelled {
             log_line(ctx, "download paused; partial files kept");
             return Ok(Outcome::Abort);
         }
@@ -514,7 +514,7 @@ impl ZoomStore {
             let _ = tokio::fs::remove_dir(parent).await;
         }
         self.bus
-            .emit(ember_core::Event::LibraryChanged(Runner::Zoom));
+            .emit(irori_core::Event::LibraryChanged(Runner::Zoom));
         if missing {
             self.notice_missing_executable(app, &game.title);
         }
@@ -741,24 +741,24 @@ impl ZoomStore {
             let app_settings = (self.settings)();
             let id = GameId::new(Runner::Zoom, game.app_name.as_str());
             let settings = game_settings(&id, &app_settings, ctx);
-            let target = ember_runtime::Target {
+            let target = irori_runtime::Target {
                 id: &id,
                 game,
                 platform: InstallPlatform::Windows,
             };
             let res = if cfg!(windows) {
-                let spec = ember_core::process::CommandSpec::new(&argv[0])
+                let spec = irori_core::process::CommandSpec::new(&argv[0])
                     .args(&argv[1..])
                     .cwd(staging);
-                ember_core::process::run(
+                irori_core::process::run(
                     &spec,
-                    ember_core::process::RunOptions::default()
+                    irori_core::process::RunOptions::default()
                         .cancel(ctx.cancel.clone())
                         .log_file(&installer_log),
                 )
                 .await
             } else {
-                ember_runtime::run_in_prefix(
+                irori_runtime::run_in_prefix(
                     &app_settings,
                     &settings,
                     target,

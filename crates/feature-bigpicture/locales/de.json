@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Downloads pausieren",
   "bigpicture.menu.resume_downloads": "Downloads fortsetzen",
   "bigpicture.menu.toggle_fullscreen": "Vollbild umschalten",
-  "bigpicture.menu.quit": "Ember beenden",
+  "bigpicture.menu.quit": "Irori beenden",
   "bigpicture.menu.no_downloads": "Keine Downloads",
   "bigpicture.error.launch": "{title} konnte nicht gestartet werden",
   "bigpicture.error.stop": "{title} konnte nicht gestoppt werden",

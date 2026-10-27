@@ -8,7 +8,7 @@
 //! * Login is an API key the user creates on itch.io ([`LOGIN_URL`]);
 //!   [`extract_api_key`] finds it in pasted text.
 //!
-//! Nothing here knows about Ember: no paths, settings or events.
+//! Nothing here knows about Irori: no paths, settings or events.
 
 #![forbid(unsafe_code)]
 

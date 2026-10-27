@@ -138,7 +138,7 @@ pub struct GogDealsRegion {
 }
 
 fn user_agent() -> String {
-    format!("Ember/{}", env!("CARGO_PKG_VERSION"))
+    format!("Irori/{}", env!("CARGO_PKG_VERSION"))
 }
 
 fn catalog_url(locale: &CatalogLocale, page: u32, hide_owned: bool) -> String {
@@ -163,7 +163,7 @@ struct CatalogPage {
 }
 
 async fn fetch_page(url: &str, token: Option<&str>) -> Result<CatalogPage> {
-    let mut req = ember_core::http::client()
+    let mut req = irori_core::http::client()
         .get(url)
         .header(reqwest::header::USER_AGENT, user_agent())
         .timeout(Duration::from_secs(15));
@@ -237,7 +237,7 @@ pub fn parse_region(json: &serde_json::Value) -> Option<GogDealsRegion> {
 /// The GOG account's region (retried without the token if that fails).
 pub async fn gog_deals_region(access_token: Option<&str>) -> Option<GogDealsRegion> {
     let attempt = |token: Option<&str>| {
-        let mut req = ember_core::http::client()
+        let mut req = irori_core::http::client()
             .get(USER_DATA_URL)
             .header(reqwest::header::USER_AGENT, user_agent())
             .timeout(Duration::from_secs(10));
@@ -268,7 +268,7 @@ pub async fn gog_deals_region(access_token: Option<&str>) -> Option<GogDealsRegi
 
 /// Product IDs on the user's GOG wishlist.
 pub async fn gog_wishlist(access_token: &str) -> Result<Vec<String>> {
-    let json: serde_json::Value = ember_core::http::client()
+    let json: serde_json::Value = irori_core::http::client()
         .get(WISHLIST_URL)
         .bearer_auth(access_token)
         .header(reqwest::header::USER_AGENT, user_agent())
@@ -476,7 +476,7 @@ async fn feed_deals(store: DealStore, currency: &str) -> Result<Vec<CatalogProdu
     if let Some(deals) = util::cache_read::<Vec<CatalogProduct>>(&cache, FEED_TTL).await {
         return Ok(deals);
     }
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(&url)
         .header(reqwest::header::USER_AGENT, user_agent())
         .timeout(Duration::from_secs(30))

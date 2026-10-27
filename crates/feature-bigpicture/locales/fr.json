@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Suspendre les téléchargements",
   "bigpicture.menu.resume_downloads": "Reprendre les téléchargements",
   "bigpicture.menu.toggle_fullscreen": "Basculer en plein écran",
-  "bigpicture.menu.quit": "Quitter Ember",
+  "bigpicture.menu.quit": "Quitter Irori",
   "bigpicture.menu.no_downloads": "Aucun téléchargement",
   "bigpicture.error.launch": "Impossible de lancer {title}",
   "bigpicture.error.stop": "Impossible d’arrêter {title}",

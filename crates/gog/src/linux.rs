@@ -307,8 +307,8 @@ pub(crate) mod tests {
             ("scripts/postinst", b"x", false, None),
         ]);
         let served = data.clone();
-        let server = ember_depot::test_server::TestServer::start(move |req| {
-            ember_depot::test_server::serve_bytes(req, &served, true)
+        let server = irori_depot::test_server::TestServer::start(move |req| {
+            irori_depot::test_server::serve_bytes(req, &served, true)
         });
         let http = reqwest::Client::new();
         let inst = read_installer(&http, &server.url("/i.sh")).await.unwrap();

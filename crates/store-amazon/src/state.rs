@@ -1,4 +1,4 @@
-//! Ember's Amazon state files, all inside
+//! Irori's Amazon state files, all inside
 //! `Paths::store_config_dir(Runner::Nile)`:
 //!
 //! * `credentials.json`: device tokens (owner-only permissions).
@@ -12,8 +12,8 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_amazon_api::{Credentials, Entitlement};
-use ember_core::json_store;
+use irori_amazon_api::{Credentials, Entitlement};
+use irori_core::json_store;
 use serde::{Deserialize, Serialize};
 
 /// An installed game.
@@ -55,7 +55,7 @@ impl Layout {
     pub fn manifest(&self, product_id: &str) -> PathBuf {
         self.dir
             .join("manifests")
-            .join(format!("{}.proto", ember_core::paths::sanitize(product_id)))
+            .join(format!("{}.proto", irori_core::paths::sanitize(product_id)))
     }
 
     pub fn read_credentials(&self) -> Option<Credentials> {

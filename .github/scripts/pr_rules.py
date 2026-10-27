@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a pull request's branch, title and base against Ember's conventions.
+"""Check a pull request's branch, title and base against Irori's conventions.
 
 The rules are documented in AGENTS.md ("Branches, commits and pull requests"):
 

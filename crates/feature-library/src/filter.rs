@@ -1,7 +1,7 @@
 //! Library view criteria, their persistence, and the cached filtered list.
 //!
 //! [`ViewFilter`] is what the toolbar and the Filters popover edit. It maps onto
-//! [`ember_services::LibraryFilter`] for the heavy lifting and adds what the
+//! [`irori_services::LibraryFilter`] for the heavy lifting and adds what the
 //! service filter cannot express (several categories at once, an
 //! "Uncategorized" choice, hiding games whose files are missing). The result
 //! is cached by library revision, user-data identity, update-set identity,
@@ -12,9 +12,9 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, InstallPlatform, Paths, Runner, ShownStores, json_store};
-use ember_services::{LibraryFilter, LibrarySnapshot, LibrarySort, StoreFilter, UserData};
-use ember_ui::i18n::{t, t_args};
+use irori_core::{GameId, GameInfo, InstallPlatform, Paths, Runner, ShownStores, json_store};
+use irori_services::{LibraryFilter, LibrarySnapshot, LibrarySort, StoreFilter, UserData};
+use irori_ui::i18n::{t, t_args};
 use serde::{Deserialize, Serialize};
 
 /// Which install states to show.
@@ -271,7 +271,7 @@ impl ViewFilter {
             let names: Vec<&str> = self
                 .systems
                 .iter()
-                .map(|id| ember_engines::systems::get(id).map_or(id.as_str(), |s| s.short.as_str()))
+                .map(|id| irori_engines::systems::get(id).map_or(id.as_str(), |s| s.short.as_str()))
                 .collect();
             out.push(names.join(&t("library.filter.list_separator")));
         }

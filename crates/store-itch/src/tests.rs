@@ -3,11 +3,11 @@
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Once};
 
-use ember_core::{
+use irori_core::{
     AppSettings, EventBus, InstallPlatform, InstallRequest, LaunchEnvironment, OpContext, Outcome,
     Paths, RemoveArgs, SessionExpired, Store, UpdateRequest, WineKind, WineLaunch,
 };
-use ember_depot::test_server::{Resp, TestServer, serve_bytes};
+use irori_depot::test_server::{Resp, TestServer, serve_bytes};
 use serde_json::json;
 
 use super::*;
@@ -18,7 +18,7 @@ const KEY: &str = "Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb7cDe0f";
 fn isolate_paths() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let root = std::env::temp_dir().join(format!("ember-itch-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("irori-itch-{}", std::process::id()));
         Paths::init(Paths::under(&root));
     });
 }

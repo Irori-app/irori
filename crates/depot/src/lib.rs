@@ -1,4 +1,4 @@
-//! Ember's download engine, shared by the Amazon, GOG and Epic clients.
+//! Irori's download engine, shared by the Amazon, GOG and Epic clients.
 //!
 //! A store client turns its manifest into a list of [`FileEntry`] values
 //! (each file built from parts of downloadable [`Chunk`]s) and hands them to
@@ -7,7 +7,7 @@
 //! [`diff`] compares an installed build with a new one so updates fetch only
 //! what changed, and [`verify`] finds files that need repairing.
 //!
-//! Cancellation uses the same token type as `ember_core::process`.
+//! Cancellation uses the same token type as `irori_core::process`.
 
 #![forbid(unsafe_code)]
 

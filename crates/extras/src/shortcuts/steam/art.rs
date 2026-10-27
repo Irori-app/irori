@@ -4,8 +4,8 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, anyhow};
-use ember_core::GameInfo;
 use image::{DynamicImage, GenericImageView as _, ImageFormat, RgbaImage, imageops};
+use irori_core::GameInfo;
 
 use super::shortcuts_file::GridIds;
 use crate::util;

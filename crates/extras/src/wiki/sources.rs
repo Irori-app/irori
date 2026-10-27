@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use ember_core::Runner;
+use irori_core::Runner;
 use serde::{Deserialize, Serialize};
 
 use crate::util;
@@ -89,7 +89,7 @@ pub fn parse_deck(json: &serde_json::Value) -> Option<SteamDeckCompat> {
 /// ProtonDB tier for a Steam app. `Ok(None)` when ProtonDB has no summary.
 pub async fn protondb(steam_id: &str) -> Result<Option<ProtonDbTier>> {
     let url = format!("https://www.protondb.com/api/v1/reports/summaries/{steam_id}.json");
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(&url)
         .timeout(TIMEOUT)
         .send()
@@ -154,7 +154,7 @@ pub async fn gamesdb_steam_id(runner: Runner, app_name: &str) -> Result<Option<S
         "https://gamesdb.gog.com/platforms/{store}/external_releases/{}",
         util::encode_component(app_name)
     );
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(&url)
         .timeout(TIMEOUT)
         .send()

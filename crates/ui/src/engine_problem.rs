@@ -6,10 +6,6 @@
 
 use std::collections::HashMap;
 
-use ember_core::process::CancellationToken;
-use ember_core::{GameId, OpContext};
-use ember_engines::{BiosMissing, EngineMissing, EngineUnavailable, Unavailable};
-use ember_services::LaunchParams;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::dialog::DialogFooter;
 use gpui_kit::component::notification::Notification;
@@ -18,6 +14,10 @@ use gpui_kit::{
     App, AppContext as _, Entity, Global, ParentElement as _, PathPromptOptions, Styled as _,
     WeakEntity, Window, div,
 };
+use irori_core::process::CancellationToken;
+use irori_core::{GameId, OpContext};
+use irori_engines::{BiosMissing, EngineMissing, EngineUnavailable, Unavailable};
+use irori_services::LaunchParams;
 
 use crate::i18n::{t, t_args};
 use crate::state::{backend, run};
@@ -99,7 +99,7 @@ fn open_unavailable(
         Unavailable::NoBuild { hosts } => {
             let hosts: Vec<String> = hosts
                 .iter()
-                .map(|h| ember_engines::host::label(h))
+                .map(|h| irori_engines::host::label(h))
                 .collect();
             (
                 t_args("ui.engine.unavailable_title", &[("engine", engine)]),
@@ -232,7 +232,7 @@ fn open_missing_engine(
                     let (b, game) = (backend(cx), id.clone());
                     let worker = b.clone();
                     drop(worker.spawn_blocking(move || {
-                        b.settings.set_game_value(&game, "emberEngineVersion", None)
+                        b.settings.set_game_value(&game, "iroriEngineVersion", None)
                     }));
                     relaunch(id.clone(), params.clone(), window, cx);
                 })

@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use ember_core::Bottleneck;
+use irori_core::Bottleneck;
 use tokio::sync::Notify;
 
 /// Requests at once when the user set no cap.

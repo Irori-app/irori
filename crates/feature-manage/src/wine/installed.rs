@@ -3,15 +3,15 @@
 
 use std::path::{Path, PathBuf};
 
-use ember_core::{WineInstallation, WineKind};
-use ember_ui::i18n::t;
 use gpui_kit::SharedString;
+use irori_core::{WineInstallation, WineKind};
+use irori_ui::i18n::t;
 
 /// Where a Wine or Proton build was found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum WineOrigin {
     /// Downloaded through the Wine manager.
-    Ember,
+    Irori,
     /// Added by the user under "Custom paths".
     Custom,
     Steam,
@@ -24,7 +24,7 @@ pub(crate) enum WineOrigin {
 
 impl WineOrigin {
     pub const ORDER: [WineOrigin; 7] = [
-        WineOrigin::Ember,
+        WineOrigin::Irori,
         WineOrigin::Custom,
         WineOrigin::Steam,
         WineOrigin::Lutris,
@@ -35,7 +35,7 @@ impl WineOrigin {
 
     pub fn label(self) -> SharedString {
         match self {
-            WineOrigin::Ember => t("manage.wine.origin.ember"),
+            WineOrigin::Irori => t("manage.wine.origin.irori"),
             WineOrigin::Custom => t("manage.wine.origin.custom"),
             WineOrigin::Steam => "Steam".into(),
             WineOrigin::Lutris => "Lutris".into(),
@@ -47,7 +47,7 @@ impl WineOrigin {
 }
 
 /// Classify a build from its binary path. `custom` are the user's custom
-/// paths (settings), `own_dirs` Ember's download directories.
+/// paths (settings), `own_dirs` Irori's download directories.
 pub(crate) fn classify(bin: &str, custom: &[String], own_dirs: &[PathBuf]) -> WineOrigin {
     let path = Path::new(bin);
     if custom
@@ -58,7 +58,7 @@ pub(crate) fn classify(bin: &str, custom: &[String], own_dirs: &[PathBuf]) -> Wi
         return WineOrigin::Custom;
     }
     if own_dirs.iter().any(|d| path.starts_with(d)) {
-        return WineOrigin::Ember;
+        return WineOrigin::Irori;
     }
     let lower = bin.to_ascii_lowercase();
     if lower.contains("/steam/")
@@ -156,12 +156,12 @@ mod tests {
 
     #[test]
     fn classifies_origins() {
-        let own = vec![PathBuf::from("/home/u/.local/share/ember/tools")];
+        let own = vec![PathBuf::from("/home/u/.local/share/irori/tools")];
         let custom = vec!["/mnt/wine/my-build".to_string()];
         let c = |bin: &str| classify(bin, &custom, &own);
         assert_eq!(
-            c("/home/u/.local/share/ember/tools/proton/GE-Proton9-20/proton"),
-            WineOrigin::Ember
+            c("/home/u/.local/share/irori/tools/proton/GE-Proton9-20/proton"),
+            WineOrigin::Irori
         );
         assert_eq!(c("/mnt/wine/my-build/bin/wine"), WineOrigin::Custom);
         assert_eq!(
@@ -194,7 +194,7 @@ mod tests {
         ];
         let g = group(&list, &[], &own);
         assert_eq!(g.len(), 2);
-        assert_eq!(g[0].0, WineOrigin::Ember);
+        assert_eq!(g[0].0, WineOrigin::Irori);
         assert_eq!(g[0].1[0].name, "GE-Proton9-20");
         assert_eq!(g[0].1[1].name, "GE-Proton9-9");
         assert_eq!(g[1].0, WineOrigin::System);

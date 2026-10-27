@@ -1,5 +1,5 @@
 [package]
-name = "ember-epic-api"
+name = "irori-epic-api"
 description = "Epic Games Store protocol client: accounts, library, manifests, downloads, cloud saves and launch parameters"
 version.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-depot.workspace = true
+irori-depot.workspace = true
 anyhow.workspace = true
 dirs.workspace = true
 thiserror.workspace = true
@@ -30,6 +30,6 @@ flate2.workspace = true
 aes-gcm.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tempfile = "3"
 parking_lot.workspace = true

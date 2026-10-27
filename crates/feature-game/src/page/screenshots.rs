@@ -1,9 +1,6 @@
 //! Screenshots tab: the store's screenshots in a grid, and a viewer that shows one
 //! at a time over the page, navigated with the arrow keys.
 
-use ember_ui::components::{ArtImage, art_image, art_img, art_loading};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::style::KeyboardFocusable as _;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::{ActiveTheme as _, Sizable as _, h_flex, v_flex};
@@ -12,6 +9,9 @@ use gpui_kit::{
     AnyElement, Context, InteractiveElement as _, IntoElement, KeyDownEvent, ObjectFit,
     ParentElement, StatefulInteractiveElement as _, Styled, StyledImage as _, Window, div, rems,
 };
+use irori_ui::components::{ArtImage, art_image, art_img, art_loading};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::style::KeyboardFocusable as _;
 
 use super::GamePage;
 
@@ -125,7 +125,7 @@ impl GamePage {
             self.viewer = None;
             return None;
         };
-        let width = ember_ui::components::physical_width(rems(80.), window).min(FULL_WIDTH);
+        let width = irori_ui::components::physical_width(rems(80.), window).min(FULL_WIDTH);
         let img = art_img(url, width, false, cx);
         let theme = cx.theme();
         Some(

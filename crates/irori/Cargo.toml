@@ -1,0 +1,61 @@
+[package]
+name = "irori"
+description = "Irori game launcher"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "irori"
+path = "src/main.rs"
+
+[dependencies]
+irori-core.workspace = true
+irori-services.workspace = true
+irori-ui.workspace = true
+irori-runtime.workspace = true
+irori-extras.workspace = true
+irori-engines.workspace = true
+irori-epic.workspace = true
+irori-gog.workspace = true
+irori-amazon.workspace = true
+irori-zoom.workspace = true
+irori-sideload.workspace = true
+irori-emulation.workspace = true
+irori-launchers.workspace = true
+irori-steam.workspace = true
+irori-itch.workspace = true
+irori-manage.workspace = true
+irori-settings.workspace = true
+irori-bigpicture.workspace = true
+irori-library.workspace = true
+irori-game.workspace = true
+once_cell.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+futures.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+uuid.workspace = true
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+regex.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = { version = "0.3", default-features = false, features = ["tokio"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+tray-icon = "0.21"
+resvg = "0.45"
+# Irori runs the sign-in window itself when the helper is missing: these
+# systems ship their web engines, so it adds no runtime dependency.
+irori-sign-in.workspace = true

@@ -3,8 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{LaunchOption, LaunchPlan, LaunchRequest, OpContext, Store as _};
-use ember_epic_api::launch::{LaunchInput, launch_params};
+use irori_core::{LaunchOption, LaunchPlan, LaunchRequest, OpContext, Store as _};
+use irori_epic_api::launch::{LaunchInput, launch_params};
 
 use crate::EpicStore;
 use crate::launch::{self, CommandInput};
@@ -44,7 +44,7 @@ impl EpicStore {
         env.insert("STORE".into(), "egs".into());
         env.entry("GAMEID".into()).or_insert_with(|| "umu-0".into());
 
-        if cfg!(windows) && installed.install_platform() == ember_core::InstallPlatform::Windows {
+        if cfg!(windows) && installed.install_platform() == irori_core::InstallPlatform::Windows {
             self.first_launch_setup(&game, &installed, request, None, ctx)
                 .await;
         }
@@ -125,7 +125,7 @@ impl EpicStore {
         let executable = launch::override_exe(request.option.as_ref(), &settings.target_exe)
             .unwrap_or(&installed.executable)
             .to_string();
-        let user = self.user().unwrap_or(ember_core::UserInfo {
+        let user = self.user().unwrap_or(irori_core::UserInfo {
             account_id: String::new(),
             display_name: String::new(),
         });
@@ -145,7 +145,7 @@ impl EpicStore {
             deployment_id: meta.deployment_id(),
         })?;
         if !params.executable.is_file()
-            && !ember_epic_api::saves::case_insensitive(&params.executable).is_file()
+            && !irori_epic_api::saves::case_insensitive(&params.executable).is_file()
         {
             bail!(
                 "The game's executable {} is missing; repair the game",

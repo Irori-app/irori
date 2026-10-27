@@ -27,20 +27,20 @@ class WindowsPackagingTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.binaries = self.root / "built binaries"
         self.runtime = self.root / "redistributable files"
-        for name in ("ember.exe", "ember-sign-in.exe"):
+        for name in ("irori.exe", "irori-sign-in.exe"):
             write_pe(self.binaries / name)
         for name in package.WINDOWS_CRT_FILES:
             write_pe(self.runtime / name)
-        environment = patch.dict(os.environ, {"EMBER_WINDOWS_CRT_DIR": str(self.runtime)})
+        environment = patch.dict(os.environ, {"IRORI_WINDOWS_CRT_DIR": str(self.runtime)})
         environment.start()
         self.addCleanup(environment.stop)
 
     def test_windows_archive_contains_runtime_next_to_both_executables(self):
         archive = package.package("windows", self.binaries, self.root / "output")
         with zipfile.ZipFile(archive) as zipped:
-            for name in ("ember.exe", "ember-sign-in.exe", "vcruntime140.dll", "vcruntime140_1.dll", "install.ps1"):
-                self.assertIn("Ember/" + name, zipped.namelist())
-            self.assertEqual(zipped.read("Ember/vcruntime140.dll"), (self.runtime / "vcruntime140.dll").read_bytes())
+            for name in ("irori.exe", "irori-sign-in.exe", "vcruntime140.dll", "vcruntime140_1.dll", "install.ps1"):
+                self.assertIn("Irori/" + name, zipped.namelist())
+            self.assertEqual(zipped.read("Irori/vcruntime140.dll"), (self.runtime / "vcruntime140.dll").read_bytes())
 
     def test_missing_runtime_fails_before_creating_output(self):
         (self.runtime / "vcruntime140_1.dll").unlink()
@@ -55,7 +55,7 @@ class WindowsPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "output").exists())
 
     def test_x86_application_cannot_be_bundled_with_x64_runtime(self):
-        write_pe(self.binaries / "ember.exe", 0x014C)
+        write_pe(self.binaries / "irori.exe", 0x014C)
         with self.assertRaisesRegex(ValueError, "requires x64"):
             package.package("windows", self.binaries, self.root / "output")
 
@@ -69,7 +69,7 @@ class WindowsPackagingTests(unittest.TestCase):
         expected = root / "x64/Microsoft.VC143.CRT"
         for name in package.WINDOWS_CRT_FILES:
             write_pe(expected / name)
-        with patch.dict(os.environ, {"EMBER_WINDOWS_CRT_DIR": "", "VCToolsRedistDir": str(root), "ProgramFiles(x86)": str(self.root / "absent") }):
+        with patch.dict(os.environ, {"IRORI_WINDOWS_CRT_DIR": "", "VCToolsRedistDir": str(root), "ProgramFiles(x86)": str(self.root / "absent") }):
             self.assertEqual(package.windows_crt_directory(), expected)
 
 

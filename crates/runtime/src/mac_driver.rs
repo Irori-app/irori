@@ -4,7 +4,7 @@
 //! Wine, CrossOver and Game Porting Toolkit all read it.
 
 use anyhow::Result;
-use ember_core::{AppSettings, GameSettings, OpContext};
+use irori_core::{AppSettings, GameSettings, OpContext};
 
 use crate::prefix::{self, WineCommand, WineContext};
 

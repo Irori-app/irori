@@ -1,4 +1,4 @@
-//! Ember's Epic state files. All functions are blocking; call them from
+//! Irori's Epic state files. All functions are blocking; call them from
 //! `spawn_blocking`.
 //!
 //! In `Paths::store_config_dir(Runner::Legendary)`:
@@ -7,7 +7,7 @@
 //! * `installs.json`: installed apps by app name.
 //! * `builds/<app>.manifest`: manifest of each installed build, the base of
 //!   update diffs, repairs and uninstalls.
-//! * `third-party-installed.json`: EA app / Ubisoft titles set up by Ember.
+//! * `third-party-installed.json`: EA app / Ubisoft titles set up by Irori.
 //! * `overlay.json`: the EOS overlay install.
 
 use std::collections::{BTreeMap, HashMap};
@@ -15,10 +15,10 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::util::format_bytes;
-use ember_core::{InstallPlatform, InstalledInfo, json_store};
-use ember_epic_api::Session;
-use ember_epic_api::library::GameRecord;
+use irori_core::util::format_bytes;
+use irori_core::{InstallPlatform, InstalledInfo, json_store};
+use irori_epic_api::Session;
+use irori_epic_api::library::GameRecord;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
@@ -26,9 +26,9 @@ use serde_json::Value;
 #[derive(Debug, Clone)]
 pub(crate) struct Layout {
     pub config: PathBuf,
-    /// Ember's caches for this store.
+    /// Irori's caches for this store.
     pub cache: PathBuf,
-    /// Ember's tools directory (EOS overlay, EA/Ubisoft installers).
+    /// Irori's tools directory (EOS overlay, EA/Ubisoft installers).
     pub tools: PathBuf,
 }
 
@@ -47,7 +47,7 @@ impl Layout {
     }
     pub fn build_manifest(&self, app: &str) -> PathBuf {
         self.builds_dir()
-            .join(format!("{}.manifest", ember_core::paths::sanitize(app)))
+            .join(format!("{}.manifest", irori_core::paths::sanitize(app)))
     }
     pub fn third_party_json(&self) -> PathBuf {
         self.config.join("third-party-installed.json")
@@ -59,7 +59,7 @@ impl Layout {
     pub fn resume_file(&self, app: &str) -> PathBuf {
         self.cache
             .join("resume")
-            .join(format!("{}.jsonl", ember_core::paths::sanitize(app)))
+            .join(format!("{}.jsonl", irori_core::paths::sanitize(app)))
     }
     /// Ownership tokens handed to DRM-protected games.
     /// Play sessions waiting for upload to Epic.
@@ -150,7 +150,7 @@ pub(crate) struct InstalledGame {
     /// Decryption keys of the installed build.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub manifest_secrets: BTreeMap<String, String>,
-    /// The user keeps this version: no update checks. Ember's own key;
+    /// The user keeps this version: no update checks. Irori's own key;
     /// legendary ignores it.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub pinned_version: bool,
@@ -191,7 +191,7 @@ impl InstalledGame {
         }
     }
 
-    pub fn secrets(&self) -> ember_epic_api::Secrets {
+    pub fn secrets(&self) -> irori_epic_api::Secrets {
         self.manifest_secrets
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))

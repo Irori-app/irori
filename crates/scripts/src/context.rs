@@ -17,15 +17,15 @@ pub struct Context {
     pub game_dir: PathBuf,
     /// `$CACHE`: this install's download cache.
     pub cache_dir: PathBuf,
-    /// The Wine prefix Ember chose; else the game section's, else the game
+    /// The Wine prefix Irori chose; else the game section's, else the game
     /// folder (Lutris's default).
     pub prefix: Option<PathBuf>,
     pub home: PathBuf,
     pub user: String,
     /// The desktop resolution for `$RESOLUTION…`.
     pub resolution: Option<(u32, u32)>,
-    /// Folders a rollback must never delete (Ember's own, library roots);
-    /// see `ember_core::fs_guard::protected_dirs`.
+    /// Folders a rollback must never delete (Irori's own, library roots);
+    /// see `irori_core::fs_guard::protected_dirs`.
     pub protected: Vec<PathBuf>,
     /// Where the script came from, recorded with the game.
     pub source_url: Option<String>,
@@ -122,7 +122,7 @@ pub struct Outcome {
     pub files: BTreeMap<String, PathBuf>,
 }
 
-/// Ember's variables for `script`, before any file or choice exists.
+/// Irori's variables for `script`, before any file or choice exists.
 pub(crate) fn base_vars(script: &Script, ctx: &Context) -> Vars {
     let mut v = Vars::default();
     v.set("GAMEDIR", ctx.game_dir.to_string_lossy());

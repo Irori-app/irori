@@ -8,8 +8,8 @@ use std::io::{self, BufReader};
 use std::path::{Component, Path};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::install::ignore_progress;
-use ember_core::process::CancellationToken;
+use irori_core::install::ignore_progress;
+use irori_core::process::CancellationToken;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -47,7 +47,7 @@ pub fn unpack(archive: &Path, name: &str, dest: &Path, cancel: &CancellationToke
         Kind::Zip => unzip(archive, dest, cancel),
         Kind::SevenZip => un7z(archive, dest, cancel),
         Kind::Tar => {
-            ember_runtime::download::extract_tar(archive, dest, 0, ignore_progress(), cancel)
+            irori_runtime::download::extract_tar(archive, dest, 0, ignore_progress(), cancel)
         }
         Kind::Dmg => bail!("disk images are unpacked with unpack_dmg"),
         Kind::Plain => {
@@ -82,7 +82,7 @@ fn unzip(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> 
     let mut zip = zip::ZipArchive::new(BufReader::new(file)).context("the zip file is damaged")?;
     for i in 0..zip.len() {
         if cancel.is_cancelled() {
-            return Err(ember_runtime::download::Cancelled.into());
+            return Err(irori_runtime::download::Cancelled.into());
         }
         let mut entry = zip.by_index(i).context("the zip file is damaged")?;
         let Some(rel) = entry.enclosed_name() else {
@@ -165,12 +165,12 @@ fn un7z(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> {
     })
     .map_err(|e| {
         if cancel.is_cancelled() {
-            anyhow::Error::new(ember_runtime::download::Cancelled)
+            anyhow::Error::new(irori_runtime::download::Cancelled)
         } else {
             anyhow::anyhow!("the 7-Zip archive could not be unpacked: {e}")
         }
     })?;
-    // 7-Zip keeps no Unix modes Ember can rely on; programs need theirs.
+    // 7-Zip keeps no Unix modes Irori can rely on; programs need theirs.
     mark_programs_executable(dest);
     Ok(())
 }
@@ -202,7 +202,7 @@ fn mark_programs_executable(dir: &Path) {
 pub async fn unpack_dmg(image: &Path, dest: &Path, scratch: &Path) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
-        use ember_core::process::{self, CommandSpec, RunOptions};
+        use irori_core::process::{self, CommandSpec, RunOptions};
         let mount = scratch.join("mount");
         tokio::fs::create_dir_all(&mount).await?;
         tokio::fs::create_dir_all(dest).await?;
@@ -250,7 +250,7 @@ pub async fn unpack_dmg(image: &Path, dest: &Path, scratch: &Path) -> Result<()>
 
 #[cfg(target_os = "macos")]
 async fn copy_bundles(mount: &Path, dest: &Path) -> Result<()> {
-    use ember_core::process::{self, CommandSpec, RunOptions};
+    use irori_core::process::{self, CommandSpec, RunOptions};
     let mut found = false;
     let mut entries = tokio::fs::read_dir(mount).await?;
     while let Some(entry) = entries.next_entry().await? {
@@ -308,7 +308,7 @@ mod tests {
         std::fs::write(&app, b"\x7fELF").unwrap();
         let dest = dir.path().join("plain");
         unpack(&app, "Emu-x64.AppImage", &dest, &cancel).unwrap();
-        assert!(ember_core::util::is_executable(
+        assert!(irori_core::util::is_executable(
             &dest.join("Emu-x64.AppImage")
         ));
     }

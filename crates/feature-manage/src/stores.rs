@@ -1,11 +1,7 @@
-//! Store websites ([`Route::Stores`](ember_ui::Route::Stores)): links that
+//! Store websites ([`Route::Stores`](irori_ui::Route::Stores)): links that
 //! open each store in the browser, and deals on games the user owns or
 //! wishes for.
 
-use ember_core::Runner;
-use ember_ui::components::{PageHeader, SectionTitle};
-use ember_ui::i18n::t;
-use ember_ui::models;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::link::Link;
@@ -16,6 +12,10 @@ use gpui_kit::{
     AnyElement, AppContext as _, Context, ElementId, Entity, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div, rems,
 };
+use irori_core::Runner;
+use irori_ui::components::{PageHeader, SectionTitle};
+use irori_ui::i18n::t;
+use irori_ui::models;
 
 use crate::accounts::{ACCOUNT_STORES, StoreCard, store_cards, store_icon};
 use crate::common::card;
@@ -56,7 +56,7 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
             host: "itch.io",
             blurb: t("manage.stores.blurb.itch"),
         },
-        // Steam's games come from its own client; Ember has nothing to
+        // Steam's games come from its own client; Irori has nothing to
         // offer there beyond the library.
         Runner::Steam | Runner::Sideload | Runner::Emulation | Runner::Launchers => return None,
     })

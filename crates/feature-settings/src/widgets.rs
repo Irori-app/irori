@@ -1,6 +1,5 @@
 //! Presentational pieces shared by the settings screens.
 
-use ember_ui::i18n::t;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::tag::Tag;
@@ -12,6 +11,7 @@ use gpui_kit::{
     AnyElement, App, ClickEvent, Div, ElementId, ParentElement as _, SharedString, Styled as _,
     Window, div,
 };
+use irori_ui::i18n::t;
 
 /// Decorations of one field row besides its control.
 #[derive(Default)]
@@ -105,7 +105,7 @@ pub(crate) fn group_heading(title: impl Into<SharedString>, cx: &App) -> Div {
     div()
         .pt_8()
         .pb_2()
-        .child(ember_ui::style::caption(title, cx))
+        .child(irori_ui::style::caption(title, cx))
 }
 
 /// The surface holding one group's rows; rows after the first get a divider.

@@ -1,4 +1,4 @@
-//! Emulators for the UI: the engines Ember knows, their installations,
+//! Emulators for the UI: the engines Irori knows, their installations,
 //! downloadable versions, installs, updates and removals, RetroArch cores,
 //! each system's default emulator and BIOS status. Every change emits
 //! [`Event::EnginesChanged`].
@@ -7,11 +7,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
-use ember_core::{Event, OpContext};
-use ember_engines::bios::{self, BiosIndex, SystemBios};
-use ember_engines::releases::{self, Release};
-use ember_engines::state::{CoreInstall, ManagedInstall};
-use ember_engines::{EngineManifest, EngineRef, Installation, discovery, install, retroarch};
+use irori_core::{Event, OpContext};
+use irori_engines::bios::{self, BiosIndex, SystemBios};
+use irori_engines::releases::{self, Release};
+use irori_engines::state::{CoreInstall, ManagedInstall};
+use irori_engines::{EngineManifest, EngineRef, Installation, discovery, install, retroarch};
 
 use crate::Backend;
 
@@ -63,19 +63,19 @@ impl Backend {
     /// Every engine with its installations (discovery reads the disk).
     pub async fn engine_statuses(&self) -> Vec<EngineStatus> {
         self.spawn_blocking(|| {
-            let state = ember_engines::state::load();
+            let state = irori_engines::state::load();
             let cores: Vec<(String, CoreInstall)> = state
                 .cores
                 .iter()
                 .filter(|(_, c)| c.path.exists())
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect();
-            ember_engines::engines()
+            irori_engines::engines()
                 .iter()
                 .map(|m| EngineStatus {
                     installations: discovery::find(m, &state),
                     default: state.preferred.get(&m.id).cloned(),
-                    cores: if m.kind == ember_engines::EngineKind::Retroarch {
+                    cores: if m.kind == irori_engines::EngineKind::Retroarch {
                         cores.clone()
                     } else {
                         Vec::new()
@@ -90,7 +90,7 @@ impl Backend {
 
     /// Downloadable versions of `engine`, newest first.
     pub async fn engine_releases(&self, engine: &str, refresh: bool) -> Result<Vec<Release>> {
-        let manifest = ember_engines::engine(engine).context("unknown emulator")?;
+        let manifest = irori_engines::engine(engine).context("unknown emulator")?;
         releases::list(&manifest, refresh).await
     }
 
@@ -103,7 +103,7 @@ impl Backend {
         make_default: bool,
         ctx: &OpContext,
     ) -> Result<Option<ManagedInstall>> {
-        let manifest = ember_engines::engine(engine).context("unknown emulator")?;
+        let manifest = irori_engines::engine(engine).context("unknown emulator")?;
         let release = match release {
             Some(r) => r,
             None => releases::list(&manifest, false)
@@ -174,7 +174,7 @@ impl Backend {
     /// that is installed, else the first recommended one.
     pub fn system_engine(&self, system: &str, statuses: &[EngineStatus]) -> Option<EngineRef> {
         let app = self.settings.app();
-        ember_engines::default_choice(
+        irori_engines::default_choice(
             system,
             app.system_engines.get(system).map(String::as_str),
             |c| {
@@ -185,7 +185,7 @@ impl Backend {
         )
     }
 
-    /// Make `choice` the default emulator of `system` (`None`: Ember's
+    /// Make `choice` the default emulator of `system` (`None`: Irori's
     /// recommendation).
     pub fn set_system_engine(&self, system: &str, choice: Option<&EngineRef>) {
         self.settings.update_app(|app| match choice {
@@ -203,7 +203,7 @@ impl Backend {
     pub async fn bios_statuses(&self) -> Vec<SystemBios> {
         self.spawn_blocking(|| {
             let index = bios::cached_index();
-            ember_engines::systems::all()
+            irori_engines::systems::all()
                 .iter()
                 .map(|s| bios::status(s, &index))
                 .collect()
@@ -237,7 +237,7 @@ impl Backend {
                 s.rom_folders.push(text);
             }
         });
-        self.refresh_store(ember_core::Runner::Emulation, false)
+        self.refresh_store(irori_core::Runner::Emulation, false)
             .await
     }
 
@@ -245,7 +245,7 @@ impl Backend {
     pub async fn remove_rom_folder(&self, folder: &str) -> Result<()> {
         self.settings
             .update_app(|s| s.rom_folders.retain(|f| f != folder));
-        self.refresh_store(ember_core::Runner::Emulation, false)
+        self.refresh_store(irori_core::Runner::Emulation, false)
             .await
     }
 

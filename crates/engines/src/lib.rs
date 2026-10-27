@@ -1,12 +1,12 @@
-//! Engines: the emulators and game engines that play games Ember has no
+//! Engines: the emulators and game engines that play games Irori has no
 //! store for (RetroArch and its cores, DuckStation, PPSSPP, Dolphin,
-//! ScummVM, DOSBox Staging, …). Wine and Proton stay in `ember-runtime`.
+//! ScummVM, DOSBox Staging, …). Wine and Proton stay in `irori-runtime`.
 //!
 //! An engine is data: a manifest (see [`manifest`]) names its sources per
 //! OS, its launch template and its options. This crate owns:
 //!
 //! - the registry of manifests, built in and overridden by the user;
-//! - discovery of installs: Ember-managed versions, Flatpaks, programs on
+//! - discovery of installs: Irori-managed versions, Flatpaks, programs on
 //!   `PATH`, macOS app bundles, Windows locations and a custom path;
 //! - managed installs with several versions side by side ([`install`]);
 //! - RetroArch cores ([`retroarch`]);
@@ -35,7 +35,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use ember_core::Paths;
+use irori_core::Paths;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde_json::Value;
@@ -46,7 +46,7 @@ pub use launch::{BiosMissing, EngineMissing, EngineUnavailable, GameFile, Unavai
 pub use manifest::{EngineKind, EngineManifest, EngineOption, OptionKind};
 pub use systems::System;
 
-/// The manifests shipped with Ember, by id.
+/// The manifests shipped with Irori, by id.
 pub const BUILT_IN: &[(&str, &str)] = &[
     (
         "retroarch",
@@ -132,7 +132,7 @@ impl std::fmt::Display for EngineRef {
     }
 }
 
-/// Where Ember keeps engine data.
+/// Where Irori keeps engine data.
 pub mod dirs {
     use super::*;
 
@@ -141,12 +141,12 @@ pub mod dirs {
         Paths::get().data.join("engines").join(id)
     }
 
-    /// The folder Ember gives an engine for its settings and saves.
+    /// The folder Irori gives an engine for its settings and saves.
     pub fn home(id: &str) -> PathBuf {
         Paths::get().data.join("engines").join("home").join(id)
     }
 
-    /// BIOS files linked for engines Ember configures (RetroArch's
+    /// BIOS files linked for engines Irori configures (RetroArch's
     /// `system_directory`).
     pub fn system() -> PathBuf {
         Paths::get().data.join("engines").join("system")
@@ -284,7 +284,7 @@ fn load_manifests() -> Vec<Arc<EngineManifest>> {
             }
         }
     }
-    // Overrides for ids Ember does not ship are whole manifests of their own.
+    // Overrides for ids Irori does not ship are whole manifests of their own.
     for (id, value) in overrides {
         if BUILT_IN.iter().any(|(b, _)| *b == id) {
             continue;

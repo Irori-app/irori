@@ -1,4 +1,4 @@
-# UI brief for Ember feature crates
+# UI brief for Irori feature crates
 
 Read `docs/AGENT_BRIEF.md` first (general rules still apply), then this file.
 
@@ -16,14 +16,14 @@ Read `docs/AGENT_BRIEF.md` first (general rules still apply), then this file.
    Examples: `.../scratchpad/ref/gpui-component/examples/` and `crates/story/src` in that repo.
 4. `docs/parity/frontend-features.md` — every capability Heroic has, by screen, plus its
    pain points. **Parity is mandatory; Heroic's layout is not.** Fix its listed pain points.
-5. `crates/ui/src` (ember-ui): `state` (backend access, `run` bridge), `models` (observable
+5. `crates/ui/src` (irori-ui): `state` (backend access, `run` bridge), `models` (observable
    `LibraryModel`, `StatusModel`, `DownloadsModel`, `AccountsModel`, `SettingsModel`,
    `NoticeModel`), `nav` (`Route`, `navigate`), `art` (thumbnail pipeline, `LruImageCache`),
    `components` (`GameCover`, `art_img`, `StoreBadge`, `ProgressSummary`, `EmptyState`,
    `PageHeader`, `SectionTitle`), `theme`.
 6. `crates/services/src` — the `Backend` API you call (library, settings, userdata, statuses,
    downloads, launch/stop/uninstall/move/repair/import/sync_saves/run_in_prefix/winetricks).
-   Store-specific extras are on the store crates (`ember_sideload::SideloadStore`, etc.); reach a
+   Store-specific extras are on the store crates (`irori_sideload::SideloadStore`, etc.); reach a
    concrete store via `backend.store(runner)` and the public API documented in its crate.
 
 ## Architecture contract
@@ -33,11 +33,11 @@ Read `docs/AGENT_BRIEF.md` first (general rules still apply), then this file.
   (`Icon::new(IconName::Gamepad2)`).
 - Your crate exposes view entities (`impl Render`) with `pub fn new(..., window, cx) -> Self`
   constructors plus any `pub fn open_*_dialog(window, cx)` entry points other features need. The
-  shell (`crates/ember`) owns the window, `Root`, title bar, sidebar and routing; you own what
+  shell (`crates/irori`) owns the window, `Root`, title bar, sidebar and routing; you own what
   renders inside the content area for your routes.
-- Backend calls: `let task = ember_ui::run(cx, async move { backend.launch(&id, None, vec![]).await });`
+- Backend calls: `let task = irori_ui::run(cx, async move { backend.launch(&id, None, vec![]).await });`
   then `cx.spawn_in(window, async move |this, cx| { let r = task.await; this.update_in(cx, |..| ...) })`.
-  Never block the UI thread; never call backend `async fn`s outside `ember_ui::run` (they need
+  Never block the UI thread; never call backend `async fn`s outside `irori_ui::run` (they need
   the Tokio runtime).
 - Observe only the models you render (`cx.observe(&models(cx).library, |_, _, cx| cx.notify())`)
   and keep the returned `Subscription`s in the view.

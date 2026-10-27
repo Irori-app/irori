@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::{json_store, util};
+use irori_core::{json_store, util};
 use parking_lot::Mutex;
 use serde::Serialize;
 use serde::de::DeserializeOwned;

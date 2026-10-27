@@ -1,10 +1,10 @@
-//! Mapping Amazon entitlements and install records to Ember's domain types.
+//! Mapping Amazon entitlements and install records to Irori's domain types.
 //!
 //! Everything here is pure (no I/O) so it can be unit-tested with fixtures.
 
-use ember_amazon_api::Entitlement;
-use ember_core::util::format_bytes;
-use ember_core::{ExtraInfo, GameInfo, InstallPlatform, InstallProgress, InstalledInfo, Runner};
+use irori_amazon_api::Entitlement;
+use irori_core::util::format_bytes;
+use irori_core::{ExtraInfo, GameInfo, InstallPlatform, InstallProgress, InstalledInfo, Runner};
 
 use crate::state::InstalledGame;
 
@@ -115,8 +115,8 @@ pub fn orphan_info(product_id: &str, installed: &InstalledGame) -> GameInfo {
     info.finalize()
 }
 
-/// A download report in Ember's terms.
-pub fn progress(p: ember_depot::Progress) -> InstallProgress {
+/// A download report in Irori's terms.
+pub fn progress(p: irori_depot::Progress) -> InstallProgress {
     InstallProgress {
         percent: Some(p.percent.clamp(0.0, 100.0)),
         bytes_done: Some(p.bytes_done),
@@ -202,14 +202,14 @@ mod tests {
 
     #[test]
     fn maps_progress() {
-        let p = progress(ember_depot::Progress {
+        let p = progress(irori_depot::Progress {
             percent: 50.0,
             bytes_done: 5,
             bytes_total: 10,
             eta_secs: Some(3),
             download_speed: 7,
             disk_speed: 8,
-            bottleneck: Some(ember_core::Bottleneck::Disk),
+            bottleneck: Some(irori_core::Bottleneck::Disk),
             preparing: None,
         });
         assert_eq!(p.percent, Some(50.0));
@@ -218,6 +218,6 @@ mod tests {
             (p.download_speed, p.disk_speed, p.eta_secs),
             (Some(7), Some(8), Some(3))
         );
-        assert_eq!(p.bottleneck, Some(ember_core::Bottleneck::Disk));
+        assert_eq!(p.bottleneck, Some(irori_core::Bottleneck::Disk));
     }
 }

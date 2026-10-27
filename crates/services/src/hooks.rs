@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::Result;
-use ember_core::{GameId, GameInfo, InstallPlatform, OpContext, async_trait};
-use ember_runtime::{LaunchHooks, Target};
+use irori_core::{GameId, GameInfo, InstallPlatform, OpContext, async_trait};
+use irori_runtime::{LaunchHooks, Target};
 
 use crate::Backend;
 
@@ -17,7 +17,7 @@ pub(crate) struct KnownFixHooks {
 #[async_trait]
 impl LaunchHooks for KnownFixHooks {
     async fn known_fixes_env(&self, id: &GameId) -> BTreeMap<String, String> {
-        ember_extras::known_fixes::lookup(id.runner, &id.app_name)
+        irori_extras::known_fixes::lookup(id.runner, &id.app_name)
             .await
             .map(|f| f.env_variables)
             .unwrap_or_default()
@@ -30,7 +30,7 @@ impl LaunchHooks for KnownFixHooks {
         _prefix: &Path,
         ctx: &OpContext,
     ) -> Result<()> {
-        let Some(fix) = ember_extras::known_fixes::lookup(id.runner, &id.app_name).await else {
+        let Some(fix) = irori_extras::known_fixes::lookup(id.runner, &id.app_name).await else {
             return Ok(());
         };
         if !fix.has_prefix_fixes() {
@@ -45,7 +45,7 @@ impl LaunchHooks for KnownFixHooks {
         };
         if !fix.winetricks.is_empty() {
             (ctx.step)("Applying known fixes");
-            ember_runtime::winetricks(&app, &settings, target, fix.winetricks.clone(), ctx.clone())
+            irori_runtime::winetricks(&app, &settings, target, fix.winetricks.clone(), ctx.clone())
                 .await?;
         }
         if let Some(dir) = game.install_path() {
@@ -56,7 +56,7 @@ impl LaunchHooks for KnownFixHooks {
                     continue;
                 }
                 (ctx.step)("Running setup files");
-                ember_runtime::run_in_prefix(
+                irori_runtime::run_in_prefix(
                     &app,
                     &settings,
                     target,

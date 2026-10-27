@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, Runner};
-use ember_scripts::{Approvals, Consent, InstallerListing, Script, ScriptError};
+use irori_core::{GameId, GameInfo, Runner};
+use irori_scripts::{Approvals, Consent, InstallerListing, Script, ScriptError};
 
 /// The installer's steps, in order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,17 +109,17 @@ fn day(date: &str) -> String {
     date.split('T').next().unwrap_or(date).to_string()
 }
 
-/// Why a parsed script still can't be installed by Ember.
+/// Why a parsed script still can't be installed by Irori.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refusal {
     /// It adds to another game (`extends`) or installs into one
-    /// (`requires`), which Ember doesn't manage for Lutris games.
+    /// (`requires`), which Irori doesn't manage for Lutris games.
     NeedsGame(String),
-    /// Ember can't add games of this runner to its library.
+    /// Irori can't add games of this runner to its library.
     Runner(String),
 }
 
-/// The reason Ember won't run `script`, if any.
+/// The reason Irori won't run `script`, if any.
 pub fn refusal(script: &Script) -> Option<Refusal> {
     if let Some(base) = &script.extends {
         return Some(Refusal::NeedsGame(base.clone()));
@@ -128,7 +128,7 @@ pub fn refusal(script: &Script) -> Option<Refusal> {
         return Some(Refusal::NeedsGame(group.join(" | ")));
     }
     let runner = script.info.runner.as_str();
-    (!ember_services::scripts::runner_supported(runner))
+    (!irori_services::scripts::runner_supported(runner))
         .then(|| Refusal::Runner(runner.to_string()))
 }
 
@@ -142,7 +142,7 @@ pub fn title_key(title: &str) -> String {
         .collect()
 }
 
-/// Stores whose games Ember installs natively.
+/// Stores whose games Irori installs natively.
 const NATIVE: [Runner; 6] = [
     Runner::Legendary,
     Runner::Gog,
@@ -170,11 +170,11 @@ pub fn native_game<'a>(
 /// The suggested game folder: `<install root>/<slug>`.
 pub fn default_game_dir(install_root: &str, slug: &str) -> PathBuf {
     let root = if install_root.trim().is_empty() {
-        ember_core::paths::expand_home("~/Games")
+        irori_core::paths::expand_home("~/Games")
     } else {
-        ember_core::paths::expand_home(install_root.trim())
+        irori_core::paths::expand_home(install_root.trim())
     };
-    root.join(ember_core::paths::sanitize(slug))
+    root.join(irori_core::paths::sanitize(slug))
 }
 
 /// Whether every file the user must provide has been chosen.
@@ -234,7 +234,7 @@ impl ConsentChecks {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_scripts::{OutsideWrite, ShellCommand, UserFile};
+    use irori_scripts::{OutsideWrite, ShellCommand, UserFile};
 
     #[test]
     fn steps_follow_in_order_and_skip_files_when_there_are_none() {
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn scripts_ember_cannot_finish_are_refused() {
+    fn scripts_irori_cannot_finish_are_refused() {
         let base = "name: X\ngame_slug: x\nversion: A\nslug: x-a\nrunner: linux\nscript:\n  game:\n    exe: x\n  installer:\n  - mkdir: $GAMEDIR/a\n";
         let script = Script::parse(base).unwrap();
         assert_eq!(refusal(&script), None);

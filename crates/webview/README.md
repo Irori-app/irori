@@ -3,7 +3,7 @@
 A WebView for GPUI, based on [Wry](https://github.com/tauri-apps/wry).
 
 Vendored from `gpui-webview` 0.8.0 (longbridge/gpui-kit, commit `1676826d`,
-`crates/webview`), Apache-2.0: see `LICENSE-APACHE`. The changes below are Ember's.
+`crates/webview`), Apache-2.0: see `LICENSE-APACHE`. The changes below are Irori's.
 
 | Platform | Engine | How the page is shown |
 | --- | --- | --- |

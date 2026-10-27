@@ -1,8 +1,8 @@
-//! Pure conversions from API responses to Ember's domain types.
+//! Pure conversions from API responses to Irori's domain types.
 
 use std::path::Path;
 
-use ember_core::{ExtraInfo, GameInfo, InstallInfo, InstallPlatform, Runner};
+use irori_core::{ExtraInfo, GameInfo, InstallInfo, InstallPlatform, Runner};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -138,7 +138,7 @@ pub fn platform_files(files: &FilesResponse, platform: InstallPlatform) -> &[Zoo
 pub fn disk_name(f: &ZoomFile) -> String {
     let clean = |s: &str| {
         let base = s.rsplit(['/', '\\']).next().unwrap_or("").trim();
-        let base = ember_core::paths::sanitize(base);
+        let base = irori_core::paths::sanitize(base);
         (!base.is_empty() && base != "." && base != ".." && !base.starts_with('.')).then_some(base)
     };
     [&f.name, &f.filename]
@@ -147,7 +147,7 @@ pub fn disk_name(f: &ZoomFile) -> String {
         .find(|s| s.contains('.'))
         .or_else(|| clean(&f.name))
         .or_else(|| clean(&f.filename))
-        .unwrap_or_else(|| format!("zoom-file-{}", ember_core::paths::sanitize(&f.id)))
+        .unwrap_or_else(|| format!("zoom-file-{}", irori_core::paths::sanitize(&f.id)))
 }
 
 static VERSION_RE: Lazy<Regex> =

@@ -166,34 +166,38 @@ pub struct GameSettings {
     pub advertise_avx_for_rosetta: bool,
     pub enable_quick_saves_menu: bool,
     /// macOS: render at the display's full resolution (Wine's Mac driver
-    /// `RetinaMode`). Ember-only.
-    #[serde(rename = "emberRetinaMode")]
+    /// `RetinaMode`). Irori-only.
+    #[serde(rename = "iroriRetinaMode", alias = "emberRetinaMode")]
     pub retina_mode: bool,
     /// The emulator that plays this game (`duckstation`,
-    /// `retroarch:<core>`); empty for the system's default. Ember-only.
-    #[serde(rename = "emberEngine")]
+    /// `retroarch:<core>`); empty for the system's default. Irori-only.
+    #[serde(rename = "iroriEngine", alias = "emberEngine")]
     pub engine: String,
     /// The installation of that emulator this game is pinned to
     /// (`managed:<version>`, `flatpak`, `system`, …); empty for the
-    /// emulator's default. Ember-only.
-    #[serde(rename = "emberEngineVersion")]
+    /// emulator's default. Irori-only.
+    #[serde(rename = "iroriEngineVersion", alias = "emberEngineVersion")]
     pub engine_version: String,
     /// Emulator option values by emulator id. Per game, only the options
     /// set for that game; [`GameSettingsOverrides::apply`] merges them over
-    /// the defaults option by option. Ember-only.
-    #[serde(rename = "emberEngineOptions")]
+    /// the defaults option by option. Irori-only.
+    #[serde(rename = "iroriEngineOptions", alias = "emberEngineOptions")]
     pub engine_options: BTreeMap<String, Map<String, Value>>,
     /// Leave the emulator's own configuration alone instead of the settings
-    /// Ember manages. Ember-only.
-    #[serde(rename = "emberEngineOwnSettings")]
+    /// Irori manages. Irori-only.
+    #[serde(rename = "iroriEngineOwnSettings", alias = "emberEngineOwnSettings")]
     pub engine_own_settings: bool,
     /// The Lutris install script that installed this game, so it can be
-    /// reinstalled or updated later. Per game only. Ember-only.
-    #[serde(rename = "emberLutrisScript", skip_serializing_if = "Option::is_none")]
+    /// reinstalled or updated later. Per game only. Irori-only.
+    #[serde(
+        rename = "iroriLutrisScript",
+        alias = "emberLutrisScript",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub lutris_script: Option<LutrisScriptRecord>,
 }
 
-/// Which Lutris install script installed a game (`emberLutrisScript`).
+/// Which Lutris install script installed a game (`iroriLutrisScript`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LutrisScriptRecord {
@@ -283,8 +287,31 @@ fn de_false_or_string<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>,
 
 /// Sparse per-game settings: only the keys a user changed for that game.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[serde(from = "Map<String, Value>", into = "Map<String, Value>")]
 pub struct GameSettingsOverrides(pub Map<String, Value>);
+
+impl From<Map<String, Value>> for GameSettingsOverrides {
+    /// Irori was called Ember before its first release; its own keys were
+    /// `ember…`, so files written then keep their overrides.
+    fn from(map: Map<String, Value>) -> Self {
+        Self(
+            map.into_iter()
+                .map(|(k, v)| match k.strip_prefix("ember") {
+                    Some(rest) if rest.starts_with(char::is_uppercase) => {
+                        (format!("irori{rest}"), v)
+                    }
+                    _ => (k, v),
+                })
+                .collect(),
+        )
+    }
+}
+
+impl From<GameSettingsOverrides> for Map<String, Value> {
+    fn from(overrides: GameSettingsOverrides) -> Self {
+        overrides.0
+    }
+}
 
 impl GameSettingsOverrides {
     /// Effective settings: `defaults` with these overrides applied.
@@ -297,7 +324,7 @@ impl GameSettingsOverrides {
             for (k, v) in &self.0 {
                 // Emulator options merge per emulator and option, so a game
                 // that sets one option keeps the defaults of the others.
-                if k == "emberEngineOptions"
+                if k == "iroriEngineOptions"
                     && let (Some(Value::Object(base)), Value::Object(set)) = (map.get_mut(k), v)
                 {
                     for (engine, options) in set {
@@ -406,45 +433,51 @@ pub struct AppSettings {
     pub steam_grid_db_api_key: String,
     pub comet_support: bool,
     pub zoom_platform: bool,
-    /// The itch.io store (off until turned on). Ember-only.
-    #[serde(rename = "emberItchIo")]
+    /// The itch.io store (off until turned on). Irori-only.
+    #[serde(rename = "iroriItchIo", alias = "emberItchIo")]
     pub itch_io: bool,
     /// UI language code ("en", "de", …).
     #[serde(rename = "uiLanguage")]
     pub ui_language: String,
-    #[serde(rename = "emberUi")]
+    #[serde(rename = "iroriUi", alias = "emberUi")]
     pub ui: UiPrefs,
     /// Where offline installers and goodies are saved (each game in its own
     /// folder inside).
-    #[serde(rename = "emberExtrasPath")]
+    #[serde(rename = "iroriExtrasPath", alias = "emberExtrasPath")]
     pub extras_path: String,
     /// macOS: where CrossOver keeps its bottles, when moved from
     /// `~/Library/Application Support/CrossOver/Bottles` ("" = there).
-    #[serde(rename = "emberCrossoverBottlesPath")]
+    #[serde(
+        rename = "iroriCrossoverBottlesPath",
+        alias = "emberCrossoverBottlesPath"
+    )]
     pub crossover_bottles_path: String,
     /// The default emulator of each system (`psx` → `duckstation`); systems
     /// not listed use the first installed recommended emulator.
-    #[serde(rename = "emberSystemEngines")]
+    #[serde(rename = "iroriSystemEngines", alias = "emberSystemEngines")]
     pub system_engines: BTreeMap<String, String>,
     /// Folders scanned for console and retro games.
-    #[serde(rename = "emberRomFolders")]
+    #[serde(rename = "iroriRomFolders", alias = "emberRomFolders")]
     pub rom_folders: Vec<String>,
     /// Where the user keeps BIOS files ("" = not chosen).
-    #[serde(rename = "emberBiosFolder")]
+    #[serde(rename = "iroriBiosFolder", alias = "emberBiosFolder")]
     pub bios_folder: String,
     /// List games of Battle.net, EA app, Ubisoft Connect and Rockstar
-    /// (off until turned on). Ember-only.
-    #[serde(rename = "emberThirdPartyLaunchers")]
+    /// (off until turned on). Irori-only.
+    #[serde(
+        rename = "iroriThirdPartyLaunchers",
+        alias = "emberThirdPartyLaunchers"
+    )]
     pub third_party_launchers: bool,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
-        let games = home.join("Games").join("Ember");
+        let games = home.join("Games").join("Irori");
         let extras = dirs::download_dir()
             .unwrap_or_else(|| home.join("Downloads"))
-            .join("Ember");
+            .join("Irori");
         Self {
             extras_path: extras.to_string_lossy().into_owned(),
             crossover_bottles_path: String::new(),
@@ -516,7 +549,7 @@ pub enum LibraryLayout {
     List,
 }
 
-/// How much of the desktop shows through Ember's window chrome.
+/// How much of the desktop shows through Irori's window chrome.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Translucency {
@@ -531,7 +564,7 @@ pub enum Translucency {
     Strong,
 }
 
-/// Ember-only presentation preferences.
+/// Irori-only presentation preferences.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct UiPrefs {
@@ -558,9 +591,9 @@ pub struct UiPrefs {
     pub big_picture_scale: u32,
 }
 
-/// Which stores Ember shows. A hidden store keeps its sign-in and installed
+/// Which stores Irori shows. A hidden store keeps its sign-in and installed
 /// games on disk; its games, account card and store page are left out.
-/// ZOOM Platform follows `zoomPlatform`, itch.io follows `emberItchIo`, and
+/// ZOOM Platform follows `zoomPlatform`, itch.io follows `iroriItchIo`, and
 /// apps the user added are always shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -660,6 +693,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ember_keys_load_under_irori_names() {
+        let overrides: GameSettingsOverrides = serde_json::from_str(
+            r#"{"emberEngine": "duckstation", "embers": 1, "wineVersion": {"name": "w"}}"#,
+        )
+        .unwrap();
+        assert_eq!(overrides.0["iroriEngine"], "duckstation");
+        assert!(overrides.0.contains_key("embers"));
+        assert!(overrides.0.contains_key("wineVersion"));
+        let json = serde_json::to_value(&overrides).unwrap();
+        assert!(json.get("iroriEngine").is_some() && json.get("emberEngine").is_none());
+
+        let app: AppSettings =
+            serde_json::from_str(r#"{"emberItchIo": true, "emberEngine": "mgba"}"#).unwrap();
+        assert!(app.itch_io);
+        assert_eq!(serde_json::to_value(&app).unwrap()["iroriEngine"], "mgba");
+    }
+
+    #[test]
     fn ui_prefs_from_older_files_keep_defaults() {
         let ui: UiPrefs = serde_json::from_str(r#"{"fontSize":18}"#).unwrap();
         assert_eq!(ui.stores, ShownStores::default());
@@ -710,7 +761,7 @@ mod tests {
         );
         let mut game = GameSettingsOverrides::default();
         game.set(
-            "emberEngineOptions",
+            "iroriEngineOptions",
             serde_json::json!({"retroarch": {"vsync": false}, "dolphin": {"fullscreen": false}}),
         );
         let effective = game.apply(&defaults);

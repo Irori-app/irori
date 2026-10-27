@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{InstallPlatform, OpContext, Outcome};
-use ember_depot::{Finished, Job, Verified};
-use ember_epic_api::install::{ChunkSigner, EntryBuilder, Mode as PlanMode, PlanInput, plan};
-use ember_epic_api::{Manifest, Secrets};
+use irori_core::{InstallPlatform, OpContext, Outcome};
+use irori_depot::{Finished, Job, Verified};
+use irori_epic_api::install::{ChunkSigner, EntryBuilder, Mode as PlanMode, PlanInput, plan};
+use irori_epic_api::{Manifest, Secrets};
 
 use crate::state::InstalledGame;
 use crate::{EpicStore, FetchedBuild, install_info};
@@ -16,10 +16,10 @@ use crate::{EpicStore, FetchedBuild, install_info};
 struct Download<'a> {
     app: &'a str,
     platform: &'a str,
-    asset: &'a ember_epic_api::Asset,
+    asset: &'a irori_epic_api::Asset,
     use_signed_url: bool,
     dir: &'a Path,
-    files: (Vec<ember_depot::FileEntry>, Vec<String>),
+    files: (Vec<irori_depot::FileEntry>, Vec<String>),
     target: &'a Manifest,
     target_bytes: Vec<u8>,
     secrets: Secrets,
@@ -63,10 +63,10 @@ pub(crate) fn log_line(ctx: &OpContext, line: &str) {
     }
 }
 
-fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
+fn progress_sink(ctx: &OpContext) -> irori_depot::ProgressFn {
     let sink = ctx.progress.clone();
-    Arc::new(move |p: ember_depot::Progress| {
-        sink(ember_core::InstallProgress {
+    Arc::new(move |p: irori_depot::Progress| {
+        sink(irori_core::InstallProgress {
             percent: Some(p.percent.clamp(0.0, 100.0)),
             bytes_done: Some(p.bytes_done),
             bytes_total: Some(p.bytes_total),
@@ -88,11 +88,11 @@ pub(crate) fn delete_listed(
     keep_root: bool,
 ) -> Result<()> {
     for f in manifest.files.iter().filter(|f| f.selected_by(tags)) {
-        let Ok(rel) = ember_depot::path::normalize(&f.filename) else {
+        let Ok(rel) = irori_depot::path::normalize(&f.filename) else {
             continue;
         };
-        let p = ember_depot::path::join(dir, &rel);
-        for p in [ember_depot::path::part_path(&p), p] {
+        let p = irori_depot::path::join(dir, &rel);
+        for p in [irori_depot::path::part_path(&p), p] {
             match std::fs::remove_file(&p) {
                 Ok(()) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
@@ -118,9 +118,9 @@ fn remove_empty_dirs(dir: &Path, keep_root: bool) {
 }
 
 impl EpicStore {
-    fn depot_options(&self, app: &str) -> ember_depot::Options {
+    fn depot_options(&self, app: &str) -> irori_depot::Options {
         let settings = (self.settings)();
-        ember_depot::Options {
+        irori_depot::Options {
             workers: settings.max_workers as usize,
             max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
             journal: Some(self.layout.resume_file(app)),
@@ -184,7 +184,7 @@ impl EpicStore {
             return Ok(PathBuf::from(base_game.install_path));
         }
         let folder = record.folder_name().trim().to_string();
-        Ok(base.join(ember_core::paths::sanitize(&folder)))
+        Ok(base.join(irori_core::paths::sanitize(&folder)))
     }
 
     async fn deploy_inner(
@@ -314,12 +314,12 @@ impl EpicStore {
         tags: &[String],
         dir: &Path,
         ctx: &OpContext,
-    ) -> Result<Option<Vec<ember_depot::FileEntry>>> {
+    ) -> Result<Option<Vec<irori_depot::FileEntry>>> {
         let builder = EntryBuilder::new(manifest, base_urls, Arc::new(secrets.clone()));
         let entries = builder.all(tags)?;
         (ctx.step)("Verifying files");
         let verified =
-            ember_depot::verify(dir, &entries, 0, progress_sink(ctx), &ctx.cancel).await?;
+            irori_depot::verify(dir, &entries, 0, progress_sink(ctx), &ctx.cancel).await?;
         let broken = match verified {
             Verified::Cancelled => return Ok(None),
             Verified::Checked(bad) => bad,
@@ -339,10 +339,10 @@ impl EpicStore {
         secrets: &Secrets,
         tags: &[String],
         dir: &Path,
-    ) -> Result<(Vec<ember_depot::FileEntry>, Vec<String>)> {
+    ) -> Result<(Vec<irori_depot::FileEntry>, Vec<String>)> {
         let exists = |rel: &str| {
-            ember_depot::path::normalize(rel)
-                .map(|r| ember_depot::path::join(dir, &r).is_file())
+            irori_depot::path::normalize(rel)
+                .map(|r| irori_depot::path::join(dir, &r).is_file())
                 .unwrap_or(false)
         };
         let p = plan(
@@ -380,14 +380,14 @@ impl EpicStore {
         let client = self.client().await?;
         let mut opts = self.depot_options(app);
         if use_signed_url {
-            opts.signer = Some(ember_depot::Signer(Arc::new(ChunkSigner::new(
+            opts.signer = Some(irori_depot::Signer(Arc::new(ChunkSigner::new(
                 client.clone(),
                 self.session_source(),
                 asset.clone(),
             ))));
         }
         (ctx.step)("Downloading");
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &client.download_client()?,
             Job {
                 root: dir,
@@ -405,7 +405,7 @@ impl EpicStore {
         }
         if !target_bytes.is_empty() {
             let path = self.layout.build_manifest(app);
-            Self::blocking(move || ember_core::json_store::write_bytes(&path, &target_bytes))
+            Self::blocking(move || irori_core::json_store::write_bytes(&path, &target_bytes))
                 .await??;
         }
         let record = self.require_record(app)?;
@@ -486,9 +486,9 @@ impl EpicStore {
         let exe = manifest.meta.launch_exe.trim_start_matches('/').to_string();
         let (found, exe_found) = Self::blocking(move || {
             let exists = |rel: &str| {
-                ember_depot::path::normalize(rel)
+                irori_depot::path::normalize(rel)
                     .map(|r| {
-                        ember_epic_api::saves::case_insensitive(&ember_depot::path::join(&dir, &r))
+                        irori_epic_api::saves::case_insensitive(&irori_depot::path::join(&dir, &r))
                             .is_file()
                     })
                     .unwrap_or(false)
@@ -522,7 +522,7 @@ impl EpicStore {
         }
         let path_bytes = build.bytes.clone();
         let target = self.layout.build_manifest(app);
-        Self::blocking(move || ember_core::json_store::write_bytes(&target, &path_bytes)).await??;
+        Self::blocking(move || irori_core::json_store::write_bytes(&target, &path_bytes)).await??;
         let entry = InstalledGame {
             app_name: app.to_string(),
             title: record.app_title.clone(),
@@ -563,7 +563,7 @@ impl EpicStore {
 
 #[cfg(test)]
 mod tests {
-    use ember_epic_api::{ChunkPart, FileManifest};
+    use irori_epic_api::{ChunkPart, FileManifest};
 
     use super::*;
 

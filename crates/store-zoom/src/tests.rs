@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use ember_core::process::CancellationToken;
-use ember_core::{
+use irori_core::process::CancellationToken;
+use irori_core::{
     AppSettings, EventBus, InstallPlatform, InstallRequest, LaunchEnvironment, LaunchRequest,
     OpContext, Outcome, RemoveArgs, Store,
 };
@@ -120,7 +120,7 @@ fn fixture() -> Fixture {
     }
 }
 
-fn ctx_with(cancel: CancellationToken, progress: ember_core::ProgressSink) -> OpContext {
+fn ctx_with(cancel: CancellationToken, progress: irori_core::ProgressSink) -> OpContext {
     OpContext {
         progress,
         cancel,
@@ -141,13 +141,13 @@ fn linux_request(f: &Fixture) -> InstallRequest {
 #[cfg(unix)]
 #[test]
 fn deletion_guard() {
-    let protected = [PathBuf::from("/home/u/Games/Ember")];
+    let protected = [PathBuf::from("/home/u/Games/Irori")];
     assert!(is_safe_to_delete(
-        Path::new("/home/u/Games/Ember/game"),
+        Path::new("/home/u/Games/Irori/game"),
         &protected
     ));
     assert!(!is_safe_to_delete(
-        Path::new("/home/u/Games/Ember"),
+        Path::new("/home/u/Games/Irori"),
         &protected
     ));
     assert!(!is_safe_to_delete(Path::new("/home"), &protected));
@@ -325,7 +325,7 @@ async fn paused_install_resumes_with_range() {
 
     let cancel = CancellationToken::new();
     let c2 = cancel.clone();
-    let progress: ember_core::ProgressSink = Arc::new(move |p: ember_core::InstallProgress| {
+    let progress: irori_core::ProgressSink = Arc::new(move |p: irori_core::InstallProgress| {
         if p.bytes_done.unwrap_or(0) > 40_000 {
             c2.cancel();
         }
@@ -369,7 +369,7 @@ async fn cancelled_install_cleanup() {
     f.slow.store(true, Ordering::SeqCst);
     let cancel = CancellationToken::new();
     let c2 = cancel.clone();
-    let progress: ember_core::ProgressSink = Arc::new(move |p: ember_core::InstallProgress| {
+    let progress: irori_core::ProgressSink = Arc::new(move |p: irori_core::InstallProgress| {
         if p.bytes_done.unwrap_or(0) > 20_000 {
             c2.cancel();
         }
@@ -439,7 +439,7 @@ async fn expired_token_logs_out() {
     assert!(store.is_logged_in());
     let e = store.refresh(false).await.unwrap_err();
     assert_eq!(
-        ember_core::SessionExpired::of(&e).map(|s| s.runner),
+        irori_core::SessionExpired::of(&e).map(|s| s.runner),
         Some(Runner::Zoom)
     );
     assert!(!store.is_logged_in());

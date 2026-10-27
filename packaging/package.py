@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Package already-built Ember binaries using only Python's standard library.
+"""Package already-built Irori binaries using only Python's standard library.
 
-    cargo build --locked --release -p ember -p ember-sign-in
+    cargo build --locked --release -p irori -p irori-sign-in
     python3 packaging/package.py --platform macos --binary-dir target/release --output dist
 
 Signing is deliberately separate: use a Developer ID for public macOS releases
@@ -50,7 +50,7 @@ def validate_windows_x64(binary: Path) -> None:
 
 def windows_crt_directory() -> Path:
     """Find the installed toolchain's redistributable, never arbitrary system DLLs."""
-    explicit = os.environ.get("EMBER_WINDOWS_CRT_DIR")
+    explicit = os.environ.get("IRORI_WINDOWS_CRT_DIR")
     if explicit:
         candidates = [Path(explicit)]
     else:
@@ -75,7 +75,7 @@ def windows_crt_directory() -> Path:
             return candidate
     raise FileNotFoundError(
         "Missing x64 Visual C++ redistributable DLLs. Install the Visual Studio C++ tools, "
-        "or set EMBER_WINDOWS_CRT_DIR to their x64 Microsoft.VC*.CRT directory."
+        "or set IRORI_WINDOWS_CRT_DIR to their x64 Microsoft.VC*.CRT directory."
     )
 
 
@@ -83,10 +83,10 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     root = Path(__file__).resolve().parent.parent
     version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
     suffix = ".exe" if platform == "windows" else ""
-    binaries = [binary_dir / (name + suffix) for name in ("ember", "ember-sign-in")]
+    binaries = [binary_dir / (name + suffix) for name in ("irori", "irori-sign-in")]
     for binary in binaries:
         if not binary.is_file():
-            raise FileNotFoundError(f"Build both Ember and its sign-in helper first: {binary}")
+            raise FileNotFoundError(f"Build both Irori and its sign-in helper first: {binary}")
     if platform == "macos":
         for binary in binaries:
             validate_macos_dependencies(binary)
@@ -97,7 +97,7 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
         for binary in [*binaries, *windows_runtime]:
             validate_windows_x64(binary)
     output.mkdir(parents=True, exist_ok=True)
-    staging = output / ("Ember.app" if platform == "macos" else "Ember")
+    staging = output / ("Irori.app" if platform == "macos" else "Irori")
     staging.mkdir()  # Never overwrite an existing package or unrelated files.
     destination = staging / "Contents/MacOS" if platform == "macos" else staging
     destination.mkdir(parents=True, exist_ok=True)
@@ -106,54 +106,54 @@ def package(platform: str, binary_dir: Path, output: Path) -> Path:
     if platform == "macos":
         resources = staging / "Contents/Resources"
         resources.mkdir()
-        shutil.copy2(root / "packaging/ember.svg", resources)
+        shutil.copy2(root / "packaging/irori.svg", resources)
         info = {
-            "CFBundleName": "Ember", "CFBundleDisplayName": "Ember",
-            "CFBundleIdentifier": "org.ember.Ember", "CFBundleExecutable": "ember",
+            "CFBundleName": "Irori", "CFBundleDisplayName": "Irori",
+            "CFBundleIdentifier": "io.github.irori-app.Irori", "CFBundleExecutable": "irori",
             "CFBundlePackageType": "APPL", "CFBundleVersion": version,
             "CFBundleShortVersionString": version, "LSMinimumSystemVersion": "12.0",
             "LSApplicationCategoryType": "public.app-category.games",
             "NSHighResolutionCapable": True,
             "NSPrincipalClass": "NSApplication",
-            "CFBundleURLTypes": [{"CFBundleURLName": "Ember game launcher",
-                "CFBundleTypeRole": "Viewer", "CFBundleURLSchemes": ["ember"]}],
+            "CFBundleURLTypes": [{"CFBundleURLName": "Irori game launcher",
+                "CFBundleTypeRole": "Viewer", "CFBundleURLSchemes": ["irori"]}],
         }
-        icon = root / "packaging/ember.icns"
+        icon = root / "packaging/irori.icns"
         if icon.is_file():
             shutil.copy2(icon, resources)
-            info["CFBundleIconFile"] = "ember.icns"
+            info["CFBundleIconFile"] = "irori.icns"
         with (staging / "Contents/Info.plist").open("wb") as file:
             plistlib.dump(info, file)
         # Sign the nested helper before the bundle. Signing CFBundleExecutable
         # directly promotes the operation to the whole app, so it must not run
         # while the helper is still unsigned (as it is on Intel builds).
         # Ad-hoc signatures are for local/CI validation, not distribution.
-        identity = os.environ.get("EMBER_SIGN_IDENTITY", "-")
-        for path in [destination / "ember-sign-in", staging]:
+        identity = os.environ.get("IRORI_SIGN_IDENTITY", "-")
+        for path in [destination / "irori-sign-in", staging]:
             command = ["codesign", "--force", "--sign", identity]
             if identity != "-":
                 command += ["--options", "runtime", "--timestamp", "--entitlements", str(root / "packaging/macos.entitlements")]
             subprocess.run([*command, str(path)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(staging)], check=True)
-        archive = output / f"Ember-{version}-macos.zip"
+        archive = output / f"Irori-{version}-macos.zip"
         subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(staging), str(archive)], check=True)
     elif platform == "windows":
         for library in windows_runtime:
             shutil.copy2(library, staging / library.name)
         shutil.copy2(root / "packaging/install-windows.ps1", staging / "install.ps1")
-        shutil.copy2(root / "packaging/ember.svg", staging)
-        shutil.copy2(root / "packaging/ember.ico", staging)
-        archive = output / f"Ember-{version}-windows.zip"
+        shutil.copy2(root / "packaging/irori.svg", staging)
+        shutil.copy2(root / "packaging/irori.ico", staging)
+        archive = output / f"Irori-{version}-windows.zip"
         with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as zip_file:
             for file in staging.rglob("*"):
                 if file.is_file():
                     zip_file.write(file, file.relative_to(output))
     else:
-        shutil.copy2(root / "packaging/ember.desktop", staging)
-        shutil.copy2(root / "packaging/ember.svg", staging)
-        archive = output / f"Ember-{version}-linux.tar.gz"
+        shutil.copy2(root / "packaging/irori.desktop", staging)
+        shutil.copy2(root / "packaging/irori.svg", staging)
+        archive = output / f"Irori-{version}-linux.tar.gz"
         with tarfile.open(archive, "x:gz") as tar:
-            tar.add(staging, arcname="Ember")
+            tar.add(staging, arcname="Irori")
     return archive
 
 

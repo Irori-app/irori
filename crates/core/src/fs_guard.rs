@@ -88,7 +88,7 @@ pub fn check_deletable(dir: &Path, home: Option<&Path>, protected: &[PathBuf]) -
     Ok(())
 }
 
-/// Folders that must survive any deletion: Ember's own directories and the
+/// Folders that must survive any deletion: Irori's own directories and the
 /// configured library and prefix roots.
 pub fn protected_dirs(app: &AppSettings) -> Vec<PathBuf> {
     let p = Paths::get();
@@ -121,13 +121,13 @@ mod tests {
     #[test]
     fn refuses_windows_roots_and_case_variants() {
         let home = Path::new(r"C:\Users\Player");
-        let protected = vec![PathBuf::from(r"D:\Games\Ember")];
+        let protected = vec![PathBuf::from(r"D:\Games\Irori")];
         for bad in [
             r"C:\",
             r"C:\Users",
             r"c:\users\player",
             r"C:\USERS\PLAYER\Downloads",
-            r"D:\Games\Ember",
+            r"D:\Games\Irori",
             r"C:\Users\Player\x\..\Games",
         ] {
             assert!(
@@ -136,7 +136,7 @@ mod tests {
             );
         }
         assert!(
-            check_deletable(Path::new(r"D:\Games\Ember\Hades"), Some(home), &protected).is_ok()
+            check_deletable(Path::new(r"D:\Games\Irori\Hades"), Some(home), &protected).is_ok()
         );
         let windows = std::env::var_os("SystemRoot").unwrap();
         assert!(
@@ -149,8 +149,8 @@ mod tests {
     fn refuses_broad_folders() {
         let home = Path::new("/home/u");
         let protected = vec![
-            PathBuf::from("/home/u/.config/ember"),
-            PathBuf::from("/home/u/Games/Ember"),
+            PathBuf::from("/home/u/.config/irori"),
+            PathBuf::from("/home/u/Games/Irori"),
         ];
         let check = |p: &str| check_deletable(Path::new(p), Some(home), &protected);
         for bad in [
@@ -160,7 +160,7 @@ mod tests {
             "/home/u",
             "/home/u/Games",
             "/home/u/Downloads",
-            "/home/u/Games/Ember",
+            "/home/u/Games/Irori",
             "/usr/share/x",
             "relative/dir",
             "/home/u/a/../b",
@@ -168,7 +168,7 @@ mod tests {
             assert!(check(bad).is_err(), "{bad} should be refused");
         }
         for ok in [
-            "/home/u/Games/Ember/Hades",
+            "/home/u/Games/Irori/Hades",
             "/mnt/disk/games/Hades",
             "/home/u/Games/Other/x",
         ] {

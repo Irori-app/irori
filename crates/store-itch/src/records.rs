@@ -7,9 +7,9 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::util::format_bytes;
-use ember_core::{InstallPlatform, InstalledInfo, json_store};
-use ember_itch_api::{OwnedKey, User};
+use irori_core::util::format_bytes;
+use irori_core::{InstallPlatform, InstalledInfo, json_store};
+use irori_itch_api::{OwnedKey, User};
 use serde::{Deserialize, Serialize};
 
 /// Where the store's files live.
@@ -65,7 +65,7 @@ pub struct InstalledRecord {
     pub platform: InstallPlatform,
     /// The upload the files came from; 0 for imported folders.
     pub upload_id: u64,
-    /// [`ember_itch_api::Upload::revision`] of the installed files.
+    /// [`irori_itch_api::Upload::revision`] of the installed files.
     pub revision: String,
     pub version: String,
     /// The program to start, relative to the install folder.

@@ -7,7 +7,7 @@
 //! Flatpak installations, and [`plan`] reads `pga.db` (read-only and
 //! immutable, so a running Lutris is not disturbed) and the YAML config
 //! cascade, and returns a [`LutrisPlan`] saying what each game becomes in
-//! Ember and, for every game that is not imported, why. The caller applies
+//! Irori and, for every game that is not imported, why. The caller applies
 //! the plan to its services.
 
 mod config;
@@ -29,7 +29,7 @@ use config::{Cascade, resolve_path};
 use db::DbGame;
 pub use paths::LutrisDirs;
 
-/// Lutris services whose games belong to a store Ember has natively (or, for
+/// Lutris services whose games belong to a store Irori has natively (or, for
 /// Humble Bundle, deliberately does not); such games are pointed at the store
 /// instead of being imported twice.
 const STORE_SERVICES: [&str; 6] = ["gog", "egs", "amazon", "itchio", "zoom", "humblebundle"];
@@ -43,7 +43,7 @@ pub struct LutrisPlan {
     pub warnings: Vec<String>,
 }
 
-/// One Lutris game and what it becomes in Ember.
+/// One Lutris game and what it becomes in Irori.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlannedGame {
     /// Lutris's row id.
@@ -66,7 +66,7 @@ pub struct PlannedGame {
     pub cover: Option<PathBuf>,
 }
 
-/// What a Lutris game becomes in Ember.
+/// What a Lutris game becomes in Irori.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImportKind {
     /// Runner `wine`: a sideloaded Windows app.
@@ -76,7 +76,7 @@ pub enum ImportKind {
         working_dir: Option<PathBuf>,
         prefix: Option<PathBuf>,
         /// Lutris's Wine build name (`wine-ge-8-26-x86_64`); the caller maps
-        /// it to a build Ember knows.
+        /// it to a build Irori knows.
         wine_version: Option<String>,
         /// `win32` or `win64`, when set.
         arch: Option<String>,
@@ -91,9 +91,9 @@ pub enum ImportKind {
     },
     /// An emulator runner: an entry in the ROM library.
     Emulated {
-        /// Ember system id (`snes`, `psx`, `dos`).
+        /// Irori system id (`snes`, `psx`, `dos`).
         system: String,
-        /// Ember engine reference: `duckstation` or `retroarch:<core>`.
+        /// Irori engine reference: `duckstation` or `retroarch:<core>`.
         engine: String,
         /// The ROM, disc image, program or (ScummVM) game folder. For MAME a
         /// bare machine name such as `pacman`.
@@ -101,9 +101,9 @@ pub enum ImportKind {
         /// ScummVM's game id, when set.
         game_id: Option<String>,
     },
-    /// Runner `steam`: already in Ember's Steam library, matched by app id.
+    /// Runner `steam`: already in Irori's Steam library, matched by app id.
     Steam { app_id: String },
-    /// A game of a store Ember has natively; the user is pointed at it.
+    /// A game of a store Irori has natively; the user is pointed at it.
     StoreGame {
         /// Lutris's service id: `gog`, `egs`, `amazon`, `itchio`, `zoom` or
         /// `humblebundle`.
@@ -122,7 +122,7 @@ pub enum SkipReason {
     NotInstalled,
     /// Installed, but no runner is set.
     NoRunner,
-    /// A runner Ember has no equivalent for.
+    /// A runner Irori has no equivalent for.
     UnknownRunner(String),
     /// The game's config names no main file (or Steam app id).
     MissingEntryPoint,
@@ -130,7 +130,7 @@ pub enum SkipReason {
     FileMissing(PathBuf),
     /// A libretro game without a core.
     MissingCore,
-    /// A libretro core Ember cannot place on a system.
+    /// A libretro core Irori cannot place on a system.
     UnknownCore(String),
 }
 
@@ -160,12 +160,12 @@ impl ImportKind {
     }
 }
 
-/// Whether `runner` is a Lutris emulator runner Ember maps to an engine.
+/// Whether `runner` is a Lutris emulator runner Irori maps to an engine.
 pub fn is_emulator_runner(runner: &str) -> bool {
     emulators::is_emulator(runner)
 }
 
-/// The Ember system and engine (`duckstation`, `retroarch:<core>`) for a
+/// The Irori system and engine (`duckstation`, `retroarch:<core>`) for a
 /// game of the Lutris emulator `runner` whose file is `file`. `core` is a
 /// libretro game's core and `dolphin_platform` Dolphin's `platform` option
 /// (`0` GameCube, `1` Wii). Install scripts use this for the games they
@@ -354,7 +354,7 @@ fn classify(
     }
 }
 
-/// Lutris stores fractional hours; Ember counts whole minutes.
+/// Lutris stores fractional hours; Irori counts whole minutes.
 pub(crate) fn hours_to_minutes(hours: f64) -> u64 {
     if hours.is_finite() && hours > 0.0 {
         (hours * 60.0).round() as u64

@@ -5,10 +5,6 @@
 
 use std::path::{Path, PathBuf};
 
-use ember_core::{GameId, InstallRequest, Runner};
-use ember_gog::FoundInstaller;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
@@ -22,6 +18,10 @@ use gpui_kit::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Window,
     div, rems,
 };
+use irori_core::{GameId, InstallRequest, Runner};
+use irori_gog::FoundInstaller;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::hooks::gog_store;
 use crate::i18n::platform_label;
@@ -38,7 +38,7 @@ pub fn open_import_installers_dialog(window: &mut Window, cx: &mut App) {
             let Some(folder) = pick.await else { return };
             let scan_folder = folder.clone();
             let task = cx.update(|_, cx| {
-                ember_ui::run(cx, async move { gog.scan_installers(&scan_folder).await })
+                irori_ui::run(cx, async move { gog.scan_installers(&scan_folder).await })
             });
             let Ok(task) = task else { return };
             let result = task.await;

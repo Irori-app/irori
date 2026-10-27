@@ -1,14 +1,14 @@
 //! Playtime sync with Epic, both ways: finished sessions are queued on disk
 //! and uploaded (so the Epic Games Launcher and Epic's records include time
-//! played in Ember, and a session played offline is never lost), and Epic's
-//! totals are read back so time played elsewhere shows in Ember.
+//! played in Irori, and a session played offline is never lost), and Epic's
+//! totals are read back so time played elsewhere shows in Irori.
 
 use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::Result;
-use ember_core::{json_store, util};
-use ember_epic_api::PlaytimeUpload;
+use irori_core::{json_store, util};
+use irori_epic_api::PlaytimeUpload;
 use serde::{Deserialize, Serialize};
 
 use crate::EpicStore;

@@ -11,7 +11,6 @@ use std::cell::Cell;
 use std::path::Path;
 use std::rc::Rc;
 
-use ember_core::LaunchOption;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::list::ListItem;
 use gpui_kit::component::tag::Tag;
@@ -22,8 +21,9 @@ use gpui_kit::{
     IntoElement, KeyDownEvent, ParentElement as _, Render, StatefulInteractiveElement as _,
     Styled as _, Window, div,
 };
+use irori_core::LaunchOption;
 
-use ember_ui::i18n::{t, t_args};
+use irori_ui::i18n::{t, t_args};
 
 use crate::dialogs::dialog_width;
 

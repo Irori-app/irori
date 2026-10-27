@@ -1,9 +1,9 @@
 //! Installing and removing DLCs of an installed game, routed per store.
 
-use ember_core::{DlcInfo, GameId, GameInfo, InstallRequest, UpdateRequest};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::{App, Window};
+use irori_core::{DlcInfo, GameId, GameInfo, InstallRequest, UpdateRequest};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 
 use crate::state::{DlcChange, plan_dlc_change};
 

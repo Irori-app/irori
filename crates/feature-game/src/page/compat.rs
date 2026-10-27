@@ -1,7 +1,6 @@
 //! Compatibility panel: ProtonDB, Steam Deck, anticheat, HowLongToBeat,
 //! review scores and known fixes, from the installed compatibility provider.
 
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::link::Link;
 use gpui_kit::component::skeleton::Skeleton;
@@ -10,6 +9,7 @@ use gpui_kit::{
     AnyElement, App, Context, InteractiveElement as _, IntoElement, ParentElement, SharedString,
     Styled, div, rems,
 };
+use irori_ui::i18n::{t, t_args};
 
 use super::GamePage;
 use crate::hooks::{AnticheatStatus, CompatibilityInfo, SteamDeckStatus};

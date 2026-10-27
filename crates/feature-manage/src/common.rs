@@ -1,10 +1,10 @@
 //! Small helpers shared by the management screens.
 
-use ember_services::Backend;
-use ember_ui::backend;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{ActiveTheme as _, WindowExt as _, v_flex};
 use gpui_kit::{App, Div, SharedString, Styled as _, Window};
+use irori_services::Backend;
+use irori_ui::backend;
 
 /// Run a synchronous queue/settings mutation of the backend on its blocking
 /// pool (they persist state files), never on the UI thread.

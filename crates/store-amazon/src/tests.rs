@@ -4,9 +4,9 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use ember_amazon_api::testing;
-use ember_core::{AppSettings, GameSettings, LaunchEnvironment, WineKind};
-use ember_depot::test_server::{Resp, TestServer};
+use irori_amazon_api::testing;
+use irori_core::{AppSettings, GameSettings, LaunchEnvironment, WineKind};
+use irori_depot::test_server::{Resp, TestServer};
 use parking_lot::Mutex;
 use serde_json::json;
 
@@ -92,7 +92,7 @@ fn fixture() -> Fixture {
                         ..Default::default()
                     },
                     f => match f.strip_prefix("files/").and_then(|h| blobs.get(h)) {
-                        Some(data) => ember_depot::test_server::serve_bytes(req, data, true),
+                        Some(data) => irori_depot::test_server::serve_bytes(req, data, true),
                         None => Resp::status(404),
                     },
                 }
@@ -113,7 +113,7 @@ fn fixture() -> Fixture {
         root.join("config"),
         root.join("cache"),
         root.join("sdk"),
-        ember_amazon_api::Endpoints {
+        irori_amazon_api::Endpoints {
             auth: server.base(),
             distribution: server.url("/dist"),
             entitlements: server.url("/ent"),
@@ -310,7 +310,7 @@ async fn imports_existing_folders_and_renews_tokens() {
     sign_in(&f).await;
     let dir = f.root.join("elsewhere");
     for (path, data) in build(1) {
-        let p = ember_depot::path::join(&dir, &ember_depot::path::normalize(path).unwrap());
+        let p = irori_depot::path::join(&dir, &irori_depot::path::normalize(path).unwrap());
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
         std::fs::write(p, data).unwrap();
     }

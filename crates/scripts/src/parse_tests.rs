@@ -149,7 +149,7 @@ fn unknown_command_names_step() {
     );
     assert!(e.to_string().contains("Step 2"));
     assert!(e.to_string().contains("frobnicate"));
-    // Lutris exposes interpreter internals as commands; Ember does not.
+    // Lutris exposes interpreter internals as commands; Irori does not.
     let text = steps_script("linux", "  []", "  - revert: x", "    exe: a");
     assert!(matches!(
         err(&text),

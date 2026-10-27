@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use crate::api::{Asset, Client, Session, Sidecar};
 
-/// One app of the account. Ember's own catalogue format.
+/// One app of the account. Irori's own catalogue format.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GameRecord {
@@ -315,7 +315,7 @@ pub async fn sync(
 
 #[cfg(test)]
 mod tests {
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
     use serde_json::json;
 
     use super::*;

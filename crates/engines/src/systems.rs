@@ -1,5 +1,5 @@
 //! The systems catalog (`assets/engines/systems.json`): every console or
-//! platform Ember plays, the files that hold its games, how to recognise them
+//! platform Irori plays, the files that hold its games, how to recognise them
 //! and the BIOS files it needs.
 //!
 //! Detecting a game file's system uses, in order: the folder it sits in

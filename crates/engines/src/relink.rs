@@ -1,7 +1,7 @@
 //! Engines that convert a game into a program of this computer before it
 //! plays ([`EngineKind::Relinker`](crate::EngineKind::Relinker), AnyPS5).
 //!
-//! The converted program lives in Ember's data folder with links to the
+//! The converted program lives in Irori's data folder with links to the
 //! game's own files beside it (`app0/`), so the user's game folder is never
 //! written. A game is converted again only when its program, its modules or
 //! the engine change.
@@ -9,8 +9,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{CommandSpec, RunOptions};
-use ember_core::{OpContext, Paths, json_store};
+use irori_core::process::{CommandSpec, RunOptions};
+use irori_core::{OpContext, Paths, json_store};
 use md5::{Digest as _, Md5};
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +23,7 @@ use crate::manifest::EngineManifest;
 const MODULE_DIRS: [&str; 3] = ["sce_module", "sce_modules", "prx"];
 /// The engine's system libraries, beside its program.
 const LIBS: &str = "libs";
-const STAMP: &str = "ember-relink.json";
+const STAMP: &str = "irori-relink.json";
 
 /// Where a game's converted program lives.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -174,7 +174,7 @@ fn has_cpu_feature(name: &str) -> bool {
         "movbe" => std::arch::is_x86_feature_detected!("movbe"),
         "popcnt" => std::arch::is_x86_feature_detected!("popcnt"),
         "sse4.2" => std::arch::is_x86_feature_detected!("sse4.2"),
-        // A feature Ember can't test is left to the engine to report.
+        // A feature Irori can't test is left to the engine to report.
         _ => true,
     }
 }
@@ -216,7 +216,7 @@ pub async fn prepare(
     (ctx.step)("Converting the game");
     let mut options = RunOptions::default().cancel(ctx.cancel.clone());
     options.log_file = ctx.log_file.clone();
-    let result = ember_core::process::run(&command, options)
+    let result = irori_core::process::run(&command, options)
         .await
         .with_context(|| format!("Could not start {}", manifest.name))?;
     if result.aborted || ctx.cancel.is_cancelled() {
@@ -248,7 +248,7 @@ pub async fn prepare(
 fn start_over(installation: &Installation, game: &GameFile, out: &Output) -> Result<CommandSpec> {
     let root = root();
     if !out.dir.starts_with(&root) {
-        bail!("{} is not a folder Ember manages", out.dir.display());
+        bail!("{} is not a folder Irori manages", out.dir.display());
     }
     if out.dir.exists() {
         std::fs::remove_dir_all(&out.dir)
@@ -386,7 +386,7 @@ mod tests {
         std::fs::write(&game.path, b"\x7fELF....").unwrap();
         check(&manifest(&[]), &game).unwrap();
 
-        // Features Ember can't test are left to the engine.
+        // Features Irori can't test are left to the engine.
         assert!(missing_cpu_features(&["made-up".into()]).len() <= 1);
         if cfg!(not(target_arch = "x86_64")) {
             let e = check(&manifest(&["avx2"]), &game).unwrap_err();

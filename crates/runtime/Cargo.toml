@@ -1,5 +1,5 @@
 [package]
-name = "ember-runtime"
+name = "irori-runtime"
 description = "Wine/Proton discovery and management, launch environment assembly, DXVK/VKD3D and runtime tools"
 version.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
+irori-core.workspace = true
 sysinfo.workspace = true
 anyhow.workspace = true
 tokio.workspace = true

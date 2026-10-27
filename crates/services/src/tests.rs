@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Once};
 
 use anyhow::{Result, bail};
-use ember_core::{
+use irori_core::{
     Event, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallRequest,
     LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs, Runner,
     SessionExpired, Store, UpdateRequest, UserInfo, async_trait,
@@ -17,7 +17,7 @@ use crate::Backend;
 fn isolate_paths() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let root = std::env::temp_dir().join(format!("ember-services-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("irori-services-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         Paths::init(Paths::under(&root));
     });
@@ -121,7 +121,7 @@ fn notices(rx: &mut tokio::sync::broadcast::Receiver<Event>) -> Vec<&'static str
 fn asks_once_to_log_in_again_and_forgets_after_a_good_refresh() {
     isolate_paths();
     let store = Arc::new(LoginStore::default());
-    let dyn_store: ember_core::DynStore = store.clone();
+    let dyn_store: irori_core::DynStore = store.clone();
     let b = Backend::start_headless(move |_, _| vec![dyn_store]).unwrap();
     let mut rx = b.subscribe();
 
@@ -154,7 +154,7 @@ fn asks_once_to_log_in_again_and_forgets_after_a_good_refresh() {
 fn tells_about_updates_released_while_running() {
     isolate_paths();
     let store = Arc::new(LoginStore::default());
-    let dyn_store: ember_core::DynStore = store.clone();
+    let dyn_store: irori_core::DynStore = store.clone();
     let b = Backend::start_headless(move |_, _| vec![dyn_store]).unwrap();
     let rt = b.runtime();
     // The first check of a session only fills the badges.
@@ -175,7 +175,7 @@ fn tells_about_updates_released_while_running() {
 fn never_touches_files_of_games_steam_manages() {
     isolate_paths();
     let b = Backend::start_headless(|_, _| Vec::new()).unwrap();
-    let id = ember_core::GameId::new(Runner::Steam, "620");
+    let id = irori_core::GameId::new(Runner::Steam, "620");
     let dir = tempfile::tempdir().unwrap();
     let rt = b.runtime();
     let refusals = [
@@ -214,9 +214,9 @@ script:
 "#;
 
 fn script_install(game_dir: &Path) -> crate::ScriptInstall {
-    let script = ember_scripts::Script::parse(MENU_SCRIPT).unwrap();
+    let script = irori_scripts::Script::parse(MENU_SCRIPT).unwrap();
     let ctx = crate::scripts::script_context(&Default::default(), &script, game_dir);
-    let approvals = ember_scripts::Approvals::all(&ember_scripts::consent(&script, &ctx));
+    let approvals = irori_scripts::Approvals::all(&irori_scripts::consent(&script, &ctx));
     crate::ScriptInstall {
         script: Arc::new(script),
         game_dir: game_dir.to_path_buf(),
@@ -261,7 +261,7 @@ fn script_installs_ask_the_ui_and_produce_a_library_entry() {
     let record = game
         .settings
         .iter()
-        .find(|(k, _)| *k == "emberLutrisScript")
+        .find(|(k, _)| *k == "iroriLutrisScript")
         .map(|(_, v)| v.clone())
         .unwrap();
     assert_eq!(record["slug"], "test-game");
@@ -280,7 +280,7 @@ fn unanswered_script_questions_cancel_and_roll_back() {
     // The window closed the question: its reply sender is dropped.
     drop(rt.block_on(run.prompts.next()));
     let e = rt.block_on(run.result).unwrap().unwrap_err();
-    assert!(ember_runtime::is_cancelled(&e), "{e:#}");
+    assert!(irori_runtime::is_cancelled(&e), "{e:#}");
     assert!(!game_dir.exists());
     assert!(run.progress.lock().rolling_back);
 }

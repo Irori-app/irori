@@ -1,14 +1,14 @@
 //! Official third-party launchers ([`Runner::Launchers`]): Battle.net, the
 //! EA app, Ubisoft Connect and the Rockstar Games Launcher.
 //!
-//! Ember never handles these launchers' accounts. It sets each launcher up
+//! Irori never handles these launchers' accounts. It sets each launcher up
 //! once (a prefix of its own with a Wine build the user picks, and the
 //! vendor's official installer; on Windows the installer runs natively), and
 //! lists the games the launcher installed by reading its local data
-//! (`ember-launchers-data`). Games start through the launcher (its URI or
-//! flags); the launcher installs, updates and removes them, so Ember doesn't.
+//! (`irori-launchers-data`). Games start through the launcher (its URI or
+//! flags); the launcher installs, updates and removes them, so Irori doesn't.
 //!
-//! Everything is behind `emberThirdPartyLaunchers`: while it is off the store
+//! Everything is behind `iroriThirdPartyLaunchers`: while it is off the store
 //! lists nothing.
 
 use std::collections::BTreeMap;
@@ -17,23 +17,23 @@ use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_core::process::{self, CommandSpec};
-use ember_core::{
+use irori_core::process::{self, CommandSpec};
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, GameSettings, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, InstalledInfo, LaunchPlan, LaunchRequest, LoginFlow,
     OpContext, Outcome, Paths, RemoveArgs, Runner, SettingsFn, Store, UpdateRequest, UserInfo,
     WineInstallation, json_store, util,
 };
-use ember_launchers_data::{InstalledGame, Launcher, Registry, ScanReport};
+use irori_launchers_data::{InstalledGame, Launcher, Registry, ScanReport};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
-pub use ember_launchers_data::Launcher as LauncherKind;
+pub use irori_launchers_data::Launcher as LauncherKind;
 
 const MANAGED_BY_LAUNCHER: &str =
     "This game belongs to its launcher; install, update and remove it there";
 
-/// A launcher Ember set up.
+/// A launcher Irori set up.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Setup {
@@ -117,7 +117,7 @@ impl LaunchersStore {
     /// Where a launcher's prefix goes: beside the other prefixes.
     pub fn default_prefix(&self, launcher: Launcher) -> PathBuf {
         let app = (self.settings)();
-        ember_core::paths::expand_home(&app.default_wine_prefix_dir).join(launcher.display_name())
+        irori_core::paths::expand_home(&app.default_wine_prefix_dir).join(launcher.display_name())
     }
 
     /// Every launcher with its setup and game count.
@@ -138,7 +138,7 @@ impl LaunchersStore {
             .collect()
     }
 
-    /// Files Ember couldn't read during the last scan.
+    /// Files Irori couldn't read during the last scan.
     pub fn warnings(&self) -> Vec<String> {
         self.state.read().warnings.clone()
     }
@@ -166,7 +166,7 @@ impl LaunchersStore {
         let _one = self.busy.lock().await;
         (ctx.step)("Downloading");
         let installer = self.downloads.join(format!("{}-setup.exe", launcher.id()));
-        ember_runtime::download::download(
+        irori_runtime::download::download(
             launcher.installer_url(),
             &installer,
             &ctx.progress,
@@ -201,17 +201,17 @@ impl LaunchersStore {
             let prefix = self.default_prefix(launcher);
             let app = (self.settings)();
             let settings = game_settings(&app.game, &wine, &prefix);
-            let wc = ember_runtime::WineContext::new(
+            let wc = irori_runtime::WineContext::new(
                 wine.clone(),
                 prefix.clone(),
                 false,
-                ember_runtime::runtimes::umu_path(),
+                irori_runtime::runtimes::umu_path(),
             );
             let mut cmd =
-                ember_runtime::prefix::WineCommand::new([installer.display().to_string()]);
+                irori_runtime::prefix::WineCommand::new([installer.display().to_string()]);
             cmd.wait = true;
             cmd.initialize_prefix = true;
-            ember_runtime::prefix::run_wine(&app, &settings, &wc, cmd, ctx)
+            irori_runtime::prefix::run_wine(&app, &settings, &wc, cmd, ctx)
                 .await
                 .with_context(|| format!("The {} installer failed", launcher.display_name()))?;
             Setup {
@@ -262,23 +262,23 @@ impl LaunchersStore {
             setup.with_context(|| format!("{} isn't set up yet", launcher.display_name()))?;
         let app = (self.settings)();
         let settings = game_settings(&app.game, &setup.wine, &setup.prefix);
-        let wc = ember_runtime::WineContext::new(
+        let wc = irori_runtime::WineContext::new(
             setup.wine.clone(),
             setup.prefix.clone(),
             false,
-            ember_runtime::runtimes::umu_path(),
+            irori_runtime::runtimes::umu_path(),
         );
         let mut argv = vec![program.display().to_string()];
         argv.extend(args);
-        let mut cmd = ember_runtime::prefix::WineCommand::new(argv);
+        let mut cmd = irori_runtime::prefix::WineCommand::new(argv);
         cmd.skip_prefix_check = true;
         cmd.cwd = program.parent().map(Path::to_path_buf);
-        Ok(ember_runtime::prefix::wine_spec(
+        Ok(irori_runtime::prefix::wine_spec(
             &app,
             &settings,
             &wc,
             &cmd,
-            &ember_runtime::env::HostEnv::current(),
+            &irori_runtime::env::HostEnv::current(),
         ))
     }
 
@@ -341,7 +341,7 @@ fn scan(setups: &BTreeMap<Launcher, Setup>) -> ScanReport {
 fn windows_registry() -> Registry {
     #[cfg(windows)]
     {
-        let out = std::env::temp_dir().join("ember-launchers.reg");
+        let out = std::env::temp_dir().join("irori-launchers.reg");
         let mut text = String::new();
         for key in [
             r"HKLM\SOFTWARE\WOW6432Node\Ubisoft",
@@ -349,7 +349,7 @@ fn windows_registry() -> Registry {
             r"HKLM\SOFTWARE\Rockstar Games",
         ] {
             // A short system tool on the blocking scan thread, not a game or
-            // a long-running tool, so `ember_core::process` isn't needed.
+            // a long-running tool, so `irori_core::process` isn't needed.
             let ok = std::process::Command::new("reg")
                 .args(["export", key])
                 .arg(&out)
@@ -547,8 +547,8 @@ impl Store for LaunchersStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::AppSettings;
-    use ember_launchers_data::LaunchSpec;
+    use irori_core::AppSettings;
+    use irori_launchers_data::LaunchSpec;
 
     fn store(dir: &Path, enabled: bool) -> Arc<LaunchersStore> {
         let app = Arc::new(AppSettings {

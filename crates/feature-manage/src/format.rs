@@ -1,8 +1,8 @@
 //! Text formatting shared by the management screens.
 
-use ember_core::util::{format_bytes, format_duration};
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::SharedString;
+use irori_core::util::{format_bytes, format_duration};
+use irori_ui::i18n::{t, t_args};
 
 /// `then` relative to `now` (both unix seconds), phrased to also fit inside
 /// a sentence: "just now", "5 min ago", "3 h ago", "yesterday", "4 days ago".
@@ -28,8 +28,8 @@ pub(crate) fn relative_time(then: u64, now: u64) -> SharedString {
 }
 
 /// What limits a download, or an em dash when nothing can be said.
-pub(crate) fn bottleneck(b: Option<ember_core::Bottleneck>) -> SharedString {
-    use ember_core::Bottleneck;
+pub(crate) fn bottleneck(b: Option<irori_core::Bottleneck>) -> SharedString {
+    use irori_core::Bottleneck;
     match b {
         Some(Bottleneck::Network) => t("manage.downloads.limit.network"),
         Some(Bottleneck::Server) => t("manage.downloads.limit.server"),

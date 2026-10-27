@@ -5,14 +5,6 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::util::format_bytes;
-use ember_core::{
-    GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallRequest, Runner,
-    UpdateRequest, WineInstallation,
-};
-use ember_extras::anticheat::InstallGate;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, navigate};
 use futures::StreamExt as _;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
@@ -30,6 +22,14 @@ use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement,
     ParentElement, Render, SharedString, Styled, Subscription, Window, div, relative, rems,
 };
+use irori_core::util::format_bytes;
+use irori_core::{
+    GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallRequest, Runner,
+    UpdateRequest, WineInstallation,
+};
+use irori_extras::anticheat::InstallGate;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, navigate};
 
 use crate::choice::{Choice, ChoiceSelect, choice_select, set_choices};
 use crate::hooks::{self, AnticheatStatus, CompatibilityInfo};
@@ -132,7 +132,7 @@ fn open_sheet(id: GameId, mode: InstallMode, window: &mut Window, cx: &mut App) 
 /// Platforms the user can install on this host, native Linux first.
 pub fn installable_platforms(game: &GameInfo) -> Vec<InstallPlatform> {
     let mut out = Vec::new();
-    let native = ember_core::HostPlatform::current().native();
+    let native = irori_core::HostPlatform::current().native();
     if native != InstallPlatform::Windows
         && (game.platforms.contains(&native)
             || (native == InstallPlatform::Linux && game.is_linux_native)
@@ -170,7 +170,7 @@ impl InstallSheet {
         let platform = platforms.first().copied().unwrap_or_default();
         let install = game.install.as_ref();
         let owners: Vec<(String, String)> = if mode == InstallMode::Install && !game.is_installed {
-            let accounts = ember_ui::models(cx).accounts.read(cx);
+            let accounts = irori_ui::models(cx).accounts.read(cx);
             let accounts = accounts.accounts(id.runner);
             b.library()
                 .owners(&id)
@@ -203,7 +203,7 @@ impl InstallSheet {
                 .masked(true)
         });
         let prefix_default = if settings.wine_prefix.is_empty() {
-            ember_runtime::default_prefix(&app, &game)
+            irori_runtime::default_prefix(&app, &game)
                 .to_string_lossy()
                 .into_owned()
         } else {
@@ -347,7 +347,7 @@ impl InstallSheet {
             build: self.build.clone().filter(|_| self.pin_build),
             language: None,
         };
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(id.runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
@@ -483,7 +483,7 @@ impl InstallSheet {
         let b = backend(cx);
         let runner = self.id.runner;
         let platform = self.platform;
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(runner))?;
@@ -524,8 +524,8 @@ impl InstallSheet {
         }
         self.wines = Load::Loading;
         let app = backend(cx).settings.app();
-        let task = ember_ui::run(cx, async move {
-            Ok(ember_runtime::wine_installations(&app).await)
+        let task = irori_ui::run(cx, async move {
+            Ok(irori_runtime::wine_installations(&app).await)
         });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
@@ -568,7 +568,7 @@ impl InstallSheet {
 
     fn install_dir(&self, cx: &App) -> PathBuf {
         let raw = self.path.read(cx).value();
-        ember_core::paths::expand_home(raw.trim())
+        irori_core::paths::expand_home(raw.trim())
     }
 
     fn refresh_disk(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -795,7 +795,7 @@ impl InstallSheet {
         self.submitting = true;
         cx.notify();
         let dir = request.path.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             tokio::fs::create_dir_all(&dir).await.map_err(|e| {
                 anyhow::anyhow!(t_args(
                     "game.install.create_dir_failed",
@@ -834,8 +834,8 @@ impl InstallSheet {
             b.settings.set_game_value(&self.id, "wineVersion", Some(v));
         }
         let prefix = self.prefix.read(cx).value().trim().to_string();
-        let current = ember_runtime::prefix_path(&b.settings.app(), &effective, &self.game);
-        if !prefix.is_empty() && ember_core::paths::expand_home(&prefix) != current {
+        let current = irori_runtime::prefix_path(&b.settings.app(), &effective, &self.game);
+        if !prefix.is_empty() && irori_core::paths::expand_home(&prefix) != current {
             b.settings.set_game_value(
                 &self.id,
                 "winePrefix",

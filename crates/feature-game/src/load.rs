@@ -1,7 +1,7 @@
 //! Async load state and small text helpers shared by the views.
 
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::SharedString;
+use irori_ui::i18n::{t, t_args};
 
 /// State of data fetched from the backend.
 #[derive(Debug, Clone, Default)]
@@ -125,7 +125,7 @@ pub(crate) fn preferred_language(
 
 /// Date part of an RFC 3339 timestamp, relative when recent ("Today").
 pub(crate) fn format_day(rfc3339: &str, now_unix: i64) -> String {
-    let Some(ts) = ember_core::util::parse_rfc3339(rfc3339) else {
+    let Some(ts) = irori_core::util::parse_rfc3339(rfc3339) else {
         return rfc3339.chars().take(10).collect();
     };
     let days = (now_unix - ts).div_euclid(86_400);

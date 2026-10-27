@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ember_core::process::CancellationToken;
-use ember_depot::test_server::{Resp, TestServer, serve_bytes};
+use irori_core::process::CancellationToken;
+use irori_depot::test_server::{Resp, TestServer, serve_bytes};
 
 use crate::model::*;
 use crate::*;
@@ -386,7 +386,7 @@ async fn runs_wine_setup_script() {
     // The zip had one top folder, merged into the destination.
     let example = ctx.game_dir.join("drive_c/Program Files/Example");
     assert_eq!(std::fs::read(example.join("data.pak")).unwrap(), b"patched");
-    assert!(!example.join(".ember-extract-0").exists());
+    assert!(!example.join(".irori-extract-0").exists());
 
     let game = out.game.unwrap();
     assert_eq!(game.exe, Some(example.join("game.exe")));
@@ -721,7 +721,7 @@ async fn cancel_rolls_back_and_reports_cancelled() {
     let e = run(&script, &ctx, &host, &approvals, &cancel, no_progress())
         .await
         .unwrap_err();
-    assert!(ember_runtime::is_cancelled(&e));
+    assert!(irori_runtime::is_cancelled(&e));
     assert!(!ctx.game_dir.exists());
 }
 

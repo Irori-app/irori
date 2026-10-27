@@ -1,6 +1,6 @@
 //! Converting legendary's config directory (Heroic's
-//! `legendaryConfig/legendary`, or the one earlier Ember builds kept for the
-//! legendary helper) into Ember's Epic files.
+//! `legendaryConfig/legendary`, or the one earlier Irori builds kept for the
+//! legendary helper) into Irori's Epic files.
 //!
 //! legendary keeps `user.json` (tokens), `installed.json`, `metadata/<app>.json`,
 //! `manifests/<app>_<platform>_<version>.manifest`,
@@ -10,9 +10,9 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
 use anyhow::{Context as _, Result};
-use ember_core::json_store;
-use ember_epic_api::library::GameRecord;
-use ember_epic_api::{Asset, Session, Sidecar};
+use irori_core::json_store;
+use irori_epic_api::library::GameRecord;
+use irori_epic_api::{Asset, Session, Sidecar};
 use serde_json::Value;
 
 use crate::state::{self, InstalledGame, Layout, OverlayInstall};
@@ -107,8 +107,8 @@ fn find_manifest(src: &Path, game: &InstalledGame) -> Option<Vec<u8>> {
     .find_map(|name| std::fs::read(dir.join(format!("{}.manifest", clean_filename(name)))).ok())
 }
 
-/// Convert legendary's state in `src` into `layout`. An existing Ember login
-/// is kept; library records and installs are merged (Ember's win).
+/// Convert legendary's state in `src` into `layout`. An existing Irori login
+/// is kept; library records and installs are merged (Irori's win).
 pub(crate) fn import_legendary_dir(src: &Path, layout: &Layout) -> Result<Imported> {
     let mut out = Imported::default();
     if !src.is_dir() {
@@ -212,7 +212,7 @@ pub(crate) fn import_legendary_dir(src: &Path, layout: &Layout) -> Result<Import
 }
 
 /// legendary's own files in a config directory (removed after converting
-/// the directory Ember used for the legendary helper).
+/// the directory Irori used for the legendary helper).
 pub(crate) const LEGENDARY_FILES: &[&str] = &[
     "user.json",
     "installed.json",
@@ -228,7 +228,7 @@ pub(crate) const LEGENDARY_FILES: &[&str] = &[
 ];
 
 impl crate::EpicStore {
-    /// Convert the legendary files an earlier Ember build kept in the config
+    /// Convert the legendary files an earlier Irori build kept in the config
     /// directory, then move them into `legendary-backup/`.
     pub(crate) async fn migrate_legendary_dir(&self) {
         let dir = self.layout.config.clone();
@@ -256,7 +256,7 @@ impl crate::EpicStore {
         .await;
         match res {
             Ok(Ok(i)) => tracing::info!(
-                "moved the Epic login ({}), {} installs and {} library entries to Ember's format",
+                "moved the Epic login ({}), {} installs and {} library entries to Irori's format",
                 i.login,
                 i.installs,
                 i.records
@@ -307,7 +307,7 @@ mod tests {
         .unwrap();
 
         let layout = Layout {
-            config: tmp.path().join("ember"),
+            config: tmp.path().join("irori"),
             cache: tmp.path().join("cache"),
             tools: tmp.path().join("tools"),
         };

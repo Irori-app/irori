@@ -3,7 +3,7 @@
 //!
 //! The shell renders [`GamePage`] for `Route::Game(id)`, calls [`init`] once
 //! at startup (translations, key bindings), may install [`GameHooks`] to override the
-//! compatibility source (default: `ember_extras`) and to provide GOG
+//! compatibility source (default: `irori_extras`) and to provide GOG
 //! private-branch passwords, and passes the concrete Epic and GOG stores to
 //! [`install_store_handles`] (EOS overlay, REDmod). It routes
 //! [`GamePageEvent::RequestEdit`] and [`GamePageEvent::RequestCategories`]

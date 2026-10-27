@@ -2,13 +2,13 @@
 //! dropdown and other features' context menus, so every entry point offers
 //! the same commands with the same labels and enabled states.
 
-use ember_core::{GameId, GameInfo, InstallPlatform, Runner};
-use ember_services::LaunchParams;
-use ember_ui::i18n::t;
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::menu::{PopupMenu, PopupMenuItem};
 use gpui_kit::{App, WeakEntity, Window};
+use irori_core::{GameId, GameInfo, InstallPlatform, Runner};
+use irori_services::LaunchParams;
+use irori_ui::i18n::t;
+use irori_ui::{backend, models};
 
 use super::{GamePage, GamePageEvent};
 use crate::state::{ActionInputs, PrimaryAction};
@@ -103,7 +103,7 @@ pub(super) fn build_menu(
                         manage::open_import_dialog(i.clone(), window, cx)
                     }),
             );
-            // Steam starts Ember for the shortcut, which offers the install.
+            // Steam starts Irori for the shortcut, which offers the install.
             if game.installable {
                 let i = id.clone();
                 menu = menu.separator().item(
@@ -123,7 +123,7 @@ pub(super) fn build_menu(
             )),
             PrimaryAction::Play | PrimaryAction::Update
         );
-        // Steam starts its games itself: no Ember logs or update check.
+        // Steam starts its games itself: no Irori logs or update check.
         let variants = if id.runner.manages_installs() {
             &PLAY_VARIANTS[..]
         } else {

@@ -15,7 +15,7 @@ pub struct Entitlement {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Product {
-    /// Product id (`amzn1.adg.product.<uuid>`), Ember's app name.
+    /// Product id (`amzn1.adg.product.<uuid>`), Irori's app name.
     pub id: String,
     pub title: Option<String>,
     /// Passed to the game through the Fuel SDK.
@@ -85,7 +85,7 @@ mod tests {
         assert_eq!(list[0].product.sku.as_deref(), Some("SKU1"));
         assert_eq!(list[0].product.product_detail.details.genres, ["Action"]);
         assert!(list[1].product.product_detail.details.genres.is_empty());
-        // Round-trips through Ember's library file.
+        // Round-trips through Irori's library file.
         let again: Vec<Entitlement> =
             serde_json::from_str(&serde_json::to_string(&list).unwrap()).unwrap();
         assert_eq!(again, list);

@@ -5,8 +5,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::process::CancellationToken;
-use ember_core::{
+use irori_core::process::CancellationToken;
+use irori_core::{
     Event, GameId, InstallProgress, InstallRequest, Notice, NoticeLevel, OpContext, Outcome, Paths,
     RemoveArgs, StatusKind, UpdateRequest, json_store, util,
 };

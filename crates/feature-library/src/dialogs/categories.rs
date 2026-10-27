@@ -10,9 +10,6 @@
 
 use std::cell::Cell;
 
-use ember_core::GameId;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::checkbox::Checkbox;
@@ -27,6 +24,9 @@ use gpui_kit::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
     Subscription, Window, div,
 };
+use irori_core::GameId;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use super::{dialog_width, text};
 use crate::filters_panel::active_filters;
@@ -86,9 +86,9 @@ fn existing_categories(cx: &App) -> Vec<String> {
 }
 
 /// Run a user-data change on the backend runtime (it writes a file).
-fn userdata(cx: &App, f: impl FnOnce(&ember_services::UserDataService) + Send + 'static) {
+fn userdata(cx: &App, f: impl FnOnce(&irori_services::UserDataService) + Send + 'static) {
     let b = backend(cx);
-    ember_ui::state::run_infallible(cx, async move { f(&b.userdata) }).detach();
+    irori_ui::state::run_infallible(cx, async move { f(&b.userdata) }).detach();
 }
 
 /// The category manager.

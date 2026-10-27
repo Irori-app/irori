@@ -1,10 +1,10 @@
-//! Where the runtime keeps and finds things on disk: Ember's tools
-//! directories, Heroic's (reused read-only when Ember has nothing yet), Steam
+//! Where the runtime keeps and finds things on disk: Irori's tools
+//! directories, Heroic's (reused read-only when Irori has nothing yet), Steam
 //! and the host environment flags.
 
 use std::path::{Path, PathBuf};
 
-use ember_core::{AppSettings, Paths};
+use irori_core::{AppSettings, Paths};
 
 /// `<data>/tools`: DXVK, VKD3D, winetricks, runtimes, Wine and Proton builds.
 pub fn tools_dir() -> PathBuf {
@@ -16,12 +16,12 @@ pub fn runtimes_dir() -> PathBuf {
     tools_dir().join("runtimes")
 }
 
-/// Where Ember installs umu-run when the system has none.
+/// Where Irori installs umu-run when the system has none.
 pub fn default_umu_path() -> PathBuf {
     runtimes_dir().join("umu").join("umu_run.py")
 }
 
-/// The winetricks script Ember downloads.
+/// The winetricks script Irori downloads.
 pub fn winetricks_path() -> PathBuf {
     tools_dir().join("winetricks")
 }
@@ -34,7 +34,7 @@ pub fn releases_file() -> PathBuf {
 
 /// Heroic's config directory (`~/.config/heroic` or the Flatpak one), if any.
 pub fn heroic_dir() -> Option<PathBuf> {
-    ember_core::paths::heroic_config_dir().or_else(|| {
+    irori_core::paths::heroic_config_dir().or_else(|| {
         let dir = dirs::config_dir()?.join("heroic");
         dir.join("tools").is_dir().then_some(dir)
     })
@@ -49,7 +49,7 @@ pub fn home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
 }
 
-/// Whether Ember runs inside a Flatpak sandbox.
+/// Whether Irori runs inside a Flatpak sandbox.
 pub fn is_flatpak() -> bool {
     std::env::var_os("FLATPAK_ID").is_some()
 }
@@ -83,7 +83,7 @@ pub fn crossover_bottles_dir(app: &AppSettings) -> PathBuf {
     if configured.is_empty() {
         home().join("Library/Application Support/CrossOver/Bottles")
     } else {
-        ember_core::paths::expand_home(configured)
+        irori_core::paths::expand_home(configured)
     }
 }
 
@@ -92,25 +92,25 @@ pub fn crossover_bottles_dir(app: &AppSettings) -> PathBuf {
 pub fn steam_path(app: &AppSettings) -> PathBuf {
     let configured = app.default_steam_path.replace('\'', "");
     if !configured.trim().is_empty() {
-        let p = ember_core::paths::expand_home(configured.trim());
+        let p = irori_core::paths::expand_home(configured.trim());
         if p.exists() {
             return p;
         }
     }
     if !cfg!(target_os = "linux") {
-        return ember_core::platform::steam_dir();
+        return irori_core::platform::steam_dir();
     }
     let flatpak = home().join(".var/app/com.valvesoftware.Steam/.steam/steam");
     if flatpak.exists() {
         return flatpak;
     }
-    ember_core::platform::steam_dir()
+    irori_core::platform::steam_dir()
 }
 
 /// Value for `STEAM_COMPAT_CLIENT_INSTALL_PATH`.
 ///
 /// Heroic uses `<flatpakHome>/.steam/steam`, which is wrong whenever
-/// `XDG_DATA_HOME` is customised; Ember points at the real Steam directory.
+/// `XDG_DATA_HOME` is customised; Irori points at the real Steam directory.
 pub fn steam_client_install_path(app: &AppSettings) -> PathBuf {
     steam_path(app)
 }

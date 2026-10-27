@@ -1,4 +1,4 @@
-//! Filesystem layout. Everything lives under XDG directories; `EMBER_HOME`
+//! Filesystem layout. Everything lives under XDG directories; `IRORI_HOME`
 //! relocates all of it (used by tests and portable installs).
 
 use std::path::{Path, PathBuf};
@@ -11,11 +11,11 @@ static PATHS: OnceCell<Paths> = OnceCell::new();
 
 #[derive(Debug, Clone)]
 pub struct Paths {
-    /// `~/.config/ember`: settings and store credentials.
+    /// `~/.config/irori`: settings and store credentials.
     pub config: PathBuf,
-    /// `~/.local/share/ember`: tools, Wine builds, bundled programs, logs.
+    /// `~/.local/share/irori`: tools, Wine builds, bundled programs, logs.
     pub data: PathBuf,
-    /// `~/.cache/ember`: images, store API caches.
+    /// `~/.cache/irori`: images, store API caches.
     pub cache: PathBuf,
 }
 
@@ -39,20 +39,47 @@ impl Paths {
     }
 
     fn resolve() -> Paths {
-        if let Some(root) = std::env::var_os("EMBER_HOME") {
+        if let Some(root) = std::env::var_os("IRORI_HOME") {
             return Paths::under(Path::new(&root));
         }
         let home = dirs::home_dir().unwrap_or_else(std::env::temp_dir);
-        Paths {
+        let paths = Paths {
             config: dirs::config_dir()
                 .unwrap_or_else(|| home.join(".config"))
-                .join("ember"),
+                .join("irori"),
             data: dirs::data_local_dir()
                 .unwrap_or_else(|| home.join(".local/share"))
-                .join("ember"),
+                .join("irori"),
             cache: dirs::cache_dir()
                 .unwrap_or_else(|| home.join(".cache"))
-                .join("ember"),
+                .join("irori"),
+        };
+        paths.adopt_legacy_dirs();
+        paths
+    }
+
+    /// Irori was called Ember before its first release. Move Ember's folders
+    /// over once, so settings, logins and installs survive the rename. Another
+    /// program's `ember` folder (the WorldForge client has one) is left alone:
+    /// only a config folder holding Ember's own `settings.json` and `state`
+    /// counts.
+    fn adopt_legacy_dirs(&self) {
+        let legacy = |dir: &Path| dir.with_file_name("ember");
+        let config = legacy(&self.config);
+        if self.config.exists()
+            || !config.join("settings.json").is_file()
+            || !config.join("state").is_dir()
+        {
+            return;
+        }
+        for dir in [&self.config, &self.data, &self.cache] {
+            let old = legacy(dir);
+            if dir.exists() || !old.is_dir() {
+                continue;
+            }
+            if let Err(e) = std::fs::rename(&old, dir) {
+                tracing::warn!("could not move {} to {}: {e}", old.display(), dir.display());
+            }
         }
     }
 
@@ -84,7 +111,7 @@ impl Paths {
     }
 
     /// Credentials and installs of a store account other than the first
-    /// (see `ember_services::accounts`).
+    /// (see `irori_services::accounts`).
     pub fn account_config_dir(&self, runner: Runner, slot: &str) -> PathBuf {
         self.store_config_dir(runner)
             .join("accounts")
@@ -118,7 +145,7 @@ impl Paths {
         self.tools_dir().join("proton")
     }
 
-    /// Programs Ember places in Wine prefixes (`EpicGamesLauncher.exe`,
+    /// Programs Irori places in Wine prefixes (`EpicGamesLauncher.exe`,
     /// `GalaxyCommunication.exe`).
     pub fn bin_dir(&self) -> PathBuf {
         self.data.join("bin")
@@ -146,7 +173,7 @@ impl Paths {
     }
 
     pub fn launcher_log_file(&self) -> PathBuf {
-        self.logs_dir().join("ember.log")
+        self.logs_dir().join("irori.log")
     }
 }
 

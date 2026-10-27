@@ -195,7 +195,7 @@ pub enum Bottleneck {
     Disk,
     /// The download speed limit in the settings.
     SpeedLimit,
-    /// Requests keep failing; Ember retries until the connection is back.
+    /// Requests keep failing; Irori retries until the connection is back.
     Reconnecting,
 }
 

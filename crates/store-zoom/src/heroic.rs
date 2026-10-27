@@ -10,7 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::{InstallPlatform, json_store};
+use irori_core::{InstallPlatform, json_store};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -35,8 +35,8 @@ struct HeroicInstalled {
     pinned_version: bool,
 }
 
-/// Copy the user's Heroic ZOOM login and installs into Ember's store files.
-/// Existing Ember installs of the same game are kept.
+/// Copy the user's Heroic ZOOM login and installs into Irori's store files.
+/// Existing Irori installs of the same game are kept.
 pub fn import_from_heroic(heroic_config_dir: &Path) -> Result<()> {
     import_into(heroic_config_dir, &Layout::default())
 }
@@ -247,8 +247,8 @@ mod tests {
         .unwrap();
 
         let layout = Layout {
-            config_dir: d.path().join("ember/config"),
-            cache_dir: d.path().join("ember/cache"),
+            config_dir: d.path().join("irori/config"),
+            cache_dir: d.path().join("irori/cache"),
         };
         import_into(&heroic, &layout).unwrap();
 

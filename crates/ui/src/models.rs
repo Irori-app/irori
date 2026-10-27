@@ -8,11 +8,11 @@
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
-use ember_core::{
+use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
+use irori_core::{
     AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, StoreAccount, UserInfo,
 };
-use ember_services::{DownloadQueueSnapshot, LibrarySnapshot, UserData};
-use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
+use irori_services::{DownloadQueueSnapshot, LibrarySnapshot, UserData};
 use tokio::sync::broadcast::error::{RecvError, TryRecvError};
 
 use crate::state::backend;
@@ -101,7 +101,7 @@ impl StatusModel {
 pub struct DownloadsModel {
     pub queue: DownloadQueueSnapshot,
     /// Single files: offline installers, patches, goodies.
-    pub files: Vec<ember_services::FileDownload>,
+    pub files: Vec<irori_services::FileDownload>,
 }
 
 /// Accounts of every store and connectivity.

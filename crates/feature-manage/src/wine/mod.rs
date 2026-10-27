@@ -1,4 +1,4 @@
-//! The Wine manager ([`Route::WineManager`](ember_ui::Route::WineManager)):
+//! The Wine manager ([`Route::WineManager`](irori_ui::Route::WineManager)):
 //! downloadable Proton/Wine builds per source, and every build found on this
 //! system with the user's custom Wine paths.
 
@@ -9,11 +9,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::time::Duration;
 
-use ember_core::{Event, Paths, WineInstallation};
-use ember_runtime::manager::{self, Release, ReleaseKind};
-use ember_ui::components::{EmptyState, PageHeader, SectionTitle};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
@@ -34,6 +29,11 @@ use gpui_kit::{
     IntoElement, ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _,
     Subscription, Task, Window, div, rems,
 };
+use irori_core::{Event, Paths, WineInstallation};
+use irori_runtime::manager::{self, Release, ReleaseKind};
+use irori_ui::components::{EmptyState, PageHeader, SectionTitle};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::common::{backend_op, notify_error};
 use crate::format;
@@ -126,7 +126,7 @@ impl WineManagerView {
             ops,
             seen_revision,
             ticking: false,
-            placeholder_language: ember_ui::i18n::language(),
+            placeholder_language: irori_ui::i18n::language(),
             _ticker: None,
             _subscriptions: subscriptions,
         };
@@ -175,7 +175,7 @@ impl WineManagerView {
             self.refreshing = true;
         }
         cx.notify();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if fetch {
                 manager::update_releases(true, &[kind]).await?;
             }
@@ -222,8 +222,8 @@ impl WineManagerView {
         }
         let app = backend(cx).settings.app();
         let custom = app.custom_wine_paths.clone();
-        let task = ember_ui::run(cx, async move {
-            Ok(ember_runtime::wine_installations(&app).await)
+        let task = irori_ui::run(cx, async move {
+            Ok(irori_runtime::wine_installations(&app).await)
         });
         cx.spawn_in(window, async move |this, cx| {
             let list = task.await.unwrap_or_default();
@@ -309,7 +309,7 @@ impl WineManagerView {
     fn remove(&mut self, release: Release, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
         let version = release.version.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             manager::remove(&release).await?;
             b.bus.emit(Event::WineVersionsChanged);
             Ok(())
@@ -709,7 +709,7 @@ fn render_op(live: &OpLive, cx: &App) -> impl IntoElement {
 
 impl Render for WineManagerView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let language = ember_ui::i18n::language();
+        let language = irori_ui::i18n::language();
         if language != self.placeholder_language {
             self.placeholder_language = language;
             self.search.update(cx, |s, cx| {

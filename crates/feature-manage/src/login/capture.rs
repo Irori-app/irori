@@ -55,7 +55,7 @@ impl ClipboardWatcher {
         }
     }
 
-    /// Mark content as seen without offering it (text Ember itself copied).
+    /// Mark content as seen without offering it (text Irori itself copied).
     pub fn ignore(&mut self, text: &str) {
         self.last_seen = Some(fingerprint(text));
     }
@@ -77,9 +77,9 @@ impl ClipboardWatcher {
 mod tests {
     use super::*;
 
-    use ember_amazon_api::auth::CODE_CAPTURE as AMAZON;
-    use ember_epic_api::auth::CAPTURE as EPIC;
-    use ember_gog_api::auth::LOGIN_CAPTURE as GOG;
+    use irori_amazon_api::auth::CODE_CAPTURE as AMAZON;
+    use irori_epic_api::auth::CAPTURE as EPIC;
+    use irori_gog_api::auth::LOGIN_CAPTURE as GOG;
 
     /// ZOOM's pattern is private to its store crate, which this crate does
     /// not depend on; keep it in step with `LI_TOKEN_CAPTURE` there.
@@ -149,10 +149,10 @@ mod tests {
     }
 
     #[test]
-    fn watcher_ignores_text_ember_copied() {
+    fn watcher_ignores_text_irori_copied() {
         let re = compile_capture(ZOOM).unwrap();
         let mut w = ClipboardWatcher::new(None);
-        let link = "https://www.zoom-platform.com/login?li=ember&return_li_token=true";
+        let link = "https://www.zoom-platform.com/login?li=irori&return_li_token=true";
         w.ignore(link);
         assert_eq!(w.observe(&re, Some(link)), None);
     }

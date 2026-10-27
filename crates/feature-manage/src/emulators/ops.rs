@@ -6,12 +6,12 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use ember_core::process::CancellationToken;
-use ember_core::{InstallProgress, Notice, NoticeLevel, OpContext};
-use ember_engines::releases::Release;
-use ember_ui::backend;
-use ember_ui::i18n::t_args;
 use gpui_kit::{App, AppContext as _, Entity, Global};
+use irori_core::process::CancellationToken;
+use irori_core::{InstallProgress, Notice, NoticeLevel, OpContext};
+use irori_engines::releases::Release;
+use irori_ui::backend;
+use irori_ui::i18n::t_args;
 
 /// Live state of one install, written from the backend runtime.
 #[derive(Debug, Clone, Default)]
@@ -119,14 +119,14 @@ pub fn start_install(target: InstallTarget, cx: &mut App) {
         cx.notify();
     });
     let b = backend(cx);
-    let task = ember_ui::run(cx, async move {
+    let task = irori_ui::run(cx, async move {
         match target {
             InstallTarget::Engine {
                 id,
                 release,
                 make_default,
             } => {
-                let name = ember_engines::engine(&id)
+                let name = irori_engines::engine(&id)
                     .map(|m| m.name.clone())
                     .unwrap_or_else(|| id.clone());
                 match b.install_engine(&id, release, make_default, &ctx).await {
@@ -186,7 +186,7 @@ pub fn start_install(target: InstallTarget, cx: &mut App) {
 
 /// The display name of a RetroArch core.
 pub(crate) fn core_name(id: &str) -> String {
-    ember_engines::engine("retroarch")
+    irori_engines::engine("retroarch")
         .and_then(|m| m.core(id).map(|c| c.name.clone()))
         .unwrap_or_else(|| id.to_string())
 }

@@ -2,9 +2,9 @@
 //! wrappers, MangoHud, GameMode and (for native games on the Steam runtime)
 //! umu-run.
 
-use ember_core::GameSettings;
-use ember_core::GamescopeSettings;
-use ember_core::process::split_args;
+use irori_core::GameSettings;
+use irori_core::GamescopeSettings;
+use irori_core::process::split_args;
 
 /// Whether gamescope is configured at all: any of its options asks for it,
 /// including a cursor grab or additional options set on their own.
@@ -159,7 +159,7 @@ mod tests {
     }
 
     use super::*;
-    use ember_core::Wrapper;
+    use irori_core::Wrapper;
 
     fn scope() -> GamescopeSettings {
         GamescopeSettings {

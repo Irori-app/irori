@@ -1,8 +1,8 @@
 //! In-window navigation with back/forward history. Features request
 //! navigation through [`navigate`]; the shell renders the current route.
 
-use ember_core::GameId;
 use gpui_kit::{App, AppContext as _, Context, Entity, Global, SharedString};
+use irori_core::GameId;
 
 /// A destination in the main window.
 #[derive(Debug, Clone, PartialEq, Eq)]

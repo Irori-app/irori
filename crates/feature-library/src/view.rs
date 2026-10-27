@@ -8,20 +8,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use ember_core::settings::LibraryLayout;
-use ember_core::{
-    GameId, GameInfo, GameStatus, InstallPlatform, Runner, StatusKind, UpdateRequest,
-};
-use ember_services::{LibrarySort, StoreFilter};
-use ember_ui::art::LruImageCache;
-use ember_ui::components::{
-    ArtImage, EmptyState, GameCover, PageHeader, SectionTitle, StoreBadge, art_image, art_img,
-    art_loading, art_missing, physical_width,
-};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::motion::{HOVER_SPRING, gliding_progress};
-use ember_ui::style::{KeyboardFocusable as _, art_tint};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::AnimationExt as _;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonGroup, ButtonVariant, ButtonVariants as _};
@@ -44,6 +30,20 @@ use gpui_kit::{
     SpringAnimation, StatefulInteractiveElement as _, Styled as _, StyledImage as _, Subscription,
     WeakEntity, Window, canvas, div, linear_color_stop, linear_gradient, point, px, rems, size,
 };
+use irori_core::settings::LibraryLayout;
+use irori_core::{
+    GameId, GameInfo, GameStatus, InstallPlatform, Runner, StatusKind, UpdateRequest,
+};
+use irori_services::{LibrarySort, StoreFilter};
+use irori_ui::art::LruImageCache;
+use irori_ui::components::{
+    ArtImage, EmptyState, GameCover, PageHeader, SectionTitle, StoreBadge, art_image, art_img,
+    art_loading, art_missing, physical_width,
+};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::motion::{HOVER_SPRING, gliding_progress};
+use irori_ui::style::{KeyboardFocusable as _, art_tint};
+use irori_ui::{Route, backend, models, navigate};
 
 use crate::availability::{self, Availability};
 use crate::commands::{self, GameCommand, GameState};
@@ -188,7 +188,7 @@ impl LibraryView {
                 .step(0.5)
                 .default_value(tile_rem)
         });
-        let art = ember_ui::art::art_store(cx);
+        let art = irori_ui::art::art_store(cx);
 
         let subscriptions = vec![
             cx.observe(&m.library, |_, _, cx| cx.notify()),
@@ -455,7 +455,7 @@ impl LibraryView {
     /// Start a background availability check when the library changed.
     fn check_availability(
         &mut self,
-        snapshot: &ember_services::LibrarySnapshot,
+        snapshot: &irori_services::LibrarySnapshot,
         cx: &mut Context<Self>,
     ) {
         let revision = snapshot.revision;
@@ -464,7 +464,7 @@ impl LibraryView {
         }
         let ids = availability::candidates(snapshot);
         let b = backend(cx);
-        let task = ember_ui::state::run_infallible(cx, async move {
+        let task = irori_ui::state::run_infallible(cx, async move {
             let mut missing = HashSet::new();
             for id in ids {
                 if let Some(store) = b.store(id.runner)
@@ -502,8 +502,8 @@ impl LibraryView {
         if !self.shortcut_checks.insert(id.clone()) {
             return;
         }
-        let task = ember_ui::state::run_infallible(cx, async move {
-            ember_extras::shortcuts::exists(&game).await
+        let task = irori_ui::state::run_infallible(cx, async move {
+            irori_extras::shortcuts::exists(&game).await
         });
         let id = id.clone();
         cx.spawn(async move |this, cx| {
@@ -541,19 +541,19 @@ impl LibraryView {
         match command {
             GameCommand::Play => self.play(&game, window, cx),
             GameCommand::Stop => {
-                let task = ember_ui::run(cx, async move { b.stop(&id).await });
+                let task = irori_ui::run(cx, async move { b.stop(&id).await });
                 let failed = t_args("library.error.stop", &[("title", &title)]);
                 report(task, failed, window, cx);
             }
             GameCommand::Install => cx.emit(LibraryEvent::RequestInstall(id)),
             GameCommand::Update => {
-                ember_ui::state::run_infallible(cx, async move {
+                irori_ui::state::run_infallible(cx, async move {
                     b.enqueue_update(id, title, UpdateRequest::default())
                 })
                 .detach();
             }
             GameCommand::RemoveFromQueue => {
-                ember_ui::state::run_infallible(cx, async move { b.cancel_download(&id, true) })
+                irori_ui::state::run_infallible(cx, async move { b.cancel_download(&id, true) })
                     .detach();
             }
             GameCommand::OpenPage => navigate(Route::Game(id), cx),
@@ -561,7 +561,7 @@ impl LibraryView {
             GameCommand::Logs => cx.emit(LibraryEvent::RequestLogs(id)),
             GameCommand::ToggleFavourite => {
                 let on = !models(cx).library.read(cx).is_favourite(&id);
-                ember_ui::state::run_infallible(
+                irori_ui::state::run_infallible(
                     cx,
                     async move { b.userdata.set_favourite(&id, on) },
                 )
@@ -569,7 +569,7 @@ impl LibraryView {
             }
             GameCommand::ToggleHidden => {
                 let on = !models(cx).library.read(cx).is_hidden(&id);
-                ember_ui::state::run_infallible(cx, async move { b.userdata.set_hidden(&id, on) })
+                irori_ui::state::run_infallible(cx, async move { b.userdata.set_hidden(&id, on) })
                     .detach();
             }
             GameCommand::ToggleCategory(name) => {
@@ -580,7 +580,7 @@ impl LibraryView {
                     .categories
                     .get(&name)
                     .is_some_and(|set| set.contains(&id.key()));
-                ember_ui::state::run_infallible(cx, async move {
+                irori_ui::state::run_infallible(cx, async move {
                     b.userdata.set_category(&id, &name, !member)
                 })
                 .detach();
@@ -590,14 +590,14 @@ impl LibraryView {
             }
             GameCommand::Edit => dialogs::edit_game::open_edit_game_dialog(&id, window, cx),
             GameCommand::RemoveFromRecent => {
-                ember_ui::state::run_infallible(cx, async move { b.userdata.remove_recent(&id) })
+                irori_ui::state::run_infallible(cx, async move { b.userdata.remove_recent(&id) })
                     .detach();
             }
             GameCommand::AddShortcut | GameCommand::RemoveShortcut => {
                 let add = command == GameCommand::AddShortcut;
                 let app = b.settings.app();
-                let task = ember_ui::run(cx, async move {
-                    use ember_extras::shortcuts;
+                let task = irori_ui::run(cx, async move {
+                    use irori_extras::shortcuts;
                     if add {
                         let targets = shortcuts::ShortcutTargets {
                             desktop: true,
@@ -631,12 +631,12 @@ impl LibraryView {
             }
             GameCommand::AddToSteam => {
                 let app = b.settings.app();
-                let task = ember_ui::run(cx, async move {
-                    let targets = ember_extras::shortcuts::ShortcutTargets {
+                let task = irori_ui::run(cx, async move {
+                    let targets = irori_extras::shortcuts::ShortcutTargets {
                         steam: true,
                         ..Default::default()
                     };
-                    ember_extras::shortcuts::add(&game, &app, targets).await
+                    irori_extras::shortcuts::add(&game, &app, targets).await
                 });
                 let failed = t_args("library.error.add_to_steam", &[("title", &title)]);
                 let done = t_args("library.steam_added", &[("title", &title)]);
@@ -659,7 +659,7 @@ impl LibraryView {
                 }
             }
             GameCommand::Verify => {
-                let task = ember_ui::run(cx, async move { b.repair(&id).await });
+                let task = irori_ui::run(cx, async move { b.repair(&id).await });
                 let failed = t_args("library.error.verify", &[("title", &title)]);
                 report(task, failed, window, cx);
             }
@@ -735,7 +735,7 @@ impl LibraryView {
         cx.notify();
         let b = backend(cx);
         let lookup = id.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let options = match b.store(lookup.runner) {
                 Some(store) => store
                     .launch_options(&lookup.app_name)
@@ -793,21 +793,21 @@ impl LibraryView {
     fn start_launch(
         &mut self,
         id: &GameId,
-        option: Option<ember_core::LaunchOption>,
+        option: Option<irori_core::LaunchOption>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         cx.notify();
         let b = backend(cx);
         let launch_id = id.clone();
-        let params = ember_services::LaunchParams {
+        let params = irori_services::LaunchParams {
             option,
             skip_version_check: self.skip_version_check.remove(id),
             ..Default::default()
         };
         let task = {
             let params = params.clone();
-            ember_ui::run(cx, async move { b.launch_with(&launch_id, params).await })
+            irori_ui::run(cx, async move { b.launch_with(&launch_id, params).await })
         };
         let id = id.clone();
         let title = self
@@ -819,7 +819,7 @@ impl LibraryView {
             this.update_in(cx, |this, window, cx| {
                 this.launching.remove(&id);
                 if let Err(e) = result
-                    && !ember_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx)
+                    && !irori_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx)
                 {
                     let failed = t_args("library.error.start", &[("title", &title)]);
                     crate::notify_error(failed, &e, window, cx);
@@ -981,9 +981,9 @@ fn item_rem(item: Item, top: Option<TopKind>, metrics: &GridMetrics) -> f32 {
 }
 
 /// Persist a UI preference off the UI thread.
-fn persist_ui(cx: &App, f: impl FnOnce(&mut ember_core::settings::UiPrefs) + Send + 'static) {
+fn persist_ui(cx: &App, f: impl FnOnce(&mut irori_core::settings::UiPrefs) + Send + 'static) {
     let b = backend(cx);
-    ember_ui::state::run_infallible(cx, async move { b.settings.update_app(|s| f(&mut s.ui)) })
+    irori_ui::state::run_infallible(cx, async move { b.settings.update_app(|s| f(&mut s.ui)) })
         .detach();
 }
 
@@ -1187,7 +1187,7 @@ impl LibraryView {
                                 t("library.header.refresh")
                             })
                             .loading(refreshing)
-                            .on_click(|_, _, cx| ember_ui::models::refresh_library(false, cx)),
+                            .on_click(|_, _, cx| irori_ui::models::refresh_library(false, cx)),
                     )
                     .when(gog_signed_in, |header| {
                         header.action(
@@ -1495,7 +1495,7 @@ impl LibraryView {
                                     .icon(IconName::RefreshCw)
                                     .label(t("library.header.refresh"))
                                     .on_click(|_, _, cx| {
-                                        ember_ui::models::refresh_library(false, cx)
+                                        irori_ui::models::refresh_library(false, cx)
                                     }),
                             )
                             .child(
@@ -1513,7 +1513,7 @@ impl LibraryView {
                                     .icon(IconName::Joystick)
                                     .label(t("library.empty.set_up_emulation"))
                                     .on_click(|_, window, cx| {
-                                        ember_ui::hooks::open_emulation_setup(window, cx)
+                                        irori_ui::hooks::open_emulation_setup(window, cx)
                                     }),
                             ),
                     )
@@ -1545,7 +1545,7 @@ impl LibraryView {
                                     .icon(IconName::Joystick)
                                     .label(t("library.empty.set_up_emulation"))
                                     .on_click(|_, window, cx| {
-                                        ember_ui::hooks::open_emulation_setup(window, cx)
+                                        irori_ui::hooks::open_emulation_setup(window, cx)
                                     }),
                             ),
                     )
@@ -2053,7 +2053,7 @@ impl LibraryView {
         let glow = game
             .hero_art()
             .map(str::to_owned)
-            .and_then(|url| ember_ui::art::ambient(&url, cx))
+            .and_then(|url| irori_ui::art::ambient(&url, cx))
             .map(|a| BoxShadow {
                 color: art_tint(a.rgb, cx).opacity(0.5),
                 offset: point(px(0.), px(8.)),

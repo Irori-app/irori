@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{self, CommandSpec, ExecResult, RunOptions};
-use ember_core::{AppSettings, GameSettings, OpContext, WineKind};
+use irori_core::process::{self, CommandSpec, ExecResult, RunOptions};
+use irori_core::{AppSettings, GameSettings, OpContext, WineKind};
 use serde::Deserialize;
 
 use crate::download;
@@ -108,12 +108,12 @@ fn marker(dir: &Path, tool: DxTool) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// Ember's directory for a tool.
+/// Irori's directory for a tool.
 pub fn tool_dir(tool: DxTool) -> PathBuf {
     locations::tools_dir().join(tool.id())
 }
 
-/// The downloaded build to install from: Ember's, else Heroic's.
+/// The downloaded build to install from: Irori's, else Heroic's.
 /// Returns `(version, version_dir)`.
 pub fn tool_source(tool: DxTool) -> Option<(String, PathBuf)> {
     let mut roots = vec![tool_dir(tool)];
@@ -269,7 +269,7 @@ async fn import_reg(
 ) -> Result<()> {
     let temp = wc.wine_prefix_dir().join("drive_c/windows/temp");
     tokio::fs::create_dir_all(&temp).await?;
-    let name = format!("ember-{}.reg", std::process::id());
+    let name = format!("irori-{}.reg", std::process::id());
     let file = temp.join(&name);
     tokio::fs::write(&file, content).await?;
     let mut cmd = WineCommand::new(["regedit", "/S", &format!("C:\\windows\\temp\\{name}")]);
@@ -487,7 +487,7 @@ const WINETRICKS_URL: &str =
     "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
 const WINETRICKS_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
-/// Download the winetricks script into Ember's tools directory when it is
+/// Download the winetricks script into Irori's tools directory when it is
 /// missing (or, with `refresh`, older than 7 days). Falls back to an existing
 /// copy, then to a system `winetricks`.
 pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
@@ -511,7 +511,7 @@ pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
         Ok(script) if script.starts_with("#!") => {
             let bytes = script.into_bytes();
             let p = path.clone();
-            tokio::task::spawn_blocking(move || ember_core::json_store::write_bytes(&p, &bytes))
+            tokio::task::spawn_blocking(move || irori_core::json_store::write_bytes(&p, &bytes))
                 .await
                 .context("saving winetricks")??;
             #[cfg(unix)]

@@ -1,6 +1,6 @@
 [package]
-name = "ember-itch"
-description = "itch.io store backend for Ember: owned games, archive installs and updates, launching"
+name = "irori-itch"
+description = "itch.io store backend for Irori: owned games, archive installs and updates, launching"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-depot.workspace = true
-ember-itch-api.workspace = true
+irori-core.workspace = true
+irori-depot.workspace = true
+irori-itch-api.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
@@ -30,5 +30,5 @@ fs4.workspace = true
 reqwest.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tempfile = "3"

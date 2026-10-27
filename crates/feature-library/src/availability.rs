@@ -5,8 +5,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use ember_core::GameId;
-use ember_services::LibrarySnapshot;
+use irori_core::GameId;
+use irori_services::LibrarySnapshot;
 
 /// Results of the last availability check.
 #[derive(Debug, Default)]
@@ -72,7 +72,7 @@ pub fn candidates(library: &LibrarySnapshot) -> Vec<GameId> {
 mod tests {
     use super::*;
     use crate::filter::tests::{game, snapshot};
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     #[test]
     fn checks_once_per_revision() {
@@ -100,7 +100,7 @@ mod tests {
     fn only_installed_local_games_are_checked() {
         let installed = game(Runner::Gog, "1", "A", true);
         let mut with_path = (*installed).clone();
-        with_path.install = Some(ember_core::InstalledInfo {
+        with_path.install = Some(irori_core::InstalledInfo {
             install_path: "/games/a".into(),
             ..Default::default()
         });

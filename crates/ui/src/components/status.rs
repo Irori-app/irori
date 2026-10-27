@@ -1,5 +1,5 @@
-use ember_core::util::{format_bytes, format_duration};
-use ember_core::{GameStatus, InstallProgress, PrepareStage};
+use irori_core::util::{format_bytes, format_duration};
+use irori_core::{GameStatus, InstallProgress, PrepareStage};
 
 use crate::i18n::{status_label, t_args};
 use gpui_kit::component::{ActiveTheme as _, h_flex, v_flex};

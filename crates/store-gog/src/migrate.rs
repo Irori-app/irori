@@ -1,5 +1,5 @@
-//! Converts gogdl state (from earlier Ember versions or from Heroic) into
-//! Ember's own files: build records, support files and the
+//! Converts gogdl state (from earlier Irori versions or from Heroic) into
+//! Irori's own files: build records, support files and the
 //! redistributables record. The old gogdl folder is kept as a backup.
 
 use std::path::Path;
@@ -7,7 +7,7 @@ use std::path::Path;
 use anyhow::{Context as _, Result};
 use serde_json::Value;
 
-use ember_core::{InstallPlatform, json_store};
+use irori_core::{InstallPlatform, json_store};
 
 use crate::build::{self, BuildRecord};
 use crate::installed::{InstalledFile, InstalledRecord};
@@ -37,7 +37,7 @@ fn read_value(path: &Path) -> Option<Value> {
 }
 
 /// Convert gogdl's manifests and support files in `gogdl_dir`
-/// (`heroic_gogdl`) for `apps` (every app when `None`). Existing Ember
+/// (`heroic_gogdl`) for `apps` (every app when `None`). Existing Irori
 /// records win. Returns how many builds were converted.
 pub(crate) fn convert_gogdl_dir(
     gogdl_dir: &Path,
@@ -137,7 +137,7 @@ fn back_up(dir: &Path) -> Result<()> {
         .with_context(|| format!("moving {} to {}", dir.display(), target.display()))
 }
 
-/// Convert what earlier Ember versions kept for gogdl. Runs at startup and
+/// Convert what earlier Irori versions kept for gogdl. Runs at startup and
 /// does nothing once converted.
 pub fn migrate_gogdl_state(paths: &GogPaths) -> Result<()> {
     let installed: InstalledFile = json_store::read_or_default(&paths.installed_file());

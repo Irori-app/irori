@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use ember_core::{Event, EventBus, GameId, GameStatus, InstallProgress, StatusKind};
+use irori_core::{Event, EventBus, GameId, GameStatus, InstallProgress, StatusKind};
 use parking_lot::Mutex;
 
 /// Minimum interval between progress events of one game.

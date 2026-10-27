@@ -4,10 +4,6 @@
 
 use std::sync::Arc;
 
-use ember_core::{GameId, HostPlatform, WineInstallation};
-use ember_extras::known_fixes::{self, KnownFix};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::link::Link;
@@ -21,6 +17,10 @@ use gpui_kit::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
     Subscription, Window, div, rems,
 };
+use irori_core::{GameId, HostPlatform, WineInstallation};
+use irori_extras::known_fixes::{self, KnownFix};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 
 use crate::choice::{Choice, ChoiceSelect, choice_select, set_choices};
 use crate::load::Load;
@@ -90,7 +90,7 @@ impl LaunchHint {
     ];
 }
 
-/// Index of the first line the game itself wrote: Ember's log header (game,
+/// Index of the first line the game itself wrote: Irori's log header (game,
 /// paths, the settings as JSON) ends with the launch command. The header
 /// would otherwise feed the hints, e.g. `"battlEyeRuntime":true`.
 pub fn game_output_start<'a>(lines: impl IntoIterator<Item = &'a str>) -> usize {
@@ -197,9 +197,9 @@ impl LaunchProblem {
     fn load(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
         let path = b.game_log(&self.id);
-        let tail = ember_ui::run(cx, read_tail(path));
+        let tail = irori_ui::run(cx, read_tail(path));
         let (runner, app_name) = (self.id.runner, self.id.app_name.clone());
-        let fix = ember_ui::run(cx, async move {
+        let fix = irori_ui::run(cx, async move {
             Ok(known_fixes::lookup(runner, &app_name).await)
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -224,8 +224,8 @@ impl LaunchProblem {
         self.wines = Load::Loading;
         let app = b.settings.app();
         let current = b.settings.game(&self.id).wine_version;
-        let task = ember_ui::run(cx, async move {
-            Ok(ember_runtime::wine_installations(&app).await)
+        let task = irori_ui::run(cx, async move {
+            Ok(irori_runtime::wine_installations(&app).await)
         });
         cx.spawn_in(window, async move |this, cx| {
             let list = task.await.unwrap_or_default();
@@ -515,7 +515,7 @@ mod tests {
     #[test]
     fn reads_only_what_the_game_wrote() {
         let log = [
-            "Ember 0.1.0 - Game (sideload:game)",
+            "Irori 0.1.0 - Game (sideload:game)",
             r#"Settings: {"battlEyeRuntime":true,"eacRuntime":true}"#,
             "",
             "Launch command: /games/start.sh",

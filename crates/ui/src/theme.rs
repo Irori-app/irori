@@ -1,22 +1,22 @@
-//! Themes: Ember's own light/dark pair plus a few bundled community themes,
+//! Themes: Irori's own light/dark pair plus a few bundled community themes,
 //! applied from the user's [`UiPrefs`].
 //!
 //! Each bundled file is a family (Catppuccin, Gruvbox...). The user picks one
 //! theme; the other colour mode uses its sibling in the same family (Latte ↔
-//! Mocha), or Ember's own theme when the family has none, so following the
+//! Mocha), or Irori's own theme when the family has none, so following the
 //! system never drops the user back to an unrelated look.
 
 use std::rc::Rc;
 
-use ember_core::settings::{ThemePreference, UiPrefs};
 use gpui_kit::component::{Theme, ThemeConfig, ThemeMode, ThemeRegistry};
 use gpui_kit::{App, Global, SharedString, Window, WindowAppearance, px};
+use irori_core::settings::{ThemePreference, UiPrefs};
 
-pub const DEFAULT_DARK: &str = "Ember Night";
-pub const DEFAULT_LIGHT: &str = "Ember Day";
+pub const DEFAULT_DARK: &str = "Irori Night";
+pub const DEFAULT_LIGHT: &str = "Irori Day";
 
 const BUNDLED: &[&str] = &[
-    include_str!("../../../assets/themes/ember.json"),
+    include_str!("../../../assets/themes/irori.json"),
     include_str!("../../../assets/themes/catppuccin.json"),
     include_str!("../../../assets/themes/tokyonight.json"),
     include_str!("../../../assets/themes/gruvbox.json"),
@@ -25,7 +25,7 @@ const BUNDLED: &[&str] = &[
     include_str!("../../../assets/themes/ayu.json"),
 ];
 
-/// Ember's typeface (Manrope, SIL Open Font License), used by every theme.
+/// Irori's typeface (Manrope, SIL Open Font License), used by every theme.
 pub const FONT_FAMILY: &str = "Manrope";
 
 const FONTS: &[&[u8]] = &[
@@ -90,7 +90,7 @@ pub(crate) fn install(cx: &mut App) {
         .map(|f| std::borrow::Cow::Borrowed(*f))
         .collect();
     if let Err(e) = cx.text_system().add_fonts(fonts) {
-        tracing::warn!("loading Ember's fonts: {e:#}");
+        tracing::warn!("loading Irori's fonts: {e:#}");
     }
     let mut families = Families::default();
     let registry = ThemeRegistry::global_mut(cx);
@@ -134,7 +134,7 @@ fn sibling(name: &str, dark: bool, cx: &App) -> Option<SharedString> {
 }
 
 /// Names of the themes the user can pick, dark ones first. gpui-kit's own
-/// unstyled defaults are left out: they are not Ember themes.
+/// unstyled defaults are left out: they are not Irori themes.
 pub fn theme_names(cx: &App) -> Vec<(SharedString, bool)> {
     let mut names: Vec<(SharedString, bool)> = ThemeRegistry::global(cx)
         .sorted_themes()
@@ -232,7 +232,7 @@ pub fn apply(prefs: &UiPrefs, window: Option<&mut Window>, cx: &mut App) {
             theme.apply_config(d);
         }
         theme.font_size = px(zoomed);
-        // The typeface is part of Ember's identity, whatever the colours.
+        // The typeface is part of Irori's identity, whatever the colours.
         theme.font_family = FONT_FAMILY.into();
     });
     let mode = if is_dark {
@@ -282,9 +282,9 @@ mod tests {
     }
 
     #[test]
-    fn every_bundled_theme_colors_everything_ember_paints() {
-        let ember: serde_json::Value = serde_json::from_str(BUNDLED[0]).unwrap();
-        let wanted: BTreeSet<&str> = ember["themes"][0]["colors"]
+    fn every_bundled_theme_colors_everything_irori_paints() {
+        let irori: serde_json::Value = serde_json::from_str(BUNDLED[0]).unwrap();
+        let wanted: BTreeSet<&str> = irori["themes"][0]["colors"]
             .as_object()
             .unwrap()
             .keys()
@@ -347,7 +347,7 @@ mod tests {
             shown(cx, ThemePreference::Light, "Gruvbox Dark"),
             "Gruvbox Light"
         );
-        // Tokyo Night has no light theme: Ember's own stands in.
+        // Tokyo Night has no light theme: Irori's own stands in.
         assert_eq!(
             shown(cx, ThemePreference::Light, "Tokyo Moon"),
             DEFAULT_LIGHT

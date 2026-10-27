@@ -13,7 +13,7 @@ The "PR rules" check enforces this; see AGENTS.md, "Branches, commits and pull r
 - [ ] `cargo fmt --all --check`
 - [ ] `cargo clippy --locked --workspace --all-targets -- -D warnings`
 - [ ] `cargo test --locked --workspace` (or the crates touched: `-p ...`)
-- [ ] Ran Ember and exercised the change: <!-- what you did, on which OS -->
+- [ ] Ran Irori and exercised the change: <!-- what you did, on which OS -->
 - [ ] Packaging tests, if `packaging/` changed: `python3 -m unittest discover -s packaging -p "test_*.py"`
 
 Platforms tried: <!-- Linux (Wayland/X11) / macOS / Windows; say which were not -->
