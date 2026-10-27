@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Hledat komponenty Winetricks",
   "settings.winetricks.search_placeholder": "Hledat komponenty, písma a nastavení",
   "settings.winetricks.showing": "Zobrazeno {shown} z {total}. Seznam zúžíte hledáním.",
-  "settings.winetricks.verb_installed": "Nainstalováno: {verb}"
+  "settings.winetricks.verb_installed": "Nainstalováno: {verb}",
+  "settings.field.action_import_lutris.label": "Importovat z Lutris",
+  "settings.field.action_import_lutris.help": "Převezme z Lutris nainstalované hry, emulované hry, oblíbené položky, kategorie a odehraný čas. Samotný Lutris zůstane beze změny.",
+  "settings.error.import_lutris": "Import z Lutris se nezdařil"
 }

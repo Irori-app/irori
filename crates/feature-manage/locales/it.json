@@ -374,5 +374,11 @@
   "manage.setup.done.title": "È tutto pronto",
   "manage.setup.done.games": "{count} giochi sono nella tua libreria, pronti da giocare.",
   "manage.setup.done.no_games": "Aggiungi una cartella con dei giochi nella pagina Emulatori quando vuoi.",
-  "manage.setup.done.open_library": "Apri libreria"
+  "manage.setup.done.open_library": "Apri libreria",
+  "manage.onboarding.lutris.title": "Arrivi da Lutris?",
+  "manage.onboarding.lutris.description": "Ember può portare con sé i tuoi giochi di Lutris (Windows, Linux ed emulati), i preferiti, le categorie e il tempo di gioco. Lutris resta com’è.",
+  "manage.onboarding.lutris.run": "Importa da Lutris",
+  "manage.onboarding.lutris.done": "Importato da Lutris",
+  "manage.onboarding.lutris.details": "Mostra dettagli",
+  "manage.onboarding.lutris.failed": "Impossibile importare da Lutris"
 }

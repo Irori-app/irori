@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Winetricks 구성 요소 검색",
   "settings.winetricks.search_placeholder": "구성 요소, 글꼴 및 설정 검색",
   "settings.winetricks.showing": "{total}개 중 {shown}개를 표시하고 있습니다. 검색하여 목록을 좁히세요.",
-  "settings.winetricks.verb_installed": "{verb}을(를) 설치했습니다"
+  "settings.winetricks.verb_installed": "{verb}을(를) 설치했습니다",
+  "settings.field.action_import_lutris.label": "Lutris에서 가져오기",
+  "settings.field.action_import_lutris.help": "Lutris에서 설치된 게임, 에뮬레이션 게임, 즐겨찾기, 카테고리, 플레이 시간을 가져옵니다. Lutris 자체는 변경되지 않습니다.",
+  "settings.error.import_lutris": "Lutris에서 가져올 수 없습니다"
 }

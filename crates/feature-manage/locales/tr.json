@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Her şey hazır",
   "manage.setup.done.games": "Kütüphanende oynamaya hazır {count} oyun var.",
   "manage.setup.done.no_games": "Hazır olduğunda Emülatörler sayfasından oyun içeren bir klasör ekle.",
-  "manage.setup.done.open_library": "Kütüphaneyi aç"
+  "manage.setup.done.open_library": "Kütüphaneyi aç",
+  "manage.onboarding.lutris.title": "Lutris'ten mi geliyorsun?",
+  "manage.onboarding.lutris.description": "Ember; Lutris oyunlarını (Windows, Linux ve emüle edilen), favorilerini, kategorilerini ve oynama süreni aktarabilir. Lutris olduğu gibi kalır.",
+  "manage.onboarding.lutris.run": "Lutris'ten içe aktar",
+  "manage.onboarding.lutris.done": "Lutris'ten içe aktarıldı",
+  "manage.onboarding.lutris.details": "Ayrıntıları göster",
+  "manage.onboarding.lutris.failed": "Lutris'ten içe aktarılamadı"
 }

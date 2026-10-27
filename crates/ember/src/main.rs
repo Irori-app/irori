@@ -7,6 +7,7 @@ mod crash;
 mod headless;
 mod import;
 mod instance;
+mod lutris;
 mod pages;
 mod palette;
 mod playing;

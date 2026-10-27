@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Winetricksのコンポーネントを検索",
   "settings.winetricks.search_placeholder": "コンポーネント、フォント、設定を検索",
   "settings.winetricks.showing": "{total}件中{shown}件を表示しています。検索して絞り込んでください。",
-  "settings.winetricks.verb_installed": "{verb}をインストールしました"
+  "settings.winetricks.verb_installed": "{verb}をインストールしました",
+  "settings.field.action_import_lutris.label": "Lutrisからインポート",
+  "settings.field.action_import_lutris.help": "Lutrisからインストール済みのゲーム、エミュレーションのゲーム、お気に入り、カテゴリー、プレイ時間を引き継ぎます。Lutris自体は変更されません。",
+  "settings.error.import_lutris": "Lutrisからインポートできませんでした"
 }

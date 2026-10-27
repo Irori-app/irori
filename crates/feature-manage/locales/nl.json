@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Je bent klaar",
   "manage.setup.done.games": "{count} games staan in je bibliotheek, klaar om te spelen.",
   "manage.setup.done.no_games": "Voeg een map met games toe op de pagina Emulators wanneer je er klaar voor bent.",
-  "manage.setup.done.open_library": "Bibliotheek openen"
+  "manage.setup.done.open_library": "Bibliotheek openen",
+  "manage.onboarding.lutris.title": "Kom je van Lutris?",
+  "manage.onboarding.lutris.description": "Ember kan je Lutris-games (Windows, Linux en geëmuleerd), favorieten, categorieën en speeltijd overnemen. Lutris blijft zoals het is.",
+  "manage.onboarding.lutris.run": "Importeren uit Lutris",
+  "manage.onboarding.lutris.done": "Geïmporteerd uit Lutris",
+  "manage.onboarding.lutris.details": "Details tonen",
+  "manage.onboarding.lutris.failed": "Kan niet importeren uit Lutris"
 }

@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "搜尋 Winetricks 元件",
   "settings.winetricks.search_placeholder": "搜尋元件、字型和設定",
   "settings.winetricks.showing": "顯示 {total} 項中的 {shown} 項。搜尋可縮小範圍。",
-  "settings.winetricks.verb_installed": "已安裝 {verb}"
+  "settings.winetricks.verb_installed": "已安裝 {verb}",
+  "settings.field.action_import_lutris.label": "從 Lutris 匯入",
+  "settings.field.action_import_lutris.help": "從 Lutris 移轉已安裝的遊戲、模擬遊戲、我的最愛、分類和遊玩時間。Lutris 本身不會被變更。",
+  "settings.error.import_lutris": "無法從 Lutris 匯入"
 }

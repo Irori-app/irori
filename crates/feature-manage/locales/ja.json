@@ -374,5 +374,11 @@
   "manage.setup.done.title": "準備が整いました",
   "manage.setup.done.games": "{count} 本のゲームがライブラリに追加され、すぐにプレイできます。",
   "manage.setup.done.no_games": "準備ができたら、「エミュレーター」ページでゲームのあるフォルダーを追加してください。",
-  "manage.setup.done.open_library": "ライブラリを開く"
+  "manage.setup.done.open_library": "ライブラリを開く",
+  "manage.onboarding.lutris.title": "Lutris から移行しますか？",
+  "manage.onboarding.lutris.description": "Ember は Lutris のゲーム（Windows、Linux、エミュレーション）、お気に入り、カテゴリー、プレイ時間を引き継げます。Lutris はそのまま残ります。",
+  "manage.onboarding.lutris.run": "Lutris からインポート",
+  "manage.onboarding.lutris.done": "Lutris からインポートしました",
+  "manage.onboarding.lutris.details": "詳細を表示",
+  "manage.onboarding.lutris.failed": "Lutris からインポートできませんでした"
 }

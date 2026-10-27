@@ -72,6 +72,7 @@ Commands Ember offers without opening a window (`crates/ember/src/headless.rs`):
 ```text
 ember accounts                                   which stores are logged in
 ember import-heroic                              import Heroic accounts, installs and settings
+ember import-lutris                              import Lutris games, categories and playtime (read-only)
 ember refresh                                    refresh every library
 ember list [--installed]
 ember info <runner>/<app> [--platform P]
@@ -130,7 +131,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
 | `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
-| `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import |
+| `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
 | `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime |
 | `crates/ui` | `ember-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
 | `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs |
@@ -538,6 +539,14 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   way, version pin (typed `EngineMissing`), then the command. `GameInfo.system` and
   `GameInfo.tags` (region, revision) drive the system filter, badges, the generated
   cover and Big Picture's per-system shelves.
+- **Lutris import** (`ember-extras::lutris_import` reads; `crates/ember/src/lutris.rs`
+  applies). It only reads Lutris: `pga.db` is opened read-only and immutable, YAML is
+  parsed, nothing is written there. Windows/Linux games become added apps with their
+  prefix, Wine build (matched by name, else reported), arguments and variables;
+  emulated games join the ROM library as added games with their emulator; Steam and
+  store games are matched by id. Every game not imported comes back with a reason id
+  that `ember_ui::lutris_summary` translates. Tests build the SQLite database in the
+  test; `rusqlite` is built with `bundled` on every OS.
 - **Fix dialogs.** `ember_ui::save_conflict::resolve_launch_error` also turns
   `EngineMissing` and `BiosMissing` into dialogs with a fix (install and play, use the
   default version, choose the BIOS folder). Every place that starts a game already

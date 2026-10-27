@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Totul e gata",
   "manage.setup.done.games": "Jocuri din bibliotecă gata de jucat: {count}.",
   "manage.setup.done.no_games": "Adaugă un dosar cu jocuri pe pagina Emulatoare când ești gata.",
-  "manage.setup.done.open_library": "Deschide biblioteca"
+  "manage.setup.done.open_library": "Deschide biblioteca",
+  "manage.onboarding.lutris.title": "Vii de pe Lutris?",
+  "manage.onboarding.lutris.description": "Ember poate prelua jocurile tale din Lutris (Windows, Linux și emulate), favoritele, categoriile și timpul de joc. Lutris rămâne așa cum este.",
+  "manage.onboarding.lutris.run": "Importă din Lutris",
+  "manage.onboarding.lutris.done": "Importat din Lutris",
+  "manage.onboarding.lutris.details": "Afișează detaliile",
+  "manage.onboarding.lutris.failed": "Importul din Lutris a eșuat"
 }

@@ -2051,6 +2051,7 @@ dependencies = [
  "ember-bigpicture",
  "ember-core",
  "ember-emulation",
+ "ember-engines",
  "ember-epic",
  "ember-extras",
  "ember-game",
@@ -2649,6 +2650,7 @@ name = "ember-ui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dirs 6.0.0",
  "ember-core",
  "ember-engines",
  "ember-services",
