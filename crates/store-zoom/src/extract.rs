@@ -3,8 +3,10 @@
 //! Tar archives (`.tar`, gzip, bzip2, xz, lzma, zstd), zip archives, MojoSetup
 //! `.sh` installers (a shell stub followed by a zip; only `data/noarch/` is
 //! the game) and makeself `.sh`/`.run` installers (a shell stub followed by
-//! compressed tarballs) are unpacked in-process with path traversal
-//! protection. Other formats are left to the caller.
+//! compressed tarballs) are unpacked in-process. Nothing in an archive can
+//! write or link outside the destination folder: entries with absolute or
+//! `..` paths are skipped, and links pointing outside it or entries written
+//! through a link fail the extraction. Other formats are left to the caller.
 
 use std::fs::File;
 use std::io::{self, BufRead as _, BufReader, Read, Seek as _, SeekFrom};
@@ -13,6 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context as _, Result, bail};
+use ember_core::archive_guard;
 use ember_core::process::CancellationToken;
 use once_cell::sync::Lazy;
 use regex::bytes::Regex;
@@ -232,6 +235,10 @@ fn sniff(head: &[u8]) -> Option<ArchiveKind> {
 }
 
 /// Unpack a tar stream into `dest`. Returns `false` when cancelled.
+///
+/// Entries with absolute or `..` paths are skipped. Links whose target
+/// resolves outside `dest` and entries that would be written through a
+/// symbolic link fail the extraction (see [`archive_guard`]).
 fn unpack_tar(
     decoded: impl Read,
     dest: &Path,
@@ -247,19 +254,73 @@ fn unpack_tar(
             return Ok(false);
         }
         let mut entry = entry?;
-        // `unpack_in` refuses entries escaping `dest` (returns false).
-        if !entry.unpack_in(dest)? {
-            tracing::warn!(
-                "skipped unsafe archive entry {}",
-                entry
-                    .path()
-                    .map(|p| p.display().to_string())
-                    .unwrap_or_default()
-            );
-        }
+        unpack_tar_entry(&mut entry, dest)?;
         on_entry();
     }
     Ok(true)
+}
+
+fn unpack_tar_entry(entry: &mut tar::Entry<'_, impl Read>, dest: &Path) -> Result<()> {
+    let path = entry.path()?.into_owned();
+    let Some(rel) = archive_guard::relative_entry_path(&path) else {
+        tracing::warn!("skipped unsafe archive entry {}", path.display());
+        return Ok(());
+    };
+    let target = dest.join(&rel);
+    let kind = entry.header().entry_type();
+    // Old tar headers mark folders with a trailing slash only.
+    let is_dir = kind.is_dir() || entry.path_bytes().ends_with(b"/");
+    let parent = rel.parent().unwrap_or(Path::new(""));
+    archive_guard::ensure_no_symlinks(dest, if is_dir { &rel } else { parent })?;
+    std::fs::create_dir_all(dest.join(parent))
+        .with_context(|| format!("creating {}", dest.join(parent).display()))?;
+    if is_dir {
+        entry
+            .unpack(&target)
+            .with_context(|| format!("creating {}", target.display()))?;
+        return Ok(());
+    }
+    if kind.is_hard_link() {
+        let link = entry
+            .link_name()?
+            .context("hard link without a target")?
+            .into_owned();
+        let unsafe_link = || {
+            anyhow::anyhow!(
+                "unsafe link in archive: {} -> {}",
+                rel.display(),
+                link.display()
+            )
+        };
+        let source_rel = archive_guard::relative_entry_path(&link).ok_or_else(unsafe_link)?;
+        archive_guard::ensure_no_symlinks(dest, source_rel.parent().unwrap_or(Path::new("")))?;
+        let source = dest.join(&source_rel);
+        // Only regular files: some systems follow a symbolic link when hard
+        // linking it, and the copy fallback always does.
+        if !std::fs::symlink_metadata(&source).is_ok_and(|m| m.is_file()) {
+            return Err(unsafe_link());
+        }
+        let _ = std::fs::remove_file(&target);
+        if std::fs::hard_link(&source, &target).is_err() {
+            std::fs::copy(&source, &target)
+                .with_context(|| format!("linking {}", target.display()))?;
+        }
+        return Ok(());
+    }
+    if kind.is_symlink() {
+        let link = entry
+            .link_name()?
+            .context("symbolic link without a target")?
+            .into_owned();
+        if !archive_guard::check_symlink(dest, &rel, &link)? {
+            return Ok(());
+        }
+    }
+    // A regular file replaces a link at `target` instead of following it.
+    entry
+        .unpack(&target)
+        .with_context(|| format!("writing {}", target.display()))?;
+    Ok(())
 }
 
 fn extract_tar(
@@ -371,22 +432,29 @@ fn extract_zip(
         let out = dest.join(&rel);
         let mode = entry.unix_mode();
         if entry.is_dir() {
+            archive_guard::ensure_no_symlinks(dest, &rel)?;
             std::fs::create_dir_all(&out)?;
-        } else if mode.is_some_and(|m| m & 0o170000 == 0o120000) {
+            progress(done, total);
+            continue;
+        }
+        let parent = rel.parent().unwrap_or(Path::new(""));
+        archive_guard::ensure_no_symlinks(dest, parent)?;
+        std::fs::create_dir_all(dest.join(parent))?;
+        if mode.is_some_and(|m| m & 0o170000 == 0o120000) {
             let mut target = String::new();
             entry.read_to_string(&mut target)?;
-            if let Some(parent) = out.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            let _ = std::fs::remove_file(&out);
             #[cfg(not(unix))]
             anyhow::bail!("This archive requires Unix symbolic links");
             #[cfg(unix)]
-            std::os::unix::fs::symlink(target, &out)
-                .with_context(|| format!("creating link {}", out.display()))?;
+            if archive_guard::check_symlink(dest, &rel, Path::new(&target))? {
+                std::os::unix::fs::symlink(target, &out)
+                    .with_context(|| format!("creating link {}", out.display()))?;
+            }
         } else {
-            if let Some(parent) = out.parent() {
-                std::fs::create_dir_all(parent)?;
+            // `File::create` would write through a link left at `out`.
+            if std::fs::symlink_metadata(&out).is_ok_and(|m| m.file_type().is_symlink()) {
+                std::fs::remove_file(&out)
+                    .with_context(|| format!("replacing {}", out.display()))?;
             }
             let mut f = File::create(&out).with_context(|| format!("writing {}", out.display()))?;
             io::copy(&mut entry, &mut f).with_context(|| format!("writing {}", out.display()))?;
@@ -704,5 +772,292 @@ pub(crate) mod tests {
         cancel.cancel();
         let dest2 = dir.path().join("out2");
         assert!(!extract(&a, ArchiveKind::Zip, &dest2, &cancel, &mut noop()).unwrap());
+    }
+
+    /// One entry of a hand-built archive.
+    enum Item<'a> {
+        File(&'a str, &'a [u8]),
+        Dir(&'a str),
+        Symlink(&'a str, &'a str),
+        /// Tar only: zip has no hard links.
+        HardLink(&'a str, &'a str),
+    }
+
+    fn build_tar(items: &[Item]) -> Vec<u8> {
+        let mut b = tar::Builder::new(Vec::new());
+        for item in items {
+            let mut h = tar::Header::new_gnu();
+            h.set_mode(0o644);
+            match *item {
+                Item::File(path, data) => {
+                    h.set_size(data.len() as u64);
+                    b.append_data(&mut h, path, data).unwrap();
+                }
+                Item::Dir(path) => {
+                    h.set_entry_type(tar::EntryType::Directory);
+                    h.set_mode(0o755);
+                    h.set_size(0);
+                    b.append_data(&mut h, path, io::empty()).unwrap();
+                }
+                Item::Symlink(path, target) | Item::HardLink(path, target) => {
+                    h.set_entry_type(match item {
+                        Item::Symlink(..) => tar::EntryType::Symlink,
+                        _ => tar::EntryType::Link,
+                    });
+                    h.set_size(0);
+                    b.append_link(&mut h, path, target).unwrap();
+                }
+            }
+        }
+        b.into_inner().unwrap()
+    }
+
+    fn build_zip(items: &[Item]) -> Vec<u8> {
+        let mut buf = io::Cursor::new(Vec::new());
+        let mut w = zip::ZipWriter::new(&mut buf);
+        let opts = zip::write::SimpleFileOptions::default().unix_permissions(0o644);
+        for item in items {
+            match *item {
+                Item::File(path, data) => {
+                    w.start_file(path, opts).unwrap();
+                    w.write_all(data).unwrap();
+                }
+                Item::Dir(path) => w.add_directory(path, opts).unwrap(),
+                Item::Symlink(path, target) => w.add_symlink(path, target, opts).unwrap(),
+                Item::HardLink(..) => unreachable!("zip has no hard links"),
+            }
+        }
+        w.finish().unwrap();
+        buf.into_inner()
+    }
+
+    /// A scratch folder with an `out` destination and an `outside` folder
+    /// holding `secret`, which no archive may reach.
+    struct Sandbox {
+        _dir: tempfile::TempDir,
+        root: PathBuf,
+    }
+
+    impl Sandbox {
+        fn new() -> Self {
+            let dir = tempfile::tempdir().unwrap();
+            // Canonical, so links to it are what a real attack would write.
+            let root = dir.path().canonicalize().unwrap();
+            std::fs::create_dir_all(root.join("outside")).unwrap();
+            std::fs::write(root.join("outside/secret"), b"keep").unwrap();
+            std::fs::create_dir_all(root.join("out")).unwrap();
+            Self { _dir: dir, root }
+        }
+
+        fn dest(&self) -> PathBuf {
+            self.root.join("out")
+        }
+
+        fn outside(&self) -> String {
+            self.root.join("outside").to_string_lossy().into_owned()
+        }
+
+        fn extract(&self, kind: ArchiveKind, items: &[Item]) -> Result<bool> {
+            let (name, bytes) = match kind {
+                ArchiveKind::Zip => ("a.zip", build_zip(items)),
+                _ => ("a.tar", build_tar(items)),
+            };
+            let archive = self.root.join(name);
+            std::fs::write(&archive, bytes).unwrap();
+            extract(
+                &archive,
+                kind,
+                &self.dest(),
+                &CancellationToken::new(),
+                &mut noop(),
+            )
+        }
+
+        /// The outside folder still holds exactly the untouched `secret`.
+        fn assert_outside_untouched(&self) {
+            let names: Vec<_> = std::fs::read_dir(self.root.join("outside"))
+                .unwrap()
+                .map(|e| e.unwrap().file_name())
+                .collect();
+            assert_eq!(names, ["secret"]);
+            assert_eq!(
+                std::fs::read(self.root.join("outside/secret")).unwrap(),
+                b"keep"
+            );
+            assert!(!self.root.join("x").exists());
+        }
+
+        fn has(&self, rel: &str) -> bool {
+            self.dest().join(rel).symlink_metadata().is_ok()
+        }
+    }
+
+    const FORMATS: [ArchiveKind; 2] = [ArchiveKind::Tar, ArchiveKind::Zip];
+
+    #[test]
+    fn refuses_writing_through_an_archive_symlink() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            let outside = sb.outside();
+            let items = [
+                Item::Symlink("dir", &outside),
+                Item::File("dir/x", b"pwned"),
+                Item::Dir("dir/sub/"),
+            ];
+            assert!(sb.extract(kind, &items).is_err(), "{kind:?}");
+            sb.assert_outside_untouched();
+        }
+    }
+
+    #[test]
+    fn refuses_absolute_and_climbing_link_targets() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            let outside = sb.outside();
+            for (path, target) in [
+                ("abs", outside.as_str()),
+                ("root", "/"),
+                ("up", "../outside"),
+                ("a/b/up", "../../../outside/secret"),
+            ] {
+                let res = sb.extract(kind, &[Item::Symlink(path, target)]);
+                assert!(res.is_err(), "{kind:?} {path} -> {target}");
+                assert!(!sb.has(path), "{kind:?} {path}");
+            }
+            sb.assert_outside_untouched();
+        }
+    }
+
+    #[test]
+    fn refuses_hard_links_outside() {
+        let sb = Sandbox::new();
+        let items = [Item::HardLink("h", "../outside/secret")];
+        assert!(sb.extract(ArchiveKind::Tar, &items).is_err());
+        assert!(!sb.has("h"));
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_links_resolving_out_through_earlier_links() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            // Read lexically, `self/..` is `dest`; on disk it is `dest/..`.
+            let items = [
+                Item::Symlink("self", "."),
+                Item::Symlink("up", "self/.."),
+                Item::File("up/x", b"pwned"),
+            ];
+            assert!(sb.extract(kind, &items).is_err(), "{kind:?}");
+            assert!(!sb.has("up"));
+            sb.assert_outside_untouched();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_links_replacing_entries() {
+        // Tar only: zip readers keep one entry per name.
+        let sb = Sandbox::new();
+        // `up -> a/..` is `dest` while `a` is a folder link, `dest/..` after.
+        let items = [
+            Item::Dir("d/e/"),
+            Item::Symlink("a", "d/e"),
+            Item::Symlink("up", "a/.."),
+            Item::Symlink("a", "."),
+            Item::File("up/x", b"pwned"),
+        ];
+        assert!(sb.extract(ArchiveKind::Tar, &items).is_err());
+        assert_eq!(
+            std::fs::read_link(sb.dest().join("a")).unwrap(),
+            Path::new("d/e")
+        );
+        sb.assert_outside_untouched();
+
+        // A link left by an earlier extraction is not replaced either.
+        let sb = Sandbox::new();
+        std::fs::create_dir_all(sb.dest().join("d/e")).unwrap();
+        std::os::unix::fs::symlink("d/e", sb.dest().join("a")).unwrap();
+        std::fs::write(sb.dest().join("f"), b"file").unwrap();
+        for kind in FORMATS {
+            assert!(sb.extract(kind, &[Item::Symlink("a", ".")]).is_err());
+            assert!(sb.extract(kind, &[Item::Symlink("f", ".")]).is_err());
+        }
+        assert_eq!(
+            std::fs::read_link(sb.dest().join("a")).unwrap(),
+            Path::new("d/e")
+        );
+        assert_eq!(std::fs::read(sb.dest().join("f")).unwrap(), b"file");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_writing_through_an_existing_symlink() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            std::os::unix::fs::symlink(sb.outside(), sb.dest().join("dir")).unwrap();
+            assert!(sb.extract(kind, &[Item::File("dir/x", b"pwned")]).is_err());
+            assert!(sb.extract(kind, &[Item::Dir("dir/sub/")]).is_err());
+            assert!(sb.extract(kind, &[Item::Symlink("dir/l", "../l")]).is_err());
+            sb.assert_outside_untouched();
+        }
+        // Linking to `dir/secret` would share the outside file's inode.
+        let sb = Sandbox::new();
+        std::os::unix::fs::symlink(sb.outside(), sb.dest().join("dir")).unwrap();
+        let items = [Item::HardLink("h", "dir/secret")];
+        assert!(sb.extract(ArchiveKind::Tar, &items).is_err());
+        assert!(!sb.has("h"));
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn replaces_a_final_symlink_instead_of_following_it() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            let secret = format!("{}/secret", sb.outside());
+            std::os::unix::fs::symlink(&secret, sb.dest().join("f")).unwrap();
+            sb.extract(kind, &[Item::File("f", b"mine")]).unwrap();
+            assert!(!sb.dest().join("f").symlink_metadata().unwrap().is_symlink());
+            assert_eq!(std::fs::read(sb.dest().join("f")).unwrap(), b"mine");
+            sb.assert_outside_untouched();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn keeps_links_inside_the_tree() {
+        for kind in FORMATS {
+            let sb = Sandbox::new();
+            let mut items = vec![
+                Item::File("Game/lib64/libfoo.so", b"so"),
+                Item::Symlink("Game/lib", "lib64"),
+                Item::File("Game/bin/game", b"elf"),
+                Item::Symlink("Game/bin/game.x86_64", "game"),
+                Item::Symlink("Game/bin/libfoo.so", "../lib/libfoo.so"),
+                // A link may name a folder that comes later in the archive.
+                Item::Symlink("Game/pfx/dosdevices/c:", "../drive_c"),
+                Item::Dir("Game/pfx/drive_c/"),
+                Item::File("Game/pfx/drive_c/x.txt", b"c"),
+            ];
+            if kind == ArchiveKind::Tar {
+                items.push(Item::HardLink("Game/bin/game-copy", "Game/bin/game"));
+            }
+            assert!(sb.extract(kind, &items).unwrap());
+            // Extracting again (a resumed install) keeps the same links.
+            assert!(sb.extract(kind, &items).unwrap(), "{kind:?} again");
+            let game = sb.dest().join("Game");
+            assert_eq!(std::fs::read(game.join("lib/libfoo.so")).unwrap(), b"so");
+            assert_eq!(std::fs::read(game.join("bin/game.x86_64")).unwrap(), b"elf");
+            assert_eq!(std::fs::read(game.join("bin/libfoo.so")).unwrap(), b"so");
+            assert_eq!(
+                std::fs::read(game.join("pfx/dosdevices/c:/x.txt")).unwrap(),
+                b"c"
+            );
+            if kind == ArchiveKind::Tar {
+                assert_eq!(std::fs::read(game.join("bin/game-copy")).unwrap(), b"elf");
+            }
+            sb.assert_outside_untouched();
+        }
     }
 }
