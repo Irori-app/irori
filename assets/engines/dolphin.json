@@ -1,0 +1,77 @@
+{
+  "id": "dolphin",
+  "name": "Dolphin",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://dolphin-emu.org",
+  "kind": "standalone",
+  "systems": [
+    "gamecube",
+    "wii"
+  ],
+  "sources": [
+    {
+      "type": "page",
+      "url": "https://dolphin-emu.org/update/latest/beta",
+      "assets": {
+        "macos-aarch64": "https://dl\\.dolphin-emu\\.org/releases/(?P<version>[0-9a-z]+)/dolphin-[0-9a-z]+-universal\\.dmg",
+        "macos-x86_64": "https://dl\\.dolphin-emu\\.org/releases/(?P<version>[0-9a-z]+)/dolphin-[0-9a-z]+-universal\\.dmg",
+        "windows-x86_64": "https://dl\\.dolphin-emu\\.org/releases/(?P<version>[0-9a-z]+)/dolphin-[0-9a-z]+-x64\\.7z"
+      }
+    },
+    {
+      "type": "flatpak",
+      "id": "org.DolphinEmu.dolphin-emu"
+    },
+    {
+      "type": "path",
+      "names": [
+        "dolphin-emu"
+      ]
+    },
+    {
+      "type": "macApp",
+      "bundle": "Dolphin.app"
+    },
+    {
+      "type": "windows",
+      "paths": [
+        "%ProgramFiles%\\Dolphin\\Dolphin.exe"
+      ]
+    }
+  ],
+  "binaries": {
+    "linux": [
+      "dolphin-emu"
+    ],
+    "macos": [
+      "Dolphin.app"
+    ],
+    "windows": [
+      "Dolphin.exe"
+    ]
+  },
+  "launch": {
+    "args": [
+      "-b",
+      {
+        "if": "fullscreen",
+        "args": [
+          "--config=Dolphin.Display.Fullscreen=True"
+        ]
+      },
+      "-e",
+      "{rom}"
+    ]
+  },
+  "options": [
+    {
+      "id": "fullscreen",
+      "kind": "toggle",
+      "default": true
+    }
+  ],
+  "portableMarker": {
+    "windows": "portable.txt"
+  },
+  "exitHotkey": "Esc"
+}

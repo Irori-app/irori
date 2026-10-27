@@ -60,6 +60,7 @@ impl Palette {
                 IconName::Wine,
                 Route::WineManager,
             ),
+            ("shell.nav.emulators", IconName::Joystick, Route::Emulators),
             ("shell.nav.accounts", IconName::CircleUser, Route::Accounts),
             (
                 "shell.nav.settings",

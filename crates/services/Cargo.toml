@@ -11,6 +11,7 @@ publish.workspace = true
 ember-core.workspace = true
 ember-depot.workspace = true
 ember-runtime.workspace = true
+ember-engines.workspace = true
 ember-extras.workspace = true
 anyhow.workspace = true
 tokio.workspace = true
