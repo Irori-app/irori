@@ -55,7 +55,16 @@ export const INSTALL: Record<'linux' | 'macos' | 'windows', InstallOption[]> = {
       ],
     },
     { label: 'Flatpak', commands: ['flatpak install flathub app.irori.Irori'], note: 'Also the way to install on Steam Deck.' },
-    { label: 'Arch', commands: ['yay -S irori-bin'] },
+    {
+      label: 'Arch Linux',
+      commands: [
+        'curl -fsSLo /tmp/irori.asc https://packages.irori.app/irori.asc',
+        'sudo pacman-key --add /tmp/irori.asc && sudo pacman-key --lsign-key 6DD7B72703FE3BD5C719F4CE6FE681AB798DF656',
+        "printf '\\n[irori]\\nServer = https://packages.irori.app/arch/$arch\\n' | sudo tee -a /etc/pacman.conf",
+        'sudo pacman -Syu irori',
+      ],
+      note: 'Also for Manjaro, EndeavourOS and CachyOS.',
+    },
   ],
   macos: [
     { label: 'Homebrew', commands: ['brew install --cask irori-app/tap/irori'] },

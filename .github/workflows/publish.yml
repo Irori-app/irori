@@ -44,10 +44,52 @@ jobs:
           name: manifests
           path: manifests
 
-  # apt and dnf repositories on this repository's GitHub Pages.
-  repositories:
+  # The pacman repository, signed with the packaging key. repo-add needs Arch's
+  # own tools, so it is built here and served with the others below.
+  arch-repository:
     if: vars.PUBLISH_PACKAGE_REPOSITORIES == 'true'
     needs: assets
+    runs-on: ubuntu-24.04
+    container: archlinux:base
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: dist
+      - name: Sign the packages and build the repository
+        env:
+          KEY: ${{ secrets.PACKAGES_GPG_PRIVATE_KEY }}
+        run: |
+          # pacman's download sandbox does not work in every container
+          # (packaging/arch/build.sh does the same).
+          sed -i -e 's/^#\?DisableSandboxSyscalls/DisableSandboxSyscalls/' \
+            -e 's/^#\?DisableSandboxFilesystem/DisableSandboxFilesystem/' \
+            -e 's/^DownloadUser/#DownloadUser/' /etc/pacman.conf
+          pacman -Syu --noconfirm --needed gnupg
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          echo "$KEY" | gpg --batch --import
+          fingerprint=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')
+          mkdir -p site/arch/x86_64
+          cp dist/*.pkg.tar.zst site/arch/x86_64/
+          cd site/arch/x86_64
+          for package in *.pkg.tar.zst; do
+            gpg --batch --yes --local-user "$fingerprint" --detach-sign --no-armor "$package"
+          done
+          repo-add --sign --key "$fingerprint" irori.db.tar.gz ./*.pkg.tar.zst
+          # GitHub Pages serves no symbolic links, and repo-add makes irori.db
+          # and irori.files links to their archives.
+          find . -type l -exec sh -c 'cp --remove-destination "$(readlink "$1")" "$1"' _ {} \;
+          ls -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-site
+          path: site
+
+  # apt, dnf and pacman repositories on this repository's GitHub Pages.
+  repositories:
+    if: vars.PUBLISH_PACKAGE_REPOSITORIES == 'true'
+    needs: [assets, arch-repository]
     runs-on: ubuntu-24.04
     permissions:
       pages: write
@@ -60,6 +102,10 @@ jobs:
         with:
           name: release
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: arch-site
+          path: site
       - name: Tools
         run: sudo apt-get update && sudo apt-get install -y apt-utils createrepo-c rpm gnupg
       - name: Import the signing key
@@ -116,6 +162,12 @@ jobs:
           <h2>Fedora and openSUSE</h2>
           <pre>sudo curl -fsSLo /etc/yum.repos.d/irori.repo $base/irori.repo
           sudo dnf install irori</pre>
+          <h2>Arch Linux</h2>
+          <pre>curl -fsSLo /tmp/irori.asc $base/irori.asc
+          sudo pacman-key --add /tmp/irori.asc
+          sudo pacman-key --lsign-key $FINGERPRINT
+          printf '\\n[irori]\\nServer = $base/arch/\$arch\\n' | sudo tee -a /etc/pacman.conf
+          sudo pacman -Syu irori</pre>
           EOF
       - uses: actions/upload-pages-artifact@v3
         with:

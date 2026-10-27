@@ -41,6 +41,19 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertEqual(scoop["architecture"]["64bit"]["hash"], self.sums["Irori-1.2.3-windows.zip"])
         self.assertTrue(scoop["architecture"]["64bit"]["url"].endswith("/v1.2.3/Irori-1.2.3-windows.zip"))
 
+    def test_arch_repository_pkgbuild_builds_plain_names_from_the_local_tarball(self):
+        text = release_manifests.pkgbuild("1.2.3", "irori-app/irori", "abc123", aur=False)
+        self.assertIn("pkgname=(irori irori-sign-in)\n", text)
+        self.assertIn('source=("Irori-$pkgver-linux.tar.gz")', text)
+        self.assertIn("package_irori() {", text)
+        self.assertIn("package_irori-sign-in() {", text)
+        self.assertIn("conflicts=(irori-bin)", text)
+        self.assertNotIn("releases/download", text)
+
+        aur = release_manifests.pkgbuild("1.2.3", "irori-app/irori", "abc123")
+        self.assertIn("pkgname=(irori-bin irori-sign-in-bin)\n", aur)
+        self.assertIn("provides=(irori)", aur)
+
     def test_missing_archive_is_named(self):
         (self.dist / "Irori-1.2.3-macos-x86_64.dmg").unlink()
         with self.assertRaisesRegex(FileNotFoundError, "macos-x86_64.dmg"):
