@@ -333,11 +333,11 @@ mod tests {
     fn url_handler_content() {
         let launcher = LauncherCommand {
             program: "flatpak".into(),
-            prefix_args: vec!["run".into(), "io.github.irori_app.Irori".into()],
+            prefix_args: vec!["run".into(), "app.irori.Irori".into()],
             working_dir: "/home/u".into(),
         };
         let s = url_handler_entry(&launcher);
-        assert!(s.contains("Exec=flatpak run io.github.irori_app.Irori %u\n"));
+        assert!(s.contains("Exec=flatpak run app.irori.Irori %u\n"));
         assert!(s.contains("MimeType=x-scheme-handler/irori;\n"));
     }
 

@@ -487,14 +487,14 @@ mod tests {
     fn flatpak_launch_options() {
         let l = LauncherCommand {
             program: "flatpak".into(),
-            prefix_args: vec!["run".into(), "io.github.irori_app.Irori".into()],
+            prefix_args: vec!["run".into(), "app.irori.Irori".into()],
             working_dir: "/home/u".into(),
         };
         let cmd = EntryCommand::new(&l, &GameId::new(Runner::Nile, "amzn1.x"));
         assert_eq!(cmd.exe, "\"flatpak\"");
         assert_eq!(
             cmd.launch_options,
-            "run io.github.irori_app.Irori --launch \"nile/amzn1.x\""
+            "run app.irori.Irori --launch \"nile/amzn1.x\""
         );
     }
 
