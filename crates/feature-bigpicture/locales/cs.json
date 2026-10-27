@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Načítání knihovny…",
   "bigpicture.empty.title": "Zatím žádné hry",
   "bigpicture.empty.description": "Přihlaste se do obchodu nebo přidejte hru v knihovně a pak se vraťte.",
-  "bigpicture.menu.interface_size": "Velikost rozhraní: {percent} %"
+  "bigpicture.menu.interface_size": "Velikost rozhraní: {percent} %",
+  "bigpicture.menu.set_up_emulation": "Nastavit emulaci"
 }

@@ -339,5 +339,10 @@
   "library.update_first.description": "업데이트가 있습니다. 지금 플레이하면 설치된 버전이 시작됩니다.",
   "library.update_first.play_now": "지금 플레이",
   "library.update_first.title": "‘{title}’을(를) 먼저 업데이트할까요?",
-  "library.update_first.update": "업데이트"
+  "library.update_first.update": "업데이트",
+  "library.filters.section.system": "시스템",
+  "library.empty.set_up_emulation": "에뮬레이션 설정",
+  "library.sideload.rom_hint.title": "콘솔 게임입니다",
+  "library.sideload.rom_hint.body": "Ember가 이 파일을 {system} 게임으로 인식했습니다. 콘솔 게임에 추가하면 Ember가 알맞은 에뮬레이터로 실행합니다.",
+  "library.sideload.rom_hint.add": "콘솔 게임으로 추가"
 }

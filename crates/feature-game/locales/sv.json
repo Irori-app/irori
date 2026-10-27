@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Ta bort inställningar och loggar",
   "game.uninstall.remove_settings_help": "Glömmer spelets anpassade inställningar och tar bort dess loggar.",
   "game.uninstall.running": "{title} körs. Stäng spelet för att avinstallera det.",
-  "game.uninstall.title": "Avinstallera ”{title}”?"
+  "game.uninstall.title": "Avinstallera ”{title}”?",
+  "game.play_with.menu": "Spela med…",
+  "game.play_with.title": "Spela ”{title}” med",
+  "game.play_with.description": "Välj emulator för det här spelet. ”Standard” följer systemets standardemulator, som du kan ändra på sidan Emulatorer.",
+  "game.play_with.default": "Standard",
+  "game.play_with.not_installed": "Inte installerad",
+  "game.play_with.chosen": "Vald",
+  "game.play_with.versions": "Version",
+  "game.play_with.versions_help": "Lås spelet vid en version om det fungerar bäst där; uppdateringar ändrar den inte.",
+  "game.play_with.version": "Version {version}",
+  "game.play_with.version_default": "Standard ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Vald av dig",
+  "game.play_with.system": "Installerad på den här datorn",
+  "game.play_with.manage": "Hantera emulatorer"
 }

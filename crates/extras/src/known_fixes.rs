@@ -87,7 +87,7 @@ impl KnownFixesFile {
             Runner::Gog => &self.gog,
             Runner::Nile => &self.amazon,
             Runner::Zoom => &self.zoom,
-            Runner::Itch | Runner::Steam | Runner::Sideload => return None,
+            Runner::Itch | Runner::Steam | Runner::Sideload | Runner::Emulation => return None,
         };
         store.get(app_name)
     }

@@ -128,6 +128,9 @@ fn main() -> Result<()> {
         ember_game::install_store_handles(epic, stores::GOG.get().cloned(), cx);
         if let Some(sideload) = stores::SIDELOAD.get() {
             ember_library::install_sideload_store(sideload.clone(), cx);
+            if let Some(emulation) = stores::EMULATION.get() {
+                ember_library::install_emulation_store(emulation.clone(), cx);
+            }
         }
         actions::bind_keys(cx);
         cx.set_quit_mode(QuitMode::Explicit);

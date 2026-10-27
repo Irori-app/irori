@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Cargando tu biblioteca…",
   "bigpicture.empty.title": "Aún no hay juegos",
   "bigpicture.empty.description": "Inicia sesión en una tienda o añade un juego desde la biblioteca y vuelve.",
-  "bigpicture.menu.interface_size": "Tamaño de la interfaz: {percent} %"
+  "bigpicture.menu.interface_size": "Tamaño de la interfaz: {percent} %",
+  "bigpicture.menu.set_up_emulation": "Configurar la emulación"
 }

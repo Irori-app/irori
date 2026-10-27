@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Det gick inte att stoppa {title}",
   "shell.nav.stats": "Statistik",
   "shell.palette.random": "Välj ett slumpmässigt spel",
-  "shell.palette.random_keywords": "slump överraskning blanda roulette"
+  "shell.palette.random_keywords": "slump överraskning blanda roulette",
+  "shell.notice.exit_hotkey": "{engine}: lämna ett spel med {keys}",
+  "shell.palette.set_up_emulation": "Konfigurera emulering",
+  "shell.palette.set_up_emulation_keywords": "emulator ROM konsol retro BIOS RetroArch"
 }

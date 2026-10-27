@@ -402,6 +402,12 @@ pub struct AppSettings {
     /// not listed use the first installed recommended emulator.
     #[serde(rename = "emberSystemEngines")]
     pub system_engines: BTreeMap<String, String>,
+    /// Folders scanned for console and retro games.
+    #[serde(rename = "emberRomFolders")]
+    pub rom_folders: Vec<String>,
+    /// Where the user keeps BIOS files ("" = not chosen).
+    #[serde(rename = "emberBiosFolder")]
+    pub bios_folder: String,
 }
 
 impl Default for AppSettings {
@@ -415,6 +421,8 @@ impl Default for AppSettings {
             extras_path: extras.to_string_lossy().into_owned(),
             crossover_bottles_path: String::new(),
             system_engines: BTreeMap::new(),
+            rom_folders: Vec::new(),
+            bios_folder: String::new(),
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,
@@ -553,7 +561,7 @@ impl ShownStores {
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
             Runner::Steam => self.steam,
-            Runner::Zoom | Runner::Itch | Runner::Sideload => true,
+            Runner::Zoom | Runner::Itch | Runner::Sideload | Runner::Emulation => true,
         }
     }
 
@@ -565,7 +573,7 @@ impl ShownStores {
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
             Runner::Steam => self.steam = shown,
-            Runner::Zoom | Runner::Itch | Runner::Sideload => {}
+            Runner::Zoom | Runner::Itch | Runner::Sideload | Runner::Emulation => {}
         }
     }
 

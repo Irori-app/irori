@@ -339,5 +339,10 @@
   "library.update_first.description": "Доступно обновление. Если играть сейчас, запустится установленная версия.",
   "library.update_first.play_now": "Играть сейчас",
   "library.update_first.title": "Сначала обновить «{title}»?",
-  "library.update_first.update": "Обновить"
+  "library.update_first.update": "Обновить",
+  "library.filters.section.system": "Система",
+  "library.empty.set_up_emulation": "Настроить эмуляцию",
+  "library.sideload.rom_hint.title": "Это игра для консоли",
+  "library.sideload.rom_hint.body": "Ember распознал этот файл как игру для {system}. Добавьте её в консольные игры, и Ember запустит её в подходящем эмуляторе.",
+  "library.sideload.rom_hint.add": "Добавить как игру для консоли"
 }

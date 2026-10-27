@@ -339,5 +339,10 @@
   "library.update_first.description": "En uppdatering finns. Om du spelar nu startar den installerade versionen.",
   "library.update_first.play_now": "Spela nu",
   "library.update_first.title": "Uppdatera ”{title}” först?",
-  "library.update_first.update": "Uppdatera"
+  "library.update_first.update": "Uppdatera",
+  "library.filters.section.system": "System",
+  "library.empty.set_up_emulation": "Konfigurera emulering",
+  "library.sideload.rom_hint.title": "Det här är ett konsolspel",
+  "library.sideload.rom_hint.body": "Ember känner igen filen som ett {system}-spel. Lägg till det bland dina konsolspel så startar Ember det med rätt emulator.",
+  "library.sideload.rom_hint.add": "Lägg till som konsolspel"
 }

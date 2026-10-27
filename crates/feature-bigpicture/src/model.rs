@@ -25,6 +25,8 @@ pub enum RowKind {
     Favourites,
     All,
     Store(Runner),
+    /// Emulated games of one system (a systems catalog id).
+    System(&'static str),
 }
 
 impl RowKind {
@@ -36,6 +38,8 @@ impl RowKind {
             RowKind::Favourites => t("bigpicture.shelf.favourites"),
             RowKind::All => t("bigpicture.shelf.all"),
             RowKind::Store(runner) => store_name(runner),
+            RowKind::System(id) => ember_engines::systems::get(id)
+                .map_or_else(|| SharedString::new_static(id), |s| s.name.clone().into()),
         }
     }
 
@@ -47,6 +51,7 @@ impl RowKind {
             RowKind::Favourites => "favourites",
             RowKind::All => "all",
             RowKind::Store(runner) => runner.id(),
+            RowKind::System(id) => id,
         }
     }
 }
@@ -113,7 +118,8 @@ pub fn build_rows(library: &LibrarySnapshot, user: &UserData, max_recent: usize)
         .filter(|r| all.iter().any(|g| g.runner() == *r))
         .collect();
     if stores.len() > 1 {
-        for runner in &stores {
+        // Emulated games get a shelf per system instead (below).
+        for runner in stores.iter().filter(|r| **r != Runner::Emulation) {
             rows.push(Row {
                 kind: RowKind::Store(*runner),
                 games: all
@@ -123,6 +129,16 @@ pub fn build_rows(library: &LibrarySnapshot, user: &UserData, max_recent: usize)
                     .collect(),
             });
         }
+    }
+    for system in ember_engines::systems::all() {
+        rows.push(Row {
+            kind: RowKind::System(system.id.as_str()),
+            games: all
+                .iter()
+                .filter(|g| g.system.as_deref() == Some(system.id.as_str()))
+                .cloned()
+                .collect(),
+        });
     }
     rows.insert(
         3,
@@ -257,6 +273,8 @@ pub enum MenuItem {
     /// Cycles Big Picture's interface size; carries the current percent.
     InterfaceSize(u32),
     ToggleFullscreen,
+    /// Leave Big Picture and open the "Set up emulation" guide.
+    SetUpEmulation,
     ExitBigPicture,
     QuitEmber,
 }
@@ -275,6 +293,7 @@ impl MenuItem {
             MenuItem::PauseDownloads => "bigpicture.menu.pause_downloads",
             MenuItem::ResumeDownloads => "bigpicture.menu.resume_downloads",
             MenuItem::ToggleFullscreen => "bigpicture.menu.toggle_fullscreen",
+            MenuItem::SetUpEmulation => "bigpicture.menu.set_up_emulation",
             MenuItem::ExitBigPicture => "bigpicture.exit",
             MenuItem::QuitEmber => "bigpicture.menu.quit",
         })
@@ -286,6 +305,7 @@ impl MenuItem {
             MenuItem::ResumeDownloads => IconName::Play,
             MenuItem::InterfaceSize(_) => IconName::ZoomIn,
             MenuItem::ToggleFullscreen => IconName::Maximize,
+            MenuItem::SetUpEmulation => IconName::Joystick,
             MenuItem::ExitBigPicture => IconName::LogOut,
             MenuItem::QuitEmber => IconName::Power,
         }
@@ -297,6 +317,7 @@ impl MenuItem {
             MenuItem::ResumeDownloads => "bp-menu-resume",
             MenuItem::InterfaceSize(_) => "bp-menu-size",
             MenuItem::ToggleFullscreen => "bp-menu-fullscreen",
+            MenuItem::SetUpEmulation => "bp-menu-emulation",
             MenuItem::ExitBigPicture => "bp-menu-exit",
             MenuItem::QuitEmber => "bp-menu-quit",
         }
@@ -317,6 +338,7 @@ pub fn menu_items(has_downloads: bool, paused: bool, scale: u32) -> Vec<MenuItem
     out.extend([
         MenuItem::InterfaceSize(scale),
         MenuItem::ToggleFullscreen,
+        MenuItem::SetUpEmulation,
         MenuItem::ExitBigPicture,
         MenuItem::QuitEmber,
     ]);

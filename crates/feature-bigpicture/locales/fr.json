@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "Chargement de votre bibliothèque…",
   "bigpicture.empty.title": "Aucun jeu pour l’instant",
   "bigpicture.empty.description": "Connectez-vous à une boutique ou ajoutez un jeu depuis la bibliothèque, puis revenez.",
-  "bigpicture.menu.interface_size": "Taille de l’interface : {percent} %"
+  "bigpicture.menu.interface_size": "Taille de l’interface : {percent} %",
+  "bigpicture.menu.set_up_emulation": "Configurer l’émulation"
 }

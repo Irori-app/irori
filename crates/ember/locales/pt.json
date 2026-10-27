@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Não foi possível parar {title}",
   "shell.nav.stats": "Estatísticas",
   "shell.palette.random": "Escolher um jogo ao acaso",
-  "shell.palette.random_keywords": "aleatório surpresa baralhar roleta"
+  "shell.palette.random_keywords": "aleatório surpresa baralhar roleta",
+  "shell.notice.exit_hotkey": "{engine}: para sair de um jogo, {keys}",
+  "shell.palette.set_up_emulation": "Configurar a emulação",
+  "shell.palette.set_up_emulation_keywords": "emulador ROM consola retro BIOS RetroArch"
 }

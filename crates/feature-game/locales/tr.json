@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Ayarları ve günlükleri kaldır",
   "game.uninstall.remove_settings_help": "Bu oyunun özel ayarlarını unutur ve günlüklerini siler.",
   "game.uninstall.running": "{title} çalışıyor. Kaldırmak için oyunu kapatın.",
-  "game.uninstall.title": "“{title}” kaldırılsın mı?"
+  "game.uninstall.title": "“{title}” kaldırılsın mı?",
+  "game.play_with.menu": "Şununla oyna…",
+  "game.play_with.title": "“{title}” oyununu şununla oyna",
+  "game.play_with.description": "Bu oyun için emülatörü seçin. “Varsayılan”, sistemin varsayılan emülatörünü izler; bunu Emülatörler sayfasından değiştirebilirsiniz.",
+  "game.play_with.default": "Varsayılan",
+  "game.play_with.not_installed": "Yüklü değil",
+  "game.play_with.chosen": "Seçildi",
+  "game.play_with.versions": "Sürüm",
+  "game.play_with.versions_help": "Bu oyun en iyi bir sürümde çalışıyorsa onu o sürümde tutun; güncellemeler bunu değiştirmez.",
+  "game.play_with.version": "Sürüm {version}",
+  "game.play_with.version_default": "Varsayılan ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Senin seçtiğin",
+  "game.play_with.system": "Bu bilgisayarda yüklü",
+  "game.play_with.manage": "Emülatörleri yönet"
 }

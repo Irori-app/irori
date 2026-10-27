@@ -139,6 +139,19 @@ pub(crate) fn sideload_store(cx: &App) -> Option<Arc<SideloadStore>> {
     cx.try_global::<SideloadHandle>().map(|h| h.0.clone())
 }
 
+struct EmulationHandle(Arc<ember_emulation::EmulationStore>);
+impl Global for EmulationHandle {}
+
+/// Give the library access to the ROM library store, so Add game can put a
+/// ROM there.
+pub fn install_emulation_store(store: Arc<ember_emulation::EmulationStore>, cx: &mut App) {
+    cx.set_global(EmulationHandle(store));
+}
+
+pub(crate) fn emulation_store(cx: &App) -> Option<Arc<ember_emulation::EmulationStore>> {
+    cx.try_global::<EmulationHandle>().map(|h| h.0.clone())
+}
+
 /// Show an error notification in `window`.
 pub(crate) fn notify_error(
     title: impl Into<gpui_kit::SharedString>,

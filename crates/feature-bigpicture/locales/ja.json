@@ -97,5 +97,6 @@
   "bigpicture.empty.loading": "ライブラリを読み込んでいます…",
   "bigpicture.empty.title": "ゲームがまだありません",
   "bigpicture.empty.description": "ストアにログインするか、ライブラリからゲームを追加してから戻ってきてください。",
-  "bigpicture.menu.interface_size": "画面のサイズ：{percent}%"
+  "bigpicture.menu.interface_size": "画面のサイズ：{percent}%",
+  "bigpicture.menu.set_up_emulation": "エミュレーションを設定"
 }

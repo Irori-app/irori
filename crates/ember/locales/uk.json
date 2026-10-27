@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Не вдалося зупинити {title}",
   "shell.nav.stats": "Статистика",
   "shell.palette.random": "Вибрати випадкову гру",
-  "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка"
+  "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка",
+  "shell.notice.exit_hotkey": "{engine}: щоб вийти з гри, натисніть {keys}",
+  "shell.palette.set_up_emulation": "Налаштувати емуляцію",
+  "shell.palette.set_up_emulation_keywords": "емулятор ROM консоль ретро BIOS RetroArch"
 }

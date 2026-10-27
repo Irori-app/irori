@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "{title} を停止できませんでした",
   "shell.nav.stats": "統計",
   "shell.palette.random": "ランダムにゲームを選ぶ",
-  "shell.palette.random_keywords": "ランダム おまかせ シャッフル ルーレット"
+  "shell.palette.random_keywords": "ランダム おまかせ シャッフル ルーレット",
+  "shell.notice.exit_hotkey": "{engine}: ゲームを終了するには {keys}",
+  "shell.palette.set_up_emulation": "エミュレーションを設定",
+  "shell.palette.set_up_emulation_keywords": "エミュレーター ROM ゲーム機 コンソール レトロ BIOS RetroArch"
 }

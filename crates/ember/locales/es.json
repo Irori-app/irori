@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "No se pudo detener {title}",
   "shell.nav.stats": "Estadísticas",
   "shell.palette.random": "Elegir un juego al azar",
-  "shell.palette.random_keywords": "aleatorio sorpresa mezclar ruleta"
+  "shell.palette.random_keywords": "aleatorio sorpresa mezclar ruleta",
+  "shell.notice.exit_hotkey": "{engine}: para salir de un juego, {keys}",
+  "shell.palette.set_up_emulation": "Configurar la emulación",
+  "shell.palette.set_up_emulation_keywords": "emulador ROM consola retro BIOS RetroArch"
 }

@@ -54,5 +54,8 @@
   "shell.playing.stop_failed": "Kan {title} niet stoppen",
   "shell.nav.stats": "Statistieken",
   "shell.palette.random": "Willekeurige game kiezen",
-  "shell.palette.random_keywords": "willekeurig verrassing shuffle roulette"
+  "shell.palette.random_keywords": "willekeurig verrassing shuffle roulette",
+  "shell.notice.exit_hotkey": "{engine}: een game verlaten met {keys}",
+  "shell.palette.set_up_emulation": "Emulatie instellen",
+  "shell.palette.set_up_emulation_keywords": "emulator ROM console retro BIOS RetroArch"
 }

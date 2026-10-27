@@ -24,7 +24,8 @@ mod wine;
 pub use accounts::AccountsView;
 pub use downloads::DownloadsView;
 pub use emulators::{
-    EmulatorsView, InstallTarget, choice_name, open_engine_settings, start_install,
+    EmulatorsView, InstallTarget, choice_name, open_emulation_setup, open_engine_settings,
+    start_install,
 };
 pub use login::{open_account_login_dialog, open_login_dialog};
 pub use onboarding::{

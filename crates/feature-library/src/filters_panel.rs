@@ -13,9 +13,9 @@ use gpui_kit::component::{
 };
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, AppContext as _, Context, Entity, Global, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
-    Subscription, Task, WeakEntity, Window, div,
+    AnyElement, App, AppContext as _, Context, Entity, Global, InteractiveElement as _,
+    IntoElement, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _,
+    Styled as _, Subscription, Task, WeakEntity, Window, div,
 };
 
 use crate::filter::{self, CategoryFilter, HiddenMode, InstallFilter, ReleaseWindow, ViewFilter};
@@ -181,9 +181,66 @@ fn section(title: SharedString) -> impl IntoElement {
     div().text_xs().font_medium().child(title)
 }
 
+impl FiltersPanel {
+    /// The system chips, for libraries with emulated games.
+    fn render_systems(&self, f: &ViewFilter, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let mut present: Vec<String> = models(cx)
+            .library
+            .read(cx)
+            .snapshot
+            .games
+            .iter()
+            .filter_map(|g| g.system.clone())
+            .collect();
+        present.sort_by_key(|id| {
+            ember_engines::systems::all()
+                .iter()
+                .position(|s| &s.id == id)
+                .unwrap_or(usize::MAX)
+        });
+        present.dedup();
+        if present.is_empty() {
+            return None;
+        }
+        Some(
+            v_flex()
+                .gap_2()
+                .child(section(t("library.filters.section.system")))
+                .child(
+                    h_flex()
+                        .flex_wrap()
+                        .gap_1()
+                        .children(present.into_iter().map(|id| {
+                            let label = ember_engines::systems::get(&id)
+                                .map_or(id.clone(), |s| s.short.clone());
+                            let selected = f.systems.contains(&id);
+                            Button::new(SharedString::from(format!("system-{id}")))
+                                .xsmall()
+                                .outline()
+                                .label(label)
+                                .selected(selected)
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    let id = id.clone();
+                                    this.set(
+                                        move |f| {
+                                            if !f.systems.remove(&id) {
+                                                f.systems.insert(id);
+                                            }
+                                        },
+                                        cx,
+                                    )
+                                }))
+                        })),
+                )
+                .into_any_element(),
+        )
+    }
+}
+
 impl Render for FiltersPanel {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let f = self.model.read(cx).filter().clone();
+        let systems = self.render_systems(&f, cx);
         let categories: Vec<String> = models(cx)
             .library
             .read(cx)
@@ -243,6 +300,7 @@ impl Render for FiltersPanel {
             .id("library-filters-panel")
             .w_96()
             .gap_4()
+            .when_some(systems, |el, systems| el.child(systems))
             .child(
                 v_flex()
                     .gap_2()

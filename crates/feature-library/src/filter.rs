@@ -156,6 +156,9 @@ pub struct ViewFilter {
     #[serde(alias = "category", deserialize_with = "deserialize_categories")]
     pub categories: BTreeSet<CategoryFilter>,
     pub released: ReleaseWindow,
+    /// Emulated games of these systems only (systems catalog ids); empty
+    /// shows every game.
+    pub systems: BTreeSet<String>,
     pub sort: LibrarySort,
     pub descending: bool,
 }
@@ -175,6 +178,7 @@ impl ViewFilter {
             self.hide_unavailable,
             !self.categories.is_empty(),
             self.released != ReleaseWindow::Any,
+            !self.systems.is_empty(),
         ]
         .into_iter()
         .filter(|b| *b)
@@ -262,6 +266,14 @@ impl ViewFilter {
         if self.released != ReleaseWindow::Any {
             let when = self.released.label();
             out.push(t_args("library.filter.describe.released", &[("when", &when)]).to_string());
+        }
+        if !self.systems.is_empty() {
+            let names: Vec<&str> = self
+                .systems
+                .iter()
+                .map(|id| ember_engines::systems::get(id).map_or(id.as_str(), |s| s.short.as_str()))
+                .collect();
+            out.push(names.join(&t("library.filter.list_separator")));
         }
         let heading = self.category_heading();
         match self.categories.len() {
@@ -419,6 +431,13 @@ pub fn apply(
         && library.owners.keys().any(|id| id.runner == account.runner)
     {
         games.retain(|g| library.owners(&g.id()).contains(&account.account_id));
+    }
+    if !filter.systems.is_empty() {
+        games.retain(|g| {
+            g.system
+                .as_ref()
+                .is_some_and(|s| filter.systems.contains(s))
+        });
     }
     if filter.hide_unavailable && !missing.is_empty() {
         games.retain(|g| !missing.contains(&g.id()));

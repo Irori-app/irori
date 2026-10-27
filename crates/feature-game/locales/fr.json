@@ -473,5 +473,19 @@
   "game.uninstall.remove_settings": "Supprimer les paramètres et les journaux",
   "game.uninstall.remove_settings_help": "Oublie les paramètres personnalisés de ce jeu et supprime ses journaux.",
   "game.uninstall.running": "{title} est en cours d’exécution. Fermez le jeu pour le désinstaller.",
-  "game.uninstall.title": "Désinstaller « {title} » ?"
+  "game.uninstall.title": "Désinstaller « {title} » ?",
+  "game.play_with.menu": "Jouer avec…",
+  "game.play_with.title": "Jouer à « {title} » avec",
+  "game.play_with.description": "Choisissez l’émulateur pour ce jeu. « Par défaut » suit l’émulateur par défaut du système, que vous pouvez changer sur la page Émulateurs.",
+  "game.play_with.default": "Par défaut",
+  "game.play_with.not_installed": "Non installé",
+  "game.play_with.chosen": "Choisi",
+  "game.play_with.versions": "Version",
+  "game.play_with.versions_help": "Gardez ce jeu sur une version s’il fonctionne mieux avec elle ; les mises à jour ne la changeront pas.",
+  "game.play_with.version": "Version {version}",
+  "game.play_with.version_default": "Par défaut ({version})",
+  "game.play_with.flatpak": "Flatpak",
+  "game.play_with.custom": "Choisi par vous",
+  "game.play_with.system": "Installé sur cet ordinateur",
+  "game.play_with.manage": "Gérer les émulateurs"
 }

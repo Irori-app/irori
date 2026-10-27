@@ -174,23 +174,15 @@ impl Backend {
     /// that is installed, else the first recommended one.
     pub fn system_engine(&self, system: &str, statuses: &[EngineStatus]) -> Option<EngineRef> {
         let app = self.settings.app();
-        if let Some(chosen) = app
-            .system_engines
-            .get(system)
-            .and_then(|s| EngineRef::parse(s))
-        {
-            return Some(chosen);
-        }
-        let choices = ember_engines::choices_for(system);
-        choices
-            .iter()
-            .find(|c| {
+        ember_engines::default_choice(
+            system,
+            app.system_engines.get(system).map(String::as_str),
+            |c| {
                 statuses
                     .iter()
                     .any(|s| s.manifest.id == c.engine && s.plays(c))
-            })
-            .or_else(|| choices.first())
-            .cloned()
+            },
+        )
     }
 
     /// Make `choice` the default emulator of `system` (`None`: Ember's
@@ -232,5 +224,47 @@ impl Backend {
             .context("scanning stopped")??;
         self.bus.emit(Event::EnginesChanged);
         Ok(index)
+    }
+}
+
+impl Backend {
+    /// Add a ROM folder and scan it.
+    pub async fn add_rom_folder(&self, folder: PathBuf) -> Result<()> {
+        anyhow::ensure!(folder.is_dir(), "{} is not a folder", folder.display());
+        let text = folder.display().to_string();
+        self.settings.update_app(|s| {
+            if !s.rom_folders.contains(&text) {
+                s.rom_folders.push(text);
+            }
+        });
+        self.refresh_store(ember_core::Runner::Emulation, false)
+            .await
+    }
+
+    /// Stop scanning a ROM folder; its games leave the library. Files stay.
+    pub async fn remove_rom_folder(&self, folder: &str) -> Result<()> {
+        self.settings
+            .update_app(|s| s.rom_folders.retain(|f| f != folder));
+        self.refresh_store(ember_core::Runner::Emulation, false)
+            .await
+    }
+
+    /// Use `folder` for BIOS files and index it.
+    pub async fn set_bios_folder(&self, folder: PathBuf) -> Result<BiosIndex> {
+        anyhow::ensure!(folder.is_dir(), "{} is not a folder", folder.display());
+        let text = folder.display().to_string();
+        self.settings.update_app(|s| s.bios_folder = text);
+        self.rescan_bios(folder).await
+    }
+
+    /// Emulated games in the library per system id.
+    pub fn emulated_counts(&self) -> std::collections::BTreeMap<String, usize> {
+        let mut out = std::collections::BTreeMap::new();
+        for g in self.library().games.iter() {
+            if let Some(system) = &g.system {
+                *out.entry(system.clone()).or_insert(0) += 1;
+            }
+        }
+        out
     }
 }

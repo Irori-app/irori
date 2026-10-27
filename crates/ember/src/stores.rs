@@ -80,6 +80,9 @@ pub fn build(bus: EventBus, settings: SettingsFn) -> Vec<DynStore> {
         ember_itch::ItchStore::for_account,
     ));
     stores.push(ember_steam::SteamStore::new(bus.clone(), settings.clone()));
+    let emulation = ember_emulation::EmulationStore::new(bus.clone(), settings.clone());
+    let _ = EMULATION.set(emulation.clone());
+    stores.push(emulation);
     let sideload = ember_sideload::SideloadStore::new(bus, settings);
     let _ = SIDELOAD.set(sideload.clone());
     stores.push(sideload);
@@ -109,6 +112,10 @@ pub fn game_hooks() -> ember_game::GameHooks {
     hooks
 }
 
+/// The ROM library store (scan state for the setup guide).
+pub static EMULATION: once_cell::sync::OnceCell<Arc<ember_emulation::EmulationStore>> =
+    once_cell::sync::OnceCell::new();
+
 /// The concrete sideload store (the library's add/edit app dialogs need its
 /// own API, which `dyn Store` does not expose).
 pub static SIDELOAD: once_cell::sync::OnceCell<Arc<ember_sideload::SideloadStore>> =
@@ -117,6 +124,7 @@ pub static SIDELOAD: once_cell::sync::OnceCell<Arc<ember_sideload::SideloadStore
 pub fn hooks() -> Hooks {
     Hooks {
         import_from_heroic: Some(Arc::new(import_from_heroic)),
+        open_emulation_setup: Some(Arc::new(ember_manage::open_emulation_setup)),
     }
 }
 

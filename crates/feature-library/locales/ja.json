@@ -339,5 +339,10 @@
   "library.update_first.description": "アップデートがあります。今すぐプレイするとインストール済みのバージョンが起動します。",
   "library.update_first.play_now": "今すぐプレイ",
   "library.update_first.title": "先に「{title}」をアップデートしますか？",
-  "library.update_first.update": "アップデート"
+  "library.update_first.update": "アップデート",
+  "library.filters.section.system": "システム",
+  "library.empty.set_up_emulation": "エミュレーションを設定",
+  "library.sideload.rom_hint.title": "これは家庭用ゲーム機のゲームです",
+  "library.sideload.rom_hint.body": "Ember はこのファイルを {system} のゲームとして認識しました。家庭用ゲーム機のゲームに追加すると、適切なエミュレーターで起動します。",
+  "library.sideload.rom_hint.add": "家庭用ゲーム機のゲームとして追加"
 }

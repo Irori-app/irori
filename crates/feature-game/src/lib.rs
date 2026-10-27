@@ -25,6 +25,7 @@ mod logs;
 mod manage;
 pub mod ops;
 mod page;
+mod play_with;
 mod redmod;
 mod saves;
 pub mod sizes;
@@ -51,6 +52,7 @@ pub use manage::{
     open_move_dialog, open_uninstall_dialog,
 };
 pub use page::{AchievementFilter, GAME_PAGE_CONTEXT, GamePage, GamePageEvent, InfoTab, game_menu};
+pub use play_with::open_play_with_dialog;
 pub use redmod::{RedmodPanel, open_redmod_sheet};
 pub use saves::{CloudSavesPanel, CloudSupport, open_cloud_saves_sheet};
 pub use state::PrimaryAction;
