@@ -32,9 +32,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn(f'arm:   "{self.sums["Irori-1.2.3-macos-arm64.dmg"]}"', cask)
         self.assertIn(f'intel: "{self.sums["Irori-1.2.3-macos-x86_64.dmg"]}"', cask)
         self.assertIn("Irori-#{version}-macos-#{arch}.dmg", cask)
+        self.assertIn('homepage "https://irori.app"', cask)
+        self.assertIn('url="https://irori.app"', pkgbuild)
 
         scoop = json.loads(out["scoop/bucket/irori.json"])
         self.assertEqual(scoop["version"], "1.2.3")
+        self.assertEqual(scoop["homepage"], "https://irori.app")
         self.assertEqual(scoop["architecture"]["64bit"]["hash"], self.sums["Irori-1.2.3-windows.zip"])
         self.assertTrue(scoop["architecture"]["64bit"]["url"].endswith("/v1.2.3/Irori-1.2.3-windows.zip"))
 

@@ -42,7 +42,7 @@ assets = [["target/release/irori-sign-in", "usr/bin/", "755"]]
 
 [package.metadata.generate-rpm]
 summary = "Irori's store sign-in window"
-url = "https://github.com/irori-app/irori"
+url = "https://irori.app"
 assets = [
     { source = "target/release/irori-sign-in", dest = "/usr/bin/irori-sign-in", mode = "755" },
     { source = "LICENSE", dest = "/usr/share/licenses/irori-sign-in/LICENSE", mode = "644", doc = true },

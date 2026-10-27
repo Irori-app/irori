@@ -12,7 +12,7 @@ Two workflows ship Irori:
 ## Cutting a release
 
 1. Set `version` in the root `Cargo.toml` and the `<release>` in
-   `packaging/linux/io.github.irori_app.Irori.metainfo.xml`. Merge that change.
+   `packaging/linux/app.irori.Irori.metainfo.xml`. Merge that change.
 2. Tag `main` and push the tag: `git tag v0.2.0 && git push origin v0.2.0`. The
    workflow fails if the tag and the version differ.
 3. Download the draft's packages and run the checks in
@@ -68,13 +68,16 @@ policy `release-signing`, and two artifact configurations:
 
 ### apt and dnf repositories
 
-Served from this repository's GitHub Pages at `https://<owner>.github.io/irori/`.
+Served at `https://packages.irori.app` from this repository's GitHub Pages
+(`PACKAGES_URL` in `publish.yml`).
 
-1. *Settings → Pages → Source*: **GitHub Actions**.
-2. Make a signing key with no passphrase, used only for this:
+1. DNS for `irori.app`: a `CNAME` record from `packages` to `irori-app.github.io`.
+2. *Settings → Pages*: **Source** = **GitHub Actions**, **Custom domain** =
+   `packages.irori.app`, then **Enforce HTTPS** once the certificate is issued.
+3. Make a signing key with no passphrase, used only for this:
    `gpg --quick-gen-key "Irori packages" ed25519 sign never`.
-3. Secret `PACKAGES_GPG_PRIVATE_KEY`: `gpg --armor --export-secret-keys <fingerprint>`.
-4. Variable `PUBLISH_PACKAGE_REPOSITORIES` = `true`.
+4. Secret `PACKAGES_GPG_PRIVATE_KEY`: `gpg --armor --export-secret-keys <fingerprint>`.
+5. Variable `PUBLISH_PACKAGE_REPOSITORIES` = `true`.
 
 Users then follow the instructions on that page (`index.html`). Each release
 replaces the repositories, which hold the latest version only.
@@ -111,9 +114,12 @@ winget accepts automated updates only for packages it already lists.
 Flathub builds Irori itself from a repository it hosts, so `publish.yml` doesn't
 publish there.
 
-1. Submit `packaging/flatpak/io.github.irori_app.Irori.yml` following
+1. Submit `packaging/flatpak/app.irori.Irori.yml` following
    [Flathub's submission guide](https://docs.flathub.org/docs/for-app-authors/submission).
    Replace its `dir` source with a `git` source pinned to the release tag, and add
    the generated `cargo-sources.json` (`release.yml` shows the command).
-2. For each release, update the tag and `cargo-sources.json` in the Flathub
+2. Verify the app id: Flathub gives `app.irori.Irori` a token to publish at
+   `https://irori.app/.well-known/org.flathub.VerifiedApps.txt`. Add it to
+   `website/public/.well-known/` and deploy the site.
+3. For each release, update the tag and `cargo-sources.json` in the Flathub
    repository; Flathub's bot builds and publishes it.

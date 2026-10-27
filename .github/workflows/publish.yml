@@ -17,6 +17,9 @@ permissions:
 
 env:
   TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  # Where the apt and dnf repositories are served: this repository's GitHub
+  # Pages under its custom domain (docs/RELEASING.md).
+  PACKAGES_URL: https://packages.irori.app
 
 jobs:
   assets:
@@ -69,7 +72,7 @@ jobs:
           printf '%%_gpg_name %s\n' "$fingerprint" > ~/.rpmmacros
       - name: Build the repositories
         run: |
-          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          base="$PACKAGES_URL"
           mkdir -p site/apt/pool/main site/apt/dists/stable/main/binary-amd64 site/rpm/x86_64
           cp dist/*.deb site/apt/pool/main/
           cp dist/*.rpm site/rpm/x86_64/

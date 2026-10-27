@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.irori_app.Irori</id>
+  <id>app.irori.Irori</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Irori</name>
   <summary>Every game you own, around one fire</summary>
-  <developer id="io.github.irori_app">
+  <developer id="app.irori">
     <name>Irori developers</name>
   </developer>
   <description>
@@ -24,8 +24,8 @@
     </ul>
   </description>
   <launchable type="desktop-id">irori.desktop</launchable>
-  <icon type="remote" width="1024" height="1024">https://raw.githubusercontent.com/irori-app/irori/main/assets/brand/irori-mark.svg</icon>
-  <url type="homepage">https://github.com/irori-app/irori</url>
+  <icon type="remote" width="1024" height="1024">https://irori.app/brand/irori-mark.svg</icon>
+  <url type="homepage">https://irori.app</url>
   <url type="bugtracker">https://github.com/irori-app/irori/issues</url>
   <url type="vcs-browser">https://github.com/irori-app/irori</url>
   <categories>
@@ -53,7 +53,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>Every store in one library</caption>
-      <image>https://raw.githubusercontent.com/irori-app/irori/main/website/public/screenshots/library.png</image>
+      <image>https://irori.app/screenshots/library.png</image>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1"/>

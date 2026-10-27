@@ -16,6 +16,9 @@ import json
 from pathlib import Path
 
 
+HOMEPAGE = "https://irori.app"
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as file:
@@ -47,7 +50,7 @@ pkgver={version}
 pkgrel=1
 pkgdesc="Every game you own, around one fire"
 arch=(x86_64)
-url="https://github.com/{repo}"
+url="{homepage}"
 license=(GPL-3.0-or-later)
 options=(!strip !debug)
 source=("Irori-$pkgver-linux.tar.gz::https://github.com/{repo}/releases/download/v$pkgver/Irori-$pkgver-linux.tar.gz")
@@ -67,8 +70,8 @@ package_irori-bin() {{
   install -Dm755 irori "$pkgdir/usr/bin/irori"
   install -Dm644 irori.desktop "$pkgdir/usr/share/applications/irori.desktop"
   install -Dm644 irori.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/irori.svg"
-  install -Dm644 io.github.irori_app.Irori.metainfo.xml \\
-    "$pkgdir/usr/share/metainfo/io.github.irori_app.Irori.metainfo.xml"
+  install -Dm644 app.irori.Irori.metainfo.xml \\
+    "$pkgdir/usr/share/metainfo/app.irori.Irori.metainfo.xml"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }}
 
@@ -95,7 +98,7 @@ cask "irori" do
   url "https://github.com/{repo}/releases/download/v#{{version}}/Irori-#{{version}}-macos-#{{arch}}.dmg"
   name "Irori"
   desc "Game launcher for Epic Games, GOG, Amazon Games, itch.io and emulators"
-  homepage "https://github.com/{repo}"
+  homepage "{homepage}"
 
   livecheck do
     url :url
@@ -119,7 +122,7 @@ def scoop(version: str, repo: str, windows_sha: str) -> str:
     manifest = {
         "version": version,
         "description": "Every game you own, around one fire: Epic Games, GOG, Amazon Games, itch.io and emulators",
-        "homepage": f"https://github.com/{repo}",
+        "homepage": HOMEPAGE,
         "license": "GPL-3.0-or-later",
         "architecture": {"64bit": {
             "url": f"{base}/v{version}/Irori-{version}-windows.zip",
@@ -141,9 +144,9 @@ def render(version: str, dist: Path, repo: str) -> dict[str, str]:
     """Manifest contents keyed by their path under the output folder."""
     found = artifacts(version, dist)
     return {
-        "aur/PKGBUILD": PKGBUILD.format(version=version, repo=repo, linux_sha=sha256(found["linux"])),
+        "aur/PKGBUILD": PKGBUILD.format(version=version, repo=repo, homepage=HOMEPAGE, linux_sha=sha256(found["linux"])),
         "homebrew/Casks/irori.rb": CASK.format(
-            version=version, repo=repo,
+            version=version, repo=repo, homepage=HOMEPAGE,
             arm_sha=sha256(found["macos-arm64"]), intel_sha=sha256(found["macos-x86_64"])),
         "scoop/bucket/irori.json": scoop(version, repo, sha256(found["windows"])),
     }

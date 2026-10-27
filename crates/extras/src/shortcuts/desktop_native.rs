@@ -161,10 +161,7 @@ async fn write_shortcut(path: &Path, game: &GameInfo, launcher: &LauncherCommand
             ("CFBundlePackageType", "APPL".into()),
             (
                 "CFBundleIdentifier",
-                format!(
-                    "io.github.irori-app.game.{:x}",
-                    md5::compute(game.id().key())
-                ),
+                format!("app.irori.game.{:x}", md5::compute(game.id().key())),
             ),
             ("IroriGame", game.id().key()),
         ] {
