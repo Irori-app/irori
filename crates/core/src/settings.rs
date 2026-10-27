@@ -187,6 +187,29 @@ pub struct GameSettings {
     /// Ember manages. Ember-only.
     #[serde(rename = "emberEngineOwnSettings")]
     pub engine_own_settings: bool,
+    /// The Lutris install script that installed this game, so it can be
+    /// reinstalled or updated later. Per game only. Ember-only.
+    #[serde(rename = "emberLutrisScript", skip_serializing_if = "Option::is_none")]
+    pub lutris_script: Option<LutrisScriptRecord>,
+}
+
+/// Which Lutris install script installed a game (`emberLutrisScript`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct LutrisScriptRecord {
+    /// The game's slug on lutris.net.
+    pub slug: String,
+    /// The installer's slug on lutris.net, when it has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installer_slug: Option<String>,
+    /// The installer's name ("GOG", "Setup"…).
+    pub version: String,
+    /// lutris.net's revision (or installer id) of the script.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
+    /// Where the script came from: its lutris.net page or the local file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
 }
 
 impl Default for GameSettings {
@@ -239,6 +262,7 @@ impl Default for GameSettings {
             engine_version: String::new(),
             engine_options: BTreeMap::new(),
             engine_own_settings: false,
+            lutris_script: None,
         }
     }
 }

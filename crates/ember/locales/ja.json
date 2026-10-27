@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "ランダム おまかせ シャッフル ルーレット",
   "shell.notice.exit_hotkey": "{engine}: ゲームを終了するには {keys}",
   "shell.palette.set_up_emulation": "エミュレーションを設定",
-  "shell.palette.set_up_emulation_keywords": "エミュレーター ROM ゲーム機 コンソール レトロ BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "エミュレーター ROM ゲーム機 コンソール レトロ BIOS RetroArch",
+  "shell.palette.lutris_script": "Lutris スクリプトでインストール",
+  "shell.palette.lutris_script_keywords": "Lutris スクリプト インストーラー lutris.net コミュニティ"
 }

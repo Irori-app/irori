@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "slump överraskning blanda roulette",
   "shell.notice.exit_hotkey": "{engine}: lämna ett spel med {keys}",
   "shell.palette.set_up_emulation": "Konfigurera emulering",
-  "shell.palette.set_up_emulation_keywords": "emulator ROM konsol retro BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "emulator ROM konsol retro BIOS RetroArch",
+  "shell.palette.lutris_script": "Installera med ett Lutris-skript",
+  "shell.palette.lutris_script_keywords": "Lutris skript installation lutris.net community"
 }

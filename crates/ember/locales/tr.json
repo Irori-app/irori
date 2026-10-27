@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "rastgele sürpriz karıştır rulet",
   "shell.notice.exit_hotkey": "{engine}: oyundan çıkmak için {keys}",
   "shell.palette.set_up_emulation": "Emülasyonu kur",
-  "shell.palette.set_up_emulation_keywords": "emülatör ROM konsol retro BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "emülatör ROM konsol retro BIOS RetroArch",
+  "shell.palette.lutris_script": "Lutris betiğiyle kur",
+  "shell.palette.lutris_script_keywords": "Lutris betik kurulum lutris.net topluluk"
 }

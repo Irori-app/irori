@@ -1,0 +1,38 @@
+[package]
+name = "ember-scripts"
+description = "Safe interpreter for Lutris community install scripts: typed parsing, consent plan, confined execution and the lutris.net client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ember-core.workspace = true
+ember-runtime.workspace = true
+ember-depot.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+futures.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml_ng.workspace = true
+tracing.workspace = true
+url.workspace = true
+sha2.workspace = true
+sha1.workspace = true
+md-5.workspace = true
+hex.workspace = true
+zip.workspace = true
+tar.workspace = true
+flate2.workspace = true
+bzip2.workspace = true
+xz2.workspace = true
+zstd.workspace = true
+
+[dev-dependencies]
+ember-depot = { workspace = true, features = ["test-server"] }
+tempfile = "3"

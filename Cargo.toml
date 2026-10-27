@@ -38,6 +38,7 @@ ember-game = { path = "crates/feature-game" }
 ember-settings = { path = "crates/feature-settings" }
 ember-manage = { path = "crates/feature-manage" }
 ember-bigpicture = { path = "crates/feature-bigpicture" }
+ember-scripts = { path = "crates/scripts" }
 
 gpui-kit = "0.8.0"
 anyhow = "1"

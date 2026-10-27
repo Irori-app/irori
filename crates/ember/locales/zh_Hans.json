@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "随机 惊喜 打乱 轮盘",
   "shell.notice.exit_hotkey": "{engine}：退出游戏请按 {keys}",
   "shell.palette.set_up_emulation": "设置模拟游戏",
-  "shell.palette.set_up_emulation_keywords": "模拟器 ROM 主机 复古 BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "模拟器 ROM 主机 复古 BIOS RetroArch",
+  "shell.palette.lutris_script": "使用 Lutris 脚本安装",
+  "shell.palette.lutris_script_keywords": "Lutris 脚本 安装程序 lutris.net 社区"
 }

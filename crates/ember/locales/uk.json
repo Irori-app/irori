@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "випадково сюрприз перемішати рулетка",
   "shell.notice.exit_hotkey": "{engine}: щоб вийти з гри, натисніть {keys}",
   "shell.palette.set_up_emulation": "Налаштувати емуляцію",
-  "shell.palette.set_up_emulation_keywords": "емулятор ROM консоль ретро BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "емулятор ROM консоль ретро BIOS RetroArch",
+  "shell.palette.lutris_script": "Встановити за скриптом Lutris",
+  "shell.palette.lutris_script_keywords": "Lutris скрипт встановлювач lutris.net спільнота"
 }

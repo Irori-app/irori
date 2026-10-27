@@ -16,8 +16,11 @@ ember-emulation.workspace = true
 ember-ui.workspace = true
 ember-sideload.workspace = true
 ember-extras.workspace = true
+ember-scripts.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
+futures.workspace = true
+parking_lot.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 serde.workspace = true
 serde_json.workspace = true

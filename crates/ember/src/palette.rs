@@ -22,6 +22,7 @@ enum PaletteTarget {
     Refresh,
     Random,
     SetUpEmulation,
+    LutrisScript,
 }
 
 /// Retained palette state, owned by the shell.
@@ -92,6 +93,14 @@ impl Palette {
                 .keywords([t("shell.palette.set_up_emulation_keywords")])
                 .icon(IconName::Joystick),
             PaletteTarget::SetUpEmulation,
+            targets,
+        );
+        push(
+            CommandItem::new()
+                .label(t("shell.palette.lutris_script"))
+                .keywords([t("shell.palette.lutris_script_keywords")])
+                .icon(IconName::ScrollText),
+            PaletteTarget::LutrisScript,
             targets,
         );
         push(
@@ -194,6 +203,7 @@ fn run_target(target: PaletteTarget, window: &mut Window, cx: &mut App) {
         PaletteTarget::Refresh => ember_ui::models::refresh_library(false, cx),
         PaletteTarget::Random => ember_library::open_random_game(window, cx),
         PaletteTarget::SetUpEmulation => ember_manage::open_emulation_setup(window, cx),
+        PaletteTarget::LutrisScript => ember_library::open_lutris_installer(None, window, cx),
         PaletteTarget::Play(id) => crate::shell::launch_game(id, window, cx),
     }
 }

@@ -626,17 +626,33 @@ impl Render for SideloadDialog {
                         .title(t("library.sideload.store_hint.title")),
                 )
                 .child(
-                    h_flex().justify_end().child(
-                        Button::new("sideload-accounts")
-                            .small()
-                            .ghost()
-                            .icon(IconName::LogIn)
-                            .label(t("library.sideload.go_to_accounts"))
-                            .on_click(|_, window, cx| {
-                                window.close_dialog(cx);
-                                navigate(Route::Accounts, cx);
-                            }),
-                    ),
+                    h_flex()
+                        .justify_end()
+                        .flex_wrap()
+                        .gap_2()
+                        .child(
+                            Button::new("sideload-lutris")
+                                .small()
+                                .ghost()
+                                .icon(IconName::ScrollText)
+                                .label(t("library.sideload.lutris_script"))
+                                .tooltip(t("library.sideload.lutris_script_tooltip"))
+                                .on_click(|_, window, cx| {
+                                    window.close_dialog(cx);
+                                    super::lutris::open_lutris_installer(None, window, cx);
+                                }),
+                        )
+                        .child(
+                            Button::new("sideload-accounts")
+                                .small()
+                                .ghost()
+                                .icon(IconName::LogIn)
+                                .label(t("library.sideload.go_to_accounts"))
+                                .on_click(|_, window, cx| {
+                                    window.close_dialog(cx);
+                                    navigate(Route::Accounts, cx);
+                                }),
+                        ),
                 )
             })
             .child(

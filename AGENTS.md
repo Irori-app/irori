@@ -86,7 +86,9 @@ Ember's other arguments (`crates/ember/src/cli.rs`) are:
 - `-l/--launch <runner>/<app>`, `--big-picture`/`--console`, `--minimized`/`--tray`,
   `-V/--version` and `-h/--help`.
 - Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
-  `ember://settings/<section>`, and Heroic's `heroic://launch/...`.
+  `ember://settings/<section>`, `ember://lutris/<slug>` (the Lutris script installer at
+  a lutris.net game; Lutris's own `lutris:<slug>` is accepted as an argument too), and
+  Heroic's `heroic://launch/...`.
 - `--sign-in-window` is internal. On macOS and Windows it makes Ember run the store
   sign-in window instead of itself (see [4.6](#46-store-sign-in)).
 
@@ -117,6 +119,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/core` | `ember-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
 | `crates/runtime` | `ember-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
 | `crates/engines` | `ember-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
+| `crates/scripts` | `ember-scripts` | Lutris install scripts: typed parser, validation, variables, consent plan, confined executor with rollback, the `ScriptHost` trait, the lutris.net client, Wine build matching |
 | `crates/depot` | `ember-depot` | Download engine: parallel chunked downloads, resume, verification, delta updates; a `test-server` feature |
 | `crates/epic` | `ember-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
 | `crates/gog` | `ember-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
@@ -132,9 +135,9 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
 | `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
 | `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
-| `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime |
+| `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime, Lutris script installs (`scripts.rs`) |
 | `crates/ui` | `ember-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
-| `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs |
+| `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs, the Lutris script installer |
 | `crates/feature-game` | `ember-game` | Game page and its sheets: install, uninstall, logs, cloud saves, import, modify |
 | `crates/feature-manage` | `ember-manage` | Downloads, Wine manager, accounts and login, stores, onboarding |
 | `crates/feature-settings` | `ember-settings` | App settings, game defaults, per-game overrides, logs, system info |
@@ -167,11 +170,12 @@ The crates form a strict hierarchy. Never add a dependency that points upward.
 ember-core                        (depends on nothing internal)
   ├─ ember-runtime, ember-depot, ember-extras
   ├─ ember-engines   (core, runtime, depot)
+  ├─ ember-scripts   (core, runtime, depot; knows nothing of stores or the UI)
   ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
   │                   (depot only, not core)
   ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
   │                   ember-steam, ember-sideload, ember-emulation (+ engines)
-  └─ ember-services   (core, depot, runtime, extras; stores reach it as `DynStore`)
+  └─ ember-services   (core, depot, runtime, extras, engines, scripts; stores reach it as `DynStore`)
 ember-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
 ember (binary)    (everything; the only crate that names every store)
@@ -555,6 +559,42 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   updates and removes versions and cores, and picks each system's default emulator.
   Installs run through `ember_manage::start_install` so any screen can start one and the
   page shows its progress. Changes emit `Event::EnginesChanged`.
+- **Lutris install scripts** (`ember-scripts` interprets; `ember_services::scripts`
+  hosts Wine, DOSBox, programs and prompts; `ember_library::open_lutris_installer` is
+  the window, reached from Add game, the command palette and `ember://lutris/<slug>`).
+  These rules keep a community script from doing anything the user didn't see:
+  - **Typed commands only.** A script is parsed into enums before anything runs. An
+    unknown command, task, parameter or variable refuses the whole script, naming the
+    step; Ember's own variables (`$GAMEDIR`, `$CACHE`, `$HOME`…) cannot be redefined.
+    Never add a "pass through" command or leave an unknown variable as text.
+  - **Consent before running.** `ember_scripts::consent` lists downloads (host and
+    size), every write outside the game folder, the cache and the prefix (each approved
+    on its own), programs, registry edits, winetricks verbs and store autosetups. The
+    executor refuses to run without `Approvals::accepted`.
+  - **Shell commands verbatim.** Every `execute` command line is shown exactly as the
+    script wrote it, and needs its own "I understand" acknowledgement
+    (`Approvals::shell_acknowledged`); the executor checks it again.
+  - **Writes are confined** to `$GAMEDIR`, `$CACHE`, the prefix and approved paths,
+    with symlinks resolved before every check; archives cannot escape their target.
+    Cancel or failure rolls back what the install created in the game folder and
+    keeps downloads. An install that only lacks the game's program keeps its files
+    (`UnfinishedInstall`) so the user can choose the program.
+  - **Native first.** Scripts installing the Epic Games Launcher, the EA app or
+    Ubisoft Connect in Wine are refused (`PreferNative`); GOG, Amazon and ZOOM
+    autosetups stop with `InstallFromStore`; a library game with the same title in a
+    native store is offered before the script.
+  - **lutris.net etiquette.** Fetch only when the user searches or opens a game's
+    scripts, never in the background; one shared client keeps to two requests a second
+    and caches answers for a day; show every script's author, date and lutris.net page;
+    never bundle, mirror or commit lutris.net scripts or catalogue data (test fixtures
+    are hand-written).
+  - **Result.** Wine and Linux scripts become added apps (`winePrefix`, `wineVersion`,
+    `enviromentOptions`); emulator runners join the ROM library with `emberEngine`
+    (mapped like the Lutris import). The Wine build is the script's own when installed
+    (`match_wine_version`), else the default, and the window says which. Each game
+    records its script in the Ember-only per-game setting `emberLutrisScript`
+    (`{slug, installerSlug, version, revision, sourceUrl}`) for later reinstalls and
+    updates.
 
 ## 5. Rust conventions
 

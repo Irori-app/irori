@@ -2480,11 +2480,14 @@ dependencies = [
  "ember-engines",
  "ember-extras",
  "ember-runtime",
+ "ember-scripts",
  "ember-services",
  "ember-sideload",
  "ember-ui",
+ "futures",
  "gpui-kit",
  "gpui-pre",
+ "parking_lot",
  "regex",
  "serde",
  "serde_json",
@@ -2551,6 +2554,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "ember-scripts"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "ember-core",
+ "ember-depot",
+ "ember-runtime",
+ "flate2",
+ "futures",
+ "hex",
+ "md-5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "sha1",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "xz2",
+ "zip",
+ "zstd",
+]
+
+[[package]]
 name = "ember-services"
 version = "0.1.0"
 dependencies = [
@@ -2562,6 +2596,7 @@ dependencies = [
  "ember-engines",
  "ember-extras",
  "ember-runtime",
+ "ember-scripts",
  "fs4",
  "futures",
  "fuzzy-matcher",
