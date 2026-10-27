@@ -1,0 +1,20 @@
+# Serves the built site. Coolify's proxy terminates TLS in front of it.
+:80 {
+	root * /srv
+	encode zstd gzip
+	file_server
+
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@media path /screenshots/* /brand/*
+	header @media Cache-Control "public, max-age=86400"
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	handle_errors {
+		rewrite * /index.html
+		file_server
+	}
+}

@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Layout: the room around the hearth. Content sits in a lattice of hairline
+ * "wood" rules, like shoji frames; screenshots sit inside the hearth's thick
+ * square frame, warmed by the fire's glow. Flame colour is kept for the one
+ * action that matters in each region.
+ */
+:root {
+  /* Washi paper by day. */
+  --ash: #f6f4ee;
+  --soot: #ece8de;
+  --hearth: #e3ddcf;
+  --wood: #b9a68c;
+  --grain: #d8cfbf;
+  --paper: #1c1714;
+  --smoke: #5f554b;
+  --tatami: #66713f;
+  --flame: #e5531f;
+  --flame-ink: #fff8f1;
+  --ember: #f59a38;
+  --glow: rgb(255 106 43 / 0.16);
+
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Segoe UI", system-ui, sans-serif;
+  --font-code: "M PLUS 1 Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* shadcn-vue's names for the same palette. */
+  --background: var(--ash);
+  --foreground: var(--paper);
+  --card: var(--soot);
+  --card-foreground: var(--paper);
+  --popover: var(--soot);
+  --popover-foreground: var(--paper);
+  --primary: var(--flame);
+  --primary-foreground: var(--flame-ink);
+  --secondary: var(--hearth);
+  --secondary-foreground: var(--paper);
+  --muted: var(--soot);
+  --muted-foreground: var(--smoke);
+  --accent: var(--hearth);
+  --accent-foreground: var(--paper);
+  --destructive: #c4321f;
+  --border: var(--grain);
+  --input: var(--grain);
+  --ring: var(--ember);
+  --radius: 0.75rem;
+}
+
+/* Sumi ink by night: the hearth's own colours. */
+.dark {
+  --ash: #15110e;
+  --soot: #1e1915;
+  --hearth: #2a231d;
+  --wood: #6e5d4b;
+  --grain: #342b24;
+  --paper: #f2e9dc;
+  --smoke: #b2a493;
+  --tatami: #a9b47c;
+  --flame: #ff6a2b;
+  --flame-ink: #1a0d06;
+  --ember: #ffb24f;
+  --glow: rgb(255 106 43 / 0.22);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-code);
+  --color-ash: var(--ash);
+  --color-soot: var(--soot);
+  --color-hearth: var(--hearth);
+  --color-wood: var(--wood);
+  --color-grain: var(--grain);
+  --color-paper: var(--paper);
+  --color-smoke: var(--smoke);
+  --color-tatami: var(--tatami);
+  --color-flame: var(--flame);
+  --color-ember: var(--ember);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    font-feature-settings: "palt" 0;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--flame);
+    color: var(--flame-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* A small uppercase label set in the code face, like a stamped tag. */
+  .tag {
+    font-family: var(--font-code);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tatami);
+  }
+  .gutter {
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
+  kbd {
+    font-family: var(--font-code);
+    font-size: 0.8em;
+    padding: 0.1em 0.45em;
+    border: 1px solid var(--grain);
+    border-bottom-width: 2px;
+    border-radius: 0.35rem;
+    background: var(--soot);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center"><b>Every game you own, around one fire.</b></p>
+<p align="center"><b>Every game you own, around one fire.</b><br><a href="https://irori.app">irori.app</a></p>
 
 An *irori* (囲炉裏) is the sunken hearth of a traditional Japanese house, the place
 everyone gathers. Irori is a fast, native game launcher for Linux, macOS and Windows
