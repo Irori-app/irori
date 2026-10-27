@@ -287,6 +287,16 @@ fn handle_cli(cli: &Cli, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
         open_main_window(app, cx);
         nav::navigate(Route::BigPicture, cx);
     }
+    if let Some(slug) = &cli.lutris {
+        open_main_window(app, cx);
+        let window = app.lock().window;
+        if let Some(handle) = window {
+            let slug = slug.clone();
+            let _ = handle.update(cx, |_, window, cx| {
+                ember_library::open_lutris_installer(Some(slug), window, cx)
+            });
+        }
+    }
     if let Some(id) = &cli.launch {
         launch_from_outside(id.clone(), app, cx);
     }

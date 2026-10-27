@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "무작위 랜덤 셔플 룰렛",
   "shell.notice.exit_hotkey": "{engine}: 게임에서 나가려면 {keys}",
   "shell.palette.set_up_emulation": "에뮬레이션 설정",
-  "shell.palette.set_up_emulation_keywords": "에뮬레이터 ROM 콘솔 레트로 BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "에뮬레이터 ROM 콘솔 레트로 BIOS RetroArch",
+  "shell.palette.lutris_script": "Lutris 스크립트로 설치",
+  "shell.palette.lutris_script_keywords": "Lutris 스크립트 설치 프로그램 lutris.net 커뮤니티"
 }

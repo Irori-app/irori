@@ -44,6 +44,7 @@ use gpui_kit::{App, Global, KeyBinding, Window};
 pub use commands::{GameCommand, GameState};
 pub use dialogs::categories::open_categories_dialog;
 pub use dialogs::edit_game::open_edit_game_dialog;
+pub use dialogs::lutris::open_lutris_installer;
 pub use dialogs::sideload::open_add_game_dialog;
 pub use filter::{CategoryFilter, HiddenMode, InstallFilter, ViewFilter};
 pub use i18n::CATALOGS;

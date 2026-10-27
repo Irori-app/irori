@@ -12,6 +12,9 @@ pub struct Cli {
     pub open: Option<GameId>,
     /// Open a screen (`ember://library`, `ember://settings/<section>`…).
     pub route: Option<Route>,
+    /// Open the Lutris script installer at a lutris.net game
+    /// (`ember://lutris/<slug>`, `lutris:<slug>`).
+    pub lutris: Option<String>,
     pub big_picture: bool,
     /// Start hidden in the tray.
     pub minimized: bool,
@@ -31,6 +34,7 @@ impl Cli {
                 "--version" | "-V" => cli.version = true,
                 "--help" | "-h" => cli.help = true,
                 s if s.contains("://") => cli.apply_url(s),
+                s if s.starts_with("lutris:") => cli.lutris = lutris_slug(&s["lutris:".len()..]),
                 _ => {}
             }
         }
@@ -84,6 +88,12 @@ impl Cli {
             "stats" => self.route = Some(Route::Stats),
             "wine" => self.route = Some(Route::WineManager),
             "emulators" => self.route = Some(Route::Emulators),
+            "lutris" => {
+                self.lutris = url
+                    .path_segments()
+                    .and_then(|mut s| s.find(|p| !p.is_empty()).map(decode))
+                    .filter(|s| is_slug(s))
+            }
             "settings" => {
                 let section = url
                     .path_segments()
@@ -98,8 +108,33 @@ impl Cli {
     /// Whether this invocation asks the running instance to do something
     /// beyond showing its window.
     pub fn has_request(&self) -> bool {
-        self.launch.is_some() || self.open.is_some() || self.route.is_some() || self.big_picture
+        self.launch.is_some()
+            || self.open.is_some()
+            || self.route.is_some()
+            || self.lutris.is_some()
+            || self.big_picture
     }
+}
+
+/// The game slug of a Lutris link body: `<slug>`, `install/<slug>` or
+/// `<slug>?revision=…` (Lutris's own `lutris:` forms that name a game).
+fn lutris_slug(body: &str) -> Option<String> {
+    let body = body.trim_start_matches('/');
+    let path = body.split(['?', '#']).next().unwrap_or_default();
+    let slug = match path.split('/').collect::<Vec<_>>().as_slice() {
+        [slug] => *slug,
+        ["install", slug, ..] => *slug,
+        _ => return None,
+    };
+    is_slug(slug).then(|| slug.to_string())
+}
+
+/// A lutris.net game slug: letters, digits, `-`, `_` and `.`.
+fn is_slug(s: &str) -> bool {
+    !s.is_empty()
+        && !s.starts_with('.')
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
 }
 
 fn parse_game_ref(s: &str) -> Option<GameId> {
@@ -133,7 +168,7 @@ Options:
 
 URLs: ember://launch/<runner>/<app>, ember://game/<runner>/<app>, heroic://launch/<runner>/<app>,
       ember://library, ember://downloads, ember://accounts, ember://stores, ember://wine,
-      ember://settings/<section>";
+      ember://settings/<section>, ember://lutris/<slug>, lutris:<slug>";
 
 #[cfg(test)]
 mod tests {
@@ -176,5 +211,23 @@ mod tests {
             Some(Route::Settings("general".into()))
         );
         assert!(!parse(&["https://example.com"]).has_request());
+    }
+
+    #[test]
+    fn lutris_links_open_the_script_installer() {
+        let slug = |args: &[&str]| parse(args).lutris;
+        assert_eq!(slug(&["ember://lutris/quake"]), Some("quake".into()));
+        assert_eq!(slug(&["lutris:quake"]), Some("quake".into()));
+        assert_eq!(
+            slug(&["lutris:install/the-witcher-3"]),
+            Some("the-witcher-3".into())
+        );
+        assert_eq!(slug(&["lutris:quake?revision=12"]), Some("quake".into()));
+        assert!(parse(&["lutris:quake"]).has_request());
+        // Not a game: Lutris's own launch links and anything path-like.
+        assert_eq!(slug(&["lutris:rungameid/12"]), None);
+        assert_eq!(slug(&["ember://lutris/..%2Fetc"]), None);
+        assert_eq!(slug(&["lutris:"]), None);
+        assert_eq!(slug(&["ember://lutris"]), None);
     }
 }

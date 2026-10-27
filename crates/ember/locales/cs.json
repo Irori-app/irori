@@ -57,5 +57,7 @@
   "shell.palette.random_keywords": "náhodně překvapení zamíchat ruleta",
   "shell.notice.exit_hotkey": "{engine}: hru ukončíte pomocí {keys}",
   "shell.palette.set_up_emulation": "Nastavit emulaci",
-  "shell.palette.set_up_emulation_keywords": "emulátor ROM konzole retro BIOS RetroArch"
+  "shell.palette.set_up_emulation_keywords": "emulátor ROM konzole retro BIOS RetroArch",
+  "shell.palette.lutris_script": "Instalovat pomocí skriptu Lutris",
+  "shell.palette.lutris_script_keywords": "Lutris skript instalátor lutris.net komunita"
 }
