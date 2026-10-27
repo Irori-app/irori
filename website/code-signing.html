@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Irori code signing policy</title>
+    <meta name="description" content="How Irori's releases are built and signed, who approves them, and what the program sends over the network." />
+    <meta name="theme-color" content="#15110e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f4ee" media="(prefers-color-scheme: light)" />
+    <meta property="og:title" content="Irori code signing policy" />
+    <meta property="og:description" content="A fast, native game launcher for Linux, macOS and Windows." />
+    <link rel="canonical" href="https://irori.app/code-signing" />
+    <meta property="og:url" content="https://irori.app/code-signing" />
+    <meta property="og:image" content="https://irori.app/screenshots/library.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Set the theme before the first paint so the page never flashes.
+      try {
+        var choice = localStorage.getItem('irori-theme') || 'auto'
+        var dark = choice === 'dark' || (choice === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+      } catch (e) {
+        document.documentElement.classList.toggle('dark', matchMedia('(prefers-color-scheme: dark)').matches)
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/code-signing.ts"></script>
+  </body>
+</html>

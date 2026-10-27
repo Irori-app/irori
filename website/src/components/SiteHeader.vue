@@ -5,17 +5,17 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import { REPO } from '@/data/content'
 
 const links = [
-  { href: '#features', label: 'Features' },
-  { href: '#screenshots', label: 'Screenshots' },
-  { href: '#download', label: 'Download' },
-  { href: '#faq', label: 'Questions' },
+  { href: '/#features', label: 'Features' },
+  { href: '/#screenshots', label: 'Screenshots' },
+  { href: '/#download', label: 'Download' },
+  { href: '/#faq', label: 'Questions' },
 ]
 </script>
 
 <template>
   <header class="site-header sticky z-40 border-b border-grain/70 backdrop-blur-md">
     <div class="gutter mx-auto flex h-16 max-w-7xl items-center gap-6">
-      <a href="#top" class="text-paper" aria-label="Irori, back to top">
+      <a href="/" class="text-paper" aria-label="Irori home">
         <BrandLockup id="header" />
       </a>
       <nav aria-label="Sections" class="ml-auto hidden items-center gap-1 md:flex">

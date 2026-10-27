@@ -7,6 +7,7 @@ const links = [
   { href: `${REPO}/releases`, label: 'Releases' },
   { href: `${REPO}/issues`, label: 'Report a problem' },
   { href: `${REPO}/blob/main/LICENSE`, label: 'GPL-3.0 licence' },
+  { href: '/code-signing', label: 'Code signing policy' },
 ]
 </script>
 

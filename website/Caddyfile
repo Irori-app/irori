@@ -2,6 +2,8 @@
 :80 {
 	root * /srv
 	encode zstd gzip
+	# /code-signing serves code-signing.html.
+	try_files {path} {path}.html
 	file_server
 
 	@hashed path /assets/*
