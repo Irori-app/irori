@@ -292,8 +292,12 @@ fn handle_cli(cli: &Cli, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
         let window = app.lock().window;
         if let Some(handle) = window {
             let slug = slug.clone();
+            // The dialog lives on the window's root, which `update` holds:
+            // open it once this update is over.
             let _ = handle.update(cx, |_, window, cx| {
-                ember_library::open_lutris_installer(Some(slug), window, cx)
+                window.defer(cx, move |window, cx| {
+                    ember_library::open_lutris_installer(Some(slug), window, cx)
+                })
             });
         }
     }
