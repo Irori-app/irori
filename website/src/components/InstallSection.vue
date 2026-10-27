@@ -45,6 +45,13 @@ const platforms: { id: Platform; label: string; note: string }[] = [
         <a :href="`${REPO}/releases`" class="inline-flex items-center gap-1 text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">
           All releases <ArrowUpRight class="size-4" />
         </a>
+        <p class="text-[0.95rem] text-smoke">
+          Every download is signed: on macOS with Irori’s Apple Developer ID, on Linux with the
+          packages key, and on Windows through
+          <a href="https://signpath.org" class="text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">SignPath Foundation</a>,
+          which provides free code signing for open-source projects.
+          <a href="/code-signing" class="text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">How releases are signed</a>
+        </p>
       </div>
 
       <Tabs v-model="platform" class="min-w-0 gap-6">

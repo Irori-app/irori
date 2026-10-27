@@ -34,5 +34,6 @@ jobs:
           docker run -d --rm -p 8080:80 --name site irori-website
           sleep 2
           curl -fsS http://localhost:8080/ | grep -q '<title>Irori</title>'
+          curl -fsS http://localhost:8080/code-signing | grep -q '<title>Irori code signing policy</title>'
           curl -fsS -o /dev/null http://localhost:8080/screenshots/library.webp
           docker stop site
