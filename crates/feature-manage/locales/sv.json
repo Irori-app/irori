@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Allt är klart",
   "manage.setup.done.games": "{count} spel finns i ditt bibliotek, redo att spelas.",
   "manage.setup.done.no_games": "Lägg till en mapp med spel på sidan Emulatorer när du är redo.",
-  "manage.setup.done.open_library": "Öppna biblioteket"
+  "manage.setup.done.open_library": "Öppna biblioteket",
+  "manage.onboarding.lutris.title": "Kommer du från Lutris?",
+  "manage.onboarding.lutris.description": "Ember kan föra över dina Lutris-spel (Windows, Linux och emulerade), favoriter, kategorier och speltid. Lutris förblir som det är.",
+  "manage.onboarding.lutris.run": "Importera från Lutris",
+  "manage.onboarding.lutris.done": "Importerat från Lutris",
+  "manage.onboarding.lutris.details": "Visa detaljer",
+  "manage.onboarding.lutris.failed": "Det gick inte att importera från Lutris"
 }

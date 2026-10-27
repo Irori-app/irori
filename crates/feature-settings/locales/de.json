@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Winetricks-Komponenten durchsuchen",
   "settings.winetricks.search_placeholder": "Komponenten, Schriftarten und Einstellungen durchsuchen",
   "settings.winetricks.showing": "{shown} von {total} angezeigt. Zum Eingrenzen die Suche verwenden.",
-  "settings.winetricks.verb_installed": "{verb} installiert"
+  "settings.winetricks.verb_installed": "{verb} installiert",
+  "settings.field.action_import_lutris.label": "Aus Lutris importieren",
+  "settings.field.action_import_lutris.help": "Installierte Spiele, emulierte Spiele, Favoriten, Kategorien und Spielzeit aus Lutris übernehmen. Lutris selbst bleibt unverändert.",
+  "settings.error.import_lutris": "Import aus Lutris fehlgeschlagen"
 }

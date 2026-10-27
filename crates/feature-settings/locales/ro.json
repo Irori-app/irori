@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Caută componente Winetricks",
   "settings.winetricks.search_placeholder": "Caută componente, fonturi și setări",
   "settings.winetricks.showing": "Se afișează {shown} din {total}. Caută pentru a restrânge lista.",
-  "settings.winetricks.verb_installed": "{verb} a fost instalat"
+  "settings.winetricks.verb_installed": "{verb} a fost instalat",
+  "settings.field.action_import_lutris.label": "Importă din Lutris",
+  "settings.field.action_import_lutris.help": "Preia din Lutris jocurile instalate, jocurile emulate, favoritele, categoriile și timpul de joc. Lutris rămâne neschimbat.",
+  "settings.error.import_lutris": "Importul din Lutris a eșuat"
 }

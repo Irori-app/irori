@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Vše je připraveno",
   "manage.setup.done.games": "Počet her připravených ke hraní ve vaší knihovně: {count}.",
   "manage.setup.done.no_games": "Až budete chtít, přidejte složku s hrami na stránce Emulátory.",
-  "manage.setup.done.open_library": "Otevřít knihovnu"
+  "manage.setup.done.open_library": "Otevřít knihovnu",
+  "manage.onboarding.lutris.title": "Přecházíte z Lutris?",
+  "manage.onboarding.lutris.description": "Ember může převzít vaše hry z Lutris (Windows, Linux i emulované), oblíbené položky, kategorie a odehraný čas. Lutris zůstane tak, jak je.",
+  "manage.onboarding.lutris.run": "Importovat z Lutris",
+  "manage.onboarding.lutris.done": "Importováno z Lutris",
+  "manage.onboarding.lutris.details": "Zobrazit podrobnosti",
+  "manage.onboarding.lutris.failed": "Import z Lutris se nezdařil"
 }

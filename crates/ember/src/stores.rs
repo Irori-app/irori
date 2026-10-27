@@ -125,6 +125,13 @@ pub fn hooks() -> Hooks {
     Hooks {
         import_from_heroic: Some(Arc::new(import_from_heroic)),
         open_emulation_setup: Some(Arc::new(ember_manage::open_emulation_setup)),
+        import_from_lutris: Some(Arc::new(|cx| {
+            let backend = ember_ui::backend(cx);
+            ember_ui::run(cx, async move {
+                crate::lutris::import(&backend, SIDELOAD.get().cloned(), EMULATION.get().cloned())
+                    .await
+            })
+        })),
     }
 }
 

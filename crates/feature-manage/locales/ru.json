@@ -374,5 +374,11 @@
   "manage.setup.done.title": "Всё готово",
   "manage.setup.done.games": "Игр в библиотеке, готовых к запуску: {count}.",
   "manage.setup.done.no_games": "Когда будете готовы, добавьте папку с играми на странице «Эмуляторы».",
-  "manage.setup.done.open_library": "Открыть библиотеку"
+  "manage.setup.done.open_library": "Открыть библиотеку",
+  "manage.onboarding.lutris.title": "Переходите с Lutris?",
+  "manage.onboarding.lutris.description": "Ember может перенести ваши игры из Lutris (Windows, Linux и эмулируемые), избранное, категории и время в играх. Lutris останется как есть.",
+  "manage.onboarding.lutris.run": "Импортировать из Lutris",
+  "manage.onboarding.lutris.done": "Импортировано из Lutris",
+  "manage.onboarding.lutris.details": "Показать подробности",
+  "manage.onboarding.lutris.failed": "Не удалось импортировать из Lutris"
 }

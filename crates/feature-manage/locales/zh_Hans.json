@@ -374,5 +374,11 @@
   "manage.setup.done.title": "一切就绪",
   "manage.setup.done.games": "{count} 款游戏已加入你的游戏库，随时可以开玩。",
   "manage.setup.done.no_games": "准备好后，可在“模拟器”页面添加包含游戏的文件夹。",
-  "manage.setup.done.open_library": "打开游戏库"
+  "manage.setup.done.open_library": "打开游戏库",
+  "manage.onboarding.lutris.title": "从 Lutris 迁移过来？",
+  "manage.onboarding.lutris.description": "Ember 可以迁移你的 Lutris 游戏（Windows、Linux 和模拟游戏）、收藏、分类和游玩时间。Lutris 保持不变。",
+  "manage.onboarding.lutris.run": "从 Lutris 导入",
+  "manage.onboarding.lutris.done": "已从 Lutris 导入",
+  "manage.onboarding.lutris.details": "显示详情",
+  "manage.onboarding.lutris.failed": "无法从 Lutris 导入"
 }

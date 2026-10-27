@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "搜索 Winetricks 组件",
   "settings.winetricks.search_placeholder": "搜索组件、字体和设置",
   "settings.winetricks.showing": "显示 {shown} / {total} 项。搜索可缩小范围。",
-  "settings.winetricks.verb_installed": "{verb} 已安装"
+  "settings.winetricks.verb_installed": "{verb} 已安装",
+  "settings.field.action_import_lutris.label": "从 Lutris 导入",
+  "settings.field.action_import_lutris.help": "从 Lutris 迁移已安装的游戏、模拟游戏、收藏、分类和游玩时间。Lutris 本身不会被更改。",
+  "settings.error.import_lutris": "无法从 Lutris 导入"
 }

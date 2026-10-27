@@ -225,6 +225,7 @@ pub enum ActionKind {
     ResetSettings,
     OpenLogsFolder,
     ImportHeroic,
+    ImportLutris,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1281,6 +1282,15 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .help("settings.field.action_import_heroic.help")
     .keywords(&["heroic", "import", "migrate"]),
+    app(
+        "action.import-lutris",
+        "settings.field.action_import_lutris.label",
+        Advanced,
+        "settings.group.maintenance",
+        Action(ActionKind::ImportLutris),
+    )
+    .help("settings.field.action_import_lutris.help")
+    .keywords(&["lutris", "import", "migrate", "emulator"]),
     app(
         "action.clear-caches",
         "settings.field.action_clear_caches.label",

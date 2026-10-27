@@ -82,6 +82,13 @@ enum ImportState {
     Failed(SharedString),
 }
 
+enum LutrisState {
+    Idle,
+    Running,
+    Done(ember_ui::hooks::LutrisSummary),
+    Failed(SharedString),
+}
+
 /// One line per kind of data the import brought over; empty when nothing
 /// needed importing.
 fn import_summary_lines(s: &ImportSummary) -> Vec<SharedString> {
@@ -153,6 +160,11 @@ pub struct OnboardingView {
     steps: Vec<OnboardingStep>,
     ix: usize,
     import: ImportState,
+    /// Heroic data exists (its import section shows).
+    heroic: bool,
+    /// A Lutris library exists (its import section shows).
+    lutris: bool,
+    lutris_import: LutrisState,
     stores: Vec<StoreCard>,
     install_path: String,
     language: Entity<LanguageSelect>,
@@ -163,7 +175,95 @@ impl EventEmitter<OnboardingEvent> for OnboardingView {}
 
 impl OnboardingView {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        Self::with_heroic(hooks::heroic_detected(), window, cx)
+        let mut this = Self::with_heroic(hooks::heroic_detected(), window, cx);
+        this.set_lutris(hooks::lutris_detected());
+        this
+    }
+
+    /// Show the Lutris import section (and the import step) or not.
+    pub(crate) fn set_lutris(&mut self, lutris: bool) {
+        self.lutris = lutris;
+        self.steps = onboarding_steps(self.heroic || lutris);
+    }
+
+    fn run_lutris_import(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if matches!(self.lutris_import, LutrisState::Running) {
+            return;
+        }
+        self.lutris_import = LutrisState::Running;
+        cx.notify();
+        let task = hooks::import_from_lutris(cx);
+        cx.spawn_in(window, async move |this, cx| {
+            let result = task.await;
+            let _ = this.update_in(cx, |this, window, cx| {
+                this.lutris_import = match result {
+                    Ok(summary) => {
+                        ember_ui::models::refresh_library(false, cx);
+                        ember_ui::lutris_summary::open_lutris_summary(summary.clone(), window, cx);
+                        LutrisState::Done(summary)
+                    }
+                    Err(e) => LutrisState::Failed(format!("{e:#}").into()),
+                };
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    fn render_lutris(&self, cx: &mut Context<Self>) -> AnyElement {
+        let status: AnyElement = match &self.lutris_import {
+            LutrisState::Idle | LutrisState::Running => Button::new("lutris-import")
+                .primary()
+                .icon(IconName::Import)
+                .label(t("manage.onboarding.lutris.run"))
+                .loading(matches!(self.lutris_import, LutrisState::Running))
+                .on_click(cx.listener(|this, _, window, cx| this.run_lutris_import(window, cx)))
+                .into_any_element(),
+            LutrisState::Done(summary) => {
+                let summary = summary.clone();
+                v_flex()
+                    .gap_2()
+                    .child(
+                        Alert::success(
+                            "lutris-done",
+                            ember_ui::lutris_summary::summary_lines(&summary).join("\n"),
+                        )
+                        .title(t("manage.onboarding.lutris.done")),
+                    )
+                    .child(
+                        div().child(
+                            Button::new("lutris-details")
+                                .label(t("manage.onboarding.lutris.details"))
+                                .on_click(move |_, window, cx| {
+                                    ember_ui::lutris_summary::open_lutris_summary(
+                                        summary.clone(),
+                                        window,
+                                        cx,
+                                    )
+                                }),
+                        ),
+                    )
+                    .into_any_element()
+            }
+            LutrisState::Failed(message) => Alert::error("lutris-failed", message.clone())
+                .title(t("manage.onboarding.lutris.failed"))
+                .into_any_element(),
+        };
+        v_flex()
+            .gap_3()
+            .child(
+                div()
+                    .text_xl()
+                    .font_semibold()
+                    .child(t("manage.onboarding.lutris.title")),
+            )
+            .child(
+                div()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(t("manage.onboarding.lutris.description")),
+            )
+            .child(div().child(status))
+            .into_any_element()
     }
 
     /// Construct with an explicit Heroic availability (tests).
@@ -205,6 +305,9 @@ impl OnboardingView {
             steps: onboarding_steps(heroic),
             ix: 0,
             import: ImportState::Idle,
+            heroic,
+            lutris: false,
+            lutris_import: LutrisState::Idle,
             stores: store_cards(cx),
             install_path: m.settings.read(cx).app.default_install_path.clone(),
             language,
@@ -519,7 +622,11 @@ impl Render for OnboardingView {
         let step = self.step();
         let content = match step {
             OnboardingStep::Welcome => self.render_welcome(cx),
-            OnboardingStep::Import => self.render_import(window, cx),
+            OnboardingStep::Import => v_flex()
+                .gap_8()
+                .when(self.heroic, |d| d.child(self.render_import(window, cx)))
+                .when(self.lutris, |d| d.child(self.render_lutris(cx)))
+                .into_any_element(),
             OnboardingStep::Stores => self.render_stores(cx),
             OnboardingStep::InstallFolder => self.render_folder(cx),
             OnboardingStep::Done => self.render_done(cx),

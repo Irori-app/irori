@@ -374,5 +374,11 @@
   "manage.setup.done.title": "모든 준비가 끝났습니다",
   "manage.setup.done.games": "게임 {count}개가 라이브러리에 추가되어 바로 플레이할 수 있습니다.",
   "manage.setup.done.no_games": "준비가 되면 에뮬레이터 페이지에서 게임이 있는 폴더를 추가하세요.",
-  "manage.setup.done.open_library": "라이브러리 열기"
+  "manage.setup.done.open_library": "라이브러리 열기",
+  "manage.onboarding.lutris.title": "Lutris에서 오셨나요?",
+  "manage.onboarding.lutris.description": "Ember는 Lutris 게임(Windows, Linux, 에뮬레이션), 즐겨찾기, 카테고리, 플레이 시간을 가져올 수 있습니다. Lutris는 그대로 유지됩니다.",
+  "manage.onboarding.lutris.run": "Lutris에서 가져오기",
+  "manage.onboarding.lutris.done": "Lutris에서 가져왔습니다",
+  "manage.onboarding.lutris.details": "세부 정보 보기",
+  "manage.onboarding.lutris.failed": "Lutris에서 가져올 수 없습니다"
 }

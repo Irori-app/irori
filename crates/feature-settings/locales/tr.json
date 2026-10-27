@@ -535,5 +535,8 @@
   "settings.winetricks.search_label": "Winetricks bileşenlerinde ara",
   "settings.winetricks.search_placeholder": "Bileşenlerde, yazı tiplerinde ve ayarlarda ara",
   "settings.winetricks.showing": "Gösterilen: {shown}/{total}. Listeyi daraltmak için arama yapın.",
-  "settings.winetricks.verb_installed": "{verb} kuruldu"
+  "settings.winetricks.verb_installed": "{verb} kuruldu",
+  "settings.field.action_import_lutris.label": "Lutris'ten içe aktar",
+  "settings.field.action_import_lutris.help": "Yüklü oyunları, emüle edilen oyunları, favorileri, kategorileri ve oynama süresini Lutris'ten aktarın. Lutris'in kendisi değişmez.",
+  "settings.error.import_lutris": "Lutris'ten içe aktarılamadı"
 }
