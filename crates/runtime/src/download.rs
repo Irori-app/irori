@@ -300,8 +300,13 @@ impl<R: Read> Read for Counting<R> {
 }
 
 /// Extract a (compressed) tarball into `dest`, dropping the first `strip`
-/// path components of every entry (like `tar --strip-components`). Entries
-/// escaping `dest` are rejected. Blocking: call from `spawn_blocking`.
+/// path components of every entry (like `tar --strip-components`). Blocking:
+/// call from `spawn_blocking`.
+///
+/// Nothing in the archive can create or change anything outside `dest`:
+/// entries with absolute or `..` paths, links whose target resolves outside
+/// `dest`, and entries that would be written through a symbolic link fail
+/// the extraction.
 pub fn extract_tar(
     archive: &Path,
     dest: &Path,
@@ -354,14 +359,15 @@ pub fn extract_tar(
         let target = dest.join(&rel);
         let kind = entry.header().entry_type();
         if kind.is_dir() {
+            ensure_no_symlinks(dest, &rel)?;
             std::fs::create_dir_all(&target)
                 .with_context(|| format!("creating {}", target.display()))?;
             continue;
         }
-        if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("creating {}", parent.display()))?;
-        }
+        let parent = rel.parent().unwrap_or(Path::new(""));
+        ensure_no_symlinks(dest, parent)?;
+        std::fs::create_dir_all(dest.join(parent))
+            .with_context(|| format!("creating {}", dest.join(parent).display()))?;
         if kind.is_hard_link() {
             let link = entry
                 .link_name()?
@@ -370,7 +376,17 @@ pub fn extract_tar(
             let Some(link_rel) = strip_components(&link, strip)? else {
                 continue;
             };
-            let source = dest.join(link_rel);
+            ensure_no_symlinks(dest, link_rel.parent().unwrap_or(Path::new("")))?;
+            let source = dest.join(&link_rel);
+            // Only regular files: some systems follow a symbolic link when
+            // hard linking it, and the copy fallback always does.
+            if !std::fs::symlink_metadata(&source).is_ok_and(|m| m.is_file()) {
+                bail!(
+                    "unsafe link in archive: {} -> {}",
+                    rel.display(),
+                    link.display()
+                );
+            }
             let _ = std::fs::remove_file(&target);
             if std::fs::hard_link(&source, &target).is_err() {
                 std::fs::copy(&source, &target)
@@ -380,7 +396,21 @@ pub fn extract_tar(
             continue;
         }
         if kind.is_symlink() {
-            let _ = std::fs::remove_file(&target);
+            let link = entry
+                .link_name()?
+                .context("symbolic link without a target")?
+                .into_owned();
+            // A link replacing an existing entry could move the target of a
+            // link checked earlier (`b -> a/..`, then `a -> .`) outside.
+            if std::fs::symlink_metadata(&target).is_ok()
+                || resolve_inside(dest, parent, &link, &mut 0).is_none()
+            {
+                bail!(
+                    "unsafe link in archive: {} -> {}",
+                    rel.display(),
+                    link.display()
+                );
+            }
         }
         entry
             .unpack(&target)
@@ -412,6 +442,70 @@ fn strip_components(path: &Path, strip: usize) -> Result<Option<PathBuf>> {
         }
     }
     Ok((!out.as_os_str().is_empty()).then_some(out))
+}
+
+/// Fail when any existing component of `rel` under `dest` is a symbolic
+/// link, so nothing is created or written through one. Components that do
+/// not exist yet are created by the caller as real folders.
+fn ensure_no_symlinks(dest: &Path, rel: &Path) -> Result<()> {
+    let mut path = dest.to_path_buf();
+    for part in rel.components() {
+        path.push(part);
+        match std::fs::symlink_metadata(&path) {
+            Ok(m) if m.file_type().is_symlink() => {
+                bail!("unsafe path in archive: {} is a link", rel.display())
+            }
+            Ok(_) => {}
+            Err(_) => break,
+        }
+    }
+    Ok(())
+}
+
+/// Most links followed while resolving one target, as in Linux's ELOOP.
+const MAX_LINK_HOPS: u32 = 40;
+
+/// Resolve `link`, the target of a symbolic link in the folder `base`
+/// (relative to `dest`), and return where it points relative to `dest`, or
+/// `None` when it leaves `dest`. Links already extracted are followed, so
+/// `self -> .` cannot make `self/..` look like `dest`. `..` after a
+/// component that does not exist yet is refused: the archive could later
+/// make that component a link and move the target outside.
+fn resolve_inside(dest: &Path, base: &Path, link: &Path, hops: &mut u32) -> Option<PathBuf> {
+    let mut out = base.to_path_buf();
+    let mut exists = true;
+    for part in link.components() {
+        match part {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !exists || !out.pop() {
+                    return None;
+                }
+            }
+            Component::Normal(name) => {
+                out.push(name);
+                if !exists {
+                    continue;
+                }
+                match std::fs::symlink_metadata(dest.join(&out)) {
+                    Ok(m) if m.file_type().is_symlink() => {
+                        *hops += 1;
+                        if *hops > MAX_LINK_HOPS {
+                            return None;
+                        }
+                        let next = std::fs::read_link(dest.join(&out)).ok()?;
+                        out.pop();
+                        out = resolve_inside(dest, &out, &next, hops)?;
+                        exists = std::fs::symlink_metadata(dest.join(&out)).is_ok();
+                    }
+                    Ok(_) => {}
+                    Err(_) => exists = false,
+                }
+            }
+            Component::RootDir | Component::Prefix(_) => return None,
+        }
+    }
+    Some(out)
 }
 
 /// Total size in bytes of a directory tree (blocking).
@@ -527,6 +621,252 @@ mod tests {
             strip_components(Path::new("./top/x/y"), 1).unwrap(),
             Some(PathBuf::from("x/y"))
         );
+    }
+
+    /// One entry of a hand-built archive.
+    enum Item<'a> {
+        File(&'a str, &'a [u8]),
+        Dir(&'a str),
+        Symlink(&'a str, &'a str),
+        HardLink(&'a str, &'a str),
+    }
+
+    fn build_tar(items: &[Item]) -> Vec<u8> {
+        let mut builder = tar::Builder::new(Vec::new());
+        for item in items {
+            let mut header = tar::Header::new_gnu();
+            header.set_mode(0o644);
+            match *item {
+                Item::File(path, data) => {
+                    header.set_size(data.len() as u64);
+                    builder.append_data(&mut header, path, data).unwrap();
+                }
+                Item::Dir(path) => {
+                    header.set_entry_type(tar::EntryType::Directory);
+                    header.set_mode(0o755);
+                    header.set_size(0);
+                    builder
+                        .append_data(&mut header, path, std::io::empty())
+                        .unwrap();
+                }
+                Item::Symlink(path, target) | Item::HardLink(path, target) => {
+                    header.set_entry_type(match item {
+                        Item::Symlink(..) => tar::EntryType::Symlink,
+                        _ => tar::EntryType::Link,
+                    });
+                    header.set_size(0);
+                    builder.append_link(&mut header, path, target).unwrap();
+                }
+            }
+        }
+        builder.into_inner().unwrap()
+    }
+
+    /// A scratch folder with an `out` destination and an `outside` folder
+    /// holding `secret`, which no archive may reach.
+    struct Sandbox {
+        _dir: tempfile::TempDir,
+        root: PathBuf,
+    }
+
+    impl Sandbox {
+        fn new() -> Self {
+            let dir = tempfile::tempdir().unwrap();
+            // Canonical, so links to it are what a real attack would write.
+            let root = dir.path().canonicalize().unwrap();
+            std::fs::create_dir_all(root.join("outside")).unwrap();
+            std::fs::write(root.join("outside/secret"), b"keep").unwrap();
+            std::fs::create_dir_all(root.join("out")).unwrap();
+            Self { _dir: dir, root }
+        }
+
+        fn dest(&self) -> PathBuf {
+            self.root.join("out")
+        }
+
+        fn outside(&self) -> String {
+            self.root.join("outside").to_string_lossy().into_owned()
+        }
+
+        fn extract(&self, items: &[Item], strip: usize) -> Result<()> {
+            let archive = self.root.join("a.tar");
+            std::fs::write(&archive, build_tar(items)).unwrap();
+            extract_tar(
+                &archive,
+                &self.dest(),
+                strip,
+                ember_core::install::ignore_progress(),
+                &CancellationToken::new(),
+            )
+        }
+
+        /// The outside folder still holds exactly the untouched `secret`.
+        fn assert_outside_untouched(&self) {
+            let names: Vec<_> = std::fs::read_dir(self.root.join("outside"))
+                .unwrap()
+                .map(|e| e.unwrap().file_name())
+                .collect();
+            assert_eq!(names, ["secret"]);
+            assert_eq!(
+                std::fs::read(self.root.join("outside/secret")).unwrap(),
+                b"keep"
+            );
+            assert!(!self.root.join("x").exists());
+        }
+    }
+
+    #[test]
+    fn refuses_writing_through_an_archive_symlink() {
+        let sb = Sandbox::new();
+        let outside = sb.outside();
+        let res = sb.extract(
+            &[
+                Item::Symlink("dir", &outside),
+                Item::File("dir/x", b"pwned"),
+                Item::Dir("dir/sub"),
+            ],
+            0,
+        );
+        assert!(res.is_err());
+        sb.assert_outside_untouched();
+    }
+
+    #[test]
+    fn refuses_absolute_link_targets() {
+        let sb = Sandbox::new();
+        let outside = sb.outside();
+        assert!(sb.extract(&[Item::Symlink("abs", &outside)], 0).is_err());
+        assert!(sb.dest().join("abs").symlink_metadata().is_err());
+        assert!(sb.extract(&[Item::Symlink("root", "/")], 0).is_err());
+        assert!(sb.dest().join("root").symlink_metadata().is_err());
+    }
+
+    #[test]
+    fn refuses_link_targets_climbing_out() {
+        let sb = Sandbox::new();
+        let res = sb.extract(&[Item::Symlink("up", "../outside")], 0);
+        assert!(res.is_err());
+        assert!(sb.dest().join("up").symlink_metadata().is_err());
+        let res = sb.extract(&[Item::Symlink("a/b/up", "../../../outside/secret")], 0);
+        assert!(res.is_err());
+        // With `strip`, a link climbing out of the top folder leaves `dest`.
+        let res = sb.extract(&[Item::Symlink("top/up", "../../outside")], 1);
+        assert!(res.is_err());
+        sb.assert_outside_untouched();
+    }
+
+    #[test]
+    fn refuses_hard_links_outside() {
+        let sb = Sandbox::new();
+        let res = sb.extract(&[Item::HardLink("h", "../outside/secret")], 0);
+        assert!(res.is_err());
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_links_resolving_out_through_earlier_links() {
+        let sb = Sandbox::new();
+        // Read lexically, `self/..` is `dest`; on disk it is `dest/..`.
+        let res = sb.extract(
+            &[
+                Item::Symlink("self", "."),
+                Item::Symlink("up", "self/.."),
+                Item::File("up/x", b"pwned"),
+            ],
+            0,
+        );
+        assert!(res.is_err());
+        assert!(sb.dest().join("up").symlink_metadata().is_err());
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_links_replacing_entries() {
+        let sb = Sandbox::new();
+        // `up -> a/..` is `dest` while `a` is a folder link, `dest/..` after.
+        let res = sb.extract(
+            &[
+                Item::Dir("d/e"),
+                Item::Symlink("a", "d/e"),
+                Item::Symlink("up", "a/.."),
+                Item::Symlink("a", "."),
+                Item::File("up/x", b"pwned"),
+            ],
+            0,
+        );
+        assert!(res.is_err());
+        assert_eq!(
+            std::fs::read_link(sb.dest().join("a")).unwrap(),
+            Path::new("d/e")
+        );
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_writing_through_an_existing_symlink() {
+        let sb = Sandbox::new();
+        std::os::unix::fs::symlink(sb.outside(), sb.dest().join("dir")).unwrap();
+        assert!(sb.extract(&[Item::File("dir/x", b"pwned")], 0).is_err());
+        assert!(sb.extract(&[Item::Dir("dir/sub")], 0).is_err());
+        assert!(sb.extract(&[Item::Dir("dir")], 0).is_err());
+        // Linking to `dir/secret` would share the outside file's inode.
+        assert!(sb.extract(&[Item::HardLink("h", "dir/secret")], 0).is_err());
+        assert!(sb.dest().join("h").symlink_metadata().is_err());
+        assert!(sb.extract(&[Item::Symlink("dir/l", "../l")], 0).is_err());
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn replaces_a_final_symlink_instead_of_following_it() {
+        let sb = Sandbox::new();
+        let secret = format!("{}/secret", sb.outside());
+        std::os::unix::fs::symlink(&secret, sb.dest().join("f")).unwrap();
+        sb.extract(&[Item::File("f", b"mine")], 0).unwrap();
+        assert!(!sb.dest().join("f").symlink_metadata().unwrap().is_symlink());
+        assert_eq!(std::fs::read(sb.dest().join("f")).unwrap(), b"mine");
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn keeps_links_inside_the_tree() {
+        let sb = Sandbox::new();
+        sb.extract(
+            &[
+                Item::File("GE-Proton/files/lib64/libfoo.so", b"so"),
+                Item::Symlink("GE-Proton/files/lib", "lib64"),
+                Item::File("GE-Proton/files/bin/wine", b"elf"),
+                Item::Symlink("GE-Proton/files/bin/wine64", "wine"),
+                Item::Symlink("GE-Proton/files/bin/libfoo.so", "../lib/libfoo.so"),
+                Item::HardLink(
+                    "GE-Proton/files/bin/wine-preloader",
+                    "GE-Proton/files/bin/wine",
+                ),
+                // A link may name a folder that comes later in the archive.
+                Item::Symlink("GE-Proton/files/share/pfx/dosdevices/c:", "../drive_c"),
+                Item::Dir("GE-Proton/files/share/pfx/drive_c"),
+                Item::File("GE-Proton/files/share/pfx/drive_c/x.txt", b"c"),
+            ],
+            1,
+        )
+        .unwrap();
+        let files = sb.dest().join("files");
+        assert_eq!(std::fs::read(files.join("lib/libfoo.so")).unwrap(), b"so");
+        assert_eq!(std::fs::read(files.join("bin/wine64")).unwrap(), b"elf");
+        assert_eq!(std::fs::read(files.join("bin/libfoo.so")).unwrap(), b"so");
+        assert_eq!(
+            std::fs::read(files.join("bin/wine-preloader")).unwrap(),
+            b"elf"
+        );
+        assert_eq!(
+            std::fs::read(files.join("share/pfx/dosdevices/c:/x.txt")).unwrap(),
+            b"c"
+        );
+        sb.assert_outside_untouched();
     }
 
     #[test]
