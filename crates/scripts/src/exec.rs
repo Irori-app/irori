@@ -17,7 +17,7 @@ use crate::archive;
 use crate::archive::{glob, single_folder};
 use crate::consent::{Approvals, consent};
 use crate::context::*;
-use crate::error::{ScriptError, step_loc};
+use crate::error::{ScriptError, UnfinishedInstall, step_loc};
 use crate::fetch;
 use crate::fsops::{self, Fs, Journal, Sandbox, lexical};
 use crate::host::*;
@@ -29,7 +29,10 @@ use crate::vars::{Mode, Vars, references};
 /// Run `script`. Nothing runs unless `approvals` accepts its
 /// [`consent`] plan (and acknowledges its shell commands). On failure or
 /// cancel the game folder is rolled back and the error returned; a cancel
-/// is `ember_runtime::Cancelled` in the error chain.
+/// is `ember_runtime::Cancelled` in the error chain. An install that only
+/// lacks the game's program is not rolled back: it fails with
+/// [`UnfinishedInstall`], which carries the outcome so the user can choose
+/// the program.
 pub async fn run(
     script: &Script,
     ctx: &Context,
@@ -85,6 +88,7 @@ pub async fn run(
     };
     match runner.run().await {
         Ok(outcome) => Ok(outcome),
+        Err(e) if UnfinishedInstall::of(&e).is_some() => Err(e),
         Err(e) => {
             runner.rollback().await;
             Err(e)
@@ -250,9 +254,9 @@ impl Runner<'_> {
             self.step(step).await?;
         }
         self.check_cancel()?;
-        let game = self.game_entry().await?;
+        let (game, missing) = self.game_entry().await?;
         let info = &self.script.info;
-        Ok(Outcome {
+        let outcome = Outcome {
             game,
             record: ScriptRecord {
                 slug: info.game_slug.clone(),
@@ -271,7 +275,15 @@ impl Runner<'_> {
             },
             complete_text: self.script.install_complete_text.clone(),
             files: self.files.clone(),
-        })
+        };
+        match missing {
+            Some(error) => Err(UnfinishedInstall {
+                outcome: Box::new(outcome),
+                error,
+            }
+            .into()),
+            None => Ok(outcome),
+        }
     }
 
     async fn fetch_files(&mut self) -> Result<()> {
@@ -795,15 +807,18 @@ impl Runner<'_> {
     }
 
     /// The game section, resolved and checked: every entry point it names
-    /// must exist.
-    async fn game_entry(&self) -> Result<Option<GameEntry>> {
+    /// must exist. A missing one is returned beside the entry (left empty
+    /// there) instead of failing, so the files are kept for the user to
+    /// choose the program.
+    async fn game_entry(&self) -> Result<(Option<GameEntry>, Option<ScriptError>)> {
         if self.script.extends.is_some() {
-            return Ok(None);
+            return Ok((None, None));
         }
         let g = &self.script.game;
         let loc = "Game section";
         let mut resolved: [Option<PathBuf>; 5] = Default::default();
         let mut any = false;
+        let mut missing = None;
         for (slot, raw) in resolved
             .iter_mut()
             .zip([&g.exe, &g.main_file, &g.iso, &g.rom, &g.path])
@@ -811,7 +826,8 @@ impl Runner<'_> {
             let Some(raw) = raw else { continue };
             any = true;
             if AUTO_EXE_MARKERS.contains(&raw.trim()) {
-                return Err(ScriptError::MissingExecutable { expected: None }.into());
+                missing.get_or_insert(ScriptError::MissingExecutable { expected: None });
+                continue;
             }
             let text = self.vars.substitute_ref(raw, loc)?;
             if text.starts_with("http://") || text.starts_with("https://") {
@@ -834,16 +850,15 @@ impl Runner<'_> {
             match found {
                 Some(p) => *slot = Some(p),
                 None => {
-                    return Err(ScriptError::MissingExecutable {
+                    missing.get_or_insert(ScriptError::MissingExecutable {
                         expected: Some(path),
-                    }
-                    .into());
+                    });
                 }
             }
         }
         let runner = self.script.info.runner.clone();
         if !any && matches!(runner.as_str(), "wine" | "linux") {
-            return Err(ScriptError::MissingExecutable { expected: None }.into());
+            missing.get_or_insert(ScriptError::MissingExecutable { expected: None });
         }
         let mut options = g.options.clone();
         for v in options.values_mut() {
@@ -851,7 +866,7 @@ impl Runner<'_> {
         }
         let [exe, main_file, iso, rom, path] = resolved;
         let is_wine = runner == "wine";
-        Ok(Some(GameEntry {
+        let entry = GameEntry {
             name: self.script.info.name.clone(),
             game_slug: self.script.info.game_slug.clone(),
             exe,
@@ -881,7 +896,8 @@ impl Runner<'_> {
                 .cloned()
                 .unwrap_or_default(),
             runner,
-        }))
+        };
+        Ok((Some(entry), missing))
     }
 
     fn substitute_value(&self, v: &mut Value, loc: &str) -> Result<()> {

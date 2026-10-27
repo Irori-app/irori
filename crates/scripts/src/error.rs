@@ -4,6 +4,8 @@
 use std::fmt;
 use std::path::PathBuf;
 
+use crate::context::Outcome;
+
 /// A launcher Ember supports natively, which scripts must not install
 /// inside Wine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,10 +91,41 @@ fn missing_message(expected: &Option<PathBuf>) -> String {
     }
 }
 
-/// The [`ScriptError`] in `err`'s chain, if any.
+/// The [`ScriptError`] in `err`'s chain, if any (also the one an
+/// [`UnfinishedInstall`] carries).
 pub fn script_error(err: &anyhow::Error) -> Option<&ScriptError> {
-    err.chain().find_map(|e| e.downcast_ref::<ScriptError>())
+    err.chain().find_map(|e| {
+        e.downcast_ref::<ScriptError>()
+            .or_else(|| e.downcast_ref::<UnfinishedInstall>().map(|u| &u.error))
+    })
 }
+
+/// An install whose steps all ran but whose game section names no program
+/// that exists ([`ScriptError::MissingExecutable`]). Nothing was rolled
+/// back: the files stay so the user can choose the game's program, and
+/// `outcome` is what the install produced (its entry points left empty
+/// where they are missing).
+#[derive(Debug, Clone)]
+pub struct UnfinishedInstall {
+    pub outcome: Box<Outcome>,
+    pub error: ScriptError,
+}
+
+impl UnfinishedInstall {
+    /// The unfinished install in `err`'s chain, if any.
+    pub fn of(err: &anyhow::Error) -> Option<&UnfinishedInstall> {
+        err.chain()
+            .find_map(|e| e.downcast_ref::<UnfinishedInstall>())
+    }
+}
+
+impl fmt::Display for UnfinishedInstall {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.error.fmt(f)
+    }
+}
+
+impl std::error::Error for UnfinishedInstall {}
 
 /// Where in a script something is, for error messages.
 pub(crate) fn step_loc(number: usize, command: &str) -> String {

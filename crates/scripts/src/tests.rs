@@ -743,6 +743,12 @@ async fn missing_executable_is_a_typed_error() {
             expected: Some(ctx.game_dir.join("bin/game"))
         })
     );
+    // Not rolled back: the user chooses the program and keeps the files.
+    assert!(ctx.game_dir.join("bin").is_dir());
+    let unfinished = UnfinishedInstall::of(&e).expect("the outcome comes with the error");
+    let game = unfinished.outcome.game.as_ref().unwrap();
+    assert_eq!(game.exe, None);
+    assert_eq!(game.runner, "linux");
     let auto = steps_script(
         "wine",
         "  []",

@@ -11,7 +11,9 @@
 //! * [`run`] executes an approved script. File commands run here, confined
 //!   to the game folder, the cache, the prefix and approved paths; Wine,
 //!   programs, prompts and store installs go through [`ScriptHost`]. Failure
-//!   or cancel rolls the game folder back and keeps downloads.
+//!   or cancel rolls the game folder back and keeps downloads; an install
+//!   that only lacks the game's program keeps its files
+//!   ([`UnfinishedInstall`]).
 //! * [`LutrisClient`] searches lutris.net and fetches a game's scripts, on
 //!   request only, rate limited and cached.
 //! * [`match_wine_version`] maps a script's Wine build to an available one.
@@ -41,7 +43,7 @@ pub use consent::{
     RegistryEdit, ShellCommand, SteamFile, UserFile, WinetricksUse, consent,
 };
 pub use context::{Context, GameEntry, Outcome, Progress, ProgressFn, ScriptRecord};
-pub use error::{NativeLauncher, ScriptError, script_error};
+pub use error::{NativeLauncher, ScriptError, UnfinishedInstall, script_error};
 pub use exec::run;
 pub use host::{
     AutosetupRequest, DiscRequest, DosExecRequest, ExecRequest, ExtractRequest, FileRequest,
