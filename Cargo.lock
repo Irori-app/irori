@@ -2057,6 +2057,7 @@ dependencies = [
  "ember-game",
  "ember-gog",
  "ember-itch",
+ "ember-launchers",
  "ember-library",
  "ember-manage",
  "ember-runtime",
@@ -2470,6 +2471,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "ember-launchers"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "ember-core",
+ "ember-launchers-data",
+ "ember-runtime",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "ember-launchers-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "prost",
+ "quick-xml 0.42.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "ember-library"
 version = "0.1.0"
 dependencies = [
@@ -2506,6 +2536,7 @@ dependencies = [
  "ember-epic-api",
  "ember-extras",
  "ember-gog-api",
+ "ember-launchers",
  "ember-runtime",
  "ember-services",
  "ember-ui",
@@ -2604,6 +2635,7 @@ dependencies = [
  "parking_lot",
  "serde",
  "serde_json",
+ "sysinfo 0.39.6",
  "tempfile",
  "tokio",
  "tokio-util",

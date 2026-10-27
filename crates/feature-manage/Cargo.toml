@@ -11,6 +11,7 @@ publish.workspace = true
 ember-core.workspace = true
 ember-services.workspace = true
 ember-engines.workspace = true
+ember-launchers.workspace = true
 ember-ui.workspace = true
 ember-runtime.workspace = true
 ember-extras.workspace = true

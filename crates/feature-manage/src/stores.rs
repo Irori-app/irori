@@ -58,7 +58,7 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
         },
         // Steam's games come from its own client; Ember has nothing to
         // offer there beyond the library.
-        Runner::Steam | Runner::Sideload | Runner::Emulation => return None,
+        Runner::Steam | Runner::Sideload | Runner::Emulation | Runner::Launchers => return None,
     })
 }
 
@@ -66,6 +66,7 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
 pub struct StoresView {
     cards: Vec<StoreCard>,
     deals: Entity<DealsSection>,
+    launchers: Entity<crate::launchers::LaunchersSection>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -78,9 +79,11 @@ impl StoresView {
             cx.observe(&m.settings, |this, _, cx| this.rebuild(cx)),
         ];
         let deals = cx.new(|cx| DealsSection::new(window, cx));
+        let launchers = cx.new(|cx| crate::launchers::LaunchersSection::new(window, cx));
         Self {
             cards: store_cards(cx),
             deals,
+            launchers,
             _subscriptions: subscriptions,
         }
     }
@@ -179,6 +182,7 @@ impl Render for StoresView {
                             .child(SectionTitle::new(t("manage.stores.websites")))
                             .child(h_flex().flex_wrap().items_start().gap_4().children(cards)),
                     )
+                    .child(self.launchers.clone())
                     .child(self.deals.clone()),
             )
     }

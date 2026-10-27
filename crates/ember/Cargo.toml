@@ -24,6 +24,7 @@ ember-amazon.workspace = true
 ember-zoom.workspace = true
 ember-sideload.workspace = true
 ember-emulation.workspace = true
+ember-launchers.workspace = true
 ember-steam.workspace = true
 ember-itch.workspace = true
 ember-manage.workspace = true
