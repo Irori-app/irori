@@ -31,7 +31,8 @@ use gpui_kit::{
 use irori_core::{GameId, GameInfo, InstallInfoQuery, RemoveArgs, StatusKind, UpdateRequest};
 use irori_ui::art::{LruImageCache, art_store};
 use irori_ui::components::{
-    ArtImage, EmptyState, art_image, art_img, art_loading, missing_art_fill, physical_width,
+    ArtImage, BrandMark, EmptyState, art_image, art_img, art_loading, missing_art_fill,
+    physical_width,
 };
 use irori_ui::i18n::{t, t_args};
 use irori_ui::models;
@@ -1162,21 +1163,7 @@ impl BigPictureView {
                 h_flex()
                     .flex_shrink_0()
                     .gap_3()
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .size_10()
-                            .rounded(c.radius)
-                            .bg(linear_gradient(
-                                135.,
-                                linear_color_stop(cx.theme().warning, 0.),
-                                linear_color_stop(c.ring, 0.6),
-                            ))
-                            .text_color(cx.theme().primary_foreground)
-                            .child(Icon::new(IconName::Flame).large()),
-                    )
+                    .child(BrandMark::new(rems(2.5)))
                     .child(div().text_2xl().font_extrabold().child("Irori"))
                     .child(
                         div()

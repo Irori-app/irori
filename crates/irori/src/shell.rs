@@ -15,6 +15,7 @@ use gpui_kit::{
     Styled as _, Subscription, Task, Window, div, rems,
 };
 use irori_core::{GameId, NoticeLevel, Runner, StatusKind};
+use irori_ui::components::BrandMark;
 use irori_ui::glass::{self, Glass};
 use irori_ui::i18n::{t, t_args};
 use irori_ui::models::{self, models};
@@ -412,22 +413,7 @@ impl AppShell {
                     .gap_2p5()
                     .px_1()
                     .when(collapsed, |d| d.justify_center().px_0())
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .size_8()
-                            .flex_shrink_0()
-                            .rounded(theme.radius)
-                            .bg(gpui_kit::linear_gradient(
-                                135.,
-                                gpui_kit::linear_color_stop(theme.warning, 0.),
-                                gpui_kit::linear_color_stop(theme.sidebar_primary, 0.6),
-                            ))
-                            .text_color(theme.sidebar_primary_foreground)
-                            .child(Icon::new(IconName::Flame)),
-                    )
+                    .child(BrandMark::new(rems(2.)))
                     .when(!collapsed, |this| {
                         this.child(
                             div()
