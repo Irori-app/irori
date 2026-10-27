@@ -1,0 +1,19 @@
+[package]
+name = "ember-launchers-data"
+description = "Reads the local data of official PC launchers (Battle.net, EA app, Ubisoft Connect, Rockstar Games Launcher) to list their installed games"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+prost.workspace = true
+serde.workspace = true
+# Only this crate reads XML (EA's installerdata.xml); the version is already in Cargo.lock.
+quick-xml = "0.42"
+
+[dev-dependencies]
+tempfile = "3"
+serde_json.workspace = true

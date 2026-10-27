@@ -30,6 +30,7 @@ ember-gog-api = { path = "crates/gog" }
 ember-gog-galaxy = { path = "crates/gog-galaxy" }
 ember-itch-api = { path = "crates/itch" }
 ember-itch = { path = "crates/store-itch" }
+ember-launchers-data = { path = "crates/launchers" }
 ember-services = { path = "crates/services" }
 ember-extras = { path = "crates/extras" }
 ember-ui = { path = "crates/ui" }

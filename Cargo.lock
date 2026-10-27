@@ -2470,6 +2470,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ember-launchers-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "prost",
+ "quick-xml 0.42.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "ember-library"
 version = "0.1.0"
 dependencies = [
