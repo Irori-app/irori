@@ -70,6 +70,8 @@ prost = { version = "0.14", default-features = false, features = ["std", "derive
 lzma-rs = "0.3"
 fs4 = "1"
 plist = "1"
+rusqlite = { version = "0.30", features = ["bundled"] }
+serde_yaml_ng = "0.10"
 hex = "0.4"
 nix = { version = "0.31", features = ["signal", "process", "fs", "user"] }
 which = "8"
