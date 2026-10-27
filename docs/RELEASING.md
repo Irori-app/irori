@@ -29,6 +29,7 @@ with its tag.
 | `Irori-X.Y.Z-linux.tar.gz` | Ubuntu 22.04 | — |
 | `irori_X.Y.Z-1_amd64.deb`, `irori-sign-in_X.Y.Z-1_amd64.deb` | Ubuntu 22.04 | The apt repository is signed |
 | `irori-X.Y.Z-1.x86_64.rpm`, `irori-sign-in-X.Y.Z-1.x86_64.rpm` | Ubuntu 22.04 | Signed when published to the dnf repository |
+| `irori-X.Y.Z-1-x86_64.pkg.tar.zst`, `irori-sign-in-X.Y.Z-1-x86_64.pkg.tar.zst` | Arch Linux | Signed when published to the pacman repository |
 | `Irori-X.Y.Z-linux.flatpak` | GNOME 50 SDK | — |
 | `Irori-X.Y.Z-macos-arm64.dmg` / `-x86_64.dmg` (and `.zip`) | macOS 15 | `MACOS_*` secrets; notarized with the `APPLE_*` secrets too |
 | `Irori-X.Y.Z-windows-setup.exe`, `Irori-X.Y.Z-windows.zip` | Windows Server 2022 | SignPath is configured |
@@ -66,10 +67,10 @@ policy `release-signing`, and two artifact configurations:
 | Secret | `SIGNPATH_API_TOKEN` | A SignPath CI user's API token |
 | Variable | `SIGNPATH_ORGANIZATION_ID` | Your SignPath organization ID |
 
-### apt and dnf repositories
+### apt, dnf and pacman repositories
 
-Served at `https://packages.irori.app` from this repository's GitHub Pages
-(`PACKAGES_URL` in `publish.yml`).
+Served at `https://packages.irori.app` (`apt/`, `rpm/` and `arch/`) from this
+repository's GitHub Pages (`PACKAGES_URL` in `publish.yml`).
 
 1. DNS for `irori.app`: a `CNAME` record from `packages` to `irori-app.github.io`.
 2. *Settings → Pages*: **Source** = **GitHub Actions**, **Custom domain** =
@@ -83,6 +84,9 @@ Users then follow the instructions on that page (`index.html`). Each release
 replaces the repositories, which hold the latest version only.
 
 ### AUR (`irori-bin`, `irori-sign-in-bin`)
+
+Off for now: AUR registration is closed, and Arch users install from the pacman
+repository above. The `aur` job in `publish.yml` stays ready for when it reopens.
 
 1. Create an AUR account and add an SSH key to it.
 2. Secret `AUR_SSH_PRIVATE_KEY`: that key's private half.
