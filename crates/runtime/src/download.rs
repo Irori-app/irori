@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Result, bail};
 use ember_core::InstallProgress;
+use ember_core::archive_guard;
 use ember_core::install::ProgressSink;
 use ember_core::process::CancellationToken;
 use once_cell::sync::Lazy;
@@ -359,13 +360,13 @@ pub fn extract_tar(
         let target = dest.join(&rel);
         let kind = entry.header().entry_type();
         if kind.is_dir() {
-            ensure_no_symlinks(dest, &rel)?;
+            archive_guard::ensure_no_symlinks(dest, &rel)?;
             std::fs::create_dir_all(&target)
                 .with_context(|| format!("creating {}", target.display()))?;
             continue;
         }
         let parent = rel.parent().unwrap_or(Path::new(""));
-        ensure_no_symlinks(dest, parent)?;
+        archive_guard::ensure_no_symlinks(dest, parent)?;
         std::fs::create_dir_all(dest.join(parent))
             .with_context(|| format!("creating {}", dest.join(parent).display()))?;
         if kind.is_hard_link() {
@@ -376,7 +377,7 @@ pub fn extract_tar(
             let Some(link_rel) = strip_components(&link, strip)? else {
                 continue;
             };
-            ensure_no_symlinks(dest, link_rel.parent().unwrap_or(Path::new("")))?;
+            archive_guard::ensure_no_symlinks(dest, link_rel.parent().unwrap_or(Path::new("")))?;
             let source = dest.join(&link_rel);
             // Only regular files: some systems follow a symbolic link when
             // hard linking it, and the copy fallback always does.
@@ -400,16 +401,8 @@ pub fn extract_tar(
                 .link_name()?
                 .context("symbolic link without a target")?
                 .into_owned();
-            // A link replacing an existing entry could move the target of a
-            // link checked earlier (`b -> a/..`, then `a -> .`) outside.
-            if std::fs::symlink_metadata(&target).is_ok()
-                || resolve_inside(dest, parent, &link, &mut 0).is_none()
-            {
-                bail!(
-                    "unsafe link in archive: {} -> {}",
-                    rel.display(),
-                    link.display()
-                );
+            if !archive_guard::check_symlink(dest, &rel, &link)? {
+                continue;
             }
         }
         entry
@@ -426,86 +419,13 @@ pub fn extract_tar(
 /// Drop `strip` leading components; `None` when nothing remains. Fails on
 /// absolute paths or `..` so entries cannot escape the destination.
 fn strip_components(path: &Path, strip: usize) -> Result<Option<PathBuf>> {
-    let mut out = PathBuf::new();
-    let mut skipped = 0;
-    for c in path.components() {
-        match c {
-            Component::CurDir => {}
-            Component::Normal(part) => {
-                if skipped < strip {
-                    skipped += 1;
-                } else {
-                    out.push(part);
-                }
-            }
-            _ => bail!("unsafe path in archive: {}", path.display()),
-        }
+    if path.components().all(|c| c == Component::CurDir) {
+        return Ok(None);
     }
+    let rel = archive_guard::relative_entry_path(path)
+        .with_context(|| format!("unsafe path in archive: {}", path.display()))?;
+    let out: PathBuf = rel.components().skip(strip).collect();
     Ok((!out.as_os_str().is_empty()).then_some(out))
-}
-
-/// Fail when any existing component of `rel` under `dest` is a symbolic
-/// link, so nothing is created or written through one. Components that do
-/// not exist yet are created by the caller as real folders.
-fn ensure_no_symlinks(dest: &Path, rel: &Path) -> Result<()> {
-    let mut path = dest.to_path_buf();
-    for part in rel.components() {
-        path.push(part);
-        match std::fs::symlink_metadata(&path) {
-            Ok(m) if m.file_type().is_symlink() => {
-                bail!("unsafe path in archive: {} is a link", rel.display())
-            }
-            Ok(_) => {}
-            Err(_) => break,
-        }
-    }
-    Ok(())
-}
-
-/// Most links followed while resolving one target, as in Linux's ELOOP.
-const MAX_LINK_HOPS: u32 = 40;
-
-/// Resolve `link`, the target of a symbolic link in the folder `base`
-/// (relative to `dest`), and return where it points relative to `dest`, or
-/// `None` when it leaves `dest`. Links already extracted are followed, so
-/// `self -> .` cannot make `self/..` look like `dest`. `..` after a
-/// component that does not exist yet is refused: the archive could later
-/// make that component a link and move the target outside.
-fn resolve_inside(dest: &Path, base: &Path, link: &Path, hops: &mut u32) -> Option<PathBuf> {
-    let mut out = base.to_path_buf();
-    let mut exists = true;
-    for part in link.components() {
-        match part {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                if !exists || !out.pop() {
-                    return None;
-                }
-            }
-            Component::Normal(name) => {
-                out.push(name);
-                if !exists {
-                    continue;
-                }
-                match std::fs::symlink_metadata(dest.join(&out)) {
-                    Ok(m) if m.file_type().is_symlink() => {
-                        *hops += 1;
-                        if *hops > MAX_LINK_HOPS {
-                            return None;
-                        }
-                        let next = std::fs::read_link(dest.join(&out)).ok()?;
-                        out.pop();
-                        out = resolve_inside(dest, &out, &next, hops)?;
-                        exists = std::fs::symlink_metadata(dest.join(&out)).is_ok();
-                    }
-                    Ok(_) => {}
-                    Err(_) => exists = false,
-                }
-            }
-            Component::RootDir | Component::Prefix(_) => return None,
-        }
-    }
-    Some(out)
 }
 
 /// Total size in bytes of a directory tree (blocking).
@@ -800,6 +720,27 @@ mod tests {
         assert_eq!(
             std::fs::read_link(sb.dest().join("a")).unwrap(),
             Path::new("d/e")
+        );
+        sb.assert_outside_untouched();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn keeps_a_repeated_identical_link() {
+        let sb = Sandbox::new();
+        // `tar -r` appends a second copy of an entry instead of replacing it.
+        sb.extract(
+            &[
+                Item::File("lib64/libfoo.so", b"so"),
+                Item::Symlink("lib", "lib64"),
+                Item::Symlink("lib", "lib64"),
+            ],
+            0,
+        )
+        .unwrap();
+        assert_eq!(
+            std::fs::read(sb.dest().join("lib/libfoo.so")).unwrap(),
+            b"so"
         );
         sb.assert_outside_untouched();
     }
