@@ -360,7 +360,6 @@ pub fn udmabuf_denied() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::discovery::Origin;
 
     fn manifest(cpu: &[&str]) -> EngineManifest {
         EngineManifest::parse(
@@ -405,6 +404,8 @@ mod tests {
     #[tokio::test]
     async fn converts_once_links_the_game_and_converts_again_after_changes() {
         use std::os::unix::fs::PermissionsExt as _;
+
+        use crate::discovery::Origin;
 
         let root = crate::test_root("relink-prepare");
         let engine = root.join("engine");
