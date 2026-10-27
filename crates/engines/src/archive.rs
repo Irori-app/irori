@@ -125,7 +125,14 @@ fn unzip(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> 
 
 /// Refuse a link at `rel` whose relative `target` leaves the archive root.
 fn ensure_inside(rel: &Path, target: &Path) -> Result<()> {
-    if target.is_absolute() {
+    // `has_root` also catches `/x` and `\\x` on Windows, where they aren't
+    // "absolute" without a drive.
+    if target.is_absolute()
+        || target.has_root()
+        || target
+            .components()
+            .any(|c| matches!(c, Component::Prefix(_)))
+    {
         bail!("the archive links outside itself: {}", rel.display());
     }
     let mut depth = rel.components().count() as i64 - 1;

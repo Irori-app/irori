@@ -244,8 +244,14 @@ pub fn link_into(system: &System, index: &BiosIndex, target: &Path) -> Result<us
             continue;
         }
         if let Ok(meta) = std::fs::symlink_metadata(&dest) {
-            // Never replace a real file the user put there.
             if !meta.file_type().is_symlink() {
+                // Without symbolic links (Windows) Ember places copies; one of
+                // the same size is already in place. Any other real file is
+                // the user's and is never replaced.
+                if cfg!(not(unix)) && std::fs::metadata(&found).is_ok_and(|f| f.len() == meta.len())
+                {
+                    linked += 1;
+                }
                 continue;
             }
             let _ = std::fs::remove_file(&dest);
