@@ -3,12 +3,6 @@
 
 use std::sync::Arc;
 
-use ember_core::{GameInfo, StatusKind};
-use ember_services::LaunchParams;
-use ember_ui::components::{GameCover, ProgressSummary, art_img};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::style::{art_tint, caption, stat};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _, DropdownButton};
 use gpui_kit::component::menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenuItem};
@@ -25,6 +19,12 @@ use gpui_kit::{
     ParentElement, Styled, StyledImage as _, Window, div, linear_color_stop, linear_gradient,
     point, px, rems,
 };
+use irori_core::{GameInfo, StatusKind};
+use irori_services::LaunchParams;
+use irori_ui::components::{GameCover, ProgressSummary, art_img};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::style::{art_tint, caption, stat};
+use irori_ui::{backend, models};
 
 use super::GamePage;
 use crate::hooks::SteamDeckStatus;
@@ -49,7 +49,7 @@ impl GamePage {
         let url = game.hero_art().map(str::to_owned);
         let ambient = url
             .as_deref()
-            .and_then(|url| ember_ui::art::ambient(url, cx));
+            .and_then(|url| irori_ui::art::ambient(url, cx));
         // Until the blurred copy exists, a tiny thumbnail stretched up stands in.
         let art = match &ambient {
             Some(a) => Some(gpui_kit::img(a.backdrop.clone())),
@@ -102,7 +102,7 @@ impl GamePage {
     /// The colour of the game's backdrop art, once known.
     fn art_tint(&self, game: &GameInfo, cx: &mut Context<Self>) -> Option<Hsla> {
         let url = game.hero_art()?.to_owned();
-        ember_ui::art::ambient(&url, cx).map(|a| art_tint(a.rgb, cx))
+        irori_ui::art::ambient(&url, cx).map(|a| art_tint(a.rgb, cx))
     }
 
     /// The page header: back link, the cover beside the title and summary, then the
@@ -211,7 +211,7 @@ impl GamePage {
             .child(caption(
                 game.system
                     .as_deref()
-                    .and_then(ember_engines::systems::get)
+                    .and_then(irori_engines::systems::get)
                     .map_or(game.runner().store_name(), |s| s.name.as_str()),
                 cx,
             ))
@@ -304,7 +304,7 @@ impl GamePage {
             .and_then(|e| e.description.clone())
             .or_else(|| game.description.clone());
         // GOG's short "lead" is often a promotion (pre-order offers), not a summary.
-        let text = if game.runner() == ember_core::Runner::Gog {
+        let text = if game.runner() == irori_core::Runner::Gog {
             full.or(short)
         } else {
             short.or(full)
@@ -399,7 +399,7 @@ impl GamePage {
             .cloned();
         let minutes = record.as_ref().map(|r| r.total_minutes).unwrap_or(0);
         let last = record.and_then(|r| r.last_played);
-        let now = ember_core::util::unix_now() as i64;
+        let now = irori_core::util::unix_now() as i64;
         let mut stats = Vec::new();
         stats.push(
             stat(
@@ -445,7 +445,7 @@ impl GamePage {
             .filter(|_| game.is_installed)
             .map(|i| {
                 if i.install_size_bytes > 0 {
-                    ember_core::util::format_bytes(i.install_size_bytes)
+                    irori_core::util::format_bytes(i.install_size_bytes)
                 } else {
                     i.install_size.clone()
                 }
@@ -585,7 +585,7 @@ impl GamePage {
                     .child(game.title.clone()),
             )
             .child(primary);
-        ember_ui::motion::drop_in("game-sticky-bar-in", bar, STICKY_DROP_PX)
+        irori_ui::motion::drop_in("game-sticky-bar-in", bar, STICKY_DROP_PX)
     }
 
     fn store_url(&self, game: &GameInfo) -> Option<String> {
@@ -805,7 +805,7 @@ impl GamePage {
             return play.into_any_element();
         }
         let current = self.selected_option.clone();
-        let emulated = self.id.runner == ember_core::Runner::Emulation;
+        let emulated = self.id.runner == irori_core::Runner::Emulation;
         let id = self.id.clone();
         DropdownButton::new("play-split")
             .primary()
@@ -916,20 +916,20 @@ impl GamePage {
 /// the user came from or there is no history (opened from a link), "Back"
 /// otherwise.
 fn back_button(cx: &App) -> Button {
-    let previous = ember_ui::nav::navigator(cx).read(cx).previous().cloned();
+    let previous = irori_ui::nav::navigator(cx).read(cx).previous().cloned();
     let button = Button::new("game-back").ghost().icon(IconName::ArrowLeft);
     match previous {
         None => button
             .label(t("game.page.library"))
             .tooltip(t("game.page.back_to_library"))
-            .on_click(|_, _, cx| ember_ui::navigate(ember_ui::Route::Library, cx)),
+            .on_click(|_, _, cx| irori_ui::navigate(irori_ui::Route::Library, cx)),
         Some(route) => button
-            .label(if route == ember_ui::Route::Library {
+            .label(if route == irori_ui::Route::Library {
                 t("game.page.library")
             } else {
                 t("game.page.back")
             })
             .tooltip(t("game.page.back"))
-            .on_click(|_, _, cx| ember_ui::nav::go_back(cx)),
+            .on_click(|_, _, cx| irori_ui::nav::go_back(cx)),
     }
 }

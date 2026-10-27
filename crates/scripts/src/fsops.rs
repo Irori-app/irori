@@ -167,12 +167,12 @@ impl Journal {
 
     /// Undo the install inside the game folder. Never touches anything
     /// outside it; the game folder itself goes only when this install
-    /// created it and it passes [`ember_core::fs_guard::check_deletable`].
+    /// created it and it passes [`irori_core::fs_guard::check_deletable`].
     pub fn rollback(&self, home: Option<&Path>, protected: &[PathBuf]) -> Vec<String> {
         let mut problems = Vec::new();
         if self.game_dir_created {
             let real = fs::canonicalize(&self.game_dir).unwrap_or_else(|_| self.game_dir.clone());
-            match ember_core::fs_guard::check_deletable(&real, home, protected) {
+            match irori_core::fs_guard::check_deletable(&real, home, protected) {
                 Ok(()) => {
                     if let Err(e) = fs::remove_dir_all(&self.game_dir)
                         && e.kind() != io::ErrorKind::NotFound
@@ -253,7 +253,7 @@ impl Fs {
                 .open(&path)
                 .and_then(|mut f| f.write_all(bytes))
         } else {
-            ember_core::json_store::write_bytes(&path, bytes).map_err(io::Error::other)
+            irori_core::json_store::write_bytes(&path, bytes).map_err(io::Error::other)
         };
         result.map_err(|e| io_err(location, "write", &path, e))?;
         if !existed {

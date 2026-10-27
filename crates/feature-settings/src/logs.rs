@@ -6,8 +6,6 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use anyhow::Context as _;
-use ember_extras::logs::UploadedLog;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonGroup, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -22,6 +20,8 @@ use gpui_kit::{
     IntoElement, ParentElement as _, Render, ScrollStrategy, SharedString, Styled as _,
     Subscription, Task, UniformListScrollHandle, Window, div, uniform_list,
 };
+use irori_extras::logs::UploadedLog;
+use irori_ui::i18n::{t, t_args};
 
 /// Bytes read from the end of the file.
 const TAIL_BYTES: u64 = 1024 * 1024;
@@ -120,7 +120,7 @@ use crate::i18n::LanguageStamp;
 /// modification time changes.
 pub struct LogViewer {
     path: PathBuf,
-    /// Name given to uploads ("Ember log", "Log of Hades").
+    /// Name given to uploads ("Irori log", "Log of Hades").
     name: SharedString,
     uploading: bool,
     uploads: Vec<UploadedLog>,
@@ -307,7 +307,7 @@ impl LogViewer {
 
     /// Uploads made in the last two days that belong to this file's name.
     fn load_uploads(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let task = ember_ui::run(cx, async move { ember_extras::logs::list_uploaded().await });
+        let task = irori_ui::run(cx, async move { irori_extras::logs::list_uploaded().await });
         cx.spawn_in(window, async move |this, cx| {
             let uploads = task.await.unwrap_or_default();
             this.update(cx, |this, cx| {
@@ -345,9 +345,9 @@ impl LogViewer {
         }
         self.uploading = true;
         let (path, name) = (self.path.clone(), self.name.to_string());
-        let task = ember_ui::run(
+        let task = irori_ui::run(
             cx,
-            async move { ember_extras::logs::upload(&path, &name).await },
+            async move { irori_extras::logs::upload(&path, &name).await },
         );
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
@@ -381,9 +381,9 @@ impl LogViewer {
     }
 
     fn forget_upload(&mut self, token: String, window: &mut Window, cx: &mut Context<Self>) {
-        let task = ember_ui::run(cx, {
+        let task = irori_ui::run(cx, {
             let token = token.clone();
-            async move { ember_extras::logs::delete_uploaded(&token).await }
+            async move { irori_extras::logs::delete_uploaded(&token).await }
         });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
@@ -409,7 +409,7 @@ impl LogViewer {
         }
         let theme = cx.theme();
         let (border, muted, radius) = (theme.border, theme.muted_foreground, theme.radius_lg);
-        let now = ember_core::util::unix_now();
+        let now = irori_core::util::unix_now();
         let rows = self.uploads.iter().enumerate().map(|(ix, u)| {
             let age_h = now.saturating_sub(u.uploaded_at) / 3600;
             let age = if age_h == 0 {
@@ -706,7 +706,7 @@ mod tests {
     #[test]
     fn classifies_levels() {
         assert_eq!(
-            classify("2026-10-22T10:00:00Z ERROR ember: boom"),
+            classify("2026-10-22T10:00:00Z ERROR irori: boom"),
             LineLevel::Error
         );
         assert_eq!(
@@ -714,7 +714,7 @@ mod tests {
             LineLevel::Error
         );
         assert_eq!(classify("[ERROR]: launch failed"), LineLevel::Error);
-        assert_eq!(classify("  WARN ember_services: slow"), LineLevel::Warning);
+        assert_eq!(classify("  WARN irori_services: slow"), LineLevel::Warning);
         assert_eq!(classify("0024:fixme:ntdll:stub"), LineLevel::Warning);
         assert_eq!(classify("INFO started"), LineLevel::Info);
     }

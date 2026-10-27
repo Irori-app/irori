@@ -4,10 +4,10 @@
 use std::collections::HashMap;
 use std::sync::Once;
 
-use ember_ui::i18n::{Catalogs, language};
+use irori_ui::i18n::{Catalogs, language};
 use once_cell::sync::Lazy;
 
-/// `(language code, JSON catalog)` of every language Ember ships.
+/// `(language code, JSON catalog)` of every language Irori ships.
 pub static CATALOGS: Catalogs = &[
     ("en", include_str!("../locales/en.json")),
     ("cs", include_str!("../locales/cs.json")),
@@ -30,10 +30,10 @@ pub static CATALOGS: Catalogs = &[
     ("zh_Hant", include_str!("../locales/zh_Hant.json")),
 ];
 
-/// Hand the catalogs to `ember_ui::i18n` (once per process).
+/// Hand the catalogs to `irori_ui::i18n` (once per process).
 pub(crate) fn register() {
     static REGISTER: Once = Once::new();
-    REGISTER.call_once(|| ember_ui::i18n::register(CATALOGS));
+    REGISTER.call_once(|| irori_ui::i18n::register(CATALOGS));
 }
 
 static ENGLISH: Lazy<HashMap<String, String>> = Lazy::new(|| {
@@ -74,7 +74,7 @@ impl LanguageStamp {
 mod tests {
     use std::collections::{BTreeSet, HashMap};
 
-    use ember_ui::i18n::{LANGUAGES, missing_keys};
+    use irori_ui::i18n::{LANGUAGES, missing_keys};
     use regex::Regex;
 
     use super::*;

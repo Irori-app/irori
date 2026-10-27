@@ -1,6 +1,6 @@
 //! Store login.
 //!
-//! The store's sign-in page opens in Ember's sign-in window (`window`), a
+//! The store's sign-in page opens in Irori's sign-in window (`window`), a
 //! process of its own that reports what the login returned, so signing in needs
 //! nothing copied. When that window can't open, or on request, the page opens
 //! in the default browser instead: the dialog shows the store's (English)
@@ -13,9 +13,6 @@ mod window;
 
 use std::time::Duration;
 
-use ember_core::{DynStore, LoginFlow, Runner};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
@@ -30,10 +27,13 @@ use gpui_kit::{
     AnyElement, App, AppContext as _, ClipboardItem, Context, Entity, Focusable as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Subscription, Task, Window, div,
 };
+use irori_core::{DynStore, LoginFlow, Runner};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 use regex::Regex;
 
 use capture::{ClipboardWatcher, compile_capture};
-use ember_core::process::CancellationToken;
+use irori_core::process::CancellationToken;
 use window::WindowOutcome;
 
 use crate::common::notify_success;
@@ -58,7 +58,7 @@ pub fn open_account_login_dialog(
 ) {
     crate::i18n::register();
     let adding = slot.is_none()
-        && ember_ui::models(cx)
+        && irori_ui::models(cx)
             .accounts
             .read(cx)
             .accounts(runner)
@@ -259,7 +259,7 @@ impl LoginDialog {
         };
         let (url, pattern) = (url.clone(), re.as_str().to_string());
         let Some(helper) = window::helper() else {
-            tracing::warn!("No sign-in window (ember-sign-in is not installed), using the browser");
+            tracing::warn!("No sign-in window (irori-sign-in is not installed), using the browser");
             self.fallback = Some(t("manage.login.window.missing"));
             self.use_browser(window, cx);
             return;
@@ -268,7 +268,7 @@ impl LoginDialog {
         self.fallback = None;
         let cancel = CancellationToken::new();
         let title = t_args("manage.login.title", &[("store", self.runner.store_name())]);
-        let task = ember_ui::run(
+        let task = irori_ui::run(
             cx,
             window::sign_in(helper, url, pattern, title.to_string(), cancel.clone()),
         );
@@ -378,7 +378,7 @@ impl LoginDialog {
         cx.notify();
         let runner = self.runner;
         let slot = self.slot.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             store.account_login(slot.as_deref(), &text).await
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -389,7 +389,7 @@ impl LoginDialog {
                     Ok(user) => {
                         this.close();
                         window.close_dialog(cx);
-                        ember_ui::backend(cx).forget_expired_login(runner);
+                        irori_ui::backend(cx).forget_expired_login(runner);
                         let name = user.display_name.trim();
                         let store = runner.store_name();
                         let message = if name.is_empty() {
@@ -401,7 +401,7 @@ impl LoginDialog {
                             )
                         };
                         notify_success(message, window, cx);
-                        ember_ui::models::refresh_library(false, cx);
+                        irori_ui::models::refresh_library(false, cx);
                     }
                     Err(e) => {
                         this.error = Some(format!("{e:#}").into());

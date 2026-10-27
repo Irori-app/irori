@@ -1,7 +1,7 @@
 //! Install info, install, update, repair, uninstall, import and update
 //! checks. Builds come from GOG's content system (or, for Linux, the
-//! offline installers) through [`ember_gog_api`] and are downloaded by
-//! [`ember_depot`].
+//! offline installers) through [`irori_gog_api`] and are downloaded by
+//! [`irori_depot`].
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -12,23 +12,23 @@ use futures::StreamExt as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_core::process::{self, CommandSpec, RunOptions};
-use ember_core::{
+use irori_core::process::{self, CommandSpec, RunOptions};
+use irori_core::{
     BuildInfo, DlcInfo, InstallInfo, InstallInfoQuery, InstallPlatform, InstallProgress,
     InstallRequest, LanguageSize, OpContext, Outcome, PrepareStage, Preparing, RemoveArgs,
     UpdateRequest, util,
 };
-use ember_depot::{Finished, Job, Verified};
-use ember_gog_api::content::{BuildItem, BuildMeta, Builds, Client, Repository, id_string};
-use ember_gog_api::linux::Installer;
-use ember_gog_api::plan::{self as gplan, BuildFiles, Plan, Selection};
+use irori_depot::{Finished, Job, Verified};
+use irori_gog_api::content::{BuildItem, BuildMeta, Builds, Client, Repository, id_string};
+use irori_gog_api::linux::Installer;
+use irori_gog_api::plan::{self as gplan, BuildFiles, Plan, Selection};
 
 use crate::build::{self, BuildRecord};
 use crate::installed::{InstalledRecord, PendingInstall, dir_size};
 use crate::library::REDIST_APP;
 use crate::manifest;
 use crate::{GogStore, load_json, save_json};
-use ember_core::Store as _;
+use irori_core::Store as _;
 
 const INFO_TTL_SECS: u64 = 6 * 3600;
 
@@ -116,7 +116,7 @@ pub fn size_map(meta: &BuildMeta, product: &str) -> HashMap<String, SizePair> {
             let key = if l == "*" || l.eq_ignore_ascii_case("neutral") {
                 "*"
             } else {
-                ember_gog_api::languages::code(l).unwrap_or(l)
+                irori_gog_api::languages::code(l).unwrap_or(l)
             };
             let e = out.entry(key.to_string()).or_default();
             e.download_size += d.compressed_size;
@@ -195,9 +195,9 @@ pub fn pick_installer<'a>(installers: &[&'a Value], language: &str) -> Option<&'
     let lang = |i: &Value| {
         i.get("language")
             .and_then(Value::as_str)
-            .and_then(ember_gog_api::languages::code)
+            .and_then(irori_gog_api::languages::code)
     };
-    let wanted = ember_gog_api::languages::code(language);
+    let wanted = irori_gog_api::languages::code(language);
     installers
         .iter()
         .find(|i| wanted.is_some() && lang(i) == wanted)
@@ -506,10 +506,10 @@ fn log_line(ctx: &OpContext, line: &str) {
     }
 }
 
-pub(crate) fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
+pub(crate) fn progress_sink(ctx: &OpContext) -> irori_depot::ProgressFn {
     let sink = ctx.progress.clone();
-    Arc::new(move |p: ember_depot::Progress| {
-        sink(ember_core::InstallProgress {
+    Arc::new(move |p: irori_depot::Progress| {
+        sink(irori_core::InstallProgress {
             percent: Some(p.percent.clamp(0.0, 100.0)),
             bytes_done: Some(p.bytes_done),
             bytes_total: Some(p.bytes_total),
@@ -524,17 +524,17 @@ pub(crate) fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
 
 /// Whether `rel` (a normalised path) exists below `root`.
 fn exists_below(root: &Path, rel: &str) -> bool {
-    ember_depot::path::join(root, rel).is_file()
+    irori_depot::path::join(root, rel).is_file()
 }
 
 /// Create the plan's folders and symbolic links below `dir`.
 fn finish_tree(dir: &Path, plan: &Plan) -> Result<()> {
     for d in &plan.dirs {
-        let p = ember_depot::path::join(dir, d);
+        let p = irori_depot::path::join(dir, d);
         std::fs::create_dir_all(&p).with_context(|| format!("creating {}", p.display()))?;
     }
     for (path, target) in &plan.links {
-        let p = ember_depot::path::join(dir, path);
+        let p = irori_depot::path::join(dir, path);
         if let Some(parent) = p.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -635,7 +635,7 @@ impl GogStore {
         let mut languages: Vec<String> = installers
             .iter()
             .filter_map(|i| i.get("language").and_then(Value::as_str))
-            .filter_map(ember_gog_api::languages::code)
+            .filter_map(irori_gog_api::languages::code)
             .map(str::to_string)
             .collect();
         languages.sort();
@@ -645,7 +645,7 @@ impl GogStore {
             .with_context(|| format!("{} has no Linux installer", self.title_of(app_name)))?;
         let downlink = installer_downlink(base).context("the Linux installer has no download")?;
         let url = client.resolve_downlink(&downlink).await?;
-        let index = ember_gog_api::linux::read_installer(&Client::download_client()?, &url).await?;
+        let index = irori_gog_api::linux::read_installer(&Client::download_client()?, &url).await?;
         let (download_size, disk_size) = index
             .entries
             .iter()
@@ -1069,7 +1069,7 @@ impl GogStore {
             let url = client.resolve_downlink(&downlink).await?;
             installers.push((
                 product_id.clone(),
-                ember_gog_api::linux::read_installer(&http, &url).await?,
+                irori_gog_api::linux::read_installer(&http, &url).await?,
             ));
         }
         let old = self
@@ -1104,13 +1104,13 @@ impl GogStore {
         &self,
         journal: Option<PathBuf>,
         signer: Option<&Client>,
-    ) -> ember_depot::Options {
+    ) -> irori_depot::Options {
         let settings = (self.settings)();
-        ember_depot::Options {
+        irori_depot::Options {
             workers: settings.max_workers as usize,
             max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
             journal,
-            signer: signer.map(|c| ember_depot::Signer(Arc::new(gplan::Signer::new(c.clone())))),
+            signer: signer.map(|c| irori_depot::Signer(Arc::new(gplan::Signer::new(c.clone())))),
             ..Default::default()
         }
     }
@@ -1128,11 +1128,11 @@ impl GogStore {
             (
                 support.as_path(),
                 &mut d.plan.support,
-                ember_depot::ignore_progress(),
+                irori_depot::ignore_progress(),
             ),
             (d.dir.as_path(), &mut d.plan.game, progress_sink(ctx)),
         ] {
-            match ember_depot::verify(root, files, 0, sink, &ctx.cancel).await? {
+            match irori_depot::verify(root, files, 0, sink, &ctx.cancel).await? {
                 Verified::Cancelled => return Ok(false),
                 Verified::Checked(bad) => {
                     let broken: Vec<_> = bad.iter().map(|(i, _)| files[*i].clone()).collect();
@@ -1174,7 +1174,7 @@ impl GogStore {
             ),
         );
         if !d.plan.support.is_empty() || !d.plan.remove_support.is_empty() {
-            let finished = ember_depot::download(
+            let finished = irori_depot::download(
                 &http,
                 Job {
                     root: &support,
@@ -1182,7 +1182,7 @@ impl GogStore {
                     remove: &d.plan.remove_support,
                 },
                 &self.depot_options(None, d.client.as_ref()),
-                ember_depot::ignore_progress(),
+                irori_depot::ignore_progress(),
                 &ctx.cancel,
             )
             .await?;
@@ -1190,7 +1190,7 @@ impl GogStore {
                 return Ok(Outcome::Abort);
             }
         }
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &http,
             Job {
                 root: &d.dir,
@@ -1230,7 +1230,7 @@ impl GogStore {
         ctx: &OpContext,
     ) -> Result<(Outcome, String)> {
         // Records from other tools may name the language ("English").
-        let language = ember_gog_api::languages::code(language).unwrap_or(language);
+        let language = irori_gog_api::languages::code(language).unwrap_or(language);
         let result = async {
             (ctx.step)("Fetching file list");
             let d = if platform == InstallPlatform::Linux {
@@ -1310,7 +1310,7 @@ impl GogStore {
                     self.title_of(app_name)
                 )
             })?;
-        let install_dir = request.path.join(ember_core::paths::sanitize(&folder));
+        let install_dir = request.path.join(irori_core::paths::sanitize(&folder));
         let pending = PendingInstall {
             install_path: install_dir.to_string_lossy().into_owned(),
             platform: request.platform,
@@ -1577,7 +1577,7 @@ impl GogStore {
             };
             if args.delete_files {
                 let dir = PathBuf::from(&p.install_path);
-                ember_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
+                irori_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
                 Self::remove_dir(dir).await?;
                 self.remove_build_state(app_name).await;
             }
@@ -1586,7 +1586,7 @@ impl GogStore {
         };
         if args.delete_files {
             let dir = rec.path();
-            ember_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
+            irori_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
             let uninstaller = dir.join("unins000.exe");
             if rec.platform == InstallPlatform::Windows
                 && uninstaller.is_file()
@@ -1670,7 +1670,7 @@ impl GogStore {
             language: data
                 .language
                 .as_deref()
-                .map(|l| ember_gog_api::languages::code(l).unwrap_or(l).to_string()),
+                .map(|l| irori_gog_api::languages::code(l).unwrap_or(l).to_string()),
             version_etag: None,
             build_id: Some(data.build_id.clone()).filter(|b| !b.is_empty()),
             branch: None,
@@ -1727,7 +1727,7 @@ impl GogStore {
         };
         let (meta, etag) = client.build_meta(&item).await?;
         let language = rec.language_or_default().to_string();
-        let language = ember_gog_api::languages::code(&language)
+        let language = irori_gog_api::languages::code(&language)
             .map(str::to_string)
             .unwrap_or(language);
         self.save_build_record(

@@ -1,5 +1,5 @@
 [package]
-name = "ember-launchers"
+name = "irori-launchers"
 description = "Games of official third-party launchers (Battle.net, EA app, Ubisoft Connect, Rockstar): setup and library"
 version.workspace = true
 edition.workspace = true
@@ -8,9 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-runtime.workspace = true
-ember-launchers-data.workspace = true
+irori-core.workspace = true
+irori-runtime.workspace = true
+irori-launchers-data.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

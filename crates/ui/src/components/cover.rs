@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use ember_core::GameInfo;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::skeleton::Skeleton;
 use gpui_kit::component::{ActiveTheme as _, Icon, Sizable as _, StyledExt as _, v_flex};
@@ -10,6 +9,7 @@ use gpui_kit::{
     Pixels, Rems, RenderOnce, SharedString, Styled, StyledImage as _, Window, div, img,
     linear_color_stop, linear_gradient, rems, rgb,
 };
+use irori_core::GameInfo;
 
 use crate::art::{Art, art_store};
 use crate::motion::fade_in;
@@ -103,7 +103,7 @@ fn catalog_color(hex: &str) -> Option<Hsla> {
 /// colours, its short name and the title. Like box art, it carries its own
 /// colours in every theme, with text that stays legible on them.
 fn system_cover(system: &str, title: &SharedString, small: bool) -> Option<AnyElement> {
-    let sys = ember_engines::systems::get(system)?;
+    let sys = irori_engines::systems::get(system)?;
     let (base, accent) = (
         catalog_color(&sys.colors[0])?,
         catalog_color(&sys.colors[1])?,

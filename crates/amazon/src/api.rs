@@ -163,7 +163,7 @@ impl Client {
         Ok(value)
     }
 
-    /// Register Ember as a device with the authorization code the sign-in
+    /// Register Irori as a device with the authorization code the sign-in
     /// page returned.
     pub async fn register(&self, login: &LoginRequest, code: &str) -> Result<Credentials> {
         let body = json!({
@@ -442,7 +442,7 @@ fn parse_registration(res: &Value, now: u64) -> Result<Credentials> {
 
 #[cfg(test)]
 mod tests {
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
 
     use super::*;
 

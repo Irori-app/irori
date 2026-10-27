@@ -1,4 +1,4 @@
-//! Maps Lutris emulator runners and libretro cores to Ember's system and
+//! Maps Lutris emulator runners and libretro cores to Irori's system and
 //! engine ids (`assets/engines/systems.json`, `docs/design/engines.md`
 //! section 3.2). Some systems (`ps2`, `3ds`, `arcade`) and engines (`pcsx2`,
 //! `mgba`, `melonds`, `azahar`, `mame`) arrive in a later phase; they are
@@ -8,7 +8,7 @@ use std::path::Path;
 
 use super::SkipReason;
 
-/// How one emulator game maps to Ember.
+/// How one emulator game maps to Irori.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EmulatorTarget {
     pub system: &'static str,
@@ -45,7 +45,7 @@ pub(crate) fn is_emulator(runner: &str) -> bool {
     )
 }
 
-/// The Ember system and engine for a Lutris emulator game.
+/// The Irori system and engine for a Lutris emulator game.
 pub(crate) fn map(runner: &str, hints: &Hints<'_>) -> Result<EmulatorTarget, SkipReason> {
     let ext = extension(hints.rom);
     let standalone = |system: &'static str, engine: &str| EmulatorTarget {

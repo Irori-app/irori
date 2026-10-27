@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::app::SideloadPlatform;
 
-pub(crate) use ember_core::fs_guard::check_deletable;
+pub(crate) use irori_core::fs_guard::check_deletable;
 
 /// The single likely game executable directly inside `dir`, ignoring
 /// installers, uninstallers and crash handlers. `None` when there is none or
@@ -52,7 +52,7 @@ fn is_candidate(path: &Path, platform: SideloadPlatform) -> bool {
             name.ends_with(".sh")
                 || name.ends_with(".x86_64")
                 || (cfg!(unix)
-                    && ember_core::util::is_executable(path)
+                    && irori_core::util::is_executable(path)
                     && !name.contains(".so")
                     && !name.ends_with(".exe")
                     && !name.ends_with(".dll"))
@@ -70,8 +70,8 @@ mod tests {
     fn deletion_guard() {
         let home = Path::new("/home/u");
         let protected = vec![
-            PathBuf::from("/home/u/.config/ember"),
-            PathBuf::from("/home/u/Games/Ember"),
+            PathBuf::from("/home/u/.config/irori"),
+            PathBuf::from("/home/u/Games/Irori"),
         ];
         let check = |p: &str| check_deletable(Path::new(p), Some(home), &protected);
         for bad in [
@@ -81,7 +81,7 @@ mod tests {
             "/home/u",
             "/home/u/Downloads",
             "/home/u/.config",
-            "/home/u/Games/Ember",
+            "/home/u/Games/Irori",
             "/usr/share/x",
             "/home/u/Games/../x",
             "relative/dir",
@@ -90,7 +90,7 @@ mod tests {
         }
         for ok in [
             "/home/u/Games/Celeste",
-            "/home/u/Games/Ember/Celeste",
+            "/home/u/Games/Irori/Celeste",
             "/mnt/data/game",
             "/opt/game",
         ] {

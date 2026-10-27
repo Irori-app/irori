@@ -1,4 +1,4 @@
-//! Backups of what the user set up in Ember, as one JSON file, and exports of
+//! Backups of what the user set up in Irori, as one JSON file, and exports of
 //! the game list.
 //!
 //! A backup holds up to four parts: the app settings, per-game settings,
@@ -12,16 +12,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::game::{GameOverrides, PlaytimeRecord};
-use ember_core::{AppSettings, GameId, GameSettingsOverrides, Runner, json_store, util};
+use irori_core::game::{GameOverrides, PlaytimeRecord};
+use irori_core::{AppSettings, GameId, GameSettingsOverrides, Runner, json_store, util};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::Backend;
 use crate::sessions::{self, Session};
 
-/// Marks a file as an Ember backup.
-const FORMAT: &str = "ember-backup";
+/// Marks a file as an Irori backup.
+const FORMAT: &str = "irori-backup";
 /// Newest layout this version reads and writes.
 const VERSION: u32 = 1;
 
@@ -73,7 +73,7 @@ pub struct Backup {
     pub version: u32,
     /// RFC 3339.
     pub created: String,
-    pub ember_version: String,
+    pub irori_version: String,
     /// The app settings as written by this version; read leniently, so a
     /// newer or older layout still restores what it can.
     pub settings: Option<Value>,
@@ -168,7 +168,7 @@ impl Backend {
             format: FORMAT.into(),
             version: VERSION,
             created: util::now_rfc3339(),
-            ember_version: env!("CARGO_PKG_VERSION").into(),
+            irori_version: env!("CARGO_PKG_VERSION").into(),
             settings: parts
                 .settings
                 .then(|| serde_json::to_value(&*self.settings.app()))
@@ -200,12 +200,12 @@ impl Backend {
         let text = std::fs::read_to_string(path)
             .with_context(|| format!("Cannot read {}", path.display()))?;
         let backup: Backup =
-            serde_json::from_str(&text).context("This file is not an Ember backup")?;
+            serde_json::from_str(&text).context("This file is not an Irori backup")?;
         if backup.format != FORMAT {
-            bail!("This file is not an Ember backup");
+            bail!("This file is not an Irori backup");
         }
         if backup.version > VERSION {
-            bail!("This backup was made by a newer Ember; update Ember to restore it");
+            bail!("This backup was made by a newer Irori; update Irori to restore it");
         }
         Ok(backup)
     }

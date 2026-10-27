@@ -1,5 +1,5 @@
 //! GOG Galaxy's communication service, provided by comet running inside
-//! Ember. Games built with the Galaxy SDK connect to it on
+//! Irori. Games built with the Galaxy SDK connect to it on
 //! `127.0.0.1:9977` for achievements, statistics, leaderboards and the
 //! overlay.
 
@@ -67,7 +67,7 @@ pub async fn start(account: Account) -> Result<Service> {
         reqwest::tls::Certificate::from_pem(comet::CERT).context("invalid comet certificate")?;
     let http = reqwest::Client::builder()
         .user_agent(format!(
-            "GOGGalaxyCommunicationService/2.0.13.27 (Windows_32bit) installation_source/gog Ember/{}",
+            "GOGGalaxyCommunicationService/2.0.13.27 (Windows_32bit) installation_source/gog Irori/{}",
             env!("CARGO_PKG_VERSION")
         ))
         .add_root_certificate(certificate)

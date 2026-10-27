@@ -1,5 +1,5 @@
 [package]
-name = "ember-library"
+name = "irori-library"
 description = "Library screen: cover grid and list, search, filters, categories, sideloaded apps and per-game metadata"
 version.workspace = true
 edition.workspace = true
@@ -8,15 +8,15 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-runtime.workspace = true
-ember-services.workspace = true
-ember-engines.workspace = true
-ember-emulation.workspace = true
-ember-ui.workspace = true
-ember-sideload.workspace = true
-ember-extras.workspace = true
-ember-scripts.workspace = true
+irori-core.workspace = true
+irori-runtime.workspace = true
+irori-services.workspace = true
+irori-engines.workspace = true
+irori-emulation.workspace = true
+irori-ui.workspace = true
+irori-sideload.workspace = true
+irori-extras.workspace = true
+irori-scripts.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 futures.workspace = true

@@ -5,14 +5,14 @@
 use std::future::Future;
 use std::path::PathBuf;
 
-use ember_core::{GameId, LaunchOption, UpdateRequest};
-use ember_extras::shortcuts::{self, ShortcutTargets};
-use ember_services::LaunchParams;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, navigate};
 use gpui_kit::component::WindowExt as _;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::{App, PathPromptOptions, SharedString, Task, Window};
+use irori_core::{GameId, LaunchOption, UpdateRequest};
+use irori_extras::shortcuts::{self, ShortcutTargets};
+use irori_services::LaunchParams;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, navigate};
 
 /// Run a backend future; on failure show `failure` with the error. Resolves
 /// to whether it succeeded, after `on_ok` ran.
@@ -28,7 +28,7 @@ where
     T: Send + 'static,
 {
     let failure = failure.into();
-    let task = ember_ui::run(cx, fut);
+    let task = irori_ui::run(cx, fut);
     window.spawn(cx, async move |cx| {
         let result = task.await;
         cx.update(|window, cx| match result {
@@ -100,7 +100,7 @@ pub fn play_with(
     let id = id.clone();
     let task = {
         let (id, params) = (id.clone(), params.clone());
-        ember_ui::run(cx, async move { b.launch_with(&id, params).await })
+        irori_ui::run(cx, async move { b.launch_with(&id, params).await })
     };
     window.spawn(cx, async move |cx| {
         let result = task.await;
@@ -108,7 +108,7 @@ pub fn play_with(
             Ok(()) => true,
             Err(e) => {
                 // Saves that changed in both places need the user's choice.
-                if !ember_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx) {
+                if !irori_ui::save_conflict::resolve_launch_error(&id, params, &e, window, cx) {
                     notify_error(window, cx, failure, &e);
                 }
                 false
@@ -213,7 +213,7 @@ pub fn open_install_folder(id: &GameId, window: &mut Window, cx: &mut App) {
 pub fn open_prefix_folder(id: &GameId, window: &mut Window, cx: &mut App) {
     let b = backend(cx);
     let Some(game) = b.game(id) else { return };
-    let prefix = ember_runtime::prefix_path(&b.settings.app(), &b.settings.game(id), &game);
+    let prefix = irori_runtime::prefix_path(&b.settings.app(), &b.settings.game(id), &game);
     open_path(prefix, window, cx);
 }
 
@@ -244,7 +244,7 @@ pub fn add_shortcuts(id: &GameId, steam: bool, window: &mut Window, cx: &mut App
     )
 }
 
-/// Remove every shortcut Ember created for the game.
+/// Remove every shortcut Irori created for the game.
 pub fn remove_shortcuts(id: &GameId, window: &mut Window, cx: &mut App) -> Task<bool> {
     let b = backend(cx);
     let Some(game) = b.game(id) else {

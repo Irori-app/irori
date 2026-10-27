@@ -1,5 +1,5 @@
 //! Install, update and repair: choose the upload, download it through
-//! [`ember_depot`] into `<base>/.itch-download/<app>/` (resumable), unpack
+//! [`irori_depot`] into `<base>/.itch-download/<app>/` (resumable), unpack
 //! it, find the program and record the install.
 //!
 //! A first install unpacks straight into the game folder. An update or
@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{InstallPlatform, InstallProgress, OpContext, Outcome, util};
-use ember_itch_api::{Client, OwnedKey, Upload};
+use irori_core::{InstallPlatform, InstallProgress, OpContext, Outcome, util};
+use irori_itch_api::{Client, OwnedKey, Upload};
 
 use crate::records::InstalledRecord;
 use crate::{ItchStore, detect, extract, os_of, session_error};
@@ -32,7 +32,7 @@ struct LinkSigner {
     key_id: u64,
 }
 
-impl ember_depot::UrlSigner for LinkSigner {
+impl irori_depot::UrlSigner for LinkSigner {
     fn sign<'a>(
         &'a self,
         keys: &'a [String],
@@ -47,9 +47,9 @@ impl ember_depot::UrlSigner for LinkSigner {
     }
 }
 
-fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
+fn progress_sink(ctx: &OpContext) -> irori_depot::ProgressFn {
     let sink = ctx.progress.clone();
-    Arc::new(move |p: ember_depot::Progress| {
+    Arc::new(move |p: irori_depot::Progress| {
         sink(InstallProgress {
             percent: Some(p.percent.clamp(0.0, 100.0)),
             bytes_done: Some(p.bytes_done),
@@ -100,7 +100,7 @@ fn free_space(path: &Path) -> Option<u64> {
 /// Size of the file behind `url`, from a one-byte range request (for
 /// uploads whose size the API leaves out).
 async fn probe_size(url: &str) -> Result<u64> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .header(reqwest::header::RANGE, "bytes=0-0")
         .header(reqwest::header::ACCEPT_ENCODING, "identity")
@@ -125,7 +125,7 @@ async fn probe_size(url: &str) -> Result<u64> {
 impl ItchStore {
     fn staging_dir(&self, app: &str, base: &Path) -> PathBuf {
         base.join(".itch-download")
-            .join(ember_core::paths::sanitize(app))
+            .join(irori_core::paths::sanitize(app))
     }
 
     /// The download key and the upload to install for `platform`.
@@ -137,7 +137,7 @@ impl ItchStore {
         let key = self.key_of(app)?;
         let game_id = key.game.as_ref().map_or(key.game_id, |g| g.id);
         let uploads = self.api()?.uploads(game_id, key.id).await?;
-        let upload = ember_itch_api::best_upload(&uploads, os_of(platform)?)
+        let upload = irori_itch_api::best_upload(&uploads, os_of(platform)?)
             .cloned()
             .with_context(|| {
                 let title = key.game.as_ref().map_or("This game", |g| g.title.as_str());
@@ -147,7 +147,7 @@ impl ItchStore {
     }
 
     pub(crate) async fn has_partial_download(&self, app: &str) -> bool {
-        let base = ember_core::paths::expand_home(&(self.settings)().default_install_path);
+        let base = irori_core::paths::expand_home(&(self.settings)().default_install_path);
         tokio::fs::try_exists(self.staging_dir(app, &base))
             .await
             .unwrap_or(false)
@@ -225,7 +225,7 @@ impl ItchStore {
         }
 
         (ctx.step)("Downloading");
-        let name = ember_core::paths::sanitize(
+        let name = irori_core::paths::sanitize(
             Path::new(&upload.filename)
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
@@ -238,28 +238,28 @@ impl ItchStore {
         // hosted file has the checksum the API reports.
         let hash = (upload.storage == "hosted" && upload.md5_hash.trim().len() == 32)
             .then(|| {
-                ember_depot::Digest::from_hex(ember_depot::Algorithm::Md5, upload.md5_hash.trim())
+                irori_depot::Digest::from_hex(irori_depot::Algorithm::Md5, upload.md5_hash.trim())
                     .ok()
             })
             .flatten();
-        let entry = ember_depot::FileEntry::whole(
-            ember_depot::path::normalize(&name)?,
+        let entry = irori_depot::FileEntry::whole(
+            irori_depot::path::normalize(&name)?,
             size,
             hash,
             Vec::new(),
         );
         let settings = (self.settings)();
-        let finished = ember_depot::download(
-            ember_core::http::download_client(),
-            ember_depot::Job {
+        let finished = irori_depot::download(
+            irori_core::http::download_client(),
+            irori_depot::Job {
                 root: &staging,
                 files: std::slice::from_ref(&entry),
                 remove: &[],
             },
-            &ember_depot::Options {
+            &irori_depot::Options {
                 workers: settings.max_workers as usize,
                 max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
-                signer: Some(ember_depot::Signer(Arc::new(LinkSigner {
+                signer: Some(irori_depot::Signer(Arc::new(LinkSigner {
                     api,
                     upload_id: upload.id,
                     key_id: key.id,
@@ -270,7 +270,7 @@ impl ItchStore {
             &ctx.cancel,
         )
         .await?;
-        if finished == ember_depot::Finished::Cancelled {
+        if finished == irori_depot::Finished::Cancelled {
             log_line(ctx, "download paused; the partial file is kept");
             return Ok(Outcome::Abort);
         }
@@ -354,7 +354,7 @@ impl ItchStore {
         );
         Self::blocking(move || -> Result<()> {
             if old.exists() {
-                ember_core::fs_guard::ensure_deletable(&old, &app)?;
+                irori_core::fs_guard::ensure_deletable(&old, &app)?;
                 std::fs::remove_dir_all(&old)?;
             }
             if dir.exists() {
@@ -366,7 +366,7 @@ impl ItchStore {
                 return Err(e).with_context(|| format!("replacing {}", dir.display()));
             }
             if old.exists() {
-                ember_core::fs_guard::ensure_deletable(&old, &app)?;
+                irori_core::fs_guard::ensure_deletable(&old, &app)?;
                 if let Err(e) = std::fs::remove_dir_all(&old) {
                     tracing::warn!("removing the previous files at {}: {e}", old.display());
                 }
@@ -380,7 +380,7 @@ impl ItchStore {
     async fn discard(&self, dir: &Path) {
         let (dir, app) = (dir.to_path_buf(), (self.settings)());
         let _ = Self::blocking(move || {
-            if dir.exists() && ember_core::fs_guard::ensure_deletable(&dir, &app).is_ok() {
+            if dir.exists() && irori_core::fs_guard::ensure_deletable(&dir, &app).is_ok() {
                 let _ = std::fs::remove_dir_all(&dir);
             }
         })

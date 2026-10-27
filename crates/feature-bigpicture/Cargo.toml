@@ -1,5 +1,5 @@
 [package]
-name = "ember-bigpicture"
+name = "irori-bigpicture"
 description = "Big Picture: controller input for the whole app and a 10-foot fullscreen library"
 version.workspace = true
 edition.workspace = true
@@ -8,10 +8,10 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-services.workspace = true
-ember-engines.workspace = true
-ember-ui.workspace = true
+irori-core.workspace = true
+irori-services.workspace = true
+irori-engines.workspace = true
+irori-ui.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 parking_lot.workspace = true

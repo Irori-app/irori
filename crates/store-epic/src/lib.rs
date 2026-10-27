@@ -1,5 +1,5 @@
-//! Epic Games Store backend, built on the native [`ember_epic_api`] client
-//! and the [`ember_depot`] download engine.
+//! Epic Games Store backend, built on the native [`irori_epic_api`] client
+//! and the [`irori_depot`] download engine.
 //!
 //! State lives in `Paths::store_config_dir(Runner::Legendary)` (see
 //! [`state`]): the signed-in session, the account's apps, the install
@@ -28,16 +28,16 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_core::process::{self, CommandSpec, ExecResult, RunOptions, split_args};
-use ember_core::{
+use irori_core::process::{self, CommandSpec, ExecResult, RunOptions, split_args};
+use irori_core::{
     Achievement, Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallProgress, InstallRequest, LaunchOption, LaunchPlan, LaunchRequest,
     LoginFlow, Notice, NoticeLevel, OpContext, Outcome, Paths, RemoveArgs, Runner, SdlOption,
     SessionExpired, SettingsFn, Store, SyncDirection, UpdateRequest, UserInfo, WineLaunch, http,
     util,
 };
-use ember_epic_api::library::GameRecord;
-use ember_epic_api::{Client, Endpoints, Identity, Manifest, ManifestInfo, Session, auth};
+use irori_epic_api::library::GameRecord;
+use irori_epic_api::{Client, Endpoints, Identity, Manifest, ManifestInfo, Session, auth};
 use parking_lot::{Mutex, RwLock};
 use serde_json::Value;
 use tokio::io::AsyncWriteExt as _;
@@ -54,7 +54,7 @@ const SEVEN_DAYS: Duration = Duration::from_secs(7 * 24 * 3600);
 const STATUS_TTL: Duration = Duration::from_secs(60);
 /// Manifests fetched for the install dialog are reused by the install.
 const BUILD_TTL: Duration = Duration::from_secs(10 * 60);
-const SETUP_MARKER: &str = ".ember-legendary-setup.json";
+const SETUP_MARKER: &str = ".irori-legendary-setup.json";
 const EA_INSTALLER: (&str, &str) = (
     "EAappInstaller.exe",
     "https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-releases/EAappInstaller.exe",
@@ -140,7 +140,7 @@ pub struct EpicStore {
 }
 
 impl EpicStore {
-    /// Create the store using Ember's standard directories.
+    /// Create the store using Irori's standard directories.
     pub fn new(bus: EventBus, settings: SettingsFn) -> Arc<Self> {
         let paths = Paths::get();
         Self::with_layout(
@@ -156,7 +156,7 @@ impl EpicStore {
     }
 
     /// The store of one more account, keeping its login, installs and
-    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// caches in `config` and `cache`; shared tools stay in Irori's
     /// directories.
     pub fn for_account(
         bus: EventBus,
@@ -249,7 +249,7 @@ impl EpicStore {
             Ok(s) => s,
             Err(e) => {
                 // The launcher tells the user once and offers to log in again.
-                if let Some(rejected) = e.downcast_ref::<ember_epic_api::SignInRejected>() {
+                if let Some(rejected) = e.downcast_ref::<irori_epic_api::SignInRejected>() {
                     return Err(SessionExpired::new(Runner::Legendary, rejected.0.clone()).into());
                 }
                 return Err(e.context("Your Epic Games session could not be renewed"));
@@ -263,7 +263,7 @@ impl EpicStore {
     }
 
     /// Hands out fresh sessions to long downloads (chunk signing).
-    fn session_source(&self) -> ember_epic_api::install::SessionSource {
+    fn session_source(&self) -> irori_epic_api::install::SessionSource {
         let weak = self.weak.clone();
         Arc::new(move || {
             let weak = weak.clone();
@@ -515,7 +515,7 @@ impl EpicStore {
         Ok(build)
     }
 
-    /// The manifest of the installed build, if Ember has it.
+    /// The manifest of the installed build, if Irori has it.
     async fn installed_manifest(&self, installed: &InstalledGame) -> Option<Manifest> {
         let path = self.layout.build_manifest(&installed.app_name);
         let secrets = installed.secrets();
@@ -664,7 +664,7 @@ impl EpicStore {
 
     /// Epic's one-time prefix setup for a game: the launcher URL handler,
     /// the game's prerequisites, EA app / Ubisoft Connect, and the EOS
-    /// overlay. Failures are logged; the launch continues. Ember records
+    /// overlay. Failures are logged; the launch continues. Irori records
     /// done games in its own marker file inside the prefix.
     async fn first_launch_setup(
         &self,
@@ -817,7 +817,7 @@ impl EpicStore {
                 account_id: String::new(),
                 display_name: String::new(),
             });
-            ember_epic_api::launch::origin_uri(
+            irori_epic_api::launch::origin_uri(
                 &game.app_name,
                 code.as_deref(),
                 &user.display_name,
@@ -872,7 +872,7 @@ impl EpicStore {
 
     // ---- extras for the UI -------------------------------------------
 
-    /// Drop Ember's Epic API caches.
+    /// Drop Irori's Epic API caches.
     pub async fn clear_cache(&self) -> Result<()> {
         for cache in [&self.install_info, &self.extra_info, &self.overrides] {
             cache.clear().await;
@@ -895,7 +895,7 @@ impl EpicStore {
                 tracing::warn!("no manifest for {}; leaving its files", installed.app_name);
                 return Ok(());
             }
-            ember_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
+            irori_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
             return tokio::fs::remove_dir_all(&dir)
                 .await
                 .with_context(|| format!("Could not delete {}", dir.display()));
@@ -1020,7 +1020,7 @@ impl Store for EpicStore {
             if cfg!(target_os = "macos") {
                 platforms.insert("Mac".into());
             }
-            let list = ember_epic_api::library::sync(&client, &session, &platforms, &known, full)
+            let list = irori_epic_api::library::sync(&client, &session, &platforms, &known, full)
                 .await
                 .context("Refreshing the Epic library failed")?;
             tracing::info!("Epic library: {} apps", list.len());
@@ -1370,9 +1370,9 @@ impl Store for EpicStore {
     }
 }
 
-/// Carry a Heroic user's Epic login and installs over into Ember's format:
+/// Carry a Heroic user's Epic login and installs over into Irori's format:
 /// converts Heroic's `legendaryConfig/legendary` directory. An existing
-/// Ember login is kept; library records and installs are merged.
+/// Irori login is kept; library records and installs are merged.
 pub fn import_from_heroic(heroic_config_dir: &Path) -> Result<()> {
     let src = heroic_config_dir.join("legendaryConfig").join("legendary");
     let paths = Paths::get();

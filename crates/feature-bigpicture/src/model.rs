@@ -6,14 +6,14 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use ember_core::{
+use gpui_kit::SharedString;
+use gpui_kit::assets::IconName;
+use irori_core::{
     BIG_PICTURE_SCALES, GameId, GameInfo, InstallInfo, InstallPlatform, InstallRequest, Runner,
     StatusKind,
 };
-use ember_services::{LibrarySnapshot, UserData};
-use ember_ui::i18n::{t, t_args};
-use gpui_kit::SharedString;
-use gpui_kit::assets::IconName;
+use irori_services::{LibrarySnapshot, UserData};
+use irori_ui::i18n::{t, t_args};
 
 use crate::text::store_name;
 
@@ -38,7 +38,7 @@ impl RowKind {
             RowKind::Favourites => t("bigpicture.shelf.favourites"),
             RowKind::All => t("bigpicture.shelf.all"),
             RowKind::Store(runner) => store_name(runner),
-            RowKind::System(id) => ember_engines::systems::get(id)
+            RowKind::System(id) => irori_engines::systems::get(id)
                 .map_or_else(|| SharedString::new_static(id), |s| s.name.clone().into()),
         }
     }
@@ -130,7 +130,7 @@ pub fn build_rows(library: &LibrarySnapshot, user: &UserData, max_recent: usize)
             });
         }
     }
-    for system in ember_engines::systems::all() {
+    for system in irori_engines::systems::all() {
         rows.push(Row {
             kind: RowKind::System(system.id.as_str()),
             games: all
@@ -276,7 +276,7 @@ pub enum MenuItem {
     /// Leave Big Picture and open the "Set up emulation" guide.
     SetUpEmulation,
     ExitBigPicture,
-    QuitEmber,
+    QuitIrori,
 }
 
 impl MenuItem {
@@ -295,7 +295,7 @@ impl MenuItem {
             MenuItem::ToggleFullscreen => "bigpicture.menu.toggle_fullscreen",
             MenuItem::SetUpEmulation => "bigpicture.menu.set_up_emulation",
             MenuItem::ExitBigPicture => "bigpicture.exit",
-            MenuItem::QuitEmber => "bigpicture.menu.quit",
+            MenuItem::QuitIrori => "bigpicture.menu.quit",
         })
     }
 
@@ -307,7 +307,7 @@ impl MenuItem {
             MenuItem::ToggleFullscreen => IconName::Maximize,
             MenuItem::SetUpEmulation => IconName::Joystick,
             MenuItem::ExitBigPicture => IconName::LogOut,
-            MenuItem::QuitEmber => IconName::Power,
+            MenuItem::QuitIrori => IconName::Power,
         }
     }
 
@@ -319,7 +319,7 @@ impl MenuItem {
             MenuItem::ToggleFullscreen => "bp-menu-fullscreen",
             MenuItem::SetUpEmulation => "bp-menu-emulation",
             MenuItem::ExitBigPicture => "bp-menu-exit",
-            MenuItem::QuitEmber => "bp-menu-quit",
+            MenuItem::QuitIrori => "bp-menu-quit",
         }
     }
 }
@@ -340,7 +340,7 @@ pub fn menu_items(has_downloads: bool, paused: bool, scale: u32) -> Vec<MenuItem
         MenuItem::ToggleFullscreen,
         MenuItem::SetUpEmulation,
         MenuItem::ExitBigPicture,
-        MenuItem::QuitEmber,
+        MenuItem::QuitIrori,
     ]);
     out
 }
@@ -374,7 +374,7 @@ pub fn default_install_request(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::SdlOption;
+    use irori_core::SdlOption;
 
     fn game(runner: Runner, app: &str, installed: bool) -> Arc<GameInfo> {
         Arc::new(

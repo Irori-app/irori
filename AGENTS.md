@@ -1,14 +1,14 @@
 # AGENTS.md
 
-Instructions for anyone, human or coding agent, changing Ember. Read this file
+Instructions for anyone, human or coding agent, changing Irori. Read this file
 before your first change. Where it disagrees with `docs/AGENT_BRIEF.md`,
 `docs/UI_BRIEF.md` or `docs/I18N_BRIEF.md`, this file wins. Those briefs were written
-for the first, crate-by-crate build of Ember and point at scratch paths that no
+for the first, crate-by-crate build of Irori and point at scratch paths that no
 longer exist.
 
 Contents:
 
-1. [What Ember is](#1-what-ember-is)
+1. [What Irori is](#1-what-irori-is)
 2. [Commands](#2-commands)
 3. [Repository map](#3-repository-map)
 4. [Architecture](#4-architecture)
@@ -25,9 +25,9 @@ Contents:
 
 ---
 
-## 1. What Ember is
+## 1. What Irori is
 
-Ember is a native game launcher for Linux, macOS and Windows. It covers Epic Games,
+Irori is a native game launcher for Linux, macOS and Windows. It covers Epic Games,
 GOG, Amazon Games and ZOOM Platform libraries, plus games the user adds by hand
 ("sideloaded" apps). Windows games run natively on Windows. On Linux they run through
 Wine, Proton or umu, and on macOS through Wine, CrossOver or Game Porting Toolkit.
@@ -40,7 +40,7 @@ Wine, Proton or umu, and on macOS through Wine, CrossOver or Game Porting Toolki
   copied.
 - Store protocols are Rust ports of legendary (Epic), gogdl (GOG) and nile (Amazon);
   itch.io uses its public API directly.
-  GOG Galaxy's comet runs as a library. Ember never shells out to those tools.
+  GOG Galaxy's comet runs as a library. Irori never shells out to those tools.
 - Product goals, in order: correct, fast, calm, one click to play. It runs as one
   process, renders on the GPU, uses no CPU when idle, keeps memory bounded, and
   virtualizes every long list.
@@ -53,59 +53,59 @@ Run everything from the repository root.
 
 | Task | Command |
 | --- | --- |
-| Run Ember (release, as users get it) | `cargo run --release -p ember` |
-| Run Ember with the Linux sign-in window | `cargo build --release -p ember-sign-in && cargo run --release -p ember` |
-| Build both shipped binaries | `cargo build --locked --release -p ember -p ember-sign-in` |
+| Run Irori (release, as users get it) | `cargo run --release -p irori` |
+| Run Irori with the Linux sign-in window | `cargo build --release -p irori-sign-in && cargo run --release -p irori` |
+| Build both shipped binaries | `cargo build --locked --release -p irori -p irori-sign-in` |
 | Format | `cargo fmt --all` (CI: `cargo fmt --all --check`) |
 | Lint, as CI does | `cargo clippy --locked --workspace --all-targets --profile ci -- -D warnings` |
 | Test everything | `cargo test --locked --workspace --no-fail-fast` (Linux CI wraps it in `xvfb-run -a`) |
-| Test one crate | `cargo test -p <package>`, for example `cargo test -p ember-manage` |
+| Test one crate | `cargo test -p <package>`, for example `cargo test -p irori-manage` |
 | Packaging tests | `python3 -m unittest discover -s packaging -p "test_*.py"` |
 | PR-rule tests | `python3 -m unittest discover -s .github/scripts -p "test_*.py"` |
 | Check a PR name locally | `python3 .github/scripts/pr_rules.py --title "fix(epic): …" --head fix/epic-login` |
 | Package | `python3 packaging/package.py --platform linux\|macos\|windows --binary-dir target/release --output dist` |
 | Install for this user (Linux) | `packaging/install.sh` |
-| Profile with symbols | `cargo build --profile profiling -p ember` |
+| Profile with symbols | `cargo build --profile profiling -p irori` |
 
-Commands Ember offers without opening a window (`crates/ember/src/headless.rs`):
+Commands Irori offers without opening a window (`crates/irori/src/headless.rs`):
 
 ```text
-ember accounts                                   which stores are logged in
-ember import-heroic                              import Heroic accounts, installs and settings
-ember import-lutris                              import Lutris games, categories and playtime (read-only)
-ember refresh                                    refresh every library
-ember list [--installed]
-ember info <runner>/<app> [--platform P]
-ember playtime <runner>/<app>
-ember install <runner>/<app> [--path DIR] [--platform windows|linux]   Ctrl+C stops; rerun resumes
-ember uninstall <runner>/<app> [--keep-files]
+irori accounts                                   which stores are logged in
+irori import-heroic                              import Heroic accounts, installs and settings
+irori import-lutris                              import Lutris games, categories and playtime (read-only)
+irori refresh                                    refresh every library
+irori list [--installed]
+irori info <runner>/<app> [--platform P]
+irori playtime <runner>/<app>
+irori install <runner>/<app> [--path DIR] [--platform windows|linux]   Ctrl+C stops; rerun resumes
+irori uninstall <runner>/<app> [--keep-files]
 ```
 
-Ember's other arguments (`crates/ember/src/cli.rs`) are:
+Irori's other arguments (`crates/irori/src/cli.rs`) are:
 
 - `-l/--launch <runner>/<app>`, `--big-picture`/`--console`, `--minimized`/`--tray`,
   `-V/--version` and `-h/--help`.
-- Links: `ember://launch|game|open/<runner>/<app>`, `ember://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
-  `ember://settings/<section>`, `ember://lutris/<slug>` (the Lutris script installer at
+- Links: `irori://launch|game|open/<runner>/<app>`, `irori://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
+  `irori://settings/<section>`, `irori://lutris/<slug>` (the Lutris script installer at
   a lutris.net game; Lutris's own `lutris:<slug>` is accepted as an argument too), and
   Heroic's `heroic://launch/...`.
-- `--sign-in-window` is internal. On macOS and Windows it makes Ember run the store
+- `--sign-in-window` is internal. On macOS and Windows it makes Irori run the store
   sign-in window instead of itself (see [4.6](#46-store-sign-in)).
 
 Environment variables:
 
 | Variable | Effect |
 | --- | --- |
-| `EMBER_HOME` | Puts all config, data and cache under one root (`<root>/{config,data,cache}`). Use it for experiments so your real data stays untouched. |
-| `EMBER_LOG` | `tracing` filter, e.g. `EMBER_LOG=ember_services=debug,info`. The default is `info` in the app and `warn` for the commands without a window. |
-| `EMBER_SIGN_IDENTITY` | macOS signing identity for `package.py` (default `-`, ad-hoc). |
-| `EMBER_WINDOWS_CRT_DIR` | Windows: explicit `Microsoft.VC*.CRT` directory for packaging. |
-| `EMBER_RELEASE_TEST_URL`, `EMBER_RUNTIME_SMOKE` | Opt-in, `#[ignore]`d runtime tests (see [8](#8-tests)). |
+| `IRORI_HOME` | Puts all config, data and cache under one root (`<root>/{config,data,cache}`). Use it for experiments so your real data stays untouched. |
+| `IRORI_LOG` | `tracing` filter, e.g. `IRORI_LOG=irori_services=debug,info`. The default is `info` in the app and `warn` for the commands without a window. |
+| `IRORI_SIGN_IDENTITY` | macOS signing identity for `package.py` (default `-`, ad-hoc). |
+| `IRORI_WINDOWS_CRT_DIR` | Windows: explicit `Microsoft.VC*.CRT` directory for packaging. |
+| `IRORI_RELEASE_TEST_URL`, `IRORI_RUNTIME_SMOKE` | Opt-in, `#[ignore]`d runtime tests (see [8](#8-tests)). |
 
 Build profiles (root `Cargo.toml`):
 
 - `release` is fat LTO, one codegen unit, `panic = "abort"`, stripped.
-- `dev` builds Ember at `opt-level = 1` and its dependencies at 2, so debug builds stay
+- `dev` builds Irori at `opt-level = 1` and its dependencies at 2, so debug builds stay
   usable.
 - `ci` is unoptimized and keeps no debug info, so builds fit hosted runners.
 - `profiling` is release plus line tables, for `perf` and `heaptrack`.
@@ -116,36 +116,36 @@ Directory names and package names differ. Use the package name with `-p`.
 
 | Directory | Package | Role |
 | --- | --- | --- |
-| `crates/core` | `ember-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
-| `crates/runtime` | `ember-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
-| `crates/engines` | `ember-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
-| `crates/scripts` | `ember-scripts` | Lutris install scripts: typed parser, validation, variables, consent plan, confined executor with rollback, the `ScriptHost` trait, the lutris.net client, Wine build matching |
-| `crates/depot` | `ember-depot` | Download engine: parallel chunked downloads, resume, verification, delta updates; a `test-server` feature |
-| `crates/epic` | `ember-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
-| `crates/gog` | `ember-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
-| `crates/amazon` | `ember-amazon-api` | Amazon Games protocol (port of nile): device sign-in, library, signed manifests |
-| `crates/itch` | `ember-itch-api` | itch.io protocol (its public API): API-key login, owned keys, uploads, download links |
-| `crates/gog-galaxy` | `ember-gog-galaxy` | Hosts comet (Galaxy service for games: overlay, achievements) on `127.0.0.1:9977` |
-| `crates/store-epic` | `ember-epic` | Epic `Store` (`Runner::Legendary`) |
-| `crates/store-gog` | `ember-gog` | GOG `Store` |
-| `crates/store-amazon` | `ember-amazon` | Amazon `Store` (`Runner::Nile`) |
-| `crates/store-zoom` | `ember-zoom` | ZOOM Platform `Store`, opt-in through a setting |
-| `crates/store-itch` | `ember-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `emberItchIo` |
-| `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
-| `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
-| `crates/launchers` | `ember-launchers-data` | Reads third-party launchers' local data (Battle.net `product.db`, Ubisoft cache and registry, EA manifests, Rockstar registry) |
-| `crates/store-launchers` | `ember-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar (`Runner::Launchers`): setup and library, opt-in through `emberThirdPartyLaunchers` |
-| `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
-| `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
-| `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime, Lutris script installs (`scripts.rs`) |
-| `crates/ui` | `ember-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
-| `crates/feature-library` | `ember-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs, the Lutris script installer |
-| `crates/feature-game` | `ember-game` | Game page and its sheets: install, uninstall, logs, cloud saves, import, modify |
-| `crates/feature-manage` | `ember-manage` | Downloads, Wine manager, accounts and login, stores, onboarding |
-| `crates/feature-settings` | `ember-settings` | App settings, game defaults, per-game overrides, logs, system info |
-| `crates/feature-bigpicture` | `ember-bigpicture` | Big Picture mode and controller input for the whole app |
-| `crates/ember` | `ember` | The application shell and binary: window, sidebar, routing, palette, tray, single instance, CLI |
-| `crates/sign-in` | `ember-sign-in` | Store sign-in window (Wry/Tao): library and the `ember-sign-in` program |
+| `crates/core` | `irori-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
+| `crates/runtime` | `irori-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
+| `crates/engines` | `irori-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
+| `crates/scripts` | `irori-scripts` | Lutris install scripts: typed parser, validation, variables, consent plan, confined executor with rollback, the `ScriptHost` trait, the lutris.net client, Wine build matching |
+| `crates/depot` | `irori-depot` | Download engine: parallel chunked downloads, resume, verification, delta updates; a `test-server` feature |
+| `crates/epic` | `irori-epic-api` | Epic protocol (port of legendary): auth, library, manifests, cloud saves, launch parameters |
+| `crates/gog` | `irori-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
+| `crates/amazon` | `irori-amazon-api` | Amazon Games protocol (port of nile): device sign-in, library, signed manifests |
+| `crates/itch` | `irori-itch-api` | itch.io protocol (its public API): API-key login, owned keys, uploads, download links |
+| `crates/gog-galaxy` | `irori-gog-galaxy` | Hosts comet (Galaxy service for games: overlay, achievements) on `127.0.0.1:9977` |
+| `crates/store-epic` | `irori-epic` | Epic `Store` (`Runner::Legendary`) |
+| `crates/store-gog` | `irori-gog` | GOG `Store` |
+| `crates/store-amazon` | `irori-amazon` | Amazon `Store` (`Runner::Nile`) |
+| `crates/store-zoom` | `irori-zoom` | ZOOM Platform `Store`, opt-in through a setting |
+| `crates/store-itch` | `irori-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `iroriItchIo` |
+| `crates/store-steam` | `irori-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
+| `crates/store-sideload` | `irori-sideload` | Apps the user adds (native, Windows, browser) |
+| `crates/launchers` | `irori-launchers-data` | Reads third-party launchers' local data (Battle.net `product.db`, Ubisoft cache and registry, EA manifests, Rockstar registry) |
+| `crates/store-launchers` | `irori-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar (`Runner::Launchers`): setup and library, opt-in through `iroriThirdPartyLaunchers` |
+| `crates/store-emulation` | `irori-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
+| `crates/extras` | `irori-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
+| `crates/services` | `irori-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime, Lutris script installs (`scripts.rs`) |
+| `crates/ui` | `irori-ui` | Shared UI: backend bridge, models, navigation, art, theme and translucency, components, i18n |
+| `crates/feature-library` | `irori-library` | Library grid/list, search, filters, categories, stats page, sideload dialogs, the Lutris script installer |
+| `crates/feature-game` | `irori-game` | Game page and its sheets: install, uninstall, logs, cloud saves, import, modify |
+| `crates/feature-manage` | `irori-manage` | Downloads, Wine manager, accounts and login, stores, onboarding |
+| `crates/feature-settings` | `irori-settings` | App settings, game defaults, per-game overrides, logs, system info |
+| `crates/feature-bigpicture` | `irori-bigpicture` | Big Picture mode and controller input for the whole app |
+| `crates/irori` | `irori` | The application shell and binary: window, sidebar, routing, palette, tray, single instance, CLI |
+| `crates/sign-in` | `irori-sign-in` | Store sign-in window (Wry/Tao): library and the `irori-sign-in` program |
 | `crates/webview` | `gpui-webview` | Vendored GPUI WebView, **excluded from the workspace and unused** |
 
 Other top-level paths:
@@ -156,7 +156,7 @@ Other top-level paths:
   `install-windows.ps1`, the desktop entry, icons and entitlements.
 - `docs/`:
   - `PLATFORMS.md`: paths, desktop behaviour, translucency, packaging, release checklist.
-  - `parity/`: the Heroic behaviour Ember matches, and the Lutris behaviour
+  - `parity/`: the Heroic behaviour Irori matches, and the Lutris behaviour
     (`parity/lutris.md`).
   - `design/`: designs of larger features (`design/engines.md`: emulators, ROM
     libraries, Lutris import and scripts, third-party launchers).
@@ -169,35 +169,35 @@ Other top-level paths:
 The crates form a strict hierarchy. Never add a dependency that points upward.
 
 ```text
-ember-core                        (depends on nothing internal)
-  ├─ ember-runtime, ember-depot, ember-extras
-  ├─ ember-engines   (core, runtime, depot)
-  ├─ ember-scripts   (core, runtime, depot; knows nothing of stores or the UI)
-  ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
+irori-core                        (depends on nothing internal)
+  ├─ irori-runtime, irori-depot, irori-extras
+  ├─ irori-engines   (core, runtime, depot)
+  ├─ irori-scripts   (core, runtime, depot; knows nothing of stores or the UI)
+  ├─ protocol crates: irori-epic-api, irori-gog-api, irori-amazon-api, irori-itch-api
   │                   (depot only, not core)
-  ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
-  │                   ember-steam, ember-sideload, ember-emulation (+ engines),
-  │                   ember-launchers (+ runtime, ember-launchers-data)
-  └─ ember-services   (core, depot, runtime, extras, engines, scripts; stores reach it as `DynStore`)
-ember-ui          (services, core)
+  ├─ store crates:    irori-epic, irori-gog, irori-amazon, irori-zoom, irori-itch,
+  │                   irori-steam, irori-sideload, irori-emulation (+ engines),
+  │                   irori-launchers (+ runtime, irori-launchers-data)
+  └─ irori-services   (core, depot, runtime, extras, engines, scripts; stores reach it as `DynStore`)
+irori-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
-ember (binary)    (everything; the only crate that names every store)
-ember-sign-in     (standalone; Ember links it only on macOS/Windows)
+irori (binary)    (everything; the only crate that names every store)
+irori-sign-in     (standalone; Irori links it only on macOS/Windows)
 ```
 
-- Protocol crates know nothing about Ember: no `Paths`, no settings, no events.
+- Protocol crates know nothing about Irori: no `Paths`, no settings, no events.
 - Store crates turn a protocol into a `Store`. Services drive stores only through
   `DynStore = Arc<dyn Store>`.
 - Feature crates never depend on each other. The shell routes between them
-  (`crates/ember/src/routing.rs`, `pages.rs`) through events such as `LibraryEvent`
+  (`crates/irori/src/routing.rs`, `pages.rs`) through events such as `LibraryEvent`
   and `GamePageEvent`.
 - When a feature needs an operation that requires a concrete store crate (Heroic
-  import, the GOG branch password), the shell installs a hook (`ember_ui::hooks`,
-  `ember_game::install_hooks`) instead of the feature depending on the store.
+  import, the GOG branch password), the shell installs a hook (`irori_ui::hooks`,
+  `irori_game::install_hooks`) instead of the feature depending on the store.
 
 ## 4. Architecture
 
-### 4.1 Core contracts (`ember-core`)
+### 4.1 Core contracts (`irori-core`)
 
 Read `crates/core/src/store.rs`, `events.rs`, `paths.rs`, `settings.rs`, `process.rs`
 and `launch.rs` before changing anything below the UI.
@@ -235,11 +235,11 @@ and `launch.rs` before changing anything below the UI.
     and offer to log in again.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
-    asks which saves to keep (`ember_ui::save_conflict`).
+    asks which saves to keep (`irori_ui::save_conflict`).
 - `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam, Sideload, Emulation and
   Launchers. Their
   serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
-  `epic` and `amazon`. Ember-only runners use their store's plain name (`itch`,
+  `epic` and `amazon`. Irori-only runners use their store's plain name (`itch`,
   `steam`).
 - `Runner::manages_installs()` is false for Steam and Launchers: its games are listed and launched,
   never installed, moved, repaired or removed. UI code hides those commands and
@@ -261,14 +261,14 @@ and `launch.rs` before changing anything below the UI.
 
 **Paths** (`paths.rs`):
 
-- `Paths::get()` is global. `EMBER_HOME` relocates everything; otherwise the OS
-  config, data and cache directories plus `ember`.
+- `Paths::get()` is global. `IRORI_HOME` relocates everything; otherwise the OS
+  config, data and cache directories plus `irori`.
 - Store credentials and config go under `store_config_dir(runner)`, store caches under
-  `store_cache_dir(runner)`, and Ember state (`library.json`, `downloads.json`,
+  `store_cache_dir(runner)`, and Irori state (`library.json`, `downloads.json`,
   `sessions.jsonl`) under `state_dir()`.
 - Per-game settings are `config/games/<runner>/<app>.json`. Logs go under
-  `logs_dir()`; the app log is `data/logs/ember.log`, and a panic writes
-  `crash-<time>.txt` beside it (`crates/ember/src/crash.rs`).
+  `logs_dir()`; the app log is `data/logs/irori.log`, and a panic writes
+  `crash-<time>.txt` beside it (`crates/irori/src/crash.rs`).
 - Tests isolate themselves with `Paths::init(Paths::under(tempdir))`.
 
 **Persistence** (`json_store.rs`):
@@ -298,21 +298,21 @@ and `launch.rs` before changing anything below the UI.
 
 **HTTP** (`http.rs`):
 
-- Use `ember_core::http::client()`: shared, rustls, `Ember/<version>` user agent,
+- Use `irori_core::http::client()`: shared, rustls, `Irori/<version>` user agent,
   10 s connect and 60 s total timeout. It must run inside the Tokio runtime.
-- Large downloads use `download_client()` (no total timeout) or `ember-depot`.
+- Large downloads use `download_client()` (no total timeout) or `irori-depot`.
 
 **Deleting files:** call `fs_guard::ensure_deletable(dir, app)` before any recursive
 delete of a game or prefix directory.
 
-### 4.2 Backend (`ember-services`)
+### 4.2 Backend (`irori-services`)
 
 `Backend` (`crates/services/src/lib.rs`) is the single entry point for the UI and the
 commands without a window.
 
 - `Backend::start(make_stores)` is for the app; `start_headless` is for CLI commands
   (no periodic tasks).
-- It owns a Tokio runtime named `ember-io`: 3 workers, 16 blocking threads. Use
+- It owns a Tokio runtime named `irori-io`: 3 workers, 16 blocking threads. Use
   `backend.spawn` and `backend.spawn_blocking`.
 - Public parts: `bus`, `settings` (`SettingsService`), `userdata`, `statuses`, plus
   `store(runner)`, `stores()`, `refresh_*`, downloads, launch/stop/uninstall/move/repair/import,
@@ -330,7 +330,7 @@ commands without a window.
 - **Launching** (`games.rs`):
   1. Busy and availability checks.
   2. Optional cloud-save sync.
-  3. `ember_runtime::prepare_launch`.
+  3. `irori_runtime::prepare_launch`.
   4. Before-launch script.
   5. `store.launch` builds the `LaunchPlan`.
   6. `process::spawn`, with a capped game log.
@@ -343,13 +343,13 @@ Every store crate follows the same shape:
 - `pub struct <Name>Store` with `pub fn new(bus: EventBus, settings: SettingsFn) -> Arc<Self>`,
   usually built with `Arc::new_cyclic` around a weak self.
 - `pub fn import_from_heroic(heroic_config_dir: &Path) -> anyhow::Result<()>`. It copies
-  the user's Heroic credentials and installs into Ember's layout. Existing Ember data
+  the user's Heroic credentials and installs into Irori's layout. Existing Irori data
   wins over Heroic's.
 - Test constructors take explicit paths or endpoints (`with_paths`, `with_endpoints`,
   `with_layout`), so tests run against temp dirs and in-process servers.
 
 **Several accounts.** A store crate never handles more than one login. The shell
-wraps Epic, GOG, Amazon, ZOOM and itch.io in `ember_services::MultiAccountStore`,
+wraps Epic, GOG, Amazon, ZOOM and itch.io in `irori_services::MultiAccountStore`,
 which runs one instance per account ("slot") and merges them into one `Store`:
 
 - The main slot uses the store's usual directories, so single-account data needs no
@@ -361,11 +361,11 @@ which runs one instance per account ("slot") and merges them into one `Store`:
   the wrapper with `store_for(app)`; store-wide tools (EOS overlay, EGL sync) use
   `main()`.
 
-The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
+The shell registers the stores in `crates/irori/src/stores.rs`, in this order: Epic,
 GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
 registered; empty and signed out while `settings.itch_io` is off, so its account card
 can turn it on), Steam, Launchers (always registered; empty while
-`emberThirdPartyLaunchers` is off), Emulation (the ROM library), then Sideload. Adding a
+`iroriThirdPartyLaunchers` is off), Emulation (the ROM library), then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.
@@ -375,16 +375,16 @@ store means:
 4. Its login flow.
 5. Its strings in every locale.
 
-### 4.4 UI (`ember-ui` and the feature crates)
+### 4.4 UI (`irori-ui` and the feature crates)
 
-`ember_ui::init(backend, cx)` runs after `gpui_kit::init`. It installs i18n,
+`irori_ui::init(backend, cx)` runs after `gpui_kit::init`. It installs i18n,
 `AppState`, theme, art, navigation and models.
 
 **Calling the backend from a view.** Never block the UI thread, and never await a
-backend future outside `ember_ui::run`, because it needs the Tokio runtime:
+backend future outside `irori_ui::run`, because it needs the Tokio runtime:
 
 ```rust
-let task = ember_ui::run(cx, async move { backend.launch(&id, None, vec![]).await });
+let task = irori_ui::run(cx, async move { backend.launch(&id, None, vec![]).await });
 cx.spawn_in(window, async move |this, cx| {
     let result = task.await;
     let _ = this.update_in(cx, |this, window, cx| {
@@ -422,7 +422,7 @@ cx.spawn_in(window, async move |this, cx| {
 
 **Theme and translucency:**
 
-- Themes live in `assets/themes`; Ember Night and Ember Day are the defaults. Apply
+- Themes live in `assets/themes`; Irori Night and Irori Day are the defaults. Apply
   them with `theme::apply`.
 - Surfaces take their colours from `glass::chrome(..)`, `glass::page(..)` and
   `solid_pages()`. Never add alpha yourself.
@@ -441,7 +441,7 @@ in `motion.rs`.
 - Key contexts are `*_CONTEXT` constants. Actions are declared per crate and bound
   once.
 
-### 4.5 Shell (`crates/ember`)
+### 4.5 Shell (`crates/irori`)
 
 `main.rs` does these steps in order. Keep them in this order:
 
@@ -452,7 +452,7 @@ in `motion.rs`.
    loopback TCP (`instance.json` holds the port and token, mode 0600) and exits.
 4. Logging, `Backend::start(stores::build)`, the GPUI application, URL and reopen
    handlers.
-5. Inside `run`: `gpui_kit::init`, `ember_ui::init`, every feature `init`, hooks,
+5. Inside `run`: `gpui_kit::init`, `irori_ui::init`, every feature `init`, hooks,
    key bindings, theme, tray, main window, then the `ShellCommand` loop.
 
 Other parts:
@@ -471,24 +471,24 @@ Other parts:
 
 - `LoginDialog` (`crates/feature-manage/src/login/`) opens the store's page in a
   window of its own.
-- That window runs in a **separate process**, so Ember's window never embeds a web
+- That window runs in a **separate process**, so Irori's window never embeds a web
   engine.
 - It watches every address and page text for the store's `capture` pattern, prints
   `{"text": "..."}` and exits 0. Closing it exits 2; bad arguments exit 1.
 
 **Which program shows it** (`login/window.rs::helper`), in this order:
 
-1. The `ember-sign-in` program next to Ember's executable, or on `PATH`.
-2. On macOS and Windows only, Ember itself, started as
-   `ember --sign-in-window --url … --capture … --title …`. Their web engines (WKWebView,
+1. The `irori-sign-in` program next to Irori's executable, or on `PATH`.
+2. On macOS and Windows only, Irori itself, started as
+   `irori --sign-in-window --url … --capture … --title …`. Their web engines (WKWebView,
    WebView2) ship with the system, so this adds no runtime dependency.
 3. Otherwise the browser. The dialog says why, opens the page in the default browser,
    watches the clipboard for the capture pattern and accepts a pasted code.
 
-On Linux the window needs WebKitGTK 4.1, which stays optional: Ember runs without it.
-So never make `ember` link WebKitGTK on Linux.
+On Linux the window needs WebKitGTK 4.1, which stays optional: Irori runs without it.
+So never make `irori` link WebKitGTK on Linux.
 
-`ember-sign-in` stays a standalone program with a stable command line. Packages ship
+`irori-sign-in` stays a standalone program with a stable command line. Packages ship
 it on every platform, and CI's Windows install test runs it.
 
 **A new store's login flow:**
@@ -503,7 +503,7 @@ it on every platform, and CI's Windows install test runs it.
 - `feature-bigpicture/src/gamepad/reader.rs` reads controllers on a dedicated gilrs
   thread that blocks until an event arrives, so it uses no CPU when idle.
 - `input.rs` normalizes input (repeat, dedupe) and is unit-tested.
-- `mod.rs` dispatches `ember_gamepad` actions to the focused element, or synthesizes
+- `mod.rs` dispatches `irori_gamepad` actions to the focused element, or synthesizes
   keystrokes (arrows, Enter, Escape, Ctrl+Enter, Ctrl+K) when the element doesn't
   handle them.
 - The Guide button toggles Big Picture. Every screen must stay usable with arrows,
@@ -514,7 +514,7 @@ it on every platform, and CI's Windows install test runs it.
 Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
 
 - **Words.** `Runner` is a store. An emulator, RetroArch, ScummVM or DOSBox is an
-  **engine** in code (`ember_engines::EngineManifest`) and an "emulator" in the UI. A
+  **engine** in code (`irori_engines::EngineManifest`) and an "emulator" in the UI. A
   console is a **system** (`assets/engines/systems.json`, ids like `psx`, `snes`, `dos`).
   An engine choice is an `EngineRef`, written `duckstation` or `retroarch:<core>`.
 - **Manifests are data.** Each engine is `assets/engines/<id>.json`: sources per OS
@@ -530,28 +530,28 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   another engine plays it). Systems may be `folderOnly` (arcade zips, Xbox images) and
   folder games may name the file engines open (`folderMain`) and the file naming them
   (`folderTitle`); BIOS files with many names match a `pattern`.
-- **Converting engines.** AnyPS5 (`kind: relinker`, `ember_engines::relink`) turns a PS5
-  game into a program of this computer before it plays, in Ember's data folder with the
+- **Converting engines.** AnyPS5 (`kind: relinker`, `irori_engines::relink`) turns a PS5
+  game into a program of this computer before it plays, in Irori's data folder with the
   game's files linked into `app0/`; it never writes the game folder. Its releases are a
   program plus a library archive (`extraAssets`), for Linux and Windows x86-64 only, so
   macOS explains it isn't available (`EngineUnavailable`) instead of offering an install.
 - **Option texts** are `manage.engines.option.<id>.label` / `.help` (and
-  `.<choice>` for choice values) in `ember-manage`; a test fails when a built-in option
+  `.<choice>` for choice values) in `irori-manage`; a test fails when a built-in option
   has no English text.
-- **Installs.** Ember downloads engines from the projects' own servers on request and
+- **Installs.** Irori downloads engines from the projects' own servers on request and
   never redistributes them. Managed versions sit side by side under
   `<data>/engines/<id>/<version>/` and are recorded in `<state>/engines.json` with the
   default installation per engine. Installing never changes what games use; Update does,
-  and a game pinned with `emberEngineVersion` keeps its version. Flatpak and system
+  and a game pinned with `iroriEngineVersion` keeps its version. Flatpak and system
   installs are detected and labelled, never installed or removed.
 - **BIOS.** Never download or link to BIOS files or ROMs. The BIOS index hashes only
   plausible files and caches digests by path, size and modification time; nothing is
   hashed at launch. Files are linked under the expected names before a launch.
-- **Settings keys** are Ember-only: `emberEngine`, `emberEngineVersion`,
-  `emberEngineOptions` (merged per engine and option over the defaults),
-  `emberEngineOwnSettings`, `emberSystemEngines`, `emberRomFolders`, `emberBiosFolder`.
-- **The ROM library** (`ember-emulation`, `Runner::Emulation`, serialized id
-  `emulation`, app names are a hash of the game's first file) scans `emberRomFolders`
+- **Settings keys** are Irori-only: `iroriEngine`, `iroriEngineVersion`,
+  `iroriEngineOptions` (merged per engine and option over the defaults),
+  `iroriEngineOwnSettings`, `iroriSystemEngines`, `iroriRomFolders`, `iroriBiosFolder`.
+- **The ROM library** (`irori-emulation`, `Runner::Emulation`, serialized id
+  `emulation`, app names are a hash of the game's first file) scans `iroriRomFolders`
   incrementally (detections cached by path, size and mtime) and watches them with
   `notify`. It never deletes ROMs: removing a game only hides it from the library.
   Launch order: BIOS check (typed `BiosMissing`), engine choice (game, then system
@@ -559,31 +559,31 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   way, version pin (typed `EngineMissing`), then the command. `GameInfo.system` and
   `GameInfo.tags` (region, revision) drive the system filter, badges, the generated
   cover and Big Picture's per-system shelves.
-- **Lutris import** (`ember-extras::lutris_import` reads; `crates/ember/src/lutris.rs`
+- **Lutris import** (`irori-extras::lutris_import` reads; `crates/irori/src/lutris.rs`
   applies). It only reads Lutris: `pga.db` is opened read-only and immutable, YAML is
   parsed, nothing is written there. Windows/Linux games become added apps with their
   prefix, Wine build (matched by name, else reported), arguments and variables;
   emulated games join the ROM library as added games with their emulator; Steam and
   store games are matched by id. Every game not imported comes back with a reason id
-  that `ember_ui::lutris_summary` translates. Tests build the SQLite database in the
+  that `irori_ui::lutris_summary` translates. Tests build the SQLite database in the
   test; `rusqlite` is built with `bundled` on every OS.
-- **Fix dialogs.** `ember_ui::save_conflict::resolve_launch_error` also turns
+- **Fix dialogs.** `irori_ui::save_conflict::resolve_launch_error` also turns
   `EngineMissing` and `BiosMissing` into dialogs with a fix (install and play, use the
   default version, choose the BIOS folder). Every place that starts a game already
   calls it.
-- **UI.** The Emulators page (`Route::Emulators`, `ember-manage::emulators`) installs,
+- **UI.** The Emulators page (`Route::Emulators`, `irori-manage::emulators`) installs,
   updates and removes versions and cores, and picks each system's default emulator.
-  Installs run through `ember_manage::start_install` so any screen can start one and the
+  Installs run through `irori_manage::start_install` so any screen can start one and the
   page shows its progress. Changes emit `Event::EnginesChanged`.
-- **Lutris install scripts** (`ember-scripts` interprets; `ember_services::scripts`
-  hosts Wine, DOSBox, programs and prompts; `ember_library::open_lutris_installer` is
-  the window, reached from Add game, the command palette and `ember://lutris/<slug>`).
+- **Lutris install scripts** (`irori-scripts` interprets; `irori_services::scripts`
+  hosts Wine, DOSBox, programs and prompts; `irori_library::open_lutris_installer` is
+  the window, reached from Add game, the command palette and `irori://lutris/<slug>`).
   These rules keep a community script from doing anything the user didn't see:
   - **Typed commands only.** A script is parsed into enums before anything runs. An
     unknown command, task, parameter or variable refuses the whole script, naming the
-    step; Ember's own variables (`$GAMEDIR`, `$CACHE`, `$HOME`…) cannot be redefined.
+    step; Irori's own variables (`$GAMEDIR`, `$CACHE`, `$HOME`…) cannot be redefined.
     Never add a "pass through" command or leave an unknown variable as text.
-  - **Consent before running.** `ember_scripts::consent` lists downloads (host and
+  - **Consent before running.** `irori_scripts::consent` lists downloads (host and
     size), every write outside the game folder, the cache and the prefix (each approved
     on its own), programs, registry edits, winetricks verbs and store autosetups. The
     executor refuses to run without `Approvals::accepted`.
@@ -605,23 +605,23 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
     never bundle, mirror or commit lutris.net scripts or catalogue data (test fixtures
     are hand-written).
   - **Result.** Wine and Linux scripts become added apps (`winePrefix`, `wineVersion`,
-    `enviromentOptions`); emulator runners join the ROM library with `emberEngine`
+    `enviromentOptions`); emulator runners join the ROM library with `iroriEngine`
     (mapped like the Lutris import). The Wine build is the script's own when installed
     (`match_wine_version`), else the default, and the window says which. Each game
-    records its script in the Ember-only per-game setting `emberLutrisScript`
+    records its script in the Irori-only per-game setting `iroriLutrisScript`
     (`{slug, installerSlug, version, revision, sourceUrl}`) for later reinstalls and
     updates.
 
 ### 4.9 Third-party launchers
 
-- Ember never handles Battle.net, EA app, Ubisoft Connect or Rockstar accounts. The
+- Irori never handles Battle.net, EA app, Ubisoft Connect or Rockstar accounts. The
   Stores page sets a launcher up once: a prefix of its own (`<prefixes>/<launcher
   name>`) with the Wine build the user picks, and the vendor's official installer
   (natively on Windows). The user signs in and installs games inside the launcher.
-- Games are read from the launcher's local data (`ember-launchers-data`) and listed as
+- Games are read from the launcher's local data (`irori-launchers-data`) and listed as
   `Runner::Launchers` with `third_party_managed_app` set. App names are
   `<launcher>:<id>` (`battlenet`, `ea`, `ubisoft`, `rockstar`). They start through the
-  launcher's flags or URI; Ember never installs, updates or removes them.
+  launcher's flags or URI; Irori never installs, updates or removes them.
 - **Sessions follow the game, not the launcher** (`crates/services/src/follow.rs`):
   while such a game runs, services look every 3 s for processes running from its
   install folder; the session ends when they are gone, or when the launcher exits
@@ -635,15 +635,15 @@ Match the code around you. In particular:
 
 - Use `anyhow::Result` with `.context("…")` / `.with_context(|| …)` worded for the
   user: these messages appear in the UI. Format chains with `{e:#}`.
-- `thiserror` is only for typed errors that callers match on (see `ember-depot`,
-  `ember-zoom`).
+- `thiserror` is only for typed errors that callers match on (see `irori-depot`,
+  `irori-zoom`).
 - No `unwrap()`/`expect()` on fallible runtime paths. They are fine in tests, and on
   invariants with an `expect("why this holds")`.
 
 **Async and threads**
 
 - Async code runs on the backend Tokio runtime.
-- Never block it: use `tokio::fs`, `ember_core::process`, or `spawn_blocking` for
+- Never block it: use `tokio::fs`, `irori_core::process`, or `spawn_blocking` for
   heavy filesystem or CPU work.
 - Never hold a `parking_lot` guard across `.await`. Use `tokio::sync::Mutex` when a
   lock must span awaits.
@@ -668,7 +668,7 @@ Match the code around you. In particular:
 
 **`unsafe`**
 
-- `ember-depot`, the protocol crates and `ember-gog-galaxy` are
+- `irori-depot`, the protocol crates and `irori-gog-galaxy` are
   `#![forbid(unsafe_code)]`. Keep it that way.
 - Elsewhere `unsafe` is for OS APIs only, with a `// SAFETY:` comment.
 
@@ -699,10 +699,10 @@ Match the code around you. In particular:
 
 **Naming**
 
-- Crates are `ember-<area>`. Views are `*View`, events `*Event`, entry points
+- Crates are `irori-<area>`. Views are `*View`, events `*Event`, entry points
   `open_*_dialog` / `open_*_sheet`, and every crate has an `init(cx)`.
-- Settings keys follow Heroic's spelling (camelCase); Ember-only keys start with
-  `ember` or describe themselves (`uiLanguage`, `zoomPlatform`).
+- Settings keys follow Heroic's spelling (camelCase); Irori-only keys start with
+  `irori` or describe themselves (`uiLanguage`, `zoomPlatform`).
 
 ## 6. UI conventions
 
@@ -765,12 +765,12 @@ Respect `style::reduce_motion(cx)`.
 - Store and tool names are never translated or changed (Epic Games, GOG, Steam,
   Proton, Wine, DXVK).
 
-You can't see the screen, so when a change affects layout, run Ember and look. If you
+You can't see the screen, so when a change affects layout, run Irori and look. If you
 can't, say so in the PR.
 
 ## 7. Translations
 
-Ember ships 19 languages, in the order of `ember_ui::i18n::LANGUAGES`: `en, cs, de, es,
+Irori ships 19 languages, in the order of `irori_ui::i18n::LANGUAGES`: `en, cs, de, es,
 fr, it, nl, pl, pt, pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant`.
 
 **Catalogs**
@@ -778,7 +778,7 @@ fr, it, nl, pl, pt, pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant`.
 - Each crate owns a key namespace and flat JSON catalogs in
   `crates/<crate>/locales/<code>.json`.
 - Namespaces: `ui.`, `library.`, `game.`, `manage.`, `settings.`, `bigpicture.`,
-  `shell.` (the `ember` crate, in `strings.rs`).
+  `shell.` (the `irori` crate, in `strings.rs`).
 - `en.json` is the source of truth.
 
 **In code**
@@ -797,7 +797,7 @@ fr, it, nl, pl, pt, pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant`.
 - Never leave English in another catalog: the tests treat a missing key as a failure.
 
 **The tests enforce this.** They live in each crate's `i18n.rs`, Big Picture's
-`catalog_tests` and `crates/ember/src/strings.rs`. They check:
+`catalog_tests` and `crates/irori/src/strings.rs`. They check:
 
 - Every catalog parses and has every English key.
 - No catalog has extra keys.
@@ -819,10 +819,10 @@ are no `tests/` directories or fixture folders. Fixtures are small inline JSON s
 - Tests never reach the network or read the user's real config, Heroic data or
   stores.
 - Use `tempfile` directories and `Paths::init(Paths::under(tmp))`.
-- For HTTP, use `ember_depot::test_server::TestServer` (dev-dependency feature
+- For HTTP, use `irori_depot::test_server::TestServer` (dev-dependency feature
   `test-server`) or a store's own test server. Store crates take endpoints or paths in
   test constructors for this.
-- Amazon manifests have `ember-amazon-api`'s `test-support` feature.
+- Amazon manifests have `irori-amazon-api`'s `test-support` feature.
 
 **What to test**
 
@@ -845,9 +845,9 @@ dev-dependency instead.
 
 **Ignored tests** (`#[ignore]`) need explicit setup:
 
-- `ember-runtime`'s release test needs `EMBER_RELEASE_TEST_URL` pointing at the local
+- `irori-runtime`'s release test needs `IRORI_RELEASE_TEST_URL` pointing at the local
   Postman mock in `postman/`.
-- The macOS runtime smoke test needs `EMBER_HOME` and `EMBER_RUNTIME_SMOKE=1`, and
+- The macOS runtime smoke test needs `IRORI_HOME` and `IRORI_RUNTIME_SMOKE=1`, and
   downloads a real runtime.
 
 Run ignored tests only when you're changing that code.
@@ -872,23 +872,23 @@ building and the release checklist.
 
 **Packaging** (`packaging/package.py`, Python 3.11+, standard library only)
 
-- Requires both `ember` and `ember-sign-in`, so a package never silently loses the
+- Requires both `irori` and `irori-sign-in`, so a package never silently loses the
   sign-in window.
 - Linux: a tarball with the desktop entry and icon.
-- macOS: `Ember.app` with the `ember://` scheme.
+- macOS: `Irori.app` with the `irori://` scheme.
   - Rejects any dylib outside the system paths.
-  - Signs the helper before the bundle (`EMBER_SIGN_IDENTITY`, ad-hoc by default).
+  - Signs the helper before the bundle (`IRORI_SIGN_IDENTITY`, ad-hoc by default).
   - Notarization is a separate, manual step.
 - Windows: a zip with `install.ps1`.
   - Checks that every binary is x64.
   - Bundles `vcruntime140.dll` and `vcruntime140_1.dll`.
-  - The installer installs per user under `%LOCALAPPDATA%\Programs\Ember` and
+  - The installer installs per user under `%LOCALAPPDATA%\Programs\Irori` and
     registers the URL handler and a Start-menu shortcut.
 
 **Desktop behaviour to keep working**
 
 - One instance per config root, with argument forwarding.
-- `ember://` links.
+- `irori://` links.
 - The tray.
 - Sleep inhibition while playing.
 - Shortcuts: `.desktop` files, app bundles or `.lnk` files.
@@ -905,10 +905,10 @@ building and the release checklist.
 
 **User data**
 
-- Work with `EMBER_HOME=<scratch dir>` when experimenting, so the user's real
+- Work with `IRORI_HOME=<scratch dir>` when experimenting, so the user's real
   library, settings and store sessions stay untouched.
 - Heroic data (`~/.config/heroic` and the Flatpak path) is read-only reference
-  material. Ember's import copies from it and never writes there.
+  material. Irori's import copies from it and never writes there.
 - Store accounts are real accounts. Don't sign in, install, uninstall or sync cloud
   saves against real accounts unless the person you're working for asked you to.
 
@@ -960,7 +960,7 @@ logic in `.github/scripts/pr_rules.py`). It fails a pull request that breaks the
 
 - `<type>(<scope>): <summary>` or `<type>: <summary>`, with **the same type as the
   branch**.
-- `scope` is optional, lower-case kebab: the area or crate without the `ember-` prefix
+- `scope` is optional, lower-case kebab: the area or crate without the `irori-` prefix
   (`epic`, `gog`, `store-epic`, `sign-in`, `library`, `game`, `manage`, `settings`,
   `bigpicture`, `ui`, `shell`, `runtime`, `depot`, `services`, `packaging`, `i18n`).
 - The summary is imperative and lower case ("keep", not "Keeps" or "Kept"). An
@@ -968,8 +968,8 @@ logic in `.github/scripts/pr_rules.py`). It fails a pull request that breaks the
 - At most 72 characters for the whole title.
 - A breaking change puts `!` before the colon (`feat(settings)!: move overrides to …`)
   and describes the break and the migration in the PR body. Breaking means changing
-  settings keys, on-disk state, the CLI, the `ember-sign-in` command line or the
-  `ember://` links.
+  settings keys, on-disk state, the CLI, the `irori-sign-in` command line or the
+  `irori://` links.
 
 ### Base branch
 
@@ -1022,7 +1022,7 @@ A change is done when all of these hold:
 - [ ] User-facing text is translated into all 19 languages.
 - [ ] It builds on Linux, macOS and Windows: no `#[cfg]` that leaves a platform
       without code.
-- [ ] You ran Ember and exercised the change (UI, login, install, launch, whatever it
+- [ ] You ran Irori and exercised the change (UI, login, install, launch, whatever it
       touches), or the PR says plainly that you couldn't.
 - [ ] Docs match the new behaviour.
 - [ ] No secrets, personal data or absolute local paths in the diff.
@@ -1032,11 +1032,11 @@ A change is done when all of these hold:
 
 These are things that have bitten this codebase before:
 
-- **`cargo run -p ember` builds only `ember`.** On Linux, sign-in falls back to the
-  browser until you `cargo build -p ember-sign-in` for the same profile. macOS and
-  Windows run the window from Ember itself.
-- **Package names are not directory names.** `crates/store-epic` is `ember-epic`, and
-  `crates/epic` is `ember-epic-api`.
+- **`cargo run -p irori` builds only `irori`.** On Linux, sign-in falls back to the
+  browser until you `cargo build -p irori-sign-in` for the same profile. macOS and
+  Windows run the window from Irori itself.
+- **Package names are not directory names.** `crates/store-epic` is `irori-epic`, and
+  `crates/epic` is `irori-epic-api`.
 - **Don't wait for `LibraryChanged` in UI code.** Wait for `LibraryUpdated`; the
   snapshot isn't rebuilt yet when `LibraryChanged` fires.
 - **DLC are in `store.games()`.** Anything that counts or lists games must filter
@@ -1048,9 +1048,9 @@ These are things that have bitten this codebase before:
 - **`Paths::init` only works once per process.** In tests, initialize once (for
   example in a `Once`) and give each test its own subdirectory.
 - **Never enable `gpui-kit/test-support`** (see [8](#8-tests)).
-- **Never add a web engine to Ember's window.** `crates/webview` is vendored but
+- **Never add a web engine to Irori's window.** `crates/webview` is vendored but
   excluded and unused. Sign-in runs in its own process.
-- **WebKitGTK must stay optional on Linux.** Linking it into `ember` would stop Ember
+- **WebKitGTK must stay optional on Linux.** Linking it into `irori` would stop Irori
   from starting on systems without it.
 - **macOS packages must not link Homebrew libraries.** `package.py` rejects them. Link
   statically (as with `xz2`'s `static` feature) or use system frameworks.
@@ -1058,7 +1058,7 @@ These are things that have bitten this codebase before:
   It has no console, so anything a parent must read goes through pipes the parent
   provides, as the sign-in mode does.
 - **The UI thread must never wait on I/O.** Even "quick" file reads go through
-  `ember_ui::run` or `backend.spawn_blocking`.
+  `irori_ui::run` or `backend.spawn_blocking`.
 
 ## 14. Notes for coding agents
 
@@ -1070,7 +1070,7 @@ These are things that have bitten this codebase before:
 - A full workspace build is heavy. While iterating, use `cargo check -p <package>` and
   `cargo test -p <package>`. Run the full clippy and test commands before you push.
 - Don't change public contracts (`Store`, `Backend`, events, settings keys,
-  `ember-sign-in` arguments, CLI) unless the task needs it. If it does, update every
+  `irori-sign-in` arguments, CLI) unless the task needs it. If it does, update every
   implementation and caller in the same change and call it out in the PR.
 - Don't touch unrelated files, reformat code you didn't change, or "tidy" other
   crates in passing.

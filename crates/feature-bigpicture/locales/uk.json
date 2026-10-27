@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Призупинити завантаження",
   "bigpicture.menu.resume_downloads": "Відновити завантаження",
   "bigpicture.menu.toggle_fullscreen": "Перемкнути повноекранний режим",
-  "bigpicture.menu.quit": "Вийти з Ember",
+  "bigpicture.menu.quit": "Вийти з Irori",
   "bigpicture.menu.no_downloads": "Немає завантажень",
   "bigpicture.error.launch": "Не вдалося запустити {title}",
   "bigpicture.error.stop": "Не вдалося зупинити {title}",

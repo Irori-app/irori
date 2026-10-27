@@ -7,12 +7,12 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use ember_core::Store as _;
 use futures::StreamExt as _;
+use irori_core::Store as _;
 
 use serde::{Deserialize, Serialize};
 
-use ember_core::util;
+use irori_core::util;
 
 use crate::api::{self, PostResult};
 use crate::{GogStore, load_json, save_json};

@@ -12,14 +12,6 @@ use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
 use chrono::Timelike as _;
-use ember_core::{GameId, GameInfo, InstallInfoQuery, RemoveArgs, StatusKind, UpdateRequest};
-use ember_ui::art::{LruImageCache, art_store};
-use ember_ui::components::{
-    ArtImage, EmptyState, art_image, art_img, art_loading, missing_art_fill, physical_width,
-};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::models;
-use ember_ui::style::art_tint;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::notification::Notification;
@@ -36,6 +28,15 @@ use gpui_kit::{
     StatefulInteractiveElement as _, Styled as _, StyledImage as _, Subscription, Task, Window,
     div, linear_color_stop, linear_gradient, point, px, rems, size, transparent_black,
 };
+use irori_core::{GameId, GameInfo, InstallInfoQuery, RemoveArgs, StatusKind, UpdateRequest};
+use irori_ui::art::{LruImageCache, art_store};
+use irori_ui::components::{
+    ArtImage, BrandMark, EmptyState, art_image, art_img, art_loading, missing_art_fill,
+    physical_width,
+};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::models;
+use irori_ui::style::art_tint;
 
 use crate::gamepad::{self, GamepadInput};
 use crate::grid::{FocusGrid, GridMove};
@@ -113,7 +114,7 @@ impl Colors {
     }
 }
 
-/// The Big Picture view (route [`ember_ui::Route::BigPicture`]). Owns its
+/// The Big Picture view (route [`irori_ui::Route::BigPicture`]). Owns its
 /// shelves (derived from the library model when its revision changes), the
 /// focus position, the open overlay, and the window's fullscreen state while
 /// it lives: it enters fullscreen when created and restores the previous
@@ -157,7 +158,7 @@ impl BigPictureView {
             }),
             cx.observe(&m.settings, |this, settings, cx| {
                 let zoom = settings.read(cx).app.ui.big_picture_zoom();
-                ember_ui::theme::set_zoom(zoom, cx);
+                irori_ui::theme::set_zoom(zoom, cx);
                 this.refresh_rows(cx);
                 cx.notify();
             }),
@@ -172,8 +173,8 @@ impl BigPictureView {
         }
 
         // Big Picture's own interface size, for TVs, while it shows.
-        ember_ui::theme::set_zoom(m.settings.read(cx).app.ui.big_picture_zoom(), cx);
-        cx.on_release(|_, cx| ember_ui::theme::set_zoom(1.0, cx))
+        irori_ui::theme::set_zoom(m.settings.read(cx).app.ui.big_picture_zoom(), cx);
+        cx.on_release(|_, cx| irori_ui::theme::set_zoom(1.0, cx))
             .detach();
 
         let restore_fullscreen = window.is_fullscreen();
@@ -604,7 +605,7 @@ impl BigPictureView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let b = ember_ui::backend(cx);
+        let b = irori_ui::backend(cx);
         let id = game.id();
         let title = game.title.clone();
         let error = |key: &str| t_args(key, &[("title", title.as_str())]);
@@ -612,7 +613,7 @@ impl BigPictureView {
             GameAction::Play => {
                 let id = id.clone();
                 (
-                    ember_ui::run(cx, async move { b.launch(&id, None, Vec::new()).await }),
+                    irori_ui::run(cx, async move { b.launch(&id, None, Vec::new()).await }),
                     error("bigpicture.error.launch"),
                     true,
                 )
@@ -620,19 +621,19 @@ impl BigPictureView {
             GameAction::Stop => {
                 let id = id.clone();
                 (
-                    ember_ui::run(cx, async move { b.stop(&id).await }),
+                    irori_ui::run(cx, async move { b.stop(&id).await }),
                     error("bigpicture.error.stop"),
                     false,
                 )
             }
             GameAction::Install => {
                 let app = models(cx).settings.read(cx).app.clone();
-                let dir = ember_core::paths::expand_home(&app.default_install_path);
+                let dir = irori_core::paths::expand_home(&app.default_install_path);
                 let platform = default_platform(&game);
                 let id = id.clone();
                 let game = game.clone();
                 (
-                    ember_ui::run(cx, async move {
+                    irori_ui::run(cx, async move {
                         if let Some(launcher) = &game.third_party_managed_app {
                             bail!(
                                 "{}",
@@ -678,7 +679,7 @@ impl BigPictureView {
             GameAction::CancelDownload => {
                 let id = id.clone();
                 (
-                    ember_ui::run(cx, async move {
+                    irori_ui::run(cx, async move {
                         b.cancel_download(&id, true);
                         Ok(())
                     }),
@@ -690,7 +691,7 @@ impl BigPictureView {
                 let id = id.clone();
                 let queued_title = title.clone();
                 (
-                    ember_ui::run(cx, async move {
+                    irori_ui::run(cx, async move {
                         b.enqueue_update(id, queued_title, UpdateRequest::default());
                         Ok(())
                     }),
@@ -702,7 +703,7 @@ impl BigPictureView {
                 let on = action == GameAction::AddFavourite;
                 let id = id.clone();
                 (
-                    ember_ui::run(cx, async move {
+                    irori_ui::run(cx, async move {
                         b.userdata.set_favourite(&id, on);
                         Ok(())
                     }),
@@ -720,10 +721,10 @@ impl BigPictureView {
             self.close_overlay(cx);
             return;
         };
-        let b = ember_ui::backend(cx);
+        let b = irori_ui::backend(cx);
         let id = game.id();
         let task_id = id.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             b.uninstall(
                 &task_id,
                 RemoveArgs {
@@ -773,7 +774,7 @@ impl BigPictureView {
                     }
                     // Only Play can hit saves that changed in both places.
                     Err(e)
-                        if ember_ui::save_conflict::resolve_launch_error(
+                        if irori_ui::save_conflict::resolve_launch_error(
                             &id,
                             Default::default(),
                             &e,
@@ -799,11 +800,11 @@ impl BigPictureView {
     }
 
     fn activate_menu_item(&mut self, item: MenuItem, window: &mut Window, cx: &mut Context<Self>) {
-        let b = ember_ui::backend(cx);
+        let b = irori_ui::backend(cx);
         match item {
             MenuItem::PauseDownloads | MenuItem::ResumeDownloads => {
                 let pause = item == MenuItem::PauseDownloads;
-                let task = ember_ui::run(cx, async move {
+                let task = irori_ui::run(cx, async move {
                     if pause {
                         b.pause_downloads();
                     } else {
@@ -826,7 +827,7 @@ impl BigPictureView {
             }
             MenuItem::InterfaceSize(current) => {
                 let next = next_scale(current);
-                let task = ember_ui::run(cx, async move {
+                let task = irori_ui::run(cx, async move {
                     b.settings.update_app(|app| app.ui.big_picture_scale = next);
                     Ok::<_, anyhow::Error>(())
                 });
@@ -836,13 +837,13 @@ impl BigPictureView {
             MenuItem::SetUpEmulation => {
                 self.close_overlay(cx);
                 crate::exit_big_picture(cx);
-                ember_ui::hooks::open_emulation_setup(window, cx);
+                irori_ui::hooks::open_emulation_setup(window, cx);
             }
             MenuItem::ExitBigPicture => {
                 self.close_overlay(cx);
                 crate::exit_big_picture(cx);
             }
-            MenuItem::QuitEmber => cx.quit(),
+            MenuItem::QuitIrori => cx.quit(),
         }
     }
 
@@ -1025,7 +1026,7 @@ impl BigPictureView {
                                 .text_color(c.foreground)
                                 .child(label),
                         )
-                        .child(ember_ui::motion::gliding_progress(
+                        .child(irori_ui::motion::gliding_progress(
                             SharedString::from(format!("bp-progress-{}-{key}", kind.id())),
                             pct,
                         )),
@@ -1070,7 +1071,7 @@ impl BigPictureView {
             .and_then(|g| g.hero_art().map(str::to_owned));
         let tint = url
             .as_deref()
-            .and_then(|url| ember_ui::art::ambient(url, cx))
+            .and_then(|url| irori_ui::art::ambient(url, cx))
             .map(|a| art_tint(a.rgb, cx));
         let image = url.and_then(|url| art_img(&url, width.min(1920), false, cx));
         div()
@@ -1162,22 +1163,8 @@ impl BigPictureView {
                 h_flex()
                     .flex_shrink_0()
                     .gap_3()
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .size_10()
-                            .rounded(c.radius)
-                            .bg(linear_gradient(
-                                135.,
-                                linear_color_stop(cx.theme().warning, 0.),
-                                linear_color_stop(c.ring, 0.6),
-                            ))
-                            .text_color(cx.theme().primary_foreground)
-                            .child(Icon::new(IconName::Flame).large()),
-                    )
-                    .child(div().text_2xl().font_extrabold().child("Ember"))
+                    .child(BrandMark::new(rems(2.5)))
+                    .child(div().text_2xl().font_extrabold().child("Irori"))
                     .child(
                         div()
                             .text_sm()
@@ -1854,14 +1841,14 @@ impl Render for BigPictureView {
 mod tests {
     use std::path::Path;
 
-    use ember_core::{
-        DynStore, ExtraInfo, InstallInfo, InstallPlatform, InstallRequest, LaunchPlan,
-        LaunchRequest, LoginFlow, OpContext, Outcome, Paths, Runner, Store, UserInfo, async_trait,
-    };
-    use ember_services::Backend;
     use gpui_kit::{
         AppContext as _, Bounds, TestAppContext, WindowBounds, WindowOptions, px, size,
     };
+    use irori_core::{
+        DynStore, ExtraInfo, InstallInfo, InstallPlatform, InstallRequest, LaunchPlan,
+        LaunchRequest, LoginFlow, OpContext, Outcome, Paths, Runner, Store, UserInfo, async_trait,
+    };
+    use irori_services::Backend;
 
     use super::*;
 
@@ -1960,7 +1947,7 @@ mod tests {
 
     fn start_backend() -> Backend {
         let root =
-            std::env::temp_dir().join(format!("ember-bigpicture-test-{}", std::process::id()));
+            std::env::temp_dir().join(format!("irori-bigpicture-test-{}", std::process::id()));
         Paths::init(Paths::under(&root));
         let backend = Backend::start_headless(|_, _| {
             let games = library();
@@ -2004,7 +1991,7 @@ mod tests {
         let backend = start_backend();
         cx.update(|cx| {
             gpui_kit::init(cx);
-            ember_ui::init(backend, cx);
+            irori_ui::init(backend, cx);
             crate::bind_keys(cx);
         });
         let (handle, view) = cx.update(|cx| {

@@ -13,7 +13,7 @@ pub mod vdf;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
-use ember_core::{AppSettings, GameId, GameInfo};
+use irori_core::{AppSettings, GameId, GameInfo};
 
 use self::shortcuts_file::{GridIds, NewShortcut, ShortcutEntry, ShortcutsFile};
 use super::LauncherCommand;
@@ -61,13 +61,13 @@ pub fn steam_path(app: &AppSettings) -> PathBuf {
     let configured = app.default_steam_path.replace('\'', "");
     let configured = configured.trim();
     if !configured.is_empty() {
-        let p = ember_core::paths::expand_home(configured);
+        let p = irori_core::paths::expand_home(configured);
         if p.join("userdata").is_dir() {
             return p;
         }
     }
     if !cfg!(target_os = "linux") {
-        return ember_core::platform::steam_dir();
+        return irori_core::platform::steam_dir();
     }
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
     let candidates = [
@@ -147,7 +147,7 @@ pub async fn is_running(steam: &Path) -> bool {
     })
 }
 
-/// `Exe`, `StartDir` and `LaunchOptions` of Ember's shortcut for a game.
+/// `Exe`, `StartDir` and `LaunchOptions` of Irori's shortcut for a game.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EntryCommand {
     pub exe: String,
@@ -184,8 +184,8 @@ fn quote_if_needed(s: &str) -> String {
     }
 }
 
-/// Whether a shortcut entry launches this game through Ember (`--launch
-/// runner/app` or an `ember://launch/runner/app` URL). Titles are never
+/// Whether a shortcut entry launches this game through Irori (`--launch
+/// runner/app` or an `irori://launch/runner/app` URL). Titles are never
 /// compared, so renamed entries still match and other tools' entries never do.
 pub fn matches_game(entry: ShortcutEntry<'_>, id: &GameId) -> bool {
     let target = super::launch_target(id);
@@ -202,13 +202,13 @@ pub fn matches_game(entry: ShortcutEntry<'_>, id: &GameId) -> bool {
     };
     found(&format!("--launch \"{target}\""))
         || found(&format!("--launch {target}"))
-        || found(&format!("ember://launch/{target}"))
-        || found(&format!("ember://launch/{encoded}"))
+        || found(&format!("irori://launch/{target}"))
+        || found(&format!("irori://launch/{encoded}"))
 }
 
-/// Steam collection every Ember shortcut is filed under, so Ember's games
+/// Steam collection every Irori shortcut is filed under, so Irori's games
 /// are listed together instead of only under "Non-Steam".
-pub const COLLECTION: &str = "Ember";
+pub const COLLECTION: &str = "Irori";
 
 /// A game to add, with its Steam app ID (from wiki data) when known, which
 /// selects official Steam artwork.
@@ -221,7 +221,7 @@ pub struct SteamGame<'a> {
 /// Add the game to every Steam user's shortcuts and set its artwork.
 /// `steam_app_id` (from wiki data) selects official Steam artwork when known.
 ///
-/// The game need not be installed: the shortcut starts Ember, which offers
+/// The game need not be installed: the shortcut starts Irori, which offers
 /// to install a game that isn't installed yet.
 pub async fn add(
     game: &GameInfo,
@@ -276,7 +276,7 @@ pub async fn add_many(games: &[SteamGame<'_>], app: &AppSettings) -> Result<Stea
             start_dir: cmd.start_dir.clone(),
             icon,
             launch_options: cmd.launch_options.clone(),
-            last_play_time: i32::try_from(ember_core::util::unix_now()).unwrap_or(i32::MAX),
+            last_play_time: i32::try_from(irori_core::util::unix_now()).unwrap_or(i32::MAX),
             tags: vec![COLLECTION.to_string()],
         }
         .to_entry();
@@ -324,7 +324,7 @@ pub async fn add_many(games: &[SteamGame<'_>], app: &AppSettings) -> Result<Stea
     Ok(report)
 }
 
-/// Append the entries whose game has no Ember shortcut in `file` yet;
+/// Append the entries whose game has no Irori shortcut in `file` yet;
 /// returns the indices of those appended.
 fn push_missing(file: &mut ShortcutsFile, entries: &[(&GameId, &vdf::Map)]) -> Vec<usize> {
     let mut added = Vec::new();
@@ -403,7 +403,7 @@ pub async fn remove(game: &GameInfo, app: &AppSettings) -> Result<SteamReport> {
     Ok(report)
 }
 
-/// Whether any Steam user has an Ember shortcut for the game.
+/// Whether any Steam user has an Irori shortcut for the game.
 pub async fn is_added(game: &GameInfo, app: &AppSettings) -> bool {
     let steam = steam_path(app);
     match users(&steam).await {
@@ -435,11 +435,11 @@ async fn read_file(path: &Path) -> Result<Option<ShortcutsFile>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn launcher() -> LauncherCommand {
         LauncherCommand {
-            program: "/usr/bin/ember".into(),
+            program: "/usr/bin/irori".into(),
             prefix_args: vec![],
             working_dir: "/usr/bin".into(),
         }
@@ -449,7 +449,7 @@ mod tests {
     fn entry_command_and_matching() {
         let id = GameId::new(Runner::Gog, "1423049311");
         let cmd = EntryCommand::new(&launcher(), &id);
-        assert_eq!(cmd.exe, "\"/usr/bin/ember\"");
+        assert_eq!(cmd.exe, "\"/usr/bin/irori\"");
         assert_eq!(cmd.start_dir, "\"/usr/bin\"");
         assert_eq!(cmd.launch_options, "--launch \"gog/1423049311\"");
 
@@ -475,7 +475,7 @@ mod tests {
 
         let url_entry = vdf::Map::new().with(
             "LaunchOptions",
-            vdf::Value::String("\"ember://launch/sideload/my%20app\"".into()),
+            vdf::Value::String("\"irori://launch/sideload/my%20app\"".into()),
         );
         assert!(matches_game(
             ShortcutEntry(&url_entry),
@@ -487,19 +487,19 @@ mod tests {
     fn flatpak_launch_options() {
         let l = LauncherCommand {
             program: "flatpak".into(),
-            prefix_args: vec!["run".into(), "org.ember.Ember".into()],
+            prefix_args: vec!["run".into(), "app.irori.Irori".into()],
             working_dir: "/home/u".into(),
         };
         let cmd = EntryCommand::new(&l, &GameId::new(Runner::Nile, "amzn1.x"));
         assert_eq!(cmd.exe, "\"flatpak\"");
         assert_eq!(
             cmd.launch_options,
-            "run org.ember.Ember --launch \"nile/amzn1.x\""
+            "run app.irori.Irori --launch \"nile/amzn1.x\""
         );
     }
 
     #[test]
-    fn adds_only_missing_games_in_the_ember_collection() {
+    fn adds_only_missing_games_in_the_irori_collection() {
         let entry = |id: &GameId, title: &str| {
             let cmd = EntryCommand::new(&launcher(), id);
             NewShortcut {

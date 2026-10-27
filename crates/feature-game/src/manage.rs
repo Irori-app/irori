@@ -3,9 +3,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, InstallPlatform, RemoveArgs, Runner};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::checkbox::Checkbox;
@@ -18,6 +15,9 @@ use gpui_kit::{
     App, AppContext as _, Context, Entity, IntoElement, ParentElement, Render, SharedString,
     Styled, Window, div,
 };
+use irori_core::{GameId, GameInfo, InstallPlatform, RemoveArgs, Runner};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models, navigate};
 
 use crate::i18n::{platform_label, status_label};
 use crate::install::installable_platforms;
@@ -74,7 +74,7 @@ impl ImportForm {
 
     fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let raw = self.path.read(cx).value();
-        let path = ember_core::paths::expand_home(raw.trim());
+        let path = irori_core::paths::expand_home(raw.trim());
         if raw.trim().is_empty() {
             return;
         }
@@ -259,7 +259,7 @@ pub fn open_uninstall_dialog(id: GameId, window: &mut Window, cx: &mut App) {
     let title = game.title.clone();
     let status = models(cx).statuses.read(cx).kind(&id);
     if let Some(kind) = status.filter(|k| k.is_busy()) {
-        let text = if kind == ember_core::StatusKind::Playing {
+        let text = if kind == irori_core::StatusKind::Playing {
             t_args("game.uninstall.running", &[("title", &title)])
         } else {
             t_args(
@@ -280,10 +280,10 @@ pub fn open_uninstall_dialog(id: GameId, window: &mut Window, cx: &mut App) {
         .installed_platform()
         .unwrap_or(InstallPlatform::Windows)
         .needs_wine();
-    let prefix = uses_wine.then(|| ember_runtime::prefix_path(&app, &settings, &game));
+    let prefix = uses_wine.then(|| irori_runtime::prefix_path(&app, &settings, &game));
     let prefix_is_shared = prefix
         .as_ref()
-        .is_some_and(|p| ember_runtime::prefix_is_shared(&app, p));
+        .is_some_and(|p| irori_runtime::prefix_is_shared(&app, p));
     let is_dlc = game.is_dlc;
     let options = cx.new(|_| UninstallOptions {
         is_dlc,

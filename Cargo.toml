@@ -12,35 +12,35 @@ license = "GPL-3.0-or-later"
 publish = false
 
 [workspace.dependencies]
-ember-core = { path = "crates/core" }
-ember-runtime = { path = "crates/runtime" }
-ember-engines = { path = "crates/engines" }
-ember-epic = { path = "crates/store-epic" }
-ember-gog = { path = "crates/store-gog" }
-ember-amazon = { path = "crates/store-amazon" }
-ember-zoom = { path = "crates/store-zoom" }
-ember-sideload = { path = "crates/store-sideload" }
-ember-emulation = { path = "crates/store-emulation" }
-ember-launchers = { path = "crates/store-launchers" }
-ember-steam = { path = "crates/store-steam" }
-ember-sign-in = { path = "crates/sign-in" }
-ember-depot = { path = "crates/depot" }
-ember-amazon-api = { path = "crates/amazon" }
-ember-epic-api = { path = "crates/epic" }
-ember-gog-api = { path = "crates/gog" }
-ember-gog-galaxy = { path = "crates/gog-galaxy" }
-ember-itch-api = { path = "crates/itch" }
-ember-itch = { path = "crates/store-itch" }
-ember-launchers-data = { path = "crates/launchers" }
-ember-services = { path = "crates/services" }
-ember-extras = { path = "crates/extras" }
-ember-ui = { path = "crates/ui" }
-ember-library = { path = "crates/feature-library" }
-ember-game = { path = "crates/feature-game" }
-ember-settings = { path = "crates/feature-settings" }
-ember-manage = { path = "crates/feature-manage" }
-ember-bigpicture = { path = "crates/feature-bigpicture" }
-ember-scripts = { path = "crates/scripts" }
+irori-core = { path = "crates/core" }
+irori-runtime = { path = "crates/runtime" }
+irori-engines = { path = "crates/engines" }
+irori-epic = { path = "crates/store-epic" }
+irori-gog = { path = "crates/store-gog" }
+irori-amazon = { path = "crates/store-amazon" }
+irori-zoom = { path = "crates/store-zoom" }
+irori-sideload = { path = "crates/store-sideload" }
+irori-emulation = { path = "crates/store-emulation" }
+irori-launchers = { path = "crates/store-launchers" }
+irori-steam = { path = "crates/store-steam" }
+irori-sign-in = { path = "crates/sign-in" }
+irori-depot = { path = "crates/depot" }
+irori-amazon-api = { path = "crates/amazon" }
+irori-epic-api = { path = "crates/epic" }
+irori-gog-api = { path = "crates/gog" }
+irori-gog-galaxy = { path = "crates/gog-galaxy" }
+irori-itch-api = { path = "crates/itch" }
+irori-itch = { path = "crates/store-itch" }
+irori-launchers-data = { path = "crates/launchers" }
+irori-services = { path = "crates/services" }
+irori-extras = { path = "crates/extras" }
+irori-ui = { path = "crates/ui" }
+irori-library = { path = "crates/feature-library" }
+irori-game = { path = "crates/feature-game" }
+irori-settings = { path = "crates/feature-settings" }
+irori-manage = { path = "crates/feature-manage" }
+irori-bigpicture = { path = "crates/feature-bigpicture" }
+irori-scripts = { path = "crates/scripts" }
 
 gpui-kit = "0.8.0"
 anyhow = "1"

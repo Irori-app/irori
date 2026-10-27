@@ -8,7 +8,7 @@ use std::fmt;
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::AppSettings;
+use irori_core::AppSettings;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -116,7 +116,7 @@ fn unwrap_envelope<T: DeserializeOwned>(body: &[u8], what: &str) -> Result<T> {
 }
 
 async fn get<T: DeserializeOwned>(key: &ApiKey, path: &str, what: &str) -> Result<T> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(format!("{BASE}{path}"))
         .bearer_auth(&key.0)
         .timeout(TIMEOUT)

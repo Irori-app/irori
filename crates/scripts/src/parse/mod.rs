@@ -255,7 +255,7 @@ fn parse_object(top: &Map<String, Value>) -> Result<Script, ScriptError> {
     if !RUNNERS.contains(&runner.as_str()) {
         return Err(invalid(
             "Script",
-            format!("“{runner}” is not a runner Ember knows"),
+            format!("“{runner}” is not a runner Irori knows"),
         ));
     }
 

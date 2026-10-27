@@ -1,20 +1,20 @@
-//! Desktop notifications for what happens while Ember is not in front: a
+//! Desktop notifications for what happens while Irori is not in front: a
 //! download finished or failed, a game failed to start, a store needs logging
-//! in again, updates came out. While Ember's window is active its own toasts
+//! in again, updates came out. While Irori's window is active its own toasts
 //! are enough.
 
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use ember_core::{GameId, Notice};
 use gpui_kit::{App, BorrowAppContext as _, Global, SharedString, SystemNotification};
+use irori_core::{GameId, Notice};
 
 use crate::i18n::{t, t_args};
 use crate::nav::Route;
 
-/// Identity Ember's notifications are shown under. Matches the macOS bundle
+/// Identity Irori's notifications are shown under. Matches the macOS bundle
 /// id in `packaging/package.py`; Windows toasts need it set to show at all.
-const APP_ID: &str = "org.ember.Ember";
+const APP_ID: &str = "app.irori.Irori";
 /// Notifications whose click target is remembered.
 const REMEMBERED: usize = 32;
 
@@ -32,11 +32,11 @@ struct OnOpen(OpenFn);
 
 impl Global for OnOpen {}
 
-/// Register Ember with the desktop's notification service. `open` brings the
+/// Register Irori with the desktop's notification service. `open` brings the
 /// window forward (reopening it from the tray) and shows the page, if any,
 /// when a notification is clicked.
 pub fn install(open: impl Fn(Option<Route>, &mut App) + 'static, cx: &mut App) {
-    cx.set_app_identity(APP_ID, "Ember");
+    cx.set_app_identity(APP_ID, "Irori");
     cx.set_global(SystemNotices {
         next: 0,
         targets: VecDeque::new(),
@@ -69,7 +69,7 @@ pub fn notice_text(n: &Notice) -> (SharedString, Option<SharedString>) {
     (title, message)
 }
 
-/// Whether Ember is in the background: no window of it is active.
+/// Whether Irori is in the background: no window of it is active.
 fn in_background(cx: &App) -> bool {
     cx.active_window().is_none()
 }
@@ -88,7 +88,7 @@ fn post(title: SharedString, body: SharedString, route: Option<Route>, cx: &mut 
     let Some(state) = cx.try_global::<SystemNotices>() else {
         return;
     };
-    let tag = SharedString::from(format!("ember-{}", state.next));
+    let tag = SharedString::from(format!("irori-{}", state.next));
     cx.update_global::<SystemNotices, _>(|n, _| {
         n.next += 1;
         n.targets.push_back((tag.clone(), route));
@@ -104,7 +104,7 @@ fn post(title: SharedString, body: SharedString, route: Option<Route>, cx: &mut 
     });
 }
 
-/// Show `notice` on the desktop when Ember is in the background.
+/// Show `notice` on the desktop when Irori is in the background.
 pub(crate) fn notice(notice: &Notice, cx: &mut App) {
     if !in_background(cx) {
         return;
@@ -113,7 +113,7 @@ pub(crate) fn notice(notice: &Notice, cx: &mut App) {
     post(title, message.unwrap_or_default(), notice_route(notice), cx);
 }
 
-/// Tell the user a game failed to start, when Ember is in the background.
+/// Tell the user a game failed to start, when Irori is in the background.
 pub(crate) fn failed_start(id: &GameId, title: &str, cx: &mut App) {
     if !in_background(cx) {
         return;

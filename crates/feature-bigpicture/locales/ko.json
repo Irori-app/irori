@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "다운로드 일시 정지",
   "bigpicture.menu.resume_downloads": "다운로드 재개",
   "bigpicture.menu.toggle_fullscreen": "전체 화면 전환",
-  "bigpicture.menu.quit": "Ember 종료",
+  "bigpicture.menu.quit": "Irori 종료",
   "bigpicture.menu.no_downloads": "다운로드 없음",
   "bigpicture.error.launch": "{title}을(를) 실행하지 못했습니다",
   "bigpicture.error.stop": "{title}을(를) 중지하지 못했습니다",

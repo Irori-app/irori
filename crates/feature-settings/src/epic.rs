@@ -1,16 +1,11 @@
 //! The "Epic Games" group of Advanced: EOS overlay management and Epic
-//! Games Launcher (EGL) sync, driven through `ember_epic::EpicStore`.
+//! Games Launcher (EGL) sync, driven through `irori_epic::EpicStore`.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
-use ember_core::process::CancellationToken;
-use ember_core::{OpContext, Outcome};
-use ember_epic::{EosOverlayStatus, EpicStore};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -24,6 +19,11 @@ use gpui_kit::{
     AppContext as _, Context, Entity, IntoElement, ParentElement as _, PathPromptOptions, Render,
     SharedString, Styled as _, Subscription, Task, Window, div,
 };
+use irori_core::process::CancellationToken;
+use irori_core::{OpContext, Outcome};
+use irori_epic::{EosOverlayStatus, EpicStore};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::i18n::LanguageStamp;
 use crate::widgets::muted;
@@ -150,7 +150,7 @@ impl EosOverlayPanel {
             self.checking = true;
         }
         let epic = self.epic.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if check {
                 epic.eos_overlay_refresh_info().await?;
             }
@@ -210,7 +210,7 @@ impl EosOverlayPanel {
             ..OpContext::detached()
         };
         let epic = self.epic.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             match op {
                 OverlayOp::Install => epic.eos_overlay_install(ctx).await,
                 OverlayOp::Update => epic.eos_overlay_update(ctx).await,
@@ -391,7 +391,7 @@ pub(crate) fn egl_prefix_from_text(text: &str) -> Result<PathBuf, String> {
     if text.is_empty() {
         return Err(t("settings.egl.prefix_required").into());
     }
-    Ok(ember_core::paths::expand_home(text))
+    Ok(irori_core::paths::expand_home(text))
 }
 
 /// Link legendary with an Epic Games Launcher in a Wine prefix, or unlink.
@@ -485,7 +485,7 @@ impl EglSyncPanel {
                 &[("path", &p.display().to_string())],
             )
         });
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if let Some(p) = &target {
                 let is_dir = tokio::fs::metadata(p).await.is_ok_and(|m| m.is_dir());
                 if !is_dir {

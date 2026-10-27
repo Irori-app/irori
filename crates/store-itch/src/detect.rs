@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ember_core::InstallPlatform;
+use irori_core::InstallPlatform;
 use once_cell::sync::Lazy;
 use regex::Regex;
 

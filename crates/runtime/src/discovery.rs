@@ -1,6 +1,6 @@
 //! Discovery of the Wine and Proton builds on this system.
 //!
-//! Sources, in priority order: Ember's own downloads, Heroic's downloads,
+//! Sources, in priority order: Irori's own downloads, Heroic's downloads,
 //! Steam (`compatibilitytools.d` in every library, plus Valve Proton in
 //! `steamapps/common` when enabled), Lutris runners, Bottles runners, the
 //! system Wine and the user's custom paths. Unlike Heroic, the result is
@@ -11,8 +11,8 @@ use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ember_core::process::{CommandSpec, RunOptions};
-use ember_core::{AppSettings, Paths, WineInstallation, WineKind};
+use irori_core::process::{CommandSpec, RunOptions};
+use irori_core::{AppSettings, Paths, WineInstallation, WineKind};
 use serde::{Deserialize, Serialize};
 
 use crate::locations;
@@ -21,8 +21,8 @@ use crate::locations;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum WineSource {
-    /// Downloaded by Ember's Wine manager.
-    Ember,
+    /// Downloaded by Irori's Wine manager.
+    Irori,
     /// Downloaded by Heroic.
     Heroic,
     /// Steam's `compatibilitytools.d` or Valve Proton.
@@ -38,7 +38,7 @@ pub enum WineSource {
 impl WineSource {
     pub fn label(self) -> &'static str {
         match self {
-            WineSource::Ember => "Ember",
+            WineSource::Irori => "Irori",
             WineSource::Heroic => "Heroic",
             WineSource::Steam => "Steam",
             WineSource::Lutris => "Lutris",
@@ -60,8 +60,8 @@ pub struct DiscoveredWine {
 /// this system; tests build their own.
 #[derive(Debug, Clone, Default)]
 pub struct ScanRoots {
-    pub ember_wine: Vec<PathBuf>,
-    pub ember_proton: Vec<PathBuf>,
+    pub irori_wine: Vec<PathBuf>,
+    pub irori_proton: Vec<PathBuf>,
     pub heroic_wine: Vec<PathBuf>,
     pub heroic_proton: Vec<PathBuf>,
     /// Steam library roots (each may contain `compatibilitytools.d`,
@@ -84,8 +84,8 @@ impl ScanRoots {
         let steam = locations::steam_path(app);
         let heroic = locations::heroic_tools_dir();
         Self {
-            ember_wine: vec![Paths::get().wine_dir()],
-            ember_proton: vec![Paths::get().proton_dir()],
+            irori_wine: vec![Paths::get().wine_dir()],
+            irori_proton: vec![Paths::get().proton_dir()],
             heroic_wine: heroic.iter().map(|d| d.join("wine")).collect(),
             heroic_proton: heroic.iter().map(|d| d.join("proton")).collect(),
             steam_libraries: crate::vdf::steam_libraries(&steam),
@@ -257,7 +257,7 @@ pub fn is_valid(w: &WineInstallation) -> bool {
 
 /// A present build whose runtime family supports the current host.
 pub fn is_usable(w: &WineInstallation) -> bool {
-    if !ember_core::HostPlatform::current().supports_wine(w.kind) || !is_valid(w) {
+    if !irori_core::HostPlatform::current().supports_wine(w.kind) || !is_valid(w) {
         return false;
     }
     if cfg!(target_os = "macos") {
@@ -343,7 +343,7 @@ pub fn wine_build(dir: &Path, name: &str) -> WineInstallation {
 /// Nothing here initializes or alters an external application's bottles.
 pub fn mac_installations(app: &AppSettings) -> Vec<DiscoveredWine> {
     let mut out = Vec::new();
-    for (base, source) in [(Paths::get().tools_dir(), WineSource::Ember)]
+    for (base, source) in [(Paths::get().tools_dir(), WineSource::Irori)]
         .into_iter()
         .chain(locations::heroic_tools_dir().map(|p| (p, WineSource::Heroic)))
     {
@@ -399,7 +399,7 @@ pub fn mac_installations(app: &AppSettings) -> Vec<DiscoveredWine> {
         ));
     }
     for custom in &app.custom_wine_paths {
-        let path = ember_core::paths::expand_home(&unquote(custom));
+        let path = irori_core::paths::expand_home(&unquote(custom));
         let text = path.to_string_lossy().to_lowercase();
         let kind = if text.contains(".app/contents/sharedsupport/crossover/") {
             WineKind::Crossover
@@ -479,8 +479,8 @@ fn scan_wine_dir(dir: &Path, source: WineSource, out: &mut Vec<DiscoveredWine>) 
 /// Scan every directory in `roots` (blocking filesystem work).
 pub fn scan(roots: &ScanRoots) -> Vec<DiscoveredWine> {
     let mut out = Vec::new();
-    for d in &roots.ember_proton {
-        scan_proton_dir(d, WineSource::Ember, &mut out);
+    for d in &roots.irori_proton {
+        scan_proton_dir(d, WineSource::Irori, &mut out);
     }
     for d in &roots.heroic_proton {
         scan_proton_dir(d, WineSource::Heroic, &mut out);
@@ -508,8 +508,8 @@ pub fn scan(roots: &ScanRoots) -> Vec<DiscoveredWine> {
     for d in &roots.steam_compat_dirs {
         scan_proton_dir(d, WineSource::Steam, &mut out);
     }
-    for d in &roots.ember_wine {
-        scan_wine_dir(d, WineSource::Ember, &mut out);
+    for d in &roots.irori_wine {
+        scan_wine_dir(d, WineSource::Irori, &mut out);
     }
     for d in &roots.heroic_wine {
         scan_wine_dir(d, WineSource::Heroic, &mut out);
@@ -591,8 +591,8 @@ pub async fn system_wine() -> Option<DiscoveredWine> {
 pub(crate) async fn run_with_timeout(
     spec: &CommandSpec,
     limit: Duration,
-) -> Option<ember_core::process::ExecResult> {
-    let cancel = ember_core::process::CancellationToken::new();
+) -> Option<irori_core::process::ExecResult> {
+    let cancel = irori_core::process::CancellationToken::new();
     let timer = {
         let cancel = cancel.clone();
         tokio::spawn(async move {
@@ -600,7 +600,7 @@ pub(crate) async fn run_with_timeout(
             cancel.cancel();
         })
     };
-    let res = ember_core::process::run(spec, RunOptions::default().cancel(cancel)).await;
+    let res = irori_core::process::run(spec, RunOptions::default().cancel(cancel)).await;
     timer.abort();
     res.ok().filter(|r| !r.aborted)
 }
@@ -658,14 +658,14 @@ mod tests {
     fn scans_dedupes_and_validates() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        touch(&root.join("ember/proton/GE-Proton9-27/proton"));
-        touch(&root.join("ember/proton/GE-Proton10-2/proton"));
-        touch(&root.join("ember/proton/UMU-Latest/proton"));
-        std::fs::create_dir_all(root.join("ember/proton/broken")).unwrap();
-        touch(&root.join("ember/wine/wine-ge-8-26/bin/wine"));
-        touch(&root.join("ember/wine/wine-ge-8-26/bin/wineserver"));
-        std::fs::create_dir_all(root.join("ember/wine/wine-ge-8-26/lib64")).unwrap();
-        touch(&root.join("ember/wine/no-server/bin/wine"));
+        touch(&root.join("irori/proton/GE-Proton9-27/proton"));
+        touch(&root.join("irori/proton/GE-Proton10-2/proton"));
+        touch(&root.join("irori/proton/UMU-Latest/proton"));
+        std::fs::create_dir_all(root.join("irori/proton/broken")).unwrap();
+        touch(&root.join("irori/wine/wine-ge-8-26/bin/wine"));
+        touch(&root.join("irori/wine/wine-ge-8-26/bin/wineserver"));
+        std::fs::create_dir_all(root.join("irori/wine/wine-ge-8-26/lib64")).unwrap();
+        touch(&root.join("irori/wine/no-server/bin/wine"));
         let steam = root.join("steam");
         touch(&steam.join("compatibilitytools.d/GE-Proton9-27/proton"));
         touch(&steam.join("steamapps/common/Proton 9.0/proton"));
@@ -680,8 +680,8 @@ mod tests {
         touch(&custom);
 
         let mut roots = ScanRoots {
-            ember_wine: vec![root.join("ember/wine")],
-            ember_proton: vec![root.join("ember/proton")],
+            irori_wine: vec![root.join("irori/wine")],
+            irori_proton: vec![root.join("irori/proton")],
             steam_libraries: vec![steam.clone()],
             steam_compat_dirs: vec![root.join("steam-link/compatibilitytools.d")],
             lutris: vec![root.join("lutris")],
@@ -701,12 +701,12 @@ mod tests {
         assert_eq!(
             names,
             vec![
-                ("GE-Proton10-2", WineSource::Ember),
-                ("GE-Proton9-27", WineSource::Ember),
+                ("GE-Proton10-2", WineSource::Irori),
+                ("GE-Proton9-27", WineSource::Irori),
                 ("GE-Proton9-27", WineSource::Steam),
                 ("ge-proton", WineSource::Bottles),
                 (custom_name.as_str(), WineSource::Custom),
-                ("wine-ge-8-26", WineSource::Ember),
+                ("wine-ge-8-26", WineSource::Irori),
                 ("lutris-7.2", WineSource::Lutris),
                 ("soda-9", WineSource::Bottles),
             ]

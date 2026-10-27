@@ -12,7 +12,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::CommandSpec;
+use irori_core::process::CommandSpec;
 use serde_json::Value;
 
 use crate::bios::BiosIndex;
@@ -63,7 +63,7 @@ pub struct EngineUnavailable {
 /// Why an engine can't run here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Unavailable {
-    /// Ember has no build of it for this computer. `hosts` are the
+    /// Irori has no build of it for this computer. `hosts` are the
     /// computers it has builds for (`linux-x86_64`, …).
     NoBuild { hosts: Vec<String> },
     /// The processor lacks features the engine's games use (`avx2`, …).
@@ -74,7 +74,7 @@ impl fmt::Display for EngineUnavailable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.reason {
             Unavailable::NoBuild { hosts } if hosts.is_empty() => {
-                write!(f, "Ember can't download {} for this computer", self.name)
+                write!(f, "Irori can't download {} for this computer", self.name)
             }
             Unavailable::NoBuild { hosts } => write!(
                 f,
@@ -97,7 +97,7 @@ impl EngineUnavailable {
         error.downcast_ref()
     }
 
-    /// The error for `manifest` when Ember can't download it for `host`.
+    /// The error for `manifest` when Irori can't download it for `host`.
     pub fn no_build(manifest: &EngineManifest, host: Host) -> Option<Self> {
         if manifest.downloadable_on(host) {
             return None;
@@ -200,7 +200,7 @@ pub struct LaunchInput<'a> {
     /// Option values (see [`EngineManifest::option_values`]).
     pub values: &'a BTreeMap<String, Value>,
     pub bios: &'a BiosIndex,
-    /// Use the engine's own settings instead of the ones Ember manages.
+    /// Use the engine's own settings instead of the ones Irori manages.
     pub own_settings: bool,
 }
 
@@ -251,7 +251,7 @@ pub fn command(input: &LaunchInput) -> Result<CommandSpec> {
     // Folders the Flatpak sandbox must see.
     let mut shared: Vec<PathBuf> = vec![rom_dir.clone()];
     let system = crate::systems::get(&game.system)
-        .with_context(|| format!("Ember does not know the system {}", game.system))?;
+        .with_context(|| format!("Irori does not know the system {}", game.system))?;
 
     let mut args: Vec<OsString> = Vec::new();
     match manifest.kind {
@@ -268,12 +268,12 @@ pub fn command(input: &LaunchInput) -> Result<CommandSpec> {
             let config = home.join("retroarch.cfg");
             let settings = crate::retroarch::managed_settings(values);
             if own_settings {
-                // Only what Ember must decide: where BIOS files and cores are.
+                // Only what Irori must decide: where BIOS files and cores are.
                 let essentials: Vec<_> = settings
                     .into_iter()
                     .filter(|(k, _)| matches!(*k, "system_directory" | "libretro_directory"))
                     .collect();
-                let append = home.join("ember-append.cfg");
+                let append = home.join("irori-append.cfg");
                 crate::retroarch::write_config(&append, &essentials)?;
                 args.extend(["--appendconfig".into(), append.into_os_string()]);
             } else {
@@ -402,7 +402,7 @@ pub fn command(input: &LaunchInput) -> Result<CommandSpec> {
 fn program_of(program: &Path) -> Result<PathBuf> {
     if program.extension().is_some_and(|e| e == "app") {
         if cfg!(target_os = "macos") {
-            return ember_core::platform::bundle_executable(program);
+            return irori_core::platform::bundle_executable(program);
         }
         bail!("{} is a macOS app", program.display());
     }
@@ -489,7 +489,7 @@ mod tests {
             arch: "x86_64",
         };
         assert!(EngineUnavailable::no_build(&anyps5, linux).is_none());
-        // MAME is only detected: Ember downloads it nowhere.
+        // MAME is only detected: Irori downloads it nowhere.
         let mame = crate::engine("mame").unwrap();
         let e = EngineUnavailable::no_build(&mame, linux).unwrap();
         assert_eq!(e.reason, Unavailable::NoBuild { hosts: Vec::new() });

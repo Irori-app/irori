@@ -1,10 +1,10 @@
 //! Launcher shortcuts for games: freedesktop entries on the desktop and in
 //! the application menu, Steam non-Steam-game shortcuts, and the icons they
-//! use. Every shortcut starts the game with `ember --launch <runner>/<app>`;
-//! the `ember://launch/<runner>/<app>` URL scheme is registered alongside.
+//! use. Every shortcut starts the game with `irori --launch <runner>/<app>`;
+//! the `irori://launch/<runner>/<app>` URL scheme is registered alongside.
 //!
 //! [`ShortcutTargets`], [`add`] and [`remove`] are the contract used by
-//! `ember-services`.
+//! `irori-services`.
 
 #[cfg(target_os = "linux")]
 pub mod desktop;
@@ -17,7 +17,7 @@ pub mod steam;
 use std::path::PathBuf;
 
 use anyhow::{Result, bail};
-use ember_core::{AppSettings, GameId, GameInfo};
+use irori_core::{AppSettings, GameId, GameInfo};
 
 use crate::util;
 
@@ -39,11 +39,11 @@ impl ShortcutTargets {
     }
 }
 
-/// How shortcuts start Ember: the program plus fixed leading arguments.
+/// How shortcuts start Irori: the program plus fixed leading arguments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LauncherCommand {
     pub program: String,
-    /// Arguments before Ember's own (`run <app-id>` under Flatpak).
+    /// Arguments before Irori's own (`run <app-id>` under Flatpak).
     pub prefix_args: Vec<String>,
     /// Working directory for Steam's `StartDir`.
     pub working_dir: PathBuf,
@@ -52,7 +52,7 @@ pub struct LauncherCommand {
 impl LauncherCommand {
     /// Detect how this process was started: Flatpak (`flatpak run $FLATPAK_ID`),
     /// AppImage (`$APPIMAGE`), else the current executable (falling back to
-    /// `ember` on `PATH`).
+    /// `irori` on `PATH`).
     pub fn detect() -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
         if let Some(id) = util::env_nonempty("FLATPAK_ID") {
@@ -67,7 +67,7 @@ impl LauncherCommand {
             .or_else(|| std::env::current_exe().ok())
             .filter(|p| {
                 p.file_name()
-                    .is_some_and(|n| n.to_string_lossy().to_lowercase().contains("ember"))
+                    .is_some_and(|n| n.to_string_lossy().to_lowercase().contains("irori"))
             });
         match exe {
             Some(exe) => Self {
@@ -76,7 +76,7 @@ impl LauncherCommand {
                 prefix_args: vec![],
             },
             None => Self {
-                program: "ember".into(),
+                program: "irori".into(),
                 prefix_args: vec![],
                 working_dir: home,
             },
@@ -114,7 +114,7 @@ pub struct ShortcutReport {
     pub errors: Vec<String>,
 }
 
-/// Create launcher shortcuts that start the game through Ember.
+/// Create launcher shortcuts that start the game through Irori.
 ///
 /// Fails when any requested target could not be created (including Steam
 /// being running); the targets that worked are kept. Use
@@ -149,7 +149,7 @@ pub async fn add_with_report(
         if let Err(e) = desktop::register_url_scheme(&launcher).await {
             report
                 .errors
-                .push(format!("registering ember:// links: {e:#}"));
+                .push(format!("registering irori:// links: {e:#}"));
         }
         match icon::ensure_icon(game).await {
             Ok(p) => report.icon = p,
@@ -224,7 +224,7 @@ pub async fn add_to_steam(games: &[std::sync::Arc<GameInfo>], app: &AppSettings)
     Ok(report.added)
 }
 
-/// Remove every shortcut Ember created for the game.
+/// Remove every shortcut Irori created for the game.
 pub async fn remove(game: &GameInfo, app: &AppSettings) -> Result<()> {
     let report = remove_with_report(game, app).await?;
     if report.steam_running {
@@ -284,18 +284,18 @@ fn is_dlc(game: &GameInfo) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     #[test]
     fn launch_args() {
         let l = LauncherCommand {
             program: "flatpak".into(),
-            prefix_args: vec!["run".into(), "x.Ember".into()],
+            prefix_args: vec!["run".into(), "x.Irori".into()],
             working_dir: "/".into(),
         };
         assert_eq!(
             l.launch_args(&GameId::new(Runner::Zoom, "42")),
-            ["flatpak", "run", "x.Ember", "--launch", "zoom/42"]
+            ["flatpak", "run", "x.Irori", "--launch", "zoom/42"]
         );
     }
 }

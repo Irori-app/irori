@@ -385,7 +385,7 @@ async fn tune(ctx: &Ctx, mut tuner: Tuner, limit: Option<u64>) {
         });
         ctx.requests.set_limit(n);
         let verdict = if throttled {
-            Some(ember_core::Bottleneck::SpeedLimit)
+            Some(irori_core::Bottleneck::SpeedLimit)
         } else {
             classify(Signals {
                 rate,
@@ -625,7 +625,7 @@ impl Ctx {
         Ok(())
     }
 
-    /// Download a whole-file object into `<dest>.ember-part`, resuming what
+    /// Download a whole-file object into `<dest>.irori-part`, resuming what
     /// an earlier attempt left, then verify and move it into place. Servers
     /// are tried in `order`, starting at the `attempt`th.
     async fn stream_file(
@@ -674,7 +674,7 @@ impl Ctx {
                 }?;
             }
             let finished = if matches!(chunk.codec, Codec::Deflate) {
-                let inflated = part.with_extension("ember-inflate");
+                let inflated = part.with_extension("irori-inflate");
                 let (src, dst) = (part.clone(), inflated.clone());
                 tokio::task::spawn_blocking(move || inflate_file(&src, &dst))
                     .await

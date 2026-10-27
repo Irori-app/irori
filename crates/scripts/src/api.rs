@@ -1,5 +1,5 @@
 //! lutris.net client: game search and a game's install scripts, fetched only
-//! when the user asks. lutris.net publishes no API terms, so Ember behaves
+//! when the user asks. lutris.net publishes no API terms, so Irori behaves
 //! like the Lutris client itself: an honest user agent, at most two
 //! requests a second, answers cached on disk for a day, and every script
 //! attributed to its author with a link to its page.
@@ -96,7 +96,7 @@ impl LutrisClient {
         Self {
             base: base.into().trim_end_matches('/').to_string(),
             cache_dir: cache_dir.into(),
-            http: ember_core::http::client().clone(),
+            http: irori_core::http::client().clone(),
             min_interval: MIN_INTERVAL,
             ttl: CACHE_TTL,
             last: Mutex::new(None),
@@ -173,7 +173,7 @@ impl LutrisClient {
                     body: body.clone(),
                 };
                 let result = tokio::task::spawn_blocking(move || {
-                    ember_core::json_store::write(&path, &entry)
+                    irori_core::json_store::write(&path, &entry)
                 })
                 .await;
                 if let Ok(Err(e)) | Err(e) = result.map_err(anyhow::Error::from) {
@@ -238,7 +238,7 @@ impl LutrisClient {
             return resp
                 .json()
                 .await
-                .context("lutris.net sent an answer Ember could not read");
+                .context("lutris.net sent an answer Irori could not read");
         }
     }
 }
@@ -329,7 +329,7 @@ fn installer_listing(v: &Value) -> Option<InstallerListing> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
     use serde_json::json;
 
     fn installers_body() -> Value {
@@ -408,7 +408,7 @@ mod tests {
         assert!(
             search
                 .header("user-agent")
-                .is_some_and(|ua| ua.starts_with("Ember/"))
+                .is_some_and(|ua| ua.starts_with("Irori/"))
         );
 
         // A stale cache is refreshed.

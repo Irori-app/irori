@@ -1,9 +1,9 @@
 # Vendored from gpui-webview 0.8.0 (longbridge/gpui-kit @ 1676826d, crates/webview),
-# Apache-2.0. Ember's changes: native Wayland support through offscreen rendering, and
+# Apache-2.0. Irori's changes: native Wayland support through offscreen rendering, and
 # keyboard focus fixes. See README.md.
 [package]
 name = "gpui-webview"
-description = "WebView support for GPUI, based on Wry (vendored by Ember)."
+description = "WebView support for GPUI, based on Wry (vendored by Irori)."
 license = "Apache-2.0"
 version = "0.8.0"
 edition.workspace = true

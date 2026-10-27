@@ -1,6 +1,6 @@
 [package]
-name = "ember-sign-in"
-description = "Ember's sign-in window: a store's login page in a window of its own, finished automatically"
+name = "irori-sign-in"
+description = "Irori's sign-in window: a store's login page in a window of its own, finished automatically"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ publish.workspace = true
 path = "src/lib.rs"
 
 [[bin]]
-name = "ember-sign-in"
+name = "irori-sign-in"
 path = "src/main.rs"
 
 [dependencies]

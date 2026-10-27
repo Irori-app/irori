@@ -18,7 +18,7 @@ use anyhow::Context;
 /// Wine's `HKEY_LOCAL_MACHINE` file inside a prefix.
 pub const SYSTEM_REG: &str = "system.reg";
 
-/// A registry value Ember can read.
+/// A registry value Irori can read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegValue {
     /// `REG_SZ` or `REG_EXPAND_SZ` (unexpanded).

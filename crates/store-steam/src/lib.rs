@@ -10,7 +10,7 @@
 //! verifying, moving and uninstalling stay in Steam
 //! ([`Runner::manages_installs`] is false). The playtime Steam recorded for
 //! the most recent user (`userdata/<id>/config/localconfig.vdf`) is merged
-//! into Ember's.
+//! into Irori's.
 
 mod scan;
 
@@ -20,9 +20,9 @@ use std::sync::Arc;
 
 use anyhow::{Result, bail};
 use async_trait::async_trait;
-use ember_core::process::CommandSpec;
-use ember_core::util::format_bytes;
-use ember_core::{
+use irori_core::process::CommandSpec;
+use irori_core::util::format_bytes;
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, HostPlatform, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, InstalledInfo, LaunchPlan, LaunchRequest, LoginFlow,
     OpContext, Outcome, RemoveArgs, Runner, SettingsFn, Store, UpdateRequest, UserInfo,
@@ -83,7 +83,7 @@ impl SteamStore {
     fn steam_dir(&self) -> PathBuf {
         self.steam_dir
             .clone()
-            .unwrap_or_else(|| ember_runtime::locations::steam_path(&(self.settings)()))
+            .unwrap_or_else(|| irori_runtime::locations::steam_path(&(self.settings)()))
     }
 
     /// Re-read Steam's files and publish the result. Reports whether the
@@ -136,7 +136,7 @@ fn same_entry(a: &GameInfo, b: &GameInfo) -> bool {
 }
 
 /// Library entry of an installed Steam app. Steam runs Windows games
-/// through Proton itself, so for Ember every Steam game is native.
+/// through Proton itself, so for Irori every Steam game is native.
 fn game_info(app: &InstalledApp) -> GameInfo {
     let native = HostPlatform::current().native();
     let id = &app.app_id;
@@ -206,7 +206,7 @@ impl Store for SteamStore {
     }
 
     async fn login(&self, _input: &str) -> Result<UserInfo> {
-        bail!("Steam needs no login in Ember: it reads the games Steam installed")
+        bail!("Steam needs no login in Irori: it reads the games Steam installed")
     }
 
     async fn logout(&self) -> Result<()> {
@@ -298,7 +298,7 @@ impl Store for SteamStore {
     }
 
     /// Opens `steam://rungameid/<id>`; Steam applies the game's launch
-    /// options, Proton version and overlay. Ember's own launch settings
+    /// options, Proton version and overlay. Irori's own launch settings
     /// (Wine, wrappers, arguments) do not apply.
     async fn launch(
         &self,
@@ -325,7 +325,7 @@ impl Store for SteamStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::AppSettings;
+    use irori_core::AppSettings;
 
     fn write_manifest(lib: &Path, id: &str, name: &str) {
         std::fs::create_dir_all(lib.join("steamapps/common").join(name)).unwrap();

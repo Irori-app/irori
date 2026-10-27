@@ -16,11 +16,6 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use ember_core::{GameId, Runner, Store as _};
-use ember_extras::shortcuts::{self, ShortcutTargets};
-use ember_sideload::{SideloadApp, SideloadPlatform};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonGroup, ButtonVariants as _};
@@ -37,6 +32,11 @@ use gpui_kit::{
     App, AppContext as _, Context, Entity, Focusable as _, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div,
 };
+use irori_core::{GameId, Runner, Store as _};
+use irori_extras::shortcuts::{self, ShortcutTargets};
+use irori_sideload::{SideloadApp, SideloadPlatform};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, navigate};
 
 use super::steamgrid::{ArtKind, ArtPicker, ArtPickerEvent};
 use super::{dialog_width, optional_text, pick_path, text};
@@ -239,7 +239,7 @@ impl SideloadDialog {
             return;
         };
         let b = backend(cx);
-        ember_ui::state::run_infallible(cx, async move {
+        irori_ui::state::run_infallible(cx, async move {
             if let Err(e) = store.remove_app(&name, false).await {
                 tracing::warn!("removing unsaved app {name}: {e:#}");
             }
@@ -314,7 +314,7 @@ impl SideloadDialog {
         cx.notify();
 
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let (id, created) = match existing {
                 Some(name) => (GameId::new(Runner::Sideload, name.as_str()), None),
                 None => {
@@ -326,7 +326,7 @@ impl SideloadDialog {
                 anyhow::anyhow!(t("library.sideload.error.not_found").to_string())
             })?;
             let settings = b.settings.game(&id);
-            let prefix = ember_runtime::prefix_path(&b.settings.app(), &settings, &game);
+            let prefix = irori_runtime::prefix_path(&b.settings.app(), &settings, &game);
             if created.is_some() && settings.wine_prefix.is_empty() {
                 b.settings.set_game_value(
                     &id,
@@ -411,7 +411,7 @@ impl SideloadDialog {
         self.error = None;
         cx.notify();
 
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let id = match mode {
                 SaveMode::Edit(name) => {
                     store.edit_app(&name, app).await?;
@@ -534,7 +534,7 @@ impl SideloadDialog {
 impl SideloadDialog {
     /// The system a picked file is a game of, when it is a ROM rather than
     /// a program (DOS programs count as programs here).
-    fn rom_system(&self, cx: &App) -> Option<&'static ember_engines::System> {
+    fn rom_system(&self, cx: &App) -> Option<&'static irori_engines::System> {
         let path = PathBuf::from(text(&self.executable, cx));
         let ext = path.extension()?.to_str()?.to_ascii_lowercase();
         if matches!(
@@ -543,7 +543,7 @@ impl SideloadDialog {
         ) {
             return None;
         }
-        match ember_engines::systems::by_extension(&ext).as_slice() {
+        match irori_engines::systems::by_extension(&ext).as_slice() {
             [one] => Some(one),
             _ => None,
         }
@@ -558,7 +558,7 @@ impl SideloadDialog {
         let title = optional_text(&self.title, cx);
         self.saving = true;
         cx.notify();
-        let task = ember_ui::run(cx, async move { store.add_game(&path, None, title).await });
+        let task = irori_ui::run(cx, async move { store.add_game(&path, None, title).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {

@@ -13,7 +13,7 @@ use crate::util;
 /// URL of Heroic's release-info JSON.
 pub const RELEASE_INFO_URL: &str = "https://raw.githubusercontent.com/Heroic-Games-Launcher/releases-info/refs/heads/main/release-data.json";
 
-/// The parts of the release info Ember uses.
+/// The parts of the release info Irori uses.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ReleasesInfo {

@@ -2,11 +2,6 @@
 
 use std::collections::HashSet;
 
-use ember_core::{GameId, InstallPlatform, OpContext};
-use ember_runtime::{DxTool, Target};
-use ember_ui::components::{EmptyState, PageHeader};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -21,6 +16,11 @@ use gpui_kit::{
     ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _, Subscription, Window,
     div, rems,
 };
+use irori_core::{GameId, InstallPlatform, OpContext};
+use irori_runtime::{DxTool, Target};
+use irori_ui::components::{EmptyState, PageHeader};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models};
 
 use crate::form::{FormTarget, SettingsForm, info_alert};
 use crate::i18n::LanguageStamp;
@@ -338,10 +338,10 @@ impl GameSettingsView {
         let b = backend(cx);
         let id = self.id.clone();
         let missing = t("settings.error.game_missing");
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             match tool {
                 Tool::Winetricks => b.winetricks(&id, Vec::new()).await.map(|_| ()),
-                Tool::KillPrefix => ember_runtime::kill_prefix(&b.settings.game(&id)).await,
+                Tool::KillPrefix => irori_runtime::kill_prefix(&b.settings.game(&id)).await,
                 Tool::Dx(dx, enable) => {
                     let game = b.game(&id).ok_or_else(|| anyhow::anyhow!("{missing}"))?;
                     let target = Target {
@@ -351,7 +351,7 @@ impl GameSettingsView {
                             .installed_platform()
                             .unwrap_or(InstallPlatform::Windows),
                     };
-                    ember_runtime::set_dx_tool(
+                    irori_runtime::set_dx_tool(
                         &b.settings.app(),
                         &b.settings.game(&id),
                         target,
@@ -545,7 +545,7 @@ impl Render for GameSettingsView {
                     .ghost()
                     .label(t("settings.game.open_defaults"))
                     .on_click(|_, _, cx| {
-                        ember_ui::navigate(Route::Settings("game-defaults".into()), cx)
+                        irori_ui::navigate(Route::Settings("game-defaults".into()), cx)
                     }),
             )
             .action(
@@ -562,7 +562,7 @@ impl Render for GameSettingsView {
                 Button::new("game-settings-back")
                     .outline()
                     .label(t("settings.game.back"))
-                    .on_click(move |_, _, cx| ember_ui::navigate(Route::Game(id.clone()), cx)),
+                    .on_click(move |_, _, cx| irori_ui::navigate(Route::Game(id.clone()), cx)),
             );
 
         if !known {
@@ -626,7 +626,7 @@ impl Render for GameSettingsView {
             .id("game-settings")
             .size_full()
             .items_stretch()
-            .when(ember_ui::glass::solid_pages(cx), |this| {
+            .when(irori_ui::glass::solid_pages(cx), |this| {
                 this.bg(cx.theme().background)
             })
             .child(nav)

@@ -2,11 +2,11 @@
 //!
 //! With translucency on, the window asks the system to blur whatever is
 //! behind it (macOS vibrancy, Windows 11 Mica, KWin's blur on Wayland) and
-//! Ember paints its title bar and sidebar partly transparent on top, so the
+//! Irori paints its title bar and sidebar partly transparent on top, so the
 //! desktop shows through them. Pages stay solid unless the user picks
 //! [`Translucency::Strong`].
 //!
-//! It costs Ember nothing to draw: the scene has the same primitives, only
+//! It costs Irori nothing to draw: the scene has the same primitives, only
 //! some colours carry alpha. The blur is the compositor's, and the window
 //! goes back to opaque wherever there is nothing worth seeing behind it
 //! (Big Picture, fullscreen, gamescope), which also spares the compositor.
@@ -14,9 +14,9 @@
 //! Views ask [`chrome`] and [`page`] for their surface colours instead of
 //! adding alpha themselves, so every surface agrees on one level.
 
-use ember_core::settings::Translucency;
 use gpui_kit::component::{ActiveTheme as _, Root};
 use gpui_kit::{App, Global, Hsla, Styled as _, Window, WindowBackgroundAppearance};
+use irori_core::settings::Translucency;
 use once_cell::sync::Lazy;
 
 /// How see-through the main window is right now.
@@ -70,7 +70,7 @@ struct Backdrop {
 }
 
 /// Detected once: the OS, its version and the desktop do not change while
-/// Ember runs.
+/// Irori runs.
 static BACKDROP: Lazy<Option<Backdrop>> = Lazy::new(detect_backdrop);
 
 #[cfg(target_os = "macos")]
@@ -114,7 +114,7 @@ fn detect_backdrop() -> Option<Backdrop> {
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn detect_backdrop() -> Option<Backdrop> {
     let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
-    // Steam's gaming mode: Ember is the only thing on screen.
+    // Steam's gaming mode: Irori is the only thing on screen.
     if desktop == "gamescope" {
         return None;
     }
@@ -122,7 +122,7 @@ fn detect_backdrop() -> Option<Backdrop> {
     let kde = desktop.split(':').any(|d| d.eq_ignore_ascii_case("KDE"));
     // GPUI asks for KWin's blur on Wayland. Elsewhere the window is plainly
     // see-through, and compositors with their own blur rules (Hyprland,
-    // niri, picom) can match Ember by its app id.
+    // niri, picom) can match Irori by its app id.
     Some(Backdrop {
         appearance: WindowBackgroundAppearance::Blurred,
         blurs: wayland && kde,
@@ -264,7 +264,7 @@ pub fn solid_pages(cx: &App) -> bool {
 }
 
 /// Give `window` the glass `glass`: its system backdrop, the root surface
-/// behind Ember's views, and the colours [`chrome`] and [`page`] hand out.
+/// behind Irori's views, and the colours [`chrome`] and [`page`] hand out.
 /// Callers skip it when the glass did not change; it refreshes the window.
 ///
 /// Returns false, having changed nothing, while the window has no root view

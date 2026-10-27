@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use ember_epic::EpicStore;
 use gpui_kit::{App, Global};
+use irori_epic::EpicStore;
 
 struct StoreHandles {
     epic: Option<Arc<EpicStore>>,
@@ -15,7 +15,7 @@ impl Global for StoreHandles {}
 /// Give the settings feature the concrete Epic store, enabling the "Epic
 /// Games" group (EOS overlay and Epic Games Launcher sync) in Advanced.
 ///
-/// Call once at startup, after `ember_ui::init` and before the settings page
+/// Call once at startup, after `irori_ui::init` and before the settings page
 /// is first opened; forms built earlier keep hiding the group. Passing `None`
 /// (Epic disabled) hides the group. A later call replaces the handle.
 pub fn install_store_handles(epic: Option<Arc<EpicStore>>, cx: &mut App) {

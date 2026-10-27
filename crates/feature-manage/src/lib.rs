@@ -1,10 +1,10 @@
-//! Management screens of Ember: the download queue, the Wine/Proton manager,
+//! Management screens of Irori: the download queue, the Wine/Proton manager,
 //! store accounts (with the browser login flow), store links and deals, and the
 //! first-run onboarding.
 //!
-//! The shell owns routing and mounts these views for [`ember_ui::Route::Downloads`],
-//! [`ember_ui::Route::WineManager`], [`ember_ui::Route::Accounts`] and
-//! [`ember_ui::Route::Stores`]. It shows [`OnboardingView`] instead of the
+//! The shell owns routing and mounts these views for [`irori_ui::Route::Downloads`],
+//! [`irori_ui::Route::WineManager`], [`irori_ui::Route::Accounts`] and
+//! [`irori_ui::Route::Stores`]. It shows [`OnboardingView`] instead of the
 //! library while [`should_show_onboarding`] is true, and removes it on
 //! [`OnboardingEvent::Finished`]. Call [`init`] once at startup to register
 //! this crate's translations.

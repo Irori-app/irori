@@ -5,12 +5,12 @@ use std::collections::BTreeSet;
 use std::hash::{BuildHasher as _, Hasher as _};
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo};
-use ember_ui::i18n::t;
-use ember_ui::{Route, models, navigate};
 use gpui_kit::component::WindowExt as _;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::{App, Window};
+use irori_core::{GameId, GameInfo};
+use irori_ui::i18n::t;
+use irori_ui::{Route, models, navigate};
 
 /// A game to suggest: an installed one when any is installed, else any game
 /// in the library. Hidden games are never picked. `roll` chooses among them.
@@ -59,7 +59,7 @@ pub fn open_random_game(window: &mut Window, cx: &mut App) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn game(app: &str, installed: bool) -> Arc<GameInfo> {
         Arc::new(GameInfo {

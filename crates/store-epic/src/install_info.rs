@@ -4,9 +4,9 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-use ember_core::{DlcInfo, InstallInfo, InstallPlatform, LaunchOption, SdlOption};
-use ember_epic_api::Manifest;
-use ember_epic_api::library::GameRecord;
+use irori_core::{DlcInfo, InstallInfo, InstallPlatform, LaunchOption, SdlOption};
+use irori_epic_api::Manifest;
+use irori_epic_api::library::GameRecord;
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 

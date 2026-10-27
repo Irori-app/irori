@@ -2,9 +2,9 @@
 
 use std::sync::Once;
 
-use ember_ui::i18n::Catalogs;
+use irori_ui::i18n::Catalogs;
 
-/// This crate's catalogs, one per language in [`ember_ui::i18n::LANGUAGES`].
+/// This crate's catalogs, one per language in [`irori_ui::i18n::LANGUAGES`].
 pub static CATALOGS: Catalogs = &[
     ("en", include_str!("../locales/en.json")),
     ("cs", include_str!("../locales/cs.json")),
@@ -31,7 +31,7 @@ pub static CATALOGS: Catalogs = &[
 /// Called from [`crate::init`] and, defensively, by every view constructor.
 pub(crate) fn register() {
     static ONCE: Once = Once::new();
-    ONCE.call_once(|| ember_ui::i18n::register(CATALOGS));
+    ONCE.call_once(|| irori_ui::i18n::register(CATALOGS));
 }
 
 #[cfg(test)]
@@ -39,7 +39,7 @@ mod tests {
     use std::collections::{BTreeSet, HashMap};
     use std::path::Path;
 
-    use ember_ui::i18n::{LANGUAGES, missing_keys};
+    use irori_ui::i18n::{LANGUAGES, missing_keys};
     use regex::Regex;
 
     use super::CATALOGS;

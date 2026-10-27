@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::log_cap;
-use ember_core::process::{self, CommandSpec, ExecResult, RunOptions};
-use ember_core::{AppSettings, GameSettings, OpContext, WineInstallation, WineKind};
+use irori_core::log_cap;
+use irori_core::process::{self, CommandSpec, ExecResult, RunOptions};
+use irori_core::{AppSettings, GameSettings, OpContext, WineInstallation, WineKind};
 
 use crate::discovery;
 use crate::env::{self, EnvMap, HostEnv, WineEnvInput};
@@ -151,7 +151,7 @@ fn required_files(wc: &WineContext) -> &'static [&'static str] {
     }
 }
 
-const BOOTSTRAP_MARKER: &str = ".ember-prefix-incomplete";
+const BOOTSTRAP_MARKER: &str = ".irori-prefix-incomplete";
 
 /// Whether the prefix looks complete for this build.
 pub fn prefix_complete(wc: &WineContext) -> bool {
@@ -319,7 +319,7 @@ async fn wait_wineserver(wc: &WineContext, env: &EnvMap) {
 /// or `wine wineboot --init`. Returns whether a prefix was created.
 ///
 /// Heroic runs `wineboot --init` on every launch; Wine and Proton already
-/// upgrade an existing prefix themselves when the build changes, so Ember
+/// upgrade an existing prefix themselves when the build changes, so Irori
 /// only runs it when the prefix's registry is missing.
 pub async fn verify_prefix(
     app: &AppSettings,

@@ -3,7 +3,7 @@
 //! twice, and per-system status from it. Before a launch, the files a system
 //! needs are linked under the names engines expect.
 //!
-//! Ember never downloads BIOS files; it only recognises the user's own.
+//! Irori never downloads BIOS files; it only recognises the user's own.
 
 use std::collections::BTreeMap;
 use std::io::Read as _;
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use anyhow::{Context as _, Result};
-use ember_core::json_store;
+use irori_core::json_store;
 use md5::{Digest as _, Md5};
 use serde::{Deserialize, Serialize};
 
@@ -48,7 +48,7 @@ pub fn cached_index() -> BiosIndex {
     json_store::read_or_default(&index_file())
 }
 
-/// File names Ember knows as BIOS files of some system, lower case.
+/// File names Irori knows as BIOS files of some system, lower case.
 fn known_names() -> Vec<String> {
     systems::all()
         .iter()
@@ -154,7 +154,7 @@ fn md5_file(path: &Path) -> Result<String> {
 pub enum FileState {
     /// Found, and a known-good dump (or any dump works).
     Ready,
-    /// A file of that name was found but it is not a dump Ember knows; it
+    /// A file of that name was found but it is not a dump Irori knows; it
     /// may not work.
     Unrecognized,
     Missing,
@@ -278,7 +278,7 @@ pub fn link_into(system: &System, index: &BiosIndex, target: &Path) -> Result<us
         }
         if let Ok(meta) = std::fs::symlink_metadata(&dest) {
             if !meta.file_type().is_symlink() {
-                // Without symbolic links (Windows) Ember places copies; one of
+                // Without symbolic links (Windows) Irori places copies; one of
                 // the same size is already in place. Any other real file is
                 // the user's and is never replaced.
                 if cfg!(not(unix)) && std::fs::metadata(&found).is_ok_and(|f| f.len() == meta.len())

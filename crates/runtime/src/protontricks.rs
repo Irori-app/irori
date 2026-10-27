@@ -1,13 +1,13 @@
 //! protontricks: winetricks for the Proton prefixes Steam creates for its
 //! own games (`steamapps/compatdata/<app id>/pfx`). protontricks finds the
 //! prefix and the Proton build from a Steam app ID, so it serves Steam games
-//! only; games Ember runs itself use winetricks.
+//! only; games Irori runs itself use winetricks.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::OpContext;
-use ember_core::process::{self, CommandSpec, ExecResult, RunOptions};
+use irori_core::OpContext;
+use irori_core::process::{self, CommandSpec, ExecResult, RunOptions};
 
 /// Flathub ID of protontricks.
 pub const FLATPAK_ID: &str = "com.github.Matoking.protontricks";
@@ -65,7 +65,7 @@ pub fn prefix_of(install_path: &Path, app_id: &str) -> Option<PathBuf> {
 }
 
 /// Run protontricks for a Steam game. `steam_dir` tells protontricks which
-/// Steam installation to use (the one Ember reads).
+/// Steam installation to use (the one Irori reads).
 pub async fn run(
     steam_dir: &Path,
     app_id: &str,

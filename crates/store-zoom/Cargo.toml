@@ -1,6 +1,6 @@
 [package]
-name = "ember-zoom"
-description = "ZOOM Platform store backend for Ember: HTTP API, resumable downloads, native and Wine installers"
+name = "irori-zoom"
+description = "ZOOM Platform store backend for Irori: HTTP API, resumable downloads, native and Wine installers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,8 +9,8 @@ publish.workspace = true
 
 [dependencies]
 fs4.workspace = true
-ember-core.workspace = true
-ember-runtime.workspace = true
+irori-core.workspace = true
+irori-runtime.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
@@ -29,7 +29,7 @@ tar.workspace = true
 xz2.workspace = true
 zstd.workspace = true
 bzip2.workspace = true
-ember-depot.workspace = true
+irori-depot.workspace = true
 zip.workspace = true
 md5.workspace = true
 sha2.workspace = true

@@ -5,9 +5,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{DateTime, Datelike as _, Days, Local, NaiveDate};
-use ember_core::game::PlaytimeRecord;
-use ember_core::{GameId, Runner};
-use ember_services::Session;
+use irori_core::game::PlaytimeRecord;
+use irori_core::{GameId, Runner};
+use irori_services::Session;
 
 /// Weeks shown in the weekly chart, ending with the current one.
 pub const WEEKS: usize = 12;

@@ -8,10 +8,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use ember_core::{InstallProgress, OpContext, WineInstallation};
-use ember_launchers::{LauncherKind as Launcher, LauncherStatus, LaunchersStore};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::IndexPath;
 use gpui_kit::component::alert::Alert;
@@ -29,6 +25,10 @@ use gpui_kit::{
     IntoElement, ParentElement as _, Render, SharedString, Styled as _, Subscription, Task, Window,
     div, rems,
 };
+use irori_core::{InstallProgress, OpContext, WineInstallation};
+use irori_launchers::{LauncherKind as Launcher, LauncherStatus, LaunchersStore};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::common::{backend_op, card, notify_error};
 
@@ -111,8 +111,8 @@ impl LaunchersSection {
 
     fn load_wines(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
-            Ok(ember_runtime::wine_installations(&b.settings.app()).await)
+        let task = irori_ui::run(cx, async move {
+            Ok(irori_runtime::wine_installations(&b.settings.app()).await)
         });
         cx.spawn_in(window, async move |this, cx| {
             let Ok(wines) = task.await else { return };
@@ -172,7 +172,7 @@ impl LaunchersSection {
         self.running.insert(launcher, live);
         self.ensure_ticker(window, cx);
         cx.notify();
-        let task = ember_ui::run(cx, async move { store.set_up(launcher, wine, &ctx).await });
+        let task = irori_ui::run(cx, async move { store.set_up(launcher, wine, &ctx).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {
@@ -221,11 +221,11 @@ impl LaunchersSection {
         let Some(store) = launchers_store(cx) else {
             return;
         };
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if open {
                 store.open(launcher).await
             } else {
-                ember_core::Store::refresh(store.as_ref(), false).await
+                irori_core::Store::refresh(store.as_ref(), false).await
             }
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -405,8 +405,8 @@ impl Render for LaunchersSection {
                                 let on = *on;
                                 backend_op(cx, move |b| {
                                     b.settings.update_app(|s| s.third_party_launchers = on);
-                                    b.bus.emit(ember_core::Event::LibraryChanged(
-                                        ember_core::Runner::Launchers,
+                                    b.bus.emit(irori_core::Event::LibraryChanged(
+                                        irori_core::Runner::Launchers,
                                     ));
                                 });
                             }),

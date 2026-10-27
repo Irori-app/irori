@@ -1,13 +1,9 @@
-//! Store accounts ([`Route::Accounts`](ember_ui::Route::Accounts)): every
+//! Store accounts ([`Route::Accounts`](irori_ui::Route::Accounts)): every
 //! account of each store with its game count, log in / log out / refresh
 //! per account, and adding another account.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ember_core::{Runner, ShownStores, StoreAccount};
-use ember_ui::components::PageHeader;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
@@ -22,12 +18,16 @@ use gpui_kit::{
     AnyElement, App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
     Render, SharedString, Styled as _, Subscription, Window, div, rems,
 };
+use irori_core::{Runner, ShownStores, StoreAccount};
+use irori_ui::components::PageHeader;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::common::{backend_op, card, notify_error, notify_success};
 use crate::login::{open_account_login_dialog, open_login_dialog};
 
 /// Stores with a card on the accounts page, in display order. Steam has no
-/// login: its card reports what Ember found on this computer.
+/// login: its card reports what Irori found on this computer.
 pub(crate) const ACCOUNT_STORES: [Runner; 6] = [
     Runner::Legendary,
     Runner::Gog,
@@ -53,7 +53,7 @@ pub(crate) fn store_icon(runner: Runner) -> IconName {
 }
 
 /// Whether an opt-in store is turned on (stores without a switch always are).
-pub(crate) fn store_enabled(app: &ember_core::AppSettings, runner: Runner) -> bool {
+pub(crate) fn store_enabled(app: &irori_core::AppSettings, runner: Runner) -> bool {
     match runner {
         Runner::Zoom => app.zoom_platform,
         Runner::Itch => app.itch_io,
@@ -61,7 +61,7 @@ pub(crate) fn store_enabled(app: &ember_core::AppSettings, runner: Runner) -> bo
     }
 }
 
-fn set_store_enabled(app: &mut ember_core::AppSettings, runner: Runner, on: bool) {
+fn set_store_enabled(app: &mut irori_core::AppSettings, runner: Runner, on: bool) {
     match runner {
         Runner::Zoom => app.zoom_platform = on,
         Runner::Itch => app.itch_io = on,
@@ -192,7 +192,7 @@ impl AccountsView {
         }
         cx.notify();
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if slot == STORE_WIDE {
                 b.refresh_store(runner, true).await?;
             } else {
@@ -287,7 +287,7 @@ impl AccountsView {
             return;
         }
         cx.notify();
-        let task = ember_ui::run(cx, async move { store.account_logout(&slot).await });
+        let task = irori_ui::run(cx, async move { store.account_logout(&slot).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {
@@ -304,7 +304,7 @@ impl AccountsView {
                             None => t_args("manage.accounts.logged_out", &[("store", store)]),
                         };
                         notify_success(message, window, cx);
-                        ember_ui::models::refresh_library(false, cx);
+                        irori_ui::models::refresh_library(false, cx);
                     }
                     Err(e) => notify_error(
                         t_args(
@@ -617,7 +617,7 @@ impl AccountsView {
             .into_any_element()
     }
 
-    /// A store without login (Steam): what Ember found on this computer,
+    /// A store without login (Steam): what Irori found on this computer,
     /// a rescan and the hide switch. Rescanning needs no connection.
     fn render_local_card(&self, card_data: &StoreCard, cx: &mut Context<Self>) -> AnyElement {
         let runner = card_data.runner;

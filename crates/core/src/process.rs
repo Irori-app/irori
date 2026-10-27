@@ -626,14 +626,14 @@ mod tests {
         let exe = bundle.join("Contents/MacOS/game");
         std::fs::write(
             &exe,
-            b"#!/bin/sh\nprintf '%s|%s' \"$EMBER_TEST\" \"$1\"\nexit 7\n",
+            b"#!/bin/sh\nprintf '%s|%s' \"$IRORI_TEST\" \"$1\"\nexit 7\n",
         )
         .unwrap();
         std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o755)).unwrap();
         let result = run(
             &CommandSpec::new(bundle)
                 .arg("space value")
-                .env("EMBER_TEST", "present")
+                .env("IRORI_TEST", "present")
                 .cwd(dir.path()),
             RunOptions::default(),
         )
@@ -678,11 +678,11 @@ mod tests {
 
     /// Started by [`runs_from_non_latin_folders`] as a copy of this test
     /// binary: reports what it was given to the file named in
-    /// `EMBER_ECHO_OUT`. Does nothing when run on its own.
+    /// `IRORI_ECHO_OUT`. Does nothing when run on its own.
     #[test]
     #[ignore = "helper started by runs_from_non_latin_folders"]
     fn echo_helper() {
-        let Some(out) = std::env::var_os("EMBER_ECHO_OUT") else {
+        let Some(out) = std::env::var_os("IRORI_ECHO_OUT") else {
             return;
         };
         let args: Vec<String> = std::env::args().collect();
@@ -693,7 +693,7 @@ mod tests {
             .cloned()
             .unwrap_or_default();
         let report = [
-            std::env::var("EMBER_ECHO").unwrap_or_default(),
+            std::env::var("IRORI_ECHO").unwrap_or_default(),
             skipped,
             std::env::current_dir().unwrap().display().to_string(),
             std::env::current_exe().unwrap().display().to_string(),
@@ -727,8 +727,8 @@ mod tests {
                 "--skip",
                 "引数 аргумент",
             ])
-            .env("EMBER_ECHO", "値 значение")
-            .env("EMBER_ECHO_OUT", out.to_string_lossy().into_owned())
+            .env("IRORI_ECHO", "値 значение")
+            .env("IRORI_ECHO_OUT", out.to_string_lossy().into_owned())
             .cwd(&games);
         let mut child = spawn(&spec, Some(&log)).unwrap();
         let status = tokio::time::timeout(Duration::from_secs(60), child.wait())

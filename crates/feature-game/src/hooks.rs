@@ -2,7 +2,7 @@
 //! from wikis and anticheat databases, and store-specific operations of
 //! concrete store crates. The shell may install providers with
 //! [`install_hooks`]; without a compatibility provider the page reads
-//! `ember_extras` directly, and without a branch-password provider the
+//! `irori_extras` directly, and without a branch-password provider the
 //! private-branch field is hidden. Concrete store handles (Epic EOS overlay,
 //! GOG REDmod) come from [`install_store_handles`]; without them those
 //! sections are hidden.
@@ -10,13 +10,13 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use ember_core::{AppSettings, GameId, GameInfo};
-use ember_epic::EpicStore;
-use ember_extras::anticheat::{self, AntiCheatInfo, AntiCheatStatus, InstallGate};
-use ember_gog::GogStore;
-use ember_services::MultiAccountStore;
-use ember_ui::i18n::t;
 use gpui_kit::{App, Global, SharedString, Task};
+use irori_core::{AppSettings, GameId, GameInfo};
+use irori_epic::EpicStore;
+use irori_extras::anticheat::{self, AntiCheatInfo, AntiCheatStatus, InstallGate};
+use irori_gog::GogStore;
+use irori_services::MultiAccountStore;
+use irori_ui::i18n::t;
 
 /// Steam Deck verification category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,7 +63,7 @@ impl AnticheatStatus {
         })
     }
 
-    /// The `ember_extras` status this one stands for.
+    /// The `irori_extras` status this one stands for.
     fn extras(self) -> AntiCheatStatus {
         match self {
             AnticheatStatus::Supported => AntiCheatStatus::Supported,
@@ -76,7 +76,7 @@ impl AnticheatStatus {
     }
 
     /// Multiplayer is expected to fail; installs are gated. Decided by
-    /// `ember_extras::anticheat` (the single source of truth).
+    /// `irori_extras::anticheat` (the single source of truth).
     pub fn blocks_multiplayer(self) -> bool {
         self.extras().is_broken()
     }
@@ -106,7 +106,7 @@ impl AnticheatReport {
 }
 
 /// Install gate for a game with this anticheat report, decided by
-/// [`ember_extras::anticheat::blocks_install`] so every surface agrees.
+/// [`irori_extras::anticheat::blocks_install`] so every surface agrees.
 pub(crate) fn install_gate(report: Option<&AnticheatReport>, app: &AppSettings) -> InstallGate {
     let info = report.map(|r| AntiCheatInfo {
         status: r.status.extras(),
@@ -189,7 +189,7 @@ impl GameHooks {
         Self::default()
     }
 
-    /// Provide compatibility data (typically from `ember_extras`).
+    /// Provide compatibility data (typically from `irori_extras`).
     pub fn with_compatibility(mut self, f: CompatibilityFn) -> Self {
         self.compatibility = Some(f);
         self
@@ -249,7 +249,7 @@ pub(crate) fn gog_store_for(app_name: &str, cx: &App) -> Option<Arc<GogStore>> {
 }
 
 /// Compatibility data of a game: from the installed provider, else from
-/// `ember_extras` (wikis, AreWeAntiCheatYet, known fixes).
+/// `irori_extras` (wikis, AreWeAntiCheatYet, known fixes).
 pub(crate) fn fetch_compatibility(
     game: Arc<GameInfo>,
     cx: &mut App,
@@ -260,7 +260,7 @@ pub(crate) fn fetch_compatibility(
     {
         return Some(f(game, cx));
     }
-    Some(ember_ui::run(cx, crate::compat_source::load(game)))
+    Some(irori_ui::run(cx, crate::compat_source::load(game)))
 }
 
 /// Whether private-branch passwords can be set.

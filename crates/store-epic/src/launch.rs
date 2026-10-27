@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{CommandSpec, split_args};
-use ember_core::{LaunchEnvironment, LaunchOption, WineKind, WineLaunch};
-use ember_epic_api::launch::LaunchParams;
+use irori_core::process::{CommandSpec, split_args};
+use irori_core::{LaunchEnvironment, LaunchOption, WineKind, WineLaunch};
+use irori_epic_api::launch::LaunchParams;
 
 fn strip_quotes(bin: &Path) -> String {
     bin.to_string_lossy().trim_matches('\'').to_string()
@@ -111,11 +111,11 @@ pub(crate) fn fake_exe_in_prefix(real_prefix: &Path) -> PathBuf {
         .join("EpicGamesLauncher.exe")
 }
 
-/// The bundled fake `EpicGamesLauncher.exe`: Ember's bin dir, then Heroic's
+/// The bundled fake `EpicGamesLauncher.exe`: Irori's bin dir, then Heroic's
 /// resources.
-pub(crate) fn find_fake_exe(ember_bin: &Path) -> Option<PathBuf> {
+pub(crate) fn find_fake_exe(irori_bin: &Path) -> Option<PathBuf> {
     const HEROIC: &str = "resources/app.asar.unpacked/build/bin/x64/win32/EpicGamesLauncher.exe";
-    std::iter::once(ember_bin.join("EpicGamesLauncher.exe"))
+    std::iter::once(irori_bin.join("EpicGamesLauncher.exe"))
         .chain(
             [
                 "/usr/lib64/heroic",

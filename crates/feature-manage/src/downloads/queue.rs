@@ -4,10 +4,10 @@
 
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, Runner};
-use ember_services::{DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
-use ember_ui::i18n::t;
 use gpui_kit::SharedString;
+use irori_core::{GameId, GameInfo, Runner};
+use irori_services::{DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
+use irori_ui::i18n::t;
 
 /// The download being worked on (running, or paused with the queue).
 #[derive(Debug, Clone)]
@@ -193,7 +193,7 @@ pub(crate) fn placeholder_game(id: &GameId, title: &str) -> Arc<GameInfo> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use ember_core::{InstallRequest, UpdateRequest};
+    use irori_core::{InstallRequest, UpdateRequest};
 
     pub(crate) fn item(runner: Runner, app: &str, state: DownloadState) -> DownloadItem {
         DownloadItem {

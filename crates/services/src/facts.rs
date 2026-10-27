@@ -11,8 +11,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use anyhow::{Context as _, Result};
-use ember_core::{GameInfo, Paths, Runner, json_store, util};
 use futures::StreamExt as _;
+use irori_core::{GameInfo, Paths, Runner, json_store, util};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -136,7 +136,7 @@ async fn answer(key: String, platform: String, app: String) -> Option<(String, F
 /// One GamesDB lookup. A game GamesDB does not know is an answer too (empty
 /// facts); network and server errors are not.
 async fn fetch(platform: &str, id: &str) -> Result<Facts> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(format!(
             "https://gamesdb.gog.com/platforms/{platform}/external_releases/{id}"
         ))

@@ -6,7 +6,7 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-use ember_core::Paths;
+use irori_core::Paths;
 use serde::{Deserialize, Serialize};
 
 /// One finished session of one game.
@@ -48,7 +48,7 @@ pub fn replace_all(list: &[Session]) -> Result<()> {
         text.push_str(&serde_json::to_string(s)?);
         text.push('\n');
     }
-    ember_core::json_store::write_bytes(&file(), text.as_bytes())
+    irori_core::json_store::write_bytes(&file(), text.as_bytes())
 }
 
 fn append_to(path: &Path, session: &Session) -> Result<()> {

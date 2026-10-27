@@ -1,10 +1,10 @@
 //! The ROM library ([`Runner::Emulation`]): console and retro games in the
-//! folders the user chose (`emberRomFolders`), played with emulators from
-//! `ember-engines`.
+//! folders the user chose (`iroriRomFolders`), played with emulators from
+//! `irori-engines`.
 //!
 //! There is no account. The library is `<store config>/library.json`;
 //! [`Store::refresh`] rescans the folders (incrementally: unchanged files are
-//! not looked at again) and a file watcher rescans after changes while Ember
+//! not looked at again) and a file watcher rescans after changes while Irori
 //! runs. Removing a game from the library never deletes its files; it is
 //! remembered so a rescan doesn't bring it back.
 //!
@@ -24,14 +24,14 @@ use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_core::{
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, HostPlatform, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, InstalledInfo, LaunchPlan, LaunchRequest, LoginFlow, Notice,
     NoticeLevel, OpContext, Outcome, Paths, RemoveArgs, Runner, SettingsFn, Store, UpdateRequest,
     UserInfo, json_store,
 };
-use ember_engines::launch::{GameFile, LaunchInput};
-use ember_engines::{
+use irori_engines::launch::{GameFile, LaunchInput};
+use irori_engines::{
     BiosMissing, EngineKind, EngineMissing, EngineRef, EngineUnavailable, Host, bios, systems,
 };
 use parking_lot::{Mutex, RwLock};
@@ -48,7 +48,7 @@ const AVAILABILITY_TIMEOUT: Duration = Duration::from_secs(3);
 static UDMABUF_WARNED: AtomicBool = AtomicBool::new(false);
 
 const NOT_INSTALLABLE: &str =
-    "Games in your ROM folders are not installed by Ember; add the folder that holds them";
+    "Games in your ROM folders are not installed by Irori; add the folder that holds them";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -140,13 +140,13 @@ impl EmulationStore {
         path: &Path,
         system: Option<&str>,
         title: Option<String>,
-    ) -> Result<ember_core::GameId> {
+    ) -> Result<irori_core::GameId> {
         let meta = tokio::fs::metadata(path)
             .await
             .with_context(|| format!("{} was not found", path.display()))?;
         let system = match system {
             Some(id) => {
-                systems::get(id).with_context(|| format!("Ember does not know the system {id}"))?
+                systems::get(id).with_context(|| format!("Irori does not know the system {id}"))?
             }
             None if meta.is_dir() => bail!("Choose the system of the game in {}", path.display()),
             None => {
@@ -155,7 +155,7 @@ impl EmulationStore {
                     .await
                     .context("detecting the system stopped")?
                     .with_context(|| {
-                        format!("Ember can’t tell which system {} is for", path.display())
+                        format!("Irori can’t tell which system {} is for", path.display())
                     })?
             }
         };
@@ -184,7 +184,7 @@ impl EmulationStore {
             stem,
             root: path.parent().map(Path::to_path_buf).unwrap_or_default(),
         };
-        let id = ember_core::GameId::new(Runner::Emulation, entry.app_name.as_str());
+        let id = irori_core::GameId::new(Runner::Emulation, entry.app_name.as_str());
         let (entries, mut added, mut removed) = {
             let s = self.state.read();
             (s.entries.clone(), s.added.clone(), s.removed.clone())
@@ -207,7 +207,7 @@ impl EmulationStore {
             .rom_folders
             .iter()
             .filter(|f| !f.trim().is_empty())
-            .map(|f| ember_core::paths::expand_home(f))
+            .map(|f| irori_core::paths::expand_home(f))
             .collect()
     }
 
@@ -338,11 +338,11 @@ impl EmulationStore {
             return Some(c);
         }
         let app = (self.settings)();
-        let state = ember_engines::state::load();
-        ember_engines::default_choice(
+        let state = irori_engines::state::load();
+        irori_engines::default_choice(
             system,
             app.system_engines.get(system).map(String::as_str),
-            |c| ember_engines::plays_now(c, &state),
+            |c| irori_engines::plays_now(c, &state),
         )
     }
 }
@@ -556,13 +556,13 @@ impl Store for EmulationStore {
             .entry(app_name)
             .context("This game is not in the library")?;
         let system = systems::get(&entry.system)
-            .with_context(|| format!("Ember does not know the system {}", entry.system))?;
+            .with_context(|| format!("Irori does not know the system {}", entry.system))?;
         let settings = request.settings.clone();
 
         // Checked first: no emulator download helps a game without its BIOS.
         let app = (self.settings)();
         let bios_root = (!app.bios_folder.trim().is_empty())
-            .then(|| ember_core::paths::expand_home(&app.bios_folder));
+            .then(|| irori_core::paths::expand_home(&app.bios_folder));
         let sys_id = entry.system.clone();
         let index = tokio::task::spawn_blocking(move || -> Result<bios::BiosIndex> {
             let mut index = bios::cached_index();
@@ -584,15 +584,15 @@ impl Store for EmulationStore {
             .await
             .context("choosing the emulator stopped")?
             .with_context(|| format!("No emulator plays {} games", system.name))?;
-        let manifest = ember_engines::engine(&choice.engine)
-            .with_context(|| format!("Ember does not know the emulator {}", choice.engine))?;
+        let manifest = irori_engines::engine(&choice.engine)
+            .with_context(|| format!("Irori does not know the emulator {}", choice.engine))?;
 
         // RetroArch cores are small: fetch a missing one on the way.
         if let Some(core) = &choice.core
-            && ember_engines::retroarch::installed_core(core).is_none()
+            && irori_engines::retroarch::installed_core(core).is_none()
         {
             (ctx.step)("Installing the emulator core");
-            let installed = ember_engines::retroarch::install_core(core, &ctx).await;
+            let installed = irori_engines::retroarch::install_core(core, &ctx).await;
             if !matches!(installed, Ok(Some(_))) {
                 let missing = EngineMissing {
                     engine: manifest.id.clone(),
@@ -629,9 +629,9 @@ impl Store for EmulationStore {
         };
         let m2 = m.clone();
         let installation = tokio::task::spawn_blocking(move || -> Result<_> {
-            let state = ember_engines::state::load();
-            let installs = ember_engines::discovery::find(&m2, &state);
-            let found = ember_engines::launch::resolve(
+            let state = irori_engines::state::load();
+            let installs = irori_engines::discovery::find(&m2, &state);
+            let found = irori_engines::launch::resolve(
                 &m2,
                 &installs,
                 Some(pin.as_str()),
@@ -639,7 +639,7 @@ impl Store for EmulationStore {
             );
             match found {
                 Ok(installation) => Ok(installation.clone()),
-                // Offering to install an engine Ember can't download here
+                // Offering to install an engine Irori can't download here
                 // would only fail: say why instead.
                 Err(missing) if missing.pinned.is_none() => {
                     Err(match EngineUnavailable::no_build(&m2, Host::current()) {
@@ -654,7 +654,7 @@ impl Store for EmulationStore {
         .context("finding the emulator stopped")??;
 
         if manifest.kind == EngineKind::Relinker {
-            if ember_engines::relink::udmabuf_denied()
+            if irori_engines::relink::udmabuf_denied()
                 && !UDMABUF_WARNED.swap(true, Ordering::Relaxed)
             {
                 self.bus.notice(
@@ -672,7 +672,7 @@ impl Store for EmulationStore {
                     ),
                 );
             }
-            if ember_engines::relink::prepare(&manifest, &installation, &game, &ctx)
+            if irori_engines::relink::prepare(&manifest, &installation, &game, &ctx)
                 .await?
                 .is_none()
             {
@@ -682,7 +682,7 @@ impl Store for EmulationStore {
 
         let first_time_hotkey = tokio::task::spawn_blocking(move || -> Result<_> {
             let values = m.option_values(&values_set);
-            let command = ember_engines::launch::command(&LaunchInput {
+            let command = irori_engines::launch::command(&LaunchInput {
                 manifest: &m,
                 installation: &installation,
                 game: &game,
@@ -691,7 +691,7 @@ impl Store for EmulationStore {
                 bios: &index,
                 own_settings,
             })?;
-            let first = ember_engines::state::update(|s| s.hotkey_shown.insert(m.id.clone()))
+            let first = irori_engines::state::update(|s| s.hotkey_shown.insert(m.id.clone()))
                 .unwrap_or(false);
             Ok((command, first))
         })

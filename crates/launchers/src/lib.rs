@@ -1,4 +1,4 @@
-//! Reads the local data of official third-party PC launchers so Ember can list
+//! Reads the local data of official third-party PC launchers so Irori can list
 //! the games they installed, without ever touching their accounts.
 //!
 //! * [`Launcher`]: Battle.net, EA app, Ubisoft Connect and the Rockstar Games
@@ -13,7 +13,7 @@
 //! * [`scan_prefix`] / [`scan_drive`] scan for every launcher at once. A bad
 //!   file never fails a scan: it becomes a warning in the [`ScanReport`].
 //!
-//! Nothing here knows about Ember: no paths, settings or events. Parsers take
+//! Nothing here knows about Irori: no paths, settings or events. Parsers take
 //! bytes or text; only the `scan_*` functions read files.
 
 #![forbid(unsafe_code)]
@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 
 pub use registry::{RegValue, Registry};
 
-/// A third-party launcher whose installed games Ember can list.
+/// A third-party launcher whose installed games Irori can list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Launcher {
     #[serde(rename = "battlenet")]
@@ -46,7 +46,7 @@ pub enum Launcher {
 }
 
 impl Launcher {
-    /// Every launcher, in the order Ember shows them.
+    /// Every launcher, in the order Irori shows them.
     pub const ALL: [Launcher; 4] = [
         Launcher::BattleNet,
         Launcher::EaApp,
@@ -54,7 +54,7 @@ impl Launcher {
         Launcher::Rockstar,
     ];
 
-    /// Stable id; Ember's app names for this launcher's games are `<id>:<game id>`.
+    /// Stable id; Irori's app names for this launcher's games are `<id>:<game id>`.
     pub fn id(self) -> &'static str {
         match self {
             Launcher::BattleNet => "battlenet",
@@ -142,7 +142,7 @@ impl Launcher {
     }
 }
 
-/// How Ember starts a launcher's game: always through the launcher itself.
+/// How Irori starts a launcher's game: always through the launcher itself.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LaunchSpec {
@@ -182,7 +182,7 @@ pub struct InstalledGame {
 }
 
 impl InstalledGame {
-    /// Ember's app name for the game: `<launcher id>:<game id>`.
+    /// Irori's app name for the game: `<launcher id>:<game id>`.
     pub fn app_name(&self) -> String {
         format!("{}:{}", self.launcher.id(), self.id)
     }

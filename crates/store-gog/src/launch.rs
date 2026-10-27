@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result, bail};
 use serde_json::Value;
 
-use ember_core::process::{CommandSpec, split_args};
-use ember_core::{
+use irori_core::process::{CommandSpec, split_args};
+use irori_core::{
     InstallPlatform, LaunchEnvironment, LaunchOption, LaunchPlan, LaunchRequest, OpContext,
 };
 
@@ -113,7 +113,7 @@ pub fn task_command(
             );
             bundles.remove(0)
         };
-        let exe = ember_core::platform::bundle_executable(&bundle)?;
+        let exe = irori_core::platform::bundle_executable(&bundle)?;
         let resources = bundle.join("Contents/Resources");
         let cwd = if resources.is_dir() {
             resources
@@ -245,7 +245,7 @@ pub fn mods_to_load(available: &[String], selected: &[String]) -> Vec<String> {
 /// The in-process Galaxy service and the games using it.
 #[derive(Default)]
 pub(crate) struct Galaxy {
-    service: Option<ember_gog_galaxy::Service>,
+    service: Option<irori_gog_galaxy::Service>,
     sessions: HashSet<String>,
 }
 
@@ -367,7 +367,7 @@ impl GogStore {
         }
         let native = !rec.platform.needs_wine();
         let wine = if native {
-            if rec.platform == ember_core::InstallPlatform::Windows {
+            if rec.platform == irori_core::InstallPlatform::Windows {
                 self.prepare_prefix(&rec, None, &ctx, &request.log_file)
                     .await?;
             }
@@ -458,13 +458,13 @@ impl GogStore {
                 return;
             }
         };
-        let account = ember_gog_galaxy::Account {
+        let account = irori_gog_galaxy::Account {
             access_token: creds.access_token,
             refresh_token: creds.refresh_token,
             user_id: creds.user_id,
             username: user.username,
         };
-        match ember_gog_galaxy::start(account).await {
+        match irori_gog_galaxy::start(account).await {
             Ok(service) => {
                 tracing::info!("Galaxy service started for {app_name}");
                 g.service = Some(service);
@@ -489,7 +489,7 @@ impl GogStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::{WineKind, WineLaunch};
+    use irori_core::{WineKind, WineLaunch};
 
     #[test]
     fn builds_task_commands() {

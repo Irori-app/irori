@@ -15,8 +15,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::archive_guard;
-use ember_core::process::CancellationToken;
+use irori_core::archive_guard;
+use irori_core::process::CancellationToken;
 use once_cell::sync::Lazy;
 use regex::bytes::Regex;
 

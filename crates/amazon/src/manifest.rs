@@ -3,7 +3,7 @@
 //! file list, signed with Amazon's RSA key.
 
 use anyhow::{Context as _, Result, bail};
-use ember_depot::{Algorithm, Digest, FileEntry};
+use irori_depot::{Algorithm, Digest, FileEntry};
 use prost::Message;
 use rsa::RsaPublicKey;
 use rsa::pkcs8::DecodePublicKey as _;
@@ -165,7 +165,7 @@ impl Manifest {
             .into_iter()
             .map(|f| {
                 let raw_path = f.path.unwrap_or_default();
-                let path = ember_depot::path::normalize(&raw_path)?;
+                let path = irori_depot::path::normalize(&raw_path)?;
                 let hash = f
                     .hash
                     .with_context(|| format!("{raw_path} has no checksum"))?;
@@ -379,7 +379,7 @@ mod tests {
         )
         .unwrap();
         let entries = Manifest::entries(&new.files, "https://h/v2").unwrap();
-        let diff = ember_depot::diff(
+        let diff = irori_depot::diff(
             old.files.iter().map(|f| (f.path.as_str(), Some(&f.hash))),
             &entries,
         );

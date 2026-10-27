@@ -1,6 +1,6 @@
 [package]
-name = "ember-services"
-description = "Ember's backend facade: library aggregation, settings, download queue, launching and game operations"
+name = "irori-services"
+description = "Irori's backend facade: library aggregation, settings, download queue, launching and game operations"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,13 +8,13 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-depot.workspace = true
-ember-runtime.workspace = true
-ember-engines.workspace = true
+irori-core.workspace = true
+irori-depot.workspace = true
+irori-runtime.workspace = true
+irori-engines.workspace = true
 sysinfo.workspace = true
-ember-extras.workspace = true
-ember-scripts.workspace = true
+irori-extras.workspace = true
+irori-scripts.workspace = true
 anyhow.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true

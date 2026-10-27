@@ -1,5 +1,5 @@
 //! Device sign-in: the PKCE sign-in page, the authorization code it yields,
-//! and the tokens obtained by registering Ember as an Amazon Games device.
+//! and the tokens obtained by registering Irori as an Amazon Games device.
 
 use std::fmt;
 
@@ -123,7 +123,7 @@ pub fn extract_auth_code(input: &str) -> Option<String> {
     BARE_CODE.is_match(input).then(|| input.to_string())
 }
 
-/// A registered device's tokens and account. Ember's own format.
+/// A registered device's tokens and account. Irori's own format.
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Credentials {
     pub access_token: String,

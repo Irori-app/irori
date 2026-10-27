@@ -2,7 +2,7 @@
 //! web APIs, and the Epic service status check.
 
 use anyhow::Result;
-use ember_core::{ExtraInfo, Requirement, http};
+use irori_core::{ExtraInfo, Requirement, http};
 use serde_json::{Value, json};
 
 const GRAPHQL_URL: &str = "https://launcher.store.epicgames.com/graphql";
@@ -31,7 +31,7 @@ pub(crate) async fn graphql(query: String) -> Result<Value> {
 /// [`graphql`] as the signed-in player, for queries about their own data.
 pub(crate) async fn graphql_signed(
     query: String,
-    session: &ember_epic_api::Session,
+    session: &irori_epic_api::Session,
 ) -> Result<Value> {
     Ok(http::client()
         .post(GRAPHQL_URL)
@@ -143,7 +143,7 @@ pub(crate) fn parse_product_config(v: &Value, slug: &str) -> Option<ExtraInfo> {
     })
 }
 
-/// Epic's store locale for Ember's UI language.
+/// Epic's store locale for Irori's UI language.
 pub(crate) fn store_locale(ui_language: &str) -> String {
     match ui_language {
         "" => "en-US".into(),

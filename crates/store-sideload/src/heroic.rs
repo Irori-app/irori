@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use anyhow::{Context as _, Result};
-use ember_core::json_store;
+use irori_core::json_store;
 use serde::Deserialize;
 
 use crate::app::{LIBRARY_VERSION, LibraryFile, SideloadApp, SideloadPlatform, StoredApp};
@@ -38,8 +38,8 @@ struct HeroicInstall {
     platform: Option<String>,
 }
 
-/// Merge Heroic's sideloaded apps into Ember's library file at `target`.
-/// Apps already in Ember (same id) are kept as they are; macOS apps and
+/// Merge Heroic's sideloaded apps into Irori's library file at `target`.
+/// Apps already in Irori (same id) are kept as they are; macOS apps and
 /// invalid entries are skipped. Returns how many apps were added.
 pub(crate) fn import_into(heroic_config_dir: &Path, target: &Path) -> Result<usize> {
     let source = heroic_config_dir.join("sideload_apps").join("library.json");
@@ -183,8 +183,8 @@ mod tests {
             FIXTURE.to_owned()
         };
         std::fs::write(heroic.path().join("sideload_apps/library.json"), fixture).unwrap();
-        let ember = tempfile::tempdir().unwrap();
-        let target = ember.path().join("library.json");
+        let irori = tempfile::tempdir().unwrap();
+        let target = irori.path().join("library.json");
         let existing = StoredApp {
             app_name: "existing".into(),
             app: SideloadApp {

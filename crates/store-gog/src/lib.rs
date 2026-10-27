@@ -1,9 +1,9 @@
 //! GOG store backend.
 //!
-//! Downloads, updates and repairs use [`ember_gog_api`] and the
-//! [`ember_depot`] engine; cloud saves talk to GOG's cloud storage; the
+//! Downloads, updates and repairs use [`irori_gog_api`] and the
+//! [`irori_depot`] engine; cloud saves talk to GOG's cloud storage; the
 //! Galaxy communication service games use for achievements and the overlay
-//! runs in-process ([`ember_gog_galaxy`]). Authentication, the catalogue
+//! runs in-process ([`irori_gog_galaxy`]). Authentication, the catalogue
 //! (Galaxy library + GamesDB), update checks, playtime, presence and
 //! achievements talk to GOG's web APIs directly.
 //!
@@ -41,7 +41,7 @@ use parking_lot::RwLock;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use ember_core::{
+use irori_core::{
     Achievement, Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, LaunchOption, LaunchPlan, LaunchRequest, LoginFlow, OpContext,
     Outcome, RemoveArgs, Runner, SessionExpired, SettingsFn, Store, SyncDirection, UpdateRequest,
@@ -85,19 +85,19 @@ pub struct GogStore {
     /// When GOG's playtime totals were last read (see `gog_totals`).
     totals_read: parking_lot::Mutex<Option<std::time::Instant>>,
     /// Content-system client without a token (see `content()`).
-    content: ember_gog_api::content::Client,
+    content: irori_gog_api::content::Client,
     /// The in-process Galaxy service and the games using it.
     galaxy: tokio::sync::Mutex<launch::Galaxy>,
 }
 
 impl GogStore {
-    /// Create the store using Ember's standard directories.
+    /// Create the store using Irori's standard directories.
     pub fn new(bus: EventBus, settings: SettingsFn) -> Arc<Self> {
-        Self::with_paths(bus, settings, GogPaths::from_ember())
+        Self::with_paths(bus, settings, GogPaths::from_irori())
     }
 
     /// The store of one more account, keeping its login, installs and
-    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// caches in `config` and `cache`; shared tools stay in Irori's
     /// directories.
     pub fn for_account(
         bus: EventBus,
@@ -108,7 +108,7 @@ impl GogStore {
         let paths = GogPaths {
             config,
             cache,
-            ..GogPaths::from_ember()
+            ..GogPaths::from_irori()
         };
         Self::with_paths(bus, settings, paths)
     }
@@ -123,10 +123,10 @@ impl GogStore {
         bus: EventBus,
         settings: SettingsFn,
         paths: GogPaths,
-        endpoints: ember_gog_api::content::Endpoints,
+        endpoints: irori_gog_api::content::Endpoints,
     ) -> Arc<Self> {
         let content =
-            ember_gog_api::content::Client::new(endpoints).expect("the HTTP client can be built");
+            irori_gog_api::content::Client::new(endpoints).expect("the HTTP client can be built");
         Arc::new_cyclic(|me| Self {
             me: me.clone(),
             bus,
@@ -408,7 +408,7 @@ pub(crate) async fn save_json<T: Serialize + Send + 'static>(
 /// A login GOG refused, as the launcher's [`SessionExpired`] so it can ask the
 /// user to log in again.
 fn expired_login(e: anyhow::Error) -> anyhow::Error {
-    match e.downcast_ref::<ember_gog_api::auth::SignInRejected>() {
+    match e.downcast_ref::<irori_gog_api::auth::SignInRejected>() {
         Some(rejected) => SessionExpired::new(Runner::Gog, rejected.to_string()).into(),
         None => e,
     }
@@ -565,14 +565,14 @@ impl Store for GogStore {
         self.import_game(app_name, path, platform).await
     }
 
-    async fn extras(&self, app_name: &str) -> Result<Vec<ember_core::ExtraFile>> {
+    async fn extras(&self, app_name: &str) -> Result<Vec<irori_core::ExtraFile>> {
         self.list_extras(app_name).await
     }
 
     async fn extra_url(
         &self,
         _app_name: &str,
-        file: &ember_core::ExtraFile,
+        file: &irori_core::ExtraFile,
     ) -> Result<(String, String)> {
         self.extra_address(file).await
     }
@@ -648,7 +648,7 @@ mod view_tests {
             runner: Some(Runner::Gog),
             app_name: "1".into(),
             title: "Game".into(),
-            dlcs: vec![ember_core::DlcInfo {
+            dlcs: vec![irori_core::DlcInfo {
                 app_name: "2".into(),
                 title: "DLC".into(),
                 ..Default::default()

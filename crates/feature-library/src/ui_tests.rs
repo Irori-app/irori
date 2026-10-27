@@ -6,16 +6,16 @@ use std::sync::{Arc, Once};
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
-use ember_core::{
+use gpui_kit::{
+    AppContext as _, Bounds, Focusable as _, TestAppContext, WindowBounds, WindowOptions, px, size,
+};
+use irori_core::{
     DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
     Runner, Store, UpdateRequest, UserInfo, async_trait,
 };
-use ember_services::Backend;
-use ember_ui::models;
-use gpui_kit::{
-    AppContext as _, Bounds, Focusable as _, TestAppContext, WindowBounds, WindowOptions, px, size,
-};
+use irori_services::Backend;
+use irori_ui::models;
 
 use crate::filter::InstallFilter;
 use crate::view::LibraryView;
@@ -28,8 +28,8 @@ impl MemoryStore {
     fn new() -> Arc<Self> {
         let game = |app: &str, title: &str, installed: bool| {
             // Hades is installed in a folder that does not exist.
-            let install = (app == "3").then(|| ember_core::InstalledInfo {
-                install_path: "/nonexistent/ember-library-test/hades".into(),
+            let install = (app == "3").then(|| irori_core::InstalledInfo {
+                install_path: "/nonexistent/irori-library-test/hades".into(),
                 ..Default::default()
             });
             Arc::new(
@@ -130,7 +130,7 @@ impl Store for MemoryStore {
 fn isolate_paths() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let root = std::env::temp_dir().join(format!("ember-library-ui-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("irori-library-ui-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         Paths::init(Paths::under(&root));
     });
@@ -145,7 +145,7 @@ fn start(cx: &mut TestAppContext) -> Backend {
     let backend = Backend::start(move |_, _| vec![store]).expect("backend starts");
     cx.update(|cx| {
         gpui_kit::init(cx);
-        ember_ui::init(backend.clone(), cx);
+        irori_ui::init(backend.clone(), cx);
     });
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {

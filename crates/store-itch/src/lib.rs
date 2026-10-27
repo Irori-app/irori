@@ -1,4 +1,4 @@
-//! itch.io store backend (opt-in through `emberItchIo`).
+//! itch.io store backend (opt-in through `iroriItchIo`).
 //!
 //! * Login: an API key the user creates on itch.io, checked against the
 //!   account it belongs to and kept owner-only in `auth.json`.
@@ -6,7 +6,7 @@
 //!   `library.json` so the library shows offline; games, tools and installed
 //!   entries whose key went away.
 //! * Install, update and repair: the best upload for the platform
-//!   ([`ember_itch_api::best_upload`]) downloads through [`ember_depot`]
+//!   ([`irori_itch_api::best_upload`]) downloads through [`irori_depot`]
 //!   (resumable, speed-limited, with a fresh link from the API for each
 //!   attempt) and is unpacked into the install folder; an update unpacks
 //!   beside it and swaps folders. Updates are offered when the chosen
@@ -27,12 +27,12 @@ use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_core::{
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
     Runner, SessionExpired, SettingsFn, Store, UpdateRequest, UserInfo,
 };
-use ember_itch_api::{ApiError, Client, Os, OwnedKey};
+use irori_itch_api::{ApiError, Client, Os, OwnedKey};
 use parking_lot::RwLock;
 
 pub use records::Layout;
@@ -87,7 +87,7 @@ impl State {
 
 fn game_info(
     key: &OwnedKey,
-    game: &ember_itch_api::Game,
+    game: &irori_itch_api::Game,
     installed: Option<&InstalledRecord>,
 ) -> GameInfo {
     let p = game.platforms;
@@ -102,7 +102,7 @@ fn game_info(
         }
     }
     let nonempty = |s: &str| (!s.trim().is_empty()).then(|| s.to_string());
-    // Animated covers come with a still version; Ember shows still art.
+    // Animated covers come with a still version; Irori shows still art.
     let cover = nonempty(&game.still_cover_url).or_else(|| nonempty(&game.cover_url));
     GameInfo {
         runner: Some(Runner::Itch),
@@ -151,7 +151,7 @@ fn os_of(platform: InstallPlatform) -> Result<Os> {
     })
 }
 
-/// A refused key becomes [`SessionExpired`], so Ember asks to log in again.
+/// A refused key becomes [`SessionExpired`], so Irori asks to log in again.
 fn session_error(e: anyhow::Error) -> anyhow::Error {
     match e.downcast_ref::<ApiError>() {
         Some(api) if api.unauthorized => {
@@ -183,12 +183,12 @@ impl ItchStore {
                 config: paths.store_config_dir(Runner::Itch),
                 cache: paths.store_cache_dir(Runner::Itch),
             },
-            ember_itch_api::API_BASE,
+            irori_itch_api::API_BASE,
         )
     }
 
     /// The store of one more account, keeping its login, installs and
-    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// caches in `config` and `cache`; shared tools stay in Irori's
     /// directories.
     pub fn for_account(
         bus: EventBus,
@@ -200,7 +200,7 @@ impl ItchStore {
             bus,
             settings,
             Layout { config, cache },
-            ember_itch_api::API_BASE,
+            irori_itch_api::API_BASE,
         )
     }
 
@@ -282,9 +282,9 @@ impl ItchStore {
 
     fn base_dir(&self, request: &InstallRequest) -> PathBuf {
         if request.path.as_os_str().is_empty() {
-            ember_core::paths::expand_home(&(self.settings)().default_install_path)
+            irori_core::paths::expand_home(&(self.settings)().default_install_path)
         } else {
-            ember_core::paths::expand_home(&request.path.to_string_lossy())
+            irori_core::paths::expand_home(&request.path.to_string_lossy())
         }
     }
 }
@@ -327,9 +327,9 @@ impl Store for ItchStore {
 
     fn login_flow(&self) -> LoginFlow {
         LoginFlow::Browser {
-            url: ember_itch_api::LOGIN_URL.into(),
-            capture: ember_itch_api::LOGIN_CAPTURE.into(),
-            instructions: "Sign in to itch.io, choose \"Generate new API key\" (or \"View\" next to a key you made for Ember), then copy the key and paste it here.".into(),
+            url: irori_itch_api::LOGIN_URL.into(),
+            capture: irori_itch_api::LOGIN_CAPTURE.into(),
+            instructions: "Sign in to itch.io, choose \"Generate new API key\" (or \"View\" next to a key you made for Irori), then copy the key and paste it here.".into(),
         }
     }
 
@@ -337,7 +337,7 @@ impl Store for ItchStore {
         if !self.enabled() {
             bail!(TURNED_OFF);
         }
-        let key = ember_itch_api::extract_api_key(input)
+        let key = irori_itch_api::extract_api_key(input)
             .context("No itch.io API key found. Copy the key shown on itch.io’s API keys page and paste it here.")?;
         let api = Client::with_base(&self.api_base, &key)?;
         let user = match api.profile().await {
@@ -502,7 +502,7 @@ impl Store for ItchStore {
             .with_context(|| format!("{app_name} is not in your itch.io library"))?;
         let dir = self
             .base_dir(request)
-            .join(ember_core::paths::sanitize(game.title.trim()));
+            .join(irori_core::paths::sanitize(game.title.trim()));
         self.run_pipeline(
             app_name,
             dir,
@@ -552,7 +552,7 @@ impl Store for ItchStore {
                 if !dir.exists() {
                     return Ok(());
                 }
-                ember_core::fs_guard::ensure_deletable(&dir, &app)?;
+                irori_core::fs_guard::ensure_deletable(&dir, &app)?;
                 std::fs::remove_dir_all(&dir)
                     .with_context(|| format!("Could not delete {}", dir.display()))
             })

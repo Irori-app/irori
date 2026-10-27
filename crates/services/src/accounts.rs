@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{
+use irori_core::{
     Achievement, Event, EventBus, ExtraFile, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery,
     InstallPlatform, InstallRequest, LaunchOption, LaunchPlan, LaunchRequest, LoginFlow,
     MAIN_ACCOUNT, OpContext, Outcome, Paths, RemoveArgs, Runner, SessionExpired, Store,

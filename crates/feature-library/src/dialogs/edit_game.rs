@@ -1,13 +1,9 @@
-//! Custom title and art for a store game (kept by Ember, never sent to the
+//! Custom title and art for a store game (kept by Irori, never sent to the
 //! store). Sideloaded apps are edited in their own dialog instead.
 
 use std::cell::Cell;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, GameOverrides, Runner};
-use ember_ui::components::{art_img, physical_width};
-use ember_ui::i18n::t;
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::form::{field, v_form};
@@ -20,6 +16,10 @@ use gpui_kit::{
     ObjectFit, ParentElement as _, Render, SharedString, Styled as _, StyledImage as _,
     Subscription, Window, div, rems,
 };
+use irori_core::{GameId, GameInfo, GameOverrides, Runner};
+use irori_ui::components::{art_img, physical_width};
+use irori_ui::i18n::t;
+use irori_ui::{backend, models};
 
 use super::steamgrid::{ArtKind, ArtPicker, ArtPickerEvent};
 use super::{dialog_width, pick_path, text};
@@ -140,7 +140,7 @@ impl EditGameDialog {
                 .placeholder(original.title.clone())
                 .default_value(title_value)
         });
-        let store = ember_ui::art::art_store(cx);
+        let store = irori_ui::art::art_store(cx);
         let mut subscriptions = vec![cx.observe(&store, |_, _, cx| cx.notify())];
         for input in std::iter::once(&title).chain(&art) {
             subscriptions.push(
@@ -217,7 +217,7 @@ impl EditGameDialog {
         let overrides = self.entered(cx);
         let b = backend(cx);
         let id = self.id.clone();
-        ember_ui::state::run_infallible(
+        irori_ui::state::run_infallible(
             cx,
             async move { b.userdata.set_overrides(&id, overrides) },
         )

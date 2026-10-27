@@ -11,7 +11,7 @@
 //! Placeholders use `{name}`.
 //!
 //! ```ignore
-//! use ember_ui::i18n::{t, t_args};
+//! use irori_ui::i18n::{t, t_args};
 //! Button::new("play").label(t("game.play"));
 //! t_args("downloads.installed", &[("title", &game.title)]);
 //! ```
@@ -34,7 +34,7 @@ pub struct Language {
     pub native_name: &'static str,
 }
 
-/// Languages Ember ships translations for, English first.
+/// Languages Irori ships translations for, English first.
 pub const LANGUAGES: &[Language] = &[
     Language {
         code: "en",
@@ -138,8 +138,8 @@ pub static CATALOGS: Catalogs = &[
 ];
 
 /// Translated label of a game status.
-pub fn status_label(kind: ember_core::StatusKind) -> SharedString {
-    use ember_core::StatusKind as K;
+pub fn status_label(kind: irori_core::StatusKind) -> SharedString {
+    use irori_core::StatusKind as K;
     t(match kind {
         K::Installing => "ui.status.installing",
         K::Importing => "ui.status.importing",

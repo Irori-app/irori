@@ -16,12 +16,6 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use ember_core::{Achievement, ExtraInfo, GameId, GameInfo, LaunchOption};
-use ember_services::LaunchParams;
-use ember_ui::art::{LruImageCache, art_store};
-use ember_ui::components::EmptyState;
-use ember_ui::i18n::t;
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::scroll::ScrollableElement as _;
@@ -32,6 +26,12 @@ use gpui_kit::{
     InteractiveElement as _, IntoElement, ParentElement, Pixels, Render, ScrollHandle,
     SharedString, StatefulInteractiveElement as _, Styled, Subscription, Window, canvas, div, px,
 };
+use irori_core::{Achievement, ExtraInfo, GameId, GameInfo, LaunchOption};
+use irori_services::LaunchParams;
+use irori_ui::art::{LruImageCache, art_store};
+use irori_ui::components::EmptyState;
+use irori_ui::i18n::t;
+use irori_ui::{Route, backend, models, navigate};
 
 use crate::choice::{Choice, ChoiceSelect, choice_select, set_choices};
 use crate::hooks::{self, CompatibilityInfo};
@@ -53,10 +53,10 @@ pub enum GamePageEvent {
     /// use it for the window title or breadcrumb.
     TitleChanged(SharedString),
     /// "Edit title and art…" was chosen: open the metadata editor for the
-    /// game (`ember_library::open_edit_game_dialog`).
+    /// game (`irori_library::open_edit_game_dialog`).
     RequestEdit(GameId),
     /// "Categories…" was chosen: open category assignment for the page's
-    /// game ([`GamePage::game_id`]) through `ember_library`'s categories dialog.
+    /// game ([`GamePage::game_id`]) through `irori_library`'s categories dialog.
     RequestCategories,
 }
 
@@ -82,7 +82,7 @@ pub struct GamePage {
     extra: Load<ExtraInfo>,
     achievements: Load<Arc<Vec<Achievement>>>,
     /// Offline installers and goodies, fetched when the Extras tab opens.
-    extras: Load<Arc<Vec<ember_core::ExtraFile>>>,
+    extras: Load<Arc<Vec<irori_core::ExtraFile>>>,
     achievement_filter: AchievementFilter,
     achievement_view: achievements::RowsCache,
     launch_options: Vec<LaunchOption>,
@@ -255,7 +255,7 @@ impl GamePage {
         let b = backend(cx);
         let id = self.id.clone();
         let browser = game.browser_url.is_some();
-        let task = ember_ui::run(cx, {
+        let task = irori_ui::run(cx, {
             let game = game.clone();
             async move {
                 let store = b
@@ -263,7 +263,7 @@ impl GamePage {
                     .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
                 let options = store.launch_options(&id.app_name).await.unwrap_or_default();
                 let available = browser || store.is_available(&id.app_name).await;
-                let shortcuts = ember_extras::shortcuts::exists(&game).await;
+                let shortcuts = irori_extras::shortcuts::exists(&game).await;
                 Ok((options, available, shortcuts))
             }
         });
@@ -323,13 +323,13 @@ impl GamePage {
     }
 
     fn load_extra(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.id.runner == ember_core::Runner::Sideload {
+        if self.id.runner == irori_core::Runner::Sideload {
             return;
         }
         self.extra = Load::Loading;
         let b = backend(cx);
         let id = self.id.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(id.runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
@@ -346,7 +346,7 @@ impl GamePage {
     }
 
     fn load_achievements(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.id.runner == ember_core::Runner::Sideload {
+        if self.id.runner == irori_core::Runner::Sideload {
             return;
         }
         if !matches!(self.achievements, Load::Ready(_)) {
@@ -355,7 +355,7 @@ impl GamePage {
         let b = backend(cx);
         let id = self.id.clone();
         let language = b.settings.app().ui_language.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(id.runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
@@ -382,7 +382,7 @@ impl GamePage {
         // emulated games, and a title match would be another game.
         if matches!(
             game.runner(),
-            ember_core::Runner::Sideload | ember_core::Runner::Emulation
+            irori_core::Runner::Sideload | irori_core::Runner::Emulation
         ) {
             return;
         }

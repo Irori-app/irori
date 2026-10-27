@@ -1,5 +1,5 @@
 //! Installer steps: each command and task into its typed form, refusing
-//! names and parameters Ember does not know.
+//! names and parameters Irori does not know.
 
 use std::collections::BTreeMap;
 
@@ -217,7 +217,7 @@ fn parse_command(
                         .str("format")?
                         .map(|f| {
                             archive_format(&f).ok_or_else(|| {
-                                invalid(&loc, format!("“{f}” is not an archive format Ember knows"))
+                                invalid(&loc, format!("“{f}” is not an archive format Irori knows"))
                             })
                         })
                         .transpose()?;

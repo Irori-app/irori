@@ -112,8 +112,8 @@ impl Runner {
         )
     }
 
-    /// Whether Ember installs, updates, repairs, moves and removes this
-    /// store's games. Steam's games belong to the Steam client: Ember lists
+    /// Whether Irori installs, updates, repairs, moves and removes this
+    /// store's games. Steam's games belong to the Steam client: Irori lists
     /// and starts them, nothing more.
     pub fn manages_installs(self) -> bool {
         !matches!(self, Runner::Steam | Runner::Launchers)

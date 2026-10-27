@@ -382,8 +382,8 @@ async fn write_save(
             }
         }
         for f in &manifest.files {
-            let rel = ember_depot::path::normalize(&f.filename)?;
-            let path = ember_depot::path::join(&dir, &rel);
+            let rel = irori_depot::path::normalize(&f.filename)?;
+            let path = irori_depot::path::join(&dir, &rel);
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
@@ -563,7 +563,7 @@ pub fn save_files(dir: &Path, filters: &Filters) -> HashSet<String> {
 
 #[cfg(test)]
 mod tests {
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
     use parking_lot::Mutex;
     use serde_json::json;
 

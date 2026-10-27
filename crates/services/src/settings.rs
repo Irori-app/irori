@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use ember_core::json_store;
-use ember_core::settings::{AppSettings, GameSettings, GameSettingsOverrides};
-use ember_core::{Event, EventBus, GameId, Paths};
+use irori_core::json_store;
+use irori_core::settings::{AppSettings, GameSettings, GameSettingsOverrides};
+use irori_core::{Event, EventBus, GameId, Paths};
 use parking_lot::RwLock;
 use serde_json::Value;
 

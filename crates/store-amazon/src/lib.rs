@@ -1,5 +1,5 @@
-//! Amazon Games store backend, built on the native [`ember_amazon_api`]
-//! client and the [`ember_depot`] download engine.
+//! Amazon Games store backend, built on the native [`irori_amazon_api`]
+//! client and the [`irori_depot`] download engine.
 //!
 //! State lives in `Paths::store_config_dir(Runner::Nile)` (see [`state`]):
 //! the device credentials, the owned games, the install records and the
@@ -18,9 +18,9 @@ use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_amazon_api::{Client, Credentials, Entitlement, LoginRequest, Manifest, auth};
-use ember_core::process::{self, RunOptions};
-use ember_core::{
+use irori_amazon_api::{Client, Credentials, Entitlement, LoginRequest, Manifest, auth};
+use irori_core::process::{self, RunOptions};
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, OpContext, Outcome, Paths, RemoveArgs,
     Runner, SessionExpired, SettingsFn, Store, UpdateRequest, UserInfo, WineLaunch, json_store,
@@ -65,7 +65,7 @@ pub struct AmazonStore {
     layout: Layout,
     cache_dir: PathBuf,
     sdk_dir: PathBuf,
-    endpoints: ember_amazon_api::Endpoints,
+    endpoints: irori_amazon_api::Endpoints,
     /// Manifest signing key other than Amazon's (tests).
     manifest_key: Option<String>,
     client: OnceCell<Client>,
@@ -94,13 +94,13 @@ impl AmazonStore {
             paths.store_config_dir(Runner::Nile),
             paths.store_cache_dir(Runner::Nile),
             paths.tools_dir().join("amazon-games-sdk"),
-            ember_amazon_api::Endpoints::default(),
+            irori_amazon_api::Endpoints::default(),
             None,
         )
     }
 
     /// The store of one more account, keeping its login, installs and
-    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// caches in `config` and `cache`; shared tools stay in Irori's
     /// directories.
     pub fn for_account(
         bus: EventBus,
@@ -114,7 +114,7 @@ impl AmazonStore {
             config,
             cache,
             Paths::get().tools_dir().join("amazon-games-sdk"),
-            ember_amazon_api::Endpoints::default(),
+            irori_amazon_api::Endpoints::default(),
             None,
         )
     }
@@ -125,7 +125,7 @@ impl AmazonStore {
         config_dir: PathBuf,
         cache_dir: PathBuf,
         sdk_dir: PathBuf,
-        endpoints: ember_amazon_api::Endpoints,
+        endpoints: irori_amazon_api::Endpoints,
         manifest_key: Option<String>,
     ) -> Arc<Self> {
         Arc::new(Self {
@@ -269,7 +269,7 @@ impl AmazonStore {
         let fresh = match self.client()?.refresh(&creds).await {
             Ok(fresh) => fresh,
             Err(e) => {
-                if let Some(rejected) = e.downcast_ref::<ember_amazon_api::SignInRejected>() {
+                if let Some(rejected) = e.downcast_ref::<irori_amazon_api::SignInRejected>() {
                     return Err(SessionExpired::new(Runner::Nile, rejected.0.clone()).into());
                 }
                 return Err(e.context("Your Amazon session could not be renewed"));
@@ -302,20 +302,20 @@ impl AmazonStore {
         }
         (ctx.step)("Downloading the Amazon Games SDK");
         let result = async {
-            let (download, files) = ember_amazon_api::sdk::sdk_files(self.client()?).await?;
-            let finished = ember_depot::download(
+            let (download, files) = irori_amazon_api::sdk::sdk_files(self.client()?).await?;
+            let finished = irori_depot::download(
                 &AmazonStore::download_client()?,
-                ember_depot::Job {
+                irori_depot::Job {
                     root: &self.sdk_dir,
                     files: &files,
                     remove: &[],
                 },
-                &ember_depot::Options::default(),
-                ember_depot::ignore_progress(),
+                &irori_depot::Options::default(),
+                irori_depot::ignore_progress(),
                 &ctx.cancel,
             )
             .await?;
-            if finished == ember_depot::Finished::Done {
+            if finished == irori_depot::Finished::Done {
                 tokio::fs::write(&marker, download.version_id).await?;
             }
             anyhow::Ok(())
@@ -338,14 +338,14 @@ impl AmazonStore {
         &self,
         game: &GameInfo,
         install_dir: &Path,
-        fuel: &ember_amazon_api::fuel::Fuel,
+        fuel: &irori_amazon_api::fuel::Fuel,
         wine: Option<&WineLaunch>,
         request: &LaunchRequest,
         ctx: &OpContext,
     ) -> Result<()> {
         let list_file = wine
             .map(|w| launch::prefix_games_file(&w.prefix))
-            .unwrap_or_else(|| install_dir.join(".ember-installed-games.json"));
+            .unwrap_or_else(|| install_dir.join(".irori-installed-games.json"));
         let mut done: Vec<String> = match tokio::fs::read(&list_file).await {
             Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
             Err(_) => Vec::new(),
@@ -405,7 +405,7 @@ impl AmazonStore {
         Ok(())
     }
 
-    /// Carry over state an earlier Ember build left for the nile helper in
+    /// Carry over state an earlier Irori build left for the nile helper in
     /// `<config>/nile`, then keep it as `<config>/nile-backup`.
     async fn migrate_nile_dir(&self) {
         let old = self.layout.dir.join("nile");
@@ -427,7 +427,7 @@ impl AmazonStore {
         })
         .await;
         match res {
-            Ok(Ok(())) => tracing::info!("moved the Amazon login and installs to Ember's format"),
+            Ok(Ok(())) => tracing::info!("moved the Amazon login and installs to Irori's format"),
             Ok(Err(e)) | Err(e) => tracing::warn!("converting nile's Amazon data: {e:#}"),
         }
     }
@@ -500,7 +500,7 @@ impl Store for AmazonStore {
         let request = self.login.lock().take().context(
             "The Amazon sign-in page has expired. Open it again and repeat the sign-in.",
         )?;
-        tracing::info!("registering Ember as an Amazon Games device");
+        tracing::info!("registering Irori as an Amazon Games device");
         let creds = self
             .client()?
             .register(&request, &code)
@@ -671,7 +671,7 @@ impl Store for AmazonStore {
             .folder_name
             .clone()
             .filter(|f| !f.trim().is_empty())
-            .unwrap_or_else(|| ember_core::paths::sanitize(app_name));
+            .unwrap_or_else(|| irori_core::paths::sanitize(app_name));
         let dir = base.join(&folder);
         // Only a folder this install creates may be deleted on cancel.
         if !dir.exists() {
@@ -723,7 +723,7 @@ impl Store for AmazonStore {
                     // A canceled install: remove the partial download.
                     let pending = self.pending_dirs.lock().remove(app_name);
                     if let Some(dir) = pending.filter(|d| d.is_dir()) {
-                        ember_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
+                        irori_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
                         tokio::fs::remove_dir_all(&dir)
                             .await
                             .with_context(|| format!("Could not delete {}", dir.display()))?;
@@ -751,15 +751,15 @@ impl Store for AmazonStore {
         let ent = self.require_entitlement(app_name)?;
         let (download, fetched) = self.current_build(&ent).await?;
         let entries = Manifest::entries(&fetched.manifest.files, &download.download_url)?;
-        let verified = ember_depot::verify(
+        let verified = irori_depot::verify(
             path,
             &entries,
             0,
-            ember_depot::ignore_progress(),
-            &ember_depot::CancellationToken::new(),
+            irori_depot::ignore_progress(),
+            &irori_depot::CancellationToken::new(),
         )
         .await?;
-        if let ember_depot::Verified::Checked(bad) = &verified
+        if let irori_depot::Verified::Checked(bad) = &verified
             && !bad.is_empty()
         {
             bail!(
@@ -808,7 +808,7 @@ impl Store for AmazonStore {
         let dir = installed.path.clone();
         let fuel = {
             let dir = dir.clone();
-            Self::blocking(move || ember_amazon_api::fuel::read(&dir)).await??
+            Self::blocking(move || irori_amazon_api::fuel::read(&dir)).await??
         };
         let info = fuel.launch_info(&dir)?;
         let sdk_dir = if request.offline {
@@ -847,8 +847,8 @@ impl Store for AmazonStore {
 }
 
 /// Carry the Amazon login and installed games over from a Heroic config dir
-/// (`~/.config/heroic`), converting nile's files into Ember's. An existing
-/// Ember login is kept; install records are merged. Does nothing when
+/// (`~/.config/heroic`), converting nile's files into Irori's. An existing
+/// Irori login is kept; install records are merged. Does nothing when
 /// Heroic has no Amazon data.
 pub fn import_from_heroic(heroic_config_dir: &Path) -> Result<()> {
     let layout = Layout::new(Paths::get().store_config_dir(Runner::Nile));

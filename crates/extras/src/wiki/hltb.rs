@@ -43,7 +43,7 @@ fn browser_headers(referer: Option<&'static str>) -> HeaderMap {
 
 /// GET an HTML page. `Ok(None)` for 4xx responses (page missing or blocked).
 async fn get_page(url: &str, referer: Option<&'static str>) -> Result<Option<String>> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .headers(browser_headers(referer))
         .timeout(Duration::from_secs(10))

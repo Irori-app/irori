@@ -1,5 +1,5 @@
 [package]
-name = "ember-game"
+name = "irori-game"
 description = "Game page: hero, play/install state, launch options, info, achievements, compatibility, and the install, import, uninstall, move, modify, cloud-save and log sheets"
 version.workspace = true
 edition.workspace = true
@@ -9,14 +9,14 @@ publish.workspace = true
 
 [dependencies]
 fs4.workspace = true
-ember-core.workspace = true
-ember-services.workspace = true
-ember-engines.workspace = true
-ember-ui.workspace = true
-ember-runtime.workspace = true
-ember-extras.workspace = true
-ember-epic.workspace = true
-ember-gog.workspace = true
+irori-core.workspace = true
+irori-services.workspace = true
+irori-engines.workspace = true
+irori-ui.workspace = true
+irori-runtime.workspace = true
+irori-extras.workspace = true
+irori-epic.workspace = true
+irori-gog.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 tokio.workspace = true

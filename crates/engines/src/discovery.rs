@@ -1,4 +1,4 @@
-//! Finding the installs of an engine on this computer: versions Ember
+//! Finding the installs of an engine on this computer: versions Irori
 //! manages, Flatpaks, programs on `PATH`, macOS app bundles, known Windows
 //! locations and the program the user picked. Discovery only looks at the
 //! filesystem (no `flatpak` or registry calls) and is blocking; run it on
@@ -12,7 +12,7 @@ use crate::host::Os;
 use crate::manifest::{EngineManifest, Source};
 use crate::state::EngineState;
 
-/// Where an installation came from. Ember updates and removes only
+/// Where an installation came from. Irori updates and removes only
 /// [`Origin::Managed`] ones; the others are labelled and used as they are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -341,9 +341,9 @@ mod tests {
     #[test]
     fn expands_windows_variables() {
         // SAFETY: tests in this module don't read this variable concurrently.
-        unsafe { std::env::set_var("EMBER_TEST_DIR", "C:\\Games") };
+        unsafe { std::env::set_var("IRORI_TEST_DIR", "C:\\Games") };
         assert_eq!(
-            expand_env("%EMBER_TEST_DIR%\\Emu\\emu.exe"),
+            expand_env("%IRORI_TEST_DIR%\\Emu\\emu.exe"),
             PathBuf::from("C:\\Games\\Emu\\emu.exe")
         );
         assert_eq!(expand_env("%NOPE_X%\\a"), PathBuf::from("%NOPE_X%\\a"));

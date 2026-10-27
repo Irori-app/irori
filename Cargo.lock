@@ -2043,738 +2043,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ember"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-amazon",
- "ember-bigpicture",
- "ember-core",
- "ember-emulation",
- "ember-engines",
- "ember-epic",
- "ember-extras",
- "ember-game",
- "ember-gog",
- "ember-itch",
- "ember-launchers",
- "ember-library",
- "ember-manage",
- "ember-runtime",
- "ember-services",
- "ember-settings",
- "ember-sideload",
- "ember-sign-in",
- "ember-steam",
- "ember-ui",
- "ember-zoom",
- "futures",
- "gpui-kit",
- "ksni",
- "libc",
- "once_cell",
- "parking_lot",
- "regex",
- "resvg 0.45.1",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "tray-icon",
- "url",
- "uuid 1.28.0",
-]
-
-[[package]]
-name = "ember-amazon"
-version = "0.1.0"
-dependencies = [
- "aes",
- "anyhow",
- "async-trait",
- "cbc",
- "dirs 6.0.0",
- "ember-amazon-api",
- "ember-core",
- "ember-depot",
- "hex",
- "md5",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-amazon-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "ember-depot",
- "hex",
- "lzma-rs",
- "once_cell",
- "prost",
- "regex",
- "reqwest",
- "rsa",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "tokio",
- "tracing",
- "url",
- "uuid 1.28.0",
-]
-
-[[package]]
-name = "ember-bigpicture"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "ember-core",
- "ember-engines",
- "ember-services",
- "ember-ui",
- "futures",
- "gilrs",
- "gpui-kit",
- "gpui-pre",
- "parking_lot",
- "regex",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "ember-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "dirs 6.0.0",
- "fs4",
- "futures",
- "nix",
- "once_cell",
- "parking_lot",
- "plist",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "smallvec",
- "tempfile",
- "thiserror 2.0.21",
- "time",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "ember-depot"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-core",
- "flate2",
- "fs4",
- "futures",
- "hex",
- "md-5",
- "parking_lot",
- "reqwest",
- "serde",
- "serde_json",
- "sha1",
- "sha2 0.10.9",
- "sha3",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "ember-emulation"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "ember-core",
- "ember-engines",
- "hex",
- "notify",
- "once_cell",
- "parking_lot",
- "regex",
- "serde",
- "serde_json",
- "sha1",
- "tempfile",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "ember-engines"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "crc32fast",
- "dirs 6.0.0",
- "ember-core",
- "ember-depot",
- "ember-runtime",
- "hex",
- "junction",
- "md-5",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sevenz-rust2",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "url",
- "which 8.0.6",
- "zip",
-]
-
-[[package]]
-name = "ember-epic"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "ember-core",
- "ember-depot",
- "ember-epic-api",
- "hex",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha1",
- "tempfile",
- "time",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "ember-epic-api"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "base64 0.22.1",
- "dirs 6.0.0",
- "ember-depot",
- "flate2",
- "futures",
- "hex",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha1",
- "tempfile",
- "thiserror 2.0.21",
- "time",
- "tokio",
- "tracing",
- "url",
- "uuid 1.28.0",
-]
-
-[[package]]
-name = "ember-extras"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dirs 6.0.0",
- "ember-core",
- "futures",
- "image",
- "md5",
- "once_cell",
- "parking_lot",
- "plist",
- "regex",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "serde_yaml_ng",
- "sysinfo 0.39.6",
- "tempfile",
- "time",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "ember-game"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-core",
- "ember-engines",
- "ember-epic",
- "ember-extras",
- "ember-gog",
- "ember-runtime",
- "ember-services",
- "ember-ui",
- "fs4",
- "futures",
- "gpui-kit",
- "gpui-pre",
- "nix",
- "open",
- "regex",
- "serde_json",
- "tempfile",
- "time",
- "tokio",
-]
-
-[[package]]
-name = "ember-gog"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "dirs 6.0.0",
- "ember-core",
- "ember-depot",
- "ember-gog-api",
- "ember-gog-galaxy",
- "flate2",
- "futures",
- "hex",
- "md5",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "ember-gog-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-depot",
- "flate2",
- "futures",
- "hex",
- "md5",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "time",
- "tokio",
- "tracing",
- "url",
- "zip",
-]
-
-[[package]]
-name = "ember-gog-galaxy"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "comet",
- "reqwest",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "ember-itch"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bzip2",
- "ember-core",
- "ember-depot",
- "ember-itch-api",
- "flate2",
- "fs4",
- "futures",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "tar",
- "tempfile",
- "tokio",
- "tracing",
- "xz2",
- "zip",
-]
-
-[[package]]
-name = "ember-itch-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-depot",
- "once_cell",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-launchers"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "ember-core",
- "ember-launchers-data",
- "ember-runtime",
- "parking_lot",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-launchers-data"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "prost",
- "quick-xml 0.42.0",
- "serde",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "ember-library"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "ember-core",
- "ember-emulation",
- "ember-engines",
- "ember-extras",
- "ember-runtime",
- "ember-scripts",
- "ember-services",
- "ember-sideload",
- "ember-ui",
- "futures",
- "gpui-kit",
- "gpui-pre",
- "parking_lot",
- "regex",
- "serde",
- "serde_json",
- "sysinfo 0.39.6",
- "tracing",
-]
-
-[[package]]
-name = "ember-manage"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-amazon-api",
- "ember-core",
- "ember-engines",
- "ember-epic-api",
- "ember-extras",
- "ember-gog-api",
- "ember-launchers",
- "ember-runtime",
- "ember-services",
- "ember-ui",
- "futures",
- "gpui-kit",
- "gpui-pre",
- "regex",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "which 8.0.6",
-]
-
-[[package]]
-name = "ember-runtime"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bzip2",
- "dirs 6.0.0",
- "ember-core",
- "flate2",
- "futures",
- "hex",
- "nix",
- "once_cell",
- "open",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "sysinfo 0.39.6",
- "tar",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
- "which 8.0.6",
- "xz2",
- "zstd",
-]
-
-[[package]]
-name = "ember-scripts"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bzip2",
- "ember-core",
- "ember-depot",
- "ember-runtime",
- "flate2",
- "futures",
- "hex",
- "md-5",
- "reqwest",
- "serde",
- "serde_json",
- "serde_yaml_ng",
- "sha1",
- "sha2 0.10.9",
- "tar",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "url",
- "xz2",
- "zip",
- "zstd",
-]
-
-[[package]]
-name = "ember-services"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ashpd",
- "discord-rich-presence",
- "ember-core",
- "ember-depot",
- "ember-engines",
- "ember-extras",
- "ember-runtime",
- "ember-scripts",
- "fs4",
- "futures",
- "fuzzy-matcher",
- "once_cell",
- "parking_lot",
- "serde",
- "serde_json",
- "sysinfo 0.39.6",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "ember-settings"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ember-bigpicture",
- "ember-core",
- "ember-epic",
- "ember-extras",
- "ember-runtime",
- "ember-services",
- "ember-ui",
- "gpui-kit",
- "gpui-pre",
- "once_cell",
- "regex",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-sideload"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "dirs 6.0.0",
- "ember-core",
- "parking_lot",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "url",
- "uuid 1.28.0",
- "which 8.0.6",
-]
-
-[[package]]
-name = "ember-sign-in"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "gtk",
- "regex",
- "serde_json",
- "tao",
- "webkit2gtk",
- "wry",
-]
-
-[[package]]
-name = "ember-steam"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "ember-core",
- "ember-runtime",
- "parking_lot",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-ui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dirs 6.0.0",
- "ember-core",
- "ember-engines",
- "ember-services",
- "futures",
- "gpui-kit",
- "gpui-pre",
- "hex",
- "image",
- "libc",
- "once_cell",
- "open",
- "parking_lot",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "sysinfo 0.39.6",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ember-zoom"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bzip2",
- "ember-core",
- "ember-depot",
- "ember-runtime",
- "flate2",
- "fs4",
- "futures",
- "hex",
- "md5",
- "nix",
- "once_cell",
- "parking_lot",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tar",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "url",
- "which 8.0.6",
- "xz2",
- "zip",
- "zstd",
-]
-
-[[package]]
 name = "encoding_rs"
 version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5078,6 +4346,738 @@ name = "ipnet"
 version = "2.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
+
+[[package]]
+name = "irori"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "gpui-kit",
+ "irori-amazon",
+ "irori-bigpicture",
+ "irori-core",
+ "irori-emulation",
+ "irori-engines",
+ "irori-epic",
+ "irori-extras",
+ "irori-game",
+ "irori-gog",
+ "irori-itch",
+ "irori-launchers",
+ "irori-library",
+ "irori-manage",
+ "irori-runtime",
+ "irori-services",
+ "irori-settings",
+ "irori-sideload",
+ "irori-sign-in",
+ "irori-steam",
+ "irori-ui",
+ "irori-zoom",
+ "ksni",
+ "libc",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "resvg 0.45.1",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "tray-icon",
+ "url",
+ "uuid 1.28.0",
+]
+
+[[package]]
+name = "irori-amazon"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "anyhow",
+ "async-trait",
+ "cbc",
+ "dirs 6.0.0",
+ "hex",
+ "irori-amazon-api",
+ "irori-core",
+ "irori-depot",
+ "md5",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-amazon-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "hex",
+ "irori-depot",
+ "lzma-rs",
+ "once_cell",
+ "prost",
+ "regex",
+ "reqwest",
+ "rsa",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid 1.28.0",
+]
+
+[[package]]
+name = "irori-bigpicture"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "futures",
+ "gilrs",
+ "gpui-kit",
+ "gpui-pre",
+ "irori-core",
+ "irori-engines",
+ "irori-services",
+ "irori-ui",
+ "parking_lot",
+ "regex",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "irori-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dirs 6.0.0",
+ "fs4",
+ "futures",
+ "nix",
+ "once_cell",
+ "parking_lot",
+ "plist",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "tempfile",
+ "thiserror 2.0.21",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "irori-depot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "flate2",
+ "fs4",
+ "futures",
+ "hex",
+ "irori-core",
+ "md-5",
+ "parking_lot",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2 0.10.9",
+ "sha3",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "irori-emulation"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "hex",
+ "irori-core",
+ "irori-engines",
+ "notify",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha1",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "irori-engines"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crc32fast",
+ "dirs 6.0.0",
+ "hex",
+ "irori-core",
+ "irori-depot",
+ "irori-runtime",
+ "junction",
+ "md-5",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sevenz-rust2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "which 8.0.6",
+ "zip",
+]
+
+[[package]]
+name = "irori-epic"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "hex",
+ "irori-core",
+ "irori-depot",
+ "irori-epic-api",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha1",
+ "tempfile",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "irori-epic-api"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "base64 0.22.1",
+ "dirs 6.0.0",
+ "flate2",
+ "futures",
+ "hex",
+ "irori-depot",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha1",
+ "tempfile",
+ "thiserror 2.0.21",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid 1.28.0",
+]
+
+[[package]]
+name = "irori-extras"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 6.0.0",
+ "futures",
+ "image",
+ "irori-core",
+ "md5",
+ "once_cell",
+ "parking_lot",
+ "plist",
+ "regex",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "sysinfo 0.39.6",
+ "tempfile",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "irori-game"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "fs4",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "irori-core",
+ "irori-engines",
+ "irori-epic",
+ "irori-extras",
+ "irori-gog",
+ "irori-runtime",
+ "irori-services",
+ "irori-ui",
+ "nix",
+ "open",
+ "regex",
+ "serde_json",
+ "tempfile",
+ "time",
+ "tokio",
+]
+
+[[package]]
+name = "irori-gog"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dirs 6.0.0",
+ "flate2",
+ "futures",
+ "hex",
+ "irori-core",
+ "irori-depot",
+ "irori-gog-api",
+ "irori-gog-galaxy",
+ "md5",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "irori-gog-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "flate2",
+ "futures",
+ "hex",
+ "irori-depot",
+ "md5",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+ "zip",
+]
+
+[[package]]
+name = "irori-gog-galaxy"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "comet",
+ "reqwest",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "irori-itch"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "flate2",
+ "fs4",
+ "futures",
+ "irori-core",
+ "irori-depot",
+ "irori-itch-api",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "xz2",
+ "zip",
+]
+
+[[package]]
+name = "irori-itch-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "irori-depot",
+ "once_cell",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-launchers"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "irori-core",
+ "irori-launchers-data",
+ "irori-runtime",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-launchers-data"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "prost",
+ "quick-xml 0.42.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "irori-library"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "irori-core",
+ "irori-emulation",
+ "irori-engines",
+ "irori-extras",
+ "irori-runtime",
+ "irori-scripts",
+ "irori-services",
+ "irori-sideload",
+ "irori-ui",
+ "parking_lot",
+ "regex",
+ "serde",
+ "serde_json",
+ "sysinfo 0.39.6",
+ "tracing",
+]
+
+[[package]]
+name = "irori-manage"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "irori-amazon-api",
+ "irori-core",
+ "irori-engines",
+ "irori-epic-api",
+ "irori-extras",
+ "irori-gog-api",
+ "irori-launchers",
+ "irori-runtime",
+ "irori-services",
+ "irori-ui",
+ "regex",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "which 8.0.6",
+]
+
+[[package]]
+name = "irori-runtime"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "dirs 6.0.0",
+ "flate2",
+ "futures",
+ "hex",
+ "irori-core",
+ "nix",
+ "once_cell",
+ "open",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sysinfo 0.39.6",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "which 8.0.6",
+ "xz2",
+ "zstd",
+]
+
+[[package]]
+name = "irori-scripts"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "flate2",
+ "futures",
+ "hex",
+ "irori-core",
+ "irori-depot",
+ "irori-runtime",
+ "md-5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "sha1",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "xz2",
+ "zip",
+ "zstd",
+]
+
+[[package]]
+name = "irori-services"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ashpd",
+ "discord-rich-presence",
+ "fs4",
+ "futures",
+ "fuzzy-matcher",
+ "irori-core",
+ "irori-depot",
+ "irori-engines",
+ "irori-extras",
+ "irori-runtime",
+ "irori-scripts",
+ "once_cell",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sysinfo 0.39.6",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "irori-settings"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gpui-kit",
+ "gpui-pre",
+ "irori-bigpicture",
+ "irori-core",
+ "irori-epic",
+ "irori-extras",
+ "irori-runtime",
+ "irori-services",
+ "irori-ui",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-sideload"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dirs 6.0.0",
+ "irori-core",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid 1.28.0",
+ "which 8.0.6",
+]
+
+[[package]]
+name = "irori-sign-in"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gtk",
+ "regex",
+ "serde_json",
+ "tao",
+ "webkit2gtk",
+ "wry",
+]
+
+[[package]]
+name = "irori-steam"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "irori-core",
+ "irori-runtime",
+ "parking_lot",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-ui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 6.0.0",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "hex",
+ "image",
+ "irori-core",
+ "irori-engines",
+ "irori-services",
+ "libc",
+ "once_cell",
+ "open",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sysinfo 0.39.6",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "irori-zoom"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bzip2",
+ "flate2",
+ "fs4",
+ "futures",
+ "hex",
+ "irori-core",
+ "irori-depot",
+ "irori-runtime",
+ "md5",
+ "nix",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "which 8.0.6",
+ "xz2",
+ "zip",
+ "zstd",
+]
 
 [[package]]
 name = "is-docker"

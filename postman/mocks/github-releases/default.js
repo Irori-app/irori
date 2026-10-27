@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
       return res.end(JSON.stringify({"message":"API rate limit exceeded"}));
     }
 
-    // "Public GitHub release response captured 2026-10-25; fields consumed by Ember" — default
+    // "Public GitHub release response captured 2026-10-25; fields consumed by Irori" — default
     res.writeHead(200, {"Content-Type":"application/json"});
     return res.end(JSON.stringify([{"tag_name":"23.7.1-1","draft":false,"prerelease":false,"published_at":"2026-04-17T22:26:17Z","html_url":"https://github.com/Heroic-Games-Launcher/wine-crossover/releases/tag/23.7.1-1","assets":[{"name":"Wine-Crossover-23.7.1-1.tar.xz","size":200466784,"browser_download_url":"https://github.com/Heroic-Games-Launcher/wine-crossover/releases/download/23.7.1-1/Wine-Crossover-23.7.1-1.tar.xz"}]}]));
   }
@@ -33,7 +33,7 @@ const server = http.createServer((req, res) => {
       return res.end(JSON.stringify({"message":"API rate limit exceeded"}));
     }
 
-    // "Public GitHub release response captured 2026-10-25; fields consumed by Ember" — default
+    // "Public GitHub release response captured 2026-10-25; fields consumed by Irori" — default
     res.writeHead(200, {"Content-Type":"application/json"});
     return res.end(JSON.stringify([{"tag_name":"11.18","draft":false,"prerelease":false,"published_at":"2026-09-25T15:27:48Z","html_url":"https://github.com/Gcenx/macOS_Wine_builds/releases/tag/11.18","assets":[{"name":"wine-devel-11.18-osx64.tar.xz","size":190974384,"browser_download_url":"https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.18/wine-devel-11.18-osx64.tar.xz"},{"name":"wine-staging-11.18-osx64.tar.xz","size":193105336,"browser_download_url":"https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.18/wine-staging-11.18-osx64.tar.xz"}]}]));
   }
@@ -48,7 +48,7 @@ const server = http.createServer((req, res) => {
       return res.end(JSON.stringify({"message":"API rate limit exceeded"}));
     }
 
-    // "Public GitHub release response captured 2026-10-25; fields consumed by Ember" — default
+    // "Public GitHub release response captured 2026-10-25; fields consumed by Irori" — default
     res.writeHead(200, {"Content-Type":"application/json"});
     return res.end(JSON.stringify([{"tag_name":"Game-Porting-Toolkit-3.0-3","draft":false,"prerelease":false,"published_at":"2026-03-03T13:14:18Z","html_url":"https://github.com/Gcenx/game-porting-toolkit/releases/tag/Game-Porting-Toolkit-3.0-3","assets":[{"name":"game-porting-toolkit-3.0-3.tar.xz","size":239200808,"browser_download_url":"https://github.com/Gcenx/game-porting-toolkit/releases/download/Game-Porting-Toolkit-3.0-3/game-porting-toolkit-3.0-3.tar.xz"}]}]));
   }

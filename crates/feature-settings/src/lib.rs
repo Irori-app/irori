@@ -1,4 +1,4 @@
-//! Ember's settings feature: the application settings page, the game
+//! Irori's settings feature: the application settings page, the game
 //! defaults form, per-game settings with visible inheritance, the launcher
 //! log viewer and system information.
 //!
@@ -15,7 +15,7 @@
 //! - [`init`] registers the translation catalogs ([`CATALOGS`]); call it
 //!   once at startup, before the settings views are first rendered.
 //!
-//! Every write goes through `ember_services::SettingsService`
+//! Every write goes through `irori_services::SettingsService`
 //! (`update_app` / `set_game_value`). Text fields commit on blur or Enter,
 //! never per keystroke.
 
@@ -41,7 +41,7 @@ pub use logs::LogViewer;
 pub use stores::install_store_handles;
 pub use view::{SettingsSection, SettingsView};
 
-/// Register the settings feature's translations with `ember_ui::i18n`.
+/// Register the settings feature's translations with `irori_ui::i18n`.
 /// Safe to call more than once; only the first call registers.
 pub fn init(_cx: &mut gpui_kit::App) {
     i18n::register();

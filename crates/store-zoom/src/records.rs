@@ -19,7 +19,7 @@ use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::{InstallPlatform, InstalledInfo, Paths, Runner, json_store, util};
+use irori_core::{InstallPlatform, InstalledInfo, Paths, Runner, json_store, util};
 use serde::{Deserialize, Serialize};
 
 use crate::api::{FilesResponse, ZoomGame};
@@ -64,7 +64,7 @@ impl Layout {
 
     pub fn files_cache(&self, app_name: &str) -> PathBuf {
         self.files_cache_dir()
-            .join(format!("{}.json", ember_core::paths::sanitize(app_name)))
+            .join(format!("{}.json", irori_core::paths::sanitize(app_name)))
     }
 }
 

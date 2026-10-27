@@ -1,6 +1,6 @@
-//! The Emulators page ([`Route::Emulators`](ember_ui::Route::Emulators)):
-//! every emulator Ember knows with the installs found on this computer,
-//! one-click installs and updates of the versions Ember manages, RetroArch
+//! The Emulators page ([`Route::Emulators`](irori_ui::Route::Emulators)):
+//! every emulator Irori knows with the installs found on this computer,
+//! one-click installs and updates of the versions Irori manages, RetroArch
 //! cores, and each system's default emulator.
 
 mod configure;
@@ -11,13 +11,6 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ember_engines::bios::{FileState, SystemBios, SystemState};
-use ember_engines::releases::{self, Release};
-use ember_engines::{EngineKind, EngineRef, Host, Installation, Origin, systems};
-use ember_services::EngineStatus;
-use ember_ui::components::{EmptyState, PageHeader, SectionTitle};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::Icon;
 use gpui_kit::component::IndexPath;
@@ -40,6 +33,13 @@ use gpui_kit::{
     IntoElement, ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _,
     Subscription, Task, Window, div, rems,
 };
+use irori_engines::bios::{FileState, SystemBios, SystemState};
+use irori_engines::releases::{self, Release};
+use irori_engines::{EngineKind, EngineRef, Host, Installation, Origin, systems};
+use irori_services::EngineStatus;
+use irori_ui::components::{EmptyState, PageHeader, SectionTitle};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::common::{card, notify_error};
 use crate::format;
@@ -76,7 +76,7 @@ impl SelectItem for EngineChoice {
 
 /// The display name of an engine choice: the engine, or "RetroArch · Core".
 pub fn choice_name(choice: &EngineRef) -> String {
-    let Some(m) = ember_engines::engine(&choice.engine) else {
+    let Some(m) = irori_engines::engine(&choice.engine) else {
         return choice.to_string();
     };
     match choice.core.as_deref() {
@@ -161,7 +161,7 @@ impl EmulatorsView {
             ops,
             seen_revision,
             ticking: false,
-            placeholder_language: ember_ui::i18n::language(),
+            placeholder_language: irori_ui::i18n::language(),
             _ticker: None,
             _subscriptions: subscriptions,
         };
@@ -175,7 +175,7 @@ impl EmulatorsView {
     fn load(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
         self.counts = b.emulated_counts();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             Ok((b.engine_statuses().await, b.bios_statuses().await))
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -196,7 +196,7 @@ impl EmulatorsView {
     /// projects even when the saved lists are fresh.
     fn load_releases(&mut self, refresh: bool, window: &mut Window, cx: &mut Context<Self>) {
         let host = Host::current();
-        let ids: Vec<String> = ember_engines::engines()
+        let ids: Vec<String> = irori_engines::engines()
             .iter()
             .filter(|m| m.downloadable_on(host))
             .map(|m| m.id.clone())
@@ -205,7 +205,7 @@ impl EmulatorsView {
             self.refreshing = true;
         }
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let mut out = Vec::new();
             for id in ids {
                 let r = b.engine_releases(&id, refresh).await;
@@ -255,7 +255,7 @@ impl EmulatorsView {
         };
         let b = backend(cx);
         for system in systems::all() {
-            let choices = ember_engines::choices_for(&system.id);
+            let choices = irori_engines::choices_for(&system.id);
             let current = b.system_engine(&system.id, &statuses);
             let recommended = choices.first().cloned();
             let items: Vec<EngineChoice> = choices
@@ -341,7 +341,7 @@ impl EmulatorsView {
     ) {
         let b = backend(cx);
         let id = engine.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             b.set_engine_program(&id, path.clone()).await?;
             if path.is_some() {
                 b.set_engine_default(&id, "custom").await?;
@@ -368,7 +368,7 @@ impl EmulatorsView {
         cx: &mut Context<Self>,
     ) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             b.set_engine_default(&engine, &installation).await
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -424,7 +424,7 @@ impl EmulatorsView {
     ) {
         let b = backend(cx);
         let v = version.clone();
-        let task = ember_ui::run(
+        let task = irori_ui::run(
             cx,
             async move { b.remove_engine_version(&engine, &v).await },
         );
@@ -451,7 +451,7 @@ impl EmulatorsView {
     fn remove_core(&mut self, core: String, window: &mut Window, cx: &mut Context<Self>) {
         let b = backend(cx);
         let name = core_name(&core);
-        let task = ember_ui::run(cx, async move { b.remove_core(&core).await });
+        let task = irori_ui::run(cx, async move { b.remove_core(&core).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {
@@ -510,7 +510,7 @@ impl EmulatorsView {
     ) {
         self.scanning = true;
         cx.notify();
-        let task = ember_ui::run(cx, work);
+        let task = irori_ui::run(cx, work);
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {
@@ -528,10 +528,10 @@ impl EmulatorsView {
         let b = backend(cx);
         let bios = b.settings.app().bios_folder.clone();
         self.run_scan(window, cx, async move {
-            b.refresh_store(ember_core::Runner::Emulation, false)
+            b.refresh_store(irori_core::Runner::Emulation, false)
                 .await?;
             if !bios.trim().is_empty() {
-                b.rescan_bios(ember_core::paths::expand_home(&bios)).await?;
+                b.rescan_bios(irori_core::paths::expand_home(&bios)).await?;
             }
             Ok(())
         });
@@ -1177,7 +1177,7 @@ impl EmulatorsView {
         let b = backend(cx);
         let query = self.query(cx);
         // Systems with games first, each group in catalog order.
-        let mut ordered: Vec<&ember_engines::System> = systems::all().iter().collect();
+        let mut ordered: Vec<&irori_engines::System> = systems::all().iter().collect();
         ordered.sort_by_key(|s| !self.counts.contains_key(&s.id));
         let cards: Vec<AnyElement> = ordered
             .into_iter()
@@ -1420,7 +1420,7 @@ fn render_op(live: &OpLive, cx: &App) -> impl IntoElement {
 
 impl Render for EmulatorsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let language = ember_ui::i18n::language();
+        let language = irori_ui::i18n::language();
         if language != self.placeholder_language {
             self.placeholder_language = language;
             self.search.update(cx, |s, cx| {
@@ -1512,12 +1512,12 @@ impl Render for EmulatorsView {
 }
 
 /// Why an engine has no Install button on this computer.
-fn not_downloadable_text(m: &ember_engines::EngineManifest, host: Host) -> SharedString {
-    // Engines Ember can find once the user installs them say how; engines
+fn not_downloadable_text(m: &irori_engines::EngineManifest, host: Host) -> SharedString {
+    // Engines Irori can find once the user installs them say how; engines
     // with builds only for other computers say which.
     let found_elsewhere = m.sources.iter().any(|s| !s.is_managed());
-    let hosts = match ember_engines::EngineUnavailable::no_build(m, host).map(|e| e.reason) {
-        Some(ember_engines::Unavailable::NoBuild { hosts }) => hosts,
+    let hosts = match irori_engines::EngineUnavailable::no_build(m, host).map(|e| e.reason) {
+        Some(irori_engines::Unavailable::NoBuild { hosts }) => hosts,
         _ => Vec::new(),
     };
     if found_elsewhere || hosts.is_empty() {
@@ -1525,7 +1525,7 @@ fn not_downloadable_text(m: &ember_engines::EngineManifest, host: Host) -> Share
     }
     let hosts: Vec<String> = hosts
         .iter()
-        .map(|h| ember_engines::host::label(h))
+        .map(|h| irori_engines::host::label(h))
         .collect();
     t_args(
         "manage.emulators.no_build",

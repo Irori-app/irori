@@ -1,6 +1,6 @@
-# Engineering brief for Ember crates
+# Engineering brief for Irori crates
 
-Ember is a new, from-scratch Linux game launcher in Rust with a GPUI (gpui-kit 0.8)
+Irori is a new, from-scratch Linux game launcher in Rust with a GPUI (gpui-kit 0.8)
 UI. It reaches feature parity with Heroic Games Launcher 2.22.4 but is **not a fork
 or a port of its code**: write idiomatic Rust designed for this architecture. The
 Heroic TypeScript source is reference material for behaviour only.
@@ -11,19 +11,19 @@ Heroic TypeScript source is reference material for behaviour only.
 - Parity specs: `docs/parity/*.md` (read the one for your area first).
 - User's real Heroic data (read-only, for real JSON shapes): `~/.config/heroic`. Never print,
   log or copy secrets/tokens into the repo or test fixtures; redact them.
-- Ember does not run legendary, gogdl, nile or comet: their protocols are ported
+- Irori does not run legendary, gogdl, nile or comet: their protocols are ported
   to `crates/epic`, `crates/gog`, `crates/amazon` (downloads through `crates/depot`)
   and comet is used as a library by `crates/gog-galaxy`.
 
 ## Architecture
 
 ```
-ember-core      domain types, settings schema, Store trait, process/http/json utils
-ember-runtime   Wine/Proton, prefixes, DXVK/VKD3D, umu, launch environment
-ember-epic | ember-gog | ember-amazon | ember-zoom | ember-sideload   (one Store each)
-ember-extras    shortcuts, wiki info, anticheat, known fixes, SteamGridDB, Heroic import helpers
-ember-services  Backend facade: library, settings, download queue, launching, ops
-ember-ui + feature crates + ember (bin)   GPUI application
+irori-core      domain types, settings schema, Store trait, process/http/json utils
+irori-runtime   Wine/Proton, prefixes, DXVK/VKD3D, umu, launch environment
+irori-epic | irori-gog | irori-amazon | irori-zoom | irori-sideload   (one Store each)
+irori-extras    shortcuts, wiki info, anticheat, known fixes, SteamGridDB, Heroic import helpers
+irori-services  Backend facade: library, settings, download queue, launching, ops
+irori-ui + feature crates + irori (bin)   GPUI application
 ```
 
 Read `crates/core/src/*.rs` fully before writing code: `store.rs` (the `Store` trait
@@ -36,7 +36,7 @@ and `OpContext`), `launch.rs` (`LaunchRequest`, `LaunchEnvironment`, `WineLaunch
 ## Rules
 
 - **Only edit your own crate** (plus adding it to nothing else — the workspace
-  already globs `crates/*`). Do not edit `ember-core` or other crates. If you need a
+  already globs `crates/*`). Do not edit `irori-core` or other crates. If you need a
   core change, implement a local helper and list the suggested core change in your
   final report.
 - Add dependencies only from `[workspace.dependencies]` in the root `Cargo.toml`
@@ -49,7 +49,7 @@ and `OpContext`), `launch.rs` (`LaunchRequest`, `LaunchEnvironment`, `WineLaunch
   `cargo test -p <crate>`.
 - Async runs on Tokio (the backend runtime). Never hold a `parking_lot` guard across
   an `.await`. Never block the runtime: use `tokio::fs`, `tokio::process` (through
-  `ember_core::process`) or `spawn_blocking` for heavy filesystem work.
+  `irori_core::process`) or `spawn_blocking` for heavy filesystem work.
 - Performance and memory matter: share `Arc<GameInfo>`; publish a new `Arc` on change
   rather than mutating in place; keep caches on disk; don't hold full API responses
   in memory longer than needed; parse progress lines with precompiled regexes
@@ -63,9 +63,9 @@ and `OpContext`), `launch.rs` (`LaunchRequest`, `LaunchEnvironment`, `WineLaunch
   `Paths::get().store_cache_dir(Runner::X)`; use `json_store` for atomic writes.
 - Each store crate exposes `pub struct <Name>Store` with
   `pub fn new(bus: EventBus, settings: SettingsFn) -> Arc<Self>` implementing
-  `ember_core::Store`, and `pub fn import_from_heroic(heroic_config_dir: &Path) -> anyhow::Result<()>`
+  `irori_core::Store`, and `pub fn import_from_heroic(heroic_config_dir: &Path) -> anyhow::Result<()>`
   that copies the user's existing credentials and installed-games state from a Heroic
-  config dir into Ember's layout (so their logins and installs carry over).
+  config dir into Irori's layout (so their logins and installs carry over).
 - Tests: unit-test parsers (progress lines, API JSON → `GameInfo`, install-info
   mapping, login-input extraction) with small inline fixtures. Tests must not hit the
   network or the user's real config.

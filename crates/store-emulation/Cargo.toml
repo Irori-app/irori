@@ -1,5 +1,5 @@
 [package]
-name = "ember-emulation"
+name = "irori-emulation"
 description = "The ROM library store: console and retro games in the user's folders, played with emulators"
 version.workspace = true
 edition.workspace = true
@@ -8,8 +8,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-engines.workspace = true
+irori-core.workspace = true
+irori-engines.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

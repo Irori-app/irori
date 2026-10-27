@@ -26,7 +26,7 @@ use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
 use async_trait::async_trait;
-use ember_core::{
+use irori_core::{
     Event, EventBus, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, Notice, NoticeLevel, OpContext, Outcome,
     Paths, RemoveArgs, Runner, SettingsFn, Store, UpdateRequest, UserInfo, json_store,
@@ -40,10 +40,10 @@ pub use app::{SideloadApp, SideloadPlatform};
 /// (e.g. a disconnected network share) before reporting the app unavailable.
 const AVAILABILITY_TIMEOUT: Duration = Duration::from_secs(3);
 
-const NOT_INSTALLABLE: &str = "Apps added manually are not installed or updated by Ember";
+const NOT_INSTALLABLE: &str = "Apps added manually are not installed or updated by Irori";
 
-/// Copy Heroic's sideloaded apps into Ember's sideload library, keeping apps
-/// Ember already has. Call before [`Store::init`] (or call [`Store::refresh`]
+/// Copy Heroic's sideloaded apps into Irori's sideload library, keeping apps
+/// Irori already has. Call before [`Store::init`] (or call [`Store::refresh`]
 /// afterwards) so the running store sees them. Per-app settings (Wine
 /// version, prefix, launcher arguments) live in Heroic's `GamesConfig` and are
 /// imported with the other game settings, not here.
@@ -597,7 +597,7 @@ impl Store for SideloadStore {
             return self.browser_plan(app).await;
         }
         anyhow::ensure!(
-            ember_core::HostPlatform::current().supports(app.platform.install_platform()),
+            irori_core::HostPlatform::current().supports(app.platform.install_platform()),
             "This app was built for a different operating system"
         );
         let exe = launch::resolve_executable(app, &request.settings.target_exe)
@@ -618,7 +618,7 @@ impl Store for SideloadStore {
 mod tests {
     use std::ffi::OsString;
 
-    use ember_core::{AppSettings, GameSettings, LaunchEnvironment};
+    use irori_core::{AppSettings, GameSettings, LaunchEnvironment};
 
     use super::*;
 
@@ -674,7 +674,7 @@ mod tests {
             extra_args: Vec::new(),
             offline: false,
             skip_version_check: false,
-            log_file: "/tmp/ember-test.log".into(),
+            log_file: "/tmp/irori-test.log".into(),
         }
     }
 
@@ -817,7 +817,7 @@ mod tests {
         assert_eq!(plan.command.program, exe);
         assert_eq!(plan.command.args, vec![OsString::from("--fast")]);
         assert_eq!(plan.command.cwd.as_deref(), exe.parent());
-        assert!(ember_core::util::is_executable(&exe));
+        assert!(irori_core::util::is_executable(&exe));
 
         let win_exe = f.root.join("w/game.exe");
         touch(&win_exe);

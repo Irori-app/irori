@@ -1,4 +1,4 @@
-//! What the interpreter asks of Ember: prompts, Wine, programs and store
+//! What the interpreter asks of Irori: prompts, Wine, programs and store
 //! installs. Every request is fully resolved (variables substituted, paths
 //! checked) before it reaches the host.
 
@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
-use ember_core::process::CancellationToken;
+use irori_core::process::CancellationToken;
 
 use crate::model::{AutosetupStore, Checksum, MenuOption, RegType};
 
@@ -134,7 +134,7 @@ pub struct AutosetupRequest {
     pub params: serde_json::Value,
 }
 
-/// An archive Ember does not unpack itself (7z, rar, Inno Setup, MSI…).
+/// An archive Irori does not unpack itself (7z, rar, Inno Setup, MSI…).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractRequest {
     pub archive: PathBuf,
@@ -145,7 +145,7 @@ pub struct ExtractRequest {
     pub format: String,
 }
 
-/// Ember's side of a script install. Methods returning `Option` return
+/// Irori's side of a script install. Methods returning `Option` return
 /// `None` when the user cancelled the prompt, which cancels the install.
 /// Long-running methods receive the install's cancellation token and
 /// should stop promptly when it fires.
@@ -225,7 +225,7 @@ pub trait ScriptHost: Send + Sync {
         cancel: &CancellationToken,
     ) -> anyhow::Result<i32>;
 
-    /// Install the game through Ember's native store instead of the
+    /// Install the game through Irori's native store instead of the
     /// script's autosetup command.
     async fn store_autosetup(
         &self,
@@ -233,7 +233,7 @@ pub trait ScriptHost: Send + Sync {
         cancel: &CancellationToken,
     ) -> anyhow::Result<()>;
 
-    /// Unpack an archive format Ember has no Rust extractor for. The
+    /// Unpack an archive format Irori has no Rust extractor for. The
     /// default refuses.
     async fn extract_external(
         &self,
@@ -241,7 +241,7 @@ pub trait ScriptHost: Send + Sync {
         _cancel: &CancellationToken,
     ) -> anyhow::Result<()> {
         anyhow::bail!(
-            "Ember cannot unpack {} ({} archives are not supported yet)",
+            "Irori cannot unpack {} ({} archives are not supported yet)",
             file_label(&request.archive),
             request.format
         )

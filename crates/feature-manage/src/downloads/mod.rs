@@ -1,15 +1,8 @@
-//! The downloads page ([`Route::Downloads`](ember_ui::Route::Downloads)).
+//! The downloads page ([`Route::Downloads`](irori_ui::Route::Downloads)).
 
 mod queue;
 mod speed;
 
-use ember_core::util::unix_now;
-use ember_core::{GameId, GameStatus, StatusKind};
-use ember_services::{DownloadKind, DownloadState, FileState};
-use ember_ui::art::{LruImageCache, art_store};
-use ember_ui::components::{EmptyState, GameCover, PageHeader, ProgressSummary, SectionTitle};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::chart::AreaChart;
@@ -26,6 +19,13 @@ use gpui_kit::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
     Subscription, Window, div, rems,
 };
+use irori_core::util::unix_now;
+use irori_core::{GameId, GameStatus, StatusKind};
+use irori_services::{DownloadKind, DownloadState, FileState};
+use irori_ui::art::{LruImageCache, art_store};
+use irori_ui::components::{EmptyState, GameCover, PageHeader, ProgressSummary, SectionTitle};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models, navigate};
 
 use crate::common::{backend_op, card, notify_error};
 use crate::format;
@@ -131,7 +131,7 @@ impl DownloadsView {
         self.queuing_updates = true;
         cx.notify();
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             b.enqueue_all_updates().await;
             Ok(())
         });
@@ -465,7 +465,7 @@ impl DownloadsView {
     /// what limits the speed.
     fn render_rates(
         &self,
-        progress: Option<ember_core::InstallProgress>,
+        progress: Option<irori_core::InstallProgress>,
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
@@ -707,7 +707,7 @@ impl DownloadsView {
                         .child(div().font_medium().truncate().child(name))
                         .child(div().text_xs().text_color(color).truncate().child(meta))
                         .children(progress.map(|p| {
-                            ember_ui::motion::gliding_progress(
+                            irori_ui::motion::gliding_progress(
                                 ElementId::Name(format!("file-progress-{key}").into()),
                                 Some(p),
                             )

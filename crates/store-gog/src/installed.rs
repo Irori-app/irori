@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use ember_core::{InstallPlatform, InstalledInfo, util};
+use irori_core::{InstallPlatform, InstalledInfo, util};
 
 /// Cyberpunk 2077 REDmod selection.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -80,7 +80,7 @@ impl InstalledRecord {
             .unwrap_or("en-US")
     }
 
-    /// Ember's view of this install.
+    /// Irori's view of this install.
     pub fn to_info(&self) -> InstalledInfo {
         InstalledInfo {
             install_path: self.install_path.clone(),

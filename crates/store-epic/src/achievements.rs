@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::Achievement;
+use irori_core::Achievement;
 use serde_json::Value;
 
 use crate::EpicStore;

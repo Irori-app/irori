@@ -1,7 +1,7 @@
-use ember_core::Runner;
 use gpui_kit::component::tag::Tag;
 use gpui_kit::component::{Sizable as _, StyledExt as _};
 use gpui_kit::{App, IntoElement, ParentElement as _, RenderOnce, Window};
+use irori_core::Runner;
 
 /// Small neutral label naming a game's store.
 #[derive(IntoElement)]

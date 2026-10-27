@@ -6,9 +6,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use ember_core::{AppSettings, InstallRequest, OpContext, Outcome, RemoveArgs, UpdateRequest};
-use ember_depot::test_server::{Resp, TestServer};
-use ember_gog_api::content::{Endpoints, galaxy_path};
+use irori_core::{AppSettings, InstallRequest, OpContext, Outcome, RemoveArgs, UpdateRequest};
+use irori_depot::test_server::{Resp, TestServer};
+use irori_gog_api::content::{Endpoints, galaxy_path};
 use serde_json::{Value, json};
 
 use super::*;

@@ -3,10 +3,6 @@
 
 use std::path::PathBuf;
 
-use ember_core::{Paths, json_store};
-use ember_ui::hooks::{self, ImportSummary};
-use ember_ui::i18n::{LANGUAGES, Language, t, t_args};
-use ember_ui::{Route, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::IndexPath;
 use gpui_kit::component::alert::Alert;
@@ -23,6 +19,10 @@ use gpui_kit::{
     IntoElement, ParentElement as _, PathPromptOptions, Render, SharedString, Styled as _,
     Subscription, Window, div, rems,
 };
+use irori_core::{Paths, json_store};
+use irori_ui::hooks::{self, ImportSummary};
+use irori_ui::i18n::{LANGUAGES, Language, t, t_args};
+use irori_ui::{Route, models, navigate};
 
 use crate::accounts::{StoreCard, store_cards, store_icon};
 use crate::common::{backend_op, card};
@@ -85,7 +85,7 @@ enum ImportState {
 enum LutrisState {
     Idle,
     Running,
-    Done(ember_ui::hooks::LutrisSummary),
+    Done(irori_ui::hooks::LutrisSummary),
     Failed(SharedString),
 }
 
@@ -198,8 +198,8 @@ impl OnboardingView {
             let _ = this.update_in(cx, |this, window, cx| {
                 this.lutris_import = match result {
                     Ok(summary) => {
-                        ember_ui::models::refresh_library(false, cx);
-                        ember_ui::lutris_summary::open_lutris_summary(summary.clone(), window, cx);
+                        irori_ui::models::refresh_library(false, cx);
+                        irori_ui::lutris_summary::open_lutris_summary(summary.clone(), window, cx);
                         LutrisState::Done(summary)
                     }
                     Err(e) => LutrisState::Failed(format!("{e:#}").into()),
@@ -226,7 +226,7 @@ impl OnboardingView {
                     .child(
                         Alert::success(
                             "lutris-done",
-                            ember_ui::lutris_summary::summary_lines(&summary).join("\n"),
+                            irori_ui::lutris_summary::summary_lines(&summary).join("\n"),
                         )
                         .title(t("manage.onboarding.lutris.done")),
                     )
@@ -235,7 +235,7 @@ impl OnboardingView {
                             Button::new("lutris-details")
                                 .label(t("manage.onboarding.lutris.details"))
                                 .on_click(move |_, window, cx| {
-                                    ember_ui::lutris_summary::open_lutris_summary(
+                                    irori_ui::lutris_summary::open_lutris_summary(
                                         summary.clone(),
                                         window,
                                         cx,
@@ -355,7 +355,7 @@ impl OnboardingView {
             let _ = this.update_in(cx, |this, _, cx| {
                 this.import = match result {
                     Ok(summary) => {
-                        ember_ui::models::refresh_library(false, cx);
+                        irori_ui::models::refresh_library(false, cx);
                         ImportState::Done(summary)
                     }
                     Err(e) => ImportState::Failed(format!("{e:#}").into()),

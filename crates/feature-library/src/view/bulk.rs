@@ -4,9 +4,6 @@
 
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, RemoveArgs};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::dialog::DialogFooter;
@@ -21,6 +18,9 @@ use gpui_kit::{
     AnyElement, Context, InteractiveElement as _, IntoElement, Modifiers, ParentElement as _,
     SharedString, Styled as _, Window, div,
 };
+use irori_core::{GameId, GameInfo, RemoveArgs};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use super::LibraryView;
 
@@ -37,7 +37,7 @@ impl LibraryView {
         } else if modifiers.secondary() || self.selection.is_active() {
             self.selection.toggle(id);
         } else {
-            ember_ui::navigate(ember_ui::Route::Game(id.clone()), cx);
+            irori_ui::navigate(irori_ui::Route::Game(id.clone()), cx);
             return;
         }
         cx.notify();
@@ -79,7 +79,7 @@ impl LibraryView {
         cx: &mut Context<Self>,
     ) {
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let mut failed = Vec::new();
             let mut queued = 0usize;
             for g in games {
@@ -126,8 +126,8 @@ impl LibraryView {
         cx: &mut Context<Self>,
     ) {
         let app = backend(cx).settings.app();
-        let task = ember_ui::run(cx, async move {
-            ember_extras::shortcuts::add_to_steam(&games, &app).await
+        let task = irori_ui::run(cx, async move {
+            irori_extras::shortcuts::add_to_steam(&games, &app).await
         });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
@@ -447,7 +447,7 @@ fn uninstall_all(games: Vec<Arc<GameInfo>>, window: &mut Window, cx: &mut gpui_k
         delete_files: true,
         remove_settings: false,
     };
-    let task = ember_ui::run(cx, async move {
+    let task = irori_ui::run(cx, async move {
         let mut failed = Vec::new();
         for g in games {
             if let Err(e) = b.uninstall(&g.id(), args).await {

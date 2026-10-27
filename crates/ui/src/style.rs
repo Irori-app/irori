@@ -1,4 +1,4 @@
-//! Ember's visual vocabulary on top of the theme: captions, stats and panels.
+//! Irori's visual vocabulary on top of the theme: captions, stats and panels.
 //! Feature crates use these instead of restyling text and surfaces by hand, so
 //! screens share one voice.
 
@@ -166,7 +166,7 @@ pub fn panel(cx: &App) -> Div {
         .border_color(theme.border)
 }
 
-/// Keyboard reach for Ember's own clickable surfaces (sidebar rows, cards,
+/// Keyboard reach for Irori's own clickable surfaces (sidebar rows, cards,
 /// screenshot tiles), which gpui-kit's controls already have.
 pub trait KeyboardFocusable: InteractiveElement {
     /// Makes the element a Tab and gamepad stop: Enter and Space trigger its

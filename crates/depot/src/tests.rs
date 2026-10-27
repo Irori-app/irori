@@ -148,12 +148,12 @@ async fn resumes_partial_files_with_ranges() {
     let server = file_server(vec![("a.bin", a.clone())]);
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    std::fs::write(root.join("a.bin.ember-part"), &a[..40_000]).unwrap();
+    std::fs::write(root.join("a.bin.irori-part"), &a[..40_000]).unwrap();
     run(root, &[whole(&server, "a.bin", &a)], &[], &opts())
         .await
         .unwrap();
     assert_eq!(std::fs::read(root.join("a.bin")).unwrap(), a);
-    assert!(!root.join("a.bin.ember-part").exists());
+    assert!(!root.join("a.bin.irori-part").exists());
     let reqs = server.requests();
     assert_eq!(reqs.len(), 1);
     assert_eq!(reqs[0].header("range"), Some("bytes=40000-"));
@@ -312,7 +312,7 @@ async fn cancels() {
     };
     tokio::time::timeout(std::time::Duration::from_secs(10), async {
         loop {
-            if std::fs::metadata(dir.path().join("a.ember-part")).is_ok_and(|m| m.len() > 0) {
+            if std::fs::metadata(dir.path().join("a.irori-part")).is_ok_and(|m| m.len() > 0) {
                 break;
             }
             assert!(!task.is_finished(), "download finished before cancellation");
@@ -324,7 +324,7 @@ async fn cancels() {
     cancel.cancel();
     assert_eq!(task.await.unwrap().unwrap(), Finished::Cancelled);
     assert!(!dir.path().join("a").exists());
-    let partial = std::fs::metadata(dir.path().join("a.ember-part"))
+    let partial = std::fs::metadata(dir.path().join("a.irori-part"))
         .unwrap()
         .len();
     assert!(partial > 0 && partial < a.len() as u64);
@@ -802,7 +802,7 @@ async fn keeps_retrying_busy_servers_and_says_so() {
     assert!(down.requests().len() > 3);
     assert!(
         seen.lock()
-            .contains(&Some(ember_core::Bottleneck::Reconnecting)),
+            .contains(&Some(irori_core::Bottleneck::Reconnecting)),
         "{:?}",
         seen.lock()
     );
@@ -863,7 +863,7 @@ async fn reports_the_speed_limit_as_the_bottleneck() {
     .unwrap();
     assert!(
         seen.lock()
-            .contains(&Some(ember_core::Bottleneck::SpeedLimit)),
+            .contains(&Some(irori_core::Bottleneck::SpeedLimit)),
         "{:?}",
         seen.lock()
     );

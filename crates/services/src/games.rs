@@ -6,13 +6,13 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::log_cap;
-use ember_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
-use ember_core::{
+use irori_core::log_cap;
+use irori_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
+use irori_core::{
     Event, GameId, GameInfo, InstallPlatform, InstallProgress, LaunchOption, LaunchRequest, Notice,
     NoticeLevel, Outcome, Paths, RemoveArgs, SaveConflict, StatusKind, SyncDirection, util,
 };
-use ember_runtime::Target;
+use irori_runtime::Target;
 use serde_json::Value;
 
 use crate::Backend;
@@ -29,7 +29,7 @@ pub struct LaunchParams {
     pub verbose: bool,
 }
 
-/// A game process Ember started and is tracking.
+/// A game process Irori started and is tracking.
 #[derive(Debug, Clone)]
 pub struct RunningGame {
     pub pid: u32,
@@ -183,10 +183,10 @@ impl Backend {
         }
 
         ctx.step.as_ref()("Preparing");
-        // Another launcher starts its games with its own settings; Ember's
+        // Another launcher starts its games with its own settings; Irori's
         // Wine, wrappers and variables would only apply to the opener.
         let environment = if id.runner.manages_installs() {
-            ember_runtime::prepare_launch(&app, &settings, target, &ctx).await?
+            irori_runtime::prepare_launch(&app, &settings, target, &ctx).await?
         } else {
             Default::default()
         };
@@ -194,7 +194,7 @@ impl Backend {
         // "Turn off logs" sends everything to /dev/null; stores and scripts
         // still get a path to write to.
         let log_file = if app.disable_logs {
-            PathBuf::from(ember_core::platform::null_device())
+            PathBuf::from(irori_core::platform::null_device())
         } else {
             Paths::get().game_log_file(id)
         };
@@ -255,7 +255,7 @@ impl Backend {
         }
 
         // A third-party launcher's games are followed by their own processes.
-        let follow_folder = (id.runner == ember_core::Runner::Launchers)
+        let follow_folder = (id.runner == irori_core::Runner::Launchers)
             .then(|| game.install.as_ref().map(|i| i.install_path.clone()))
             .flatten()
             .filter(|p| !p.is_empty());
@@ -277,7 +277,7 @@ impl Backend {
                 b.presence.clear().await;
             }
             if plan.track_wineserver && Self::target_platform(&game).needs_wine() {
-                let _ = ember_runtime::wait_prefix(&settings).await;
+                let _ = irori_runtime::wait_prefix(&settings).await;
             }
             let seconds = started.elapsed().as_secs();
             let stopped = b.running.lock().remove(&id).is_some_and(|r| r.stopping);
@@ -351,15 +351,15 @@ impl Backend {
             .install_info(
                 &id.app_name,
                 platform,
-                &ember_core::InstallInfoQuery::default(),
+                &irori_core::InstallInfoQuery::default(),
             )
             .await
             .with_context(|| format!("Could not read the install options of {}", game.title))?;
         if let Some(launcher) = &info.third_party_managed_app {
             bail!("{} is installed through {launcher}", game.title);
         }
-        let dir = ember_core::paths::expand_home(&self.settings.app().default_install_path);
-        let request = ember_core::InstallRequest::with_defaults(&info, &dir, platform);
+        let dir = irori_core::paths::expand_home(&self.settings.app().default_install_path);
+        let request = irori_core::InstallRequest::with_defaults(&info, &dir, platform);
         self.enqueue_install(id.clone(), game.title.clone(), request, info.download_size);
         Ok(())
     }
@@ -377,7 +377,7 @@ impl Backend {
             && Self::target_platform(&game).needs_wine()
         {
             let app = self.settings.app();
-            let _ = ember_runtime::kill_game_prefix(&app, &self.settings.game(id), &game).await;
+            let _ = irori_runtime::kill_game_prefix(&app, &self.settings.game(id), &game).await;
         }
         if let Some(pid) = pid {
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
@@ -391,7 +391,7 @@ impl Backend {
     pub(crate) async fn after_install(&self, id: &GameId) {
         let Some(game) = self.game(id) else { return };
         // Native Linux GOG builds expect the Steam "scout" runtime (via umu).
-        if id.runner == ember_core::Runner::Gog
+        if id.runner == irori_core::Runner::Gog
             && game.installed_platform() == Some(InstallPlatform::Linux)
             && self.settings.game(id).steam_runtime.is_none()
         {
@@ -402,9 +402,9 @@ impl Backend {
             );
         }
         let app = self.settings.app();
-        let targets = ember_extras::shortcuts::ShortcutTargets::from_settings(&app);
+        let targets = irori_extras::shortcuts::ShortcutTargets::from_settings(&app);
         if (targets.desktop || targets.app_menu || targets.steam)
-            && let Err(e) = ember_extras::shortcuts::add(&game, &app, targets).await
+            && let Err(e) = irori_extras::shortcuts::add(&game, &app, targets).await
         {
             tracing::warn!("adding shortcuts for {id}: {e:#}");
         }
@@ -418,23 +418,23 @@ impl Backend {
         let app = self.settings.app();
         let settings = self.settings.game(id);
         if args.remove_prefix && Self::target_platform(&game).needs_wine() {
-            let prefix = ember_runtime::prefix_path(&app, &settings, &game);
+            let prefix = irori_runtime::prefix_path(&app, &settings, &game);
             anyhow::ensure!(
                 !prefix.join("cxbottle.conf").is_file(),
                 "This CrossOver bottle may be shared by other games. Keep the prefix when uninstalling, and manage bottles in CrossOver."
             );
             anyhow::ensure!(
-                !ember_runtime::prefix_is_shared(&app, &prefix),
+                !irori_runtime::prefix_is_shared(&app, &prefix),
                 "{} is shared by other games. Keep the prefix when uninstalling.",
                 prefix.display()
             );
         }
         store.uninstall(&id.app_name, args).await?;
         if args.remove_prefix && Self::target_platform(&game).needs_wine() {
-            let prefix = ember_runtime::prefix_path(&app, &settings, &game);
+            let prefix = irori_runtime::prefix_path(&app, &settings, &game);
             remove_prefix_dir(&prefix, &app).await?;
         }
-        let _ = ember_extras::shortcuts::remove(&game, &app).await;
+        let _ = irori_extras::shortcuts::remove(&game, &app).await;
         if args.remove_settings {
             self.settings.remove_game(id);
         }
@@ -480,7 +480,7 @@ impl Backend {
             let old = src.clone();
             let removed = self
                 .spawn_blocking(move || {
-                    ember_core::fs_guard::ensure_deletable(&old, &app)?;
+                    irori_core::fs_guard::ensure_deletable(&old, &app)?;
                     std::fs::remove_dir_all(&old)
                         .with_context(|| format!("Could not delete {}", old.display()))
                 })
@@ -569,7 +569,7 @@ impl Backend {
         let mut settings = self.settings.game(id);
         if settings.saves_path.is_empty() && settings.gog_saves.is_empty() {
             let app = self.settings.app();
-            let prefix = ember_runtime::prefix_path(&app, &settings, &game);
+            let prefix = irori_runtime::prefix_path(&app, &settings, &game);
             let path = store.default_save_path(&id.app_name, Some(&prefix)).await?;
             self.settings
                 .set_game_value(id, "savesPath", Some(Value::String(path.clone())));
@@ -602,7 +602,7 @@ impl Backend {
             platform: InstallPlatform::Windows,
         };
         let ctx = self.op_context(id, CancellationToken::new());
-        ember_runtime::run_in_prefix(&app, &settings, target, argv, false, ctx).await
+        irori_runtime::run_in_prefix(&app, &settings, target, argv, false, ctx).await
     }
 
     pub async fn winetricks(&self, id: &GameId, verbs: Vec<String>) -> Result<ExecResult> {
@@ -616,7 +616,7 @@ impl Backend {
             platform: InstallPlatform::Windows,
         };
         let ctx = self.op_context(id, CancellationToken::new());
-        ember_runtime::winetricks(&app, &settings, target, verbs, ctx)
+        irori_runtime::winetricks(&app, &settings, target, verbs, ctx)
             .await?
             .check()
     }
@@ -627,12 +627,12 @@ impl Backend {
         anyhow::ensure!(cfg!(target_os = "linux"), "Protontricks runs on Linux only");
         let game = self.installed_game(id)?;
         anyhow::ensure!(
-            id.runner == ember_core::Runner::Steam,
+            id.runner == irori_core::Runner::Steam,
             "Protontricks works with Steam games. Use Winetricks for {}.",
             game.title
         );
         let install = game.install_path().context("unknown install location")?;
-        let prefix = ember_runtime::protontricks::prefix_of(&install, &id.app_name)
+        let prefix = irori_runtime::protontricks::prefix_of(&install, &id.app_name)
             .context("unknown install location")?;
         if !tokio::fs::try_exists(&prefix).await.unwrap_or(false) {
             bail!(
@@ -640,10 +640,10 @@ impl Backend {
                 game.title
             );
         }
-        let steam_dir = ember_runtime::locations::steam_path(&self.settings.app());
+        let steam_dir = irori_runtime::locations::steam_path(&self.settings.app());
         let _guard = self.statuses.guard(id, StatusKind::Winetricks);
         let ctx = self.op_context(id, CancellationToken::new());
-        ember_runtime::protontricks::run(&steam_dir, &id.app_name, &verbs, &ctx)
+        irori_runtime::protontricks::run(&steam_dir, &id.app_name, &verbs, &ctx)
             .await?
             .check()
     }
@@ -666,16 +666,16 @@ impl Backend {
 fn write_log_header(
     path: &Path,
     game: &GameInfo,
-    settings: &ember_core::GameSettings,
+    settings: &irori_core::GameSettings,
 ) -> Result<()> {
-    if path == Path::new(ember_core::platform::null_device()) {
+    if path == Path::new(irori_core::platform::null_device()) {
         return Ok(());
     }
     if let Some(dir) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(dir)?;
     }
     let mut header = format!(
-        "Ember {} — {} ({})\nStarted: {}\n",
+        "Irori {} — {} ({})\nStarted: {}\n",
         env!("CARGO_PKG_VERSION"),
         game.title,
         game.id(),
@@ -707,9 +707,9 @@ fn append_log(path: &Path, text: &str) {
 
 async fn run_script(script: &str, game: &GameInfo, log_file: &Path) -> Result<()> {
     let spec = CommandSpec::new(script)
-        .env("EMBER_GAME_TITLE", game.title.clone())
-        .env("EMBER_APP_NAME", game.app_name.clone())
-        .env("EMBER_RUNNER", game.runner().id())
+        .env("IRORI_GAME_TITLE", game.title.clone())
+        .env("IRORI_APP_NAME", game.app_name.clone())
+        .env("IRORI_RUNNER", game.runner().id())
         .env("HEROIC_GAME_TITLE", game.title.clone())
         .env("HEROIC_APP_NAME", game.app_name.clone())
         .env("HEROIC_APP_RUNNER", game.runner().id());
@@ -722,16 +722,16 @@ async fn run_script(script: &str, game: &GameInfo, log_file: &Path) -> Result<()
 
 /// Delete a prefix after sanity checks: never the shared prefix root, a
 /// protected folder, or a directory that is not actually a Wine prefix.
-async fn remove_prefix_dir(prefix: &Path, app: &ember_core::AppSettings) -> Result<()> {
+async fn remove_prefix_dir(prefix: &Path, app: &irori_core::AppSettings) -> Result<()> {
     anyhow::ensure!(
         !prefix.join("cxbottle.conf").is_file(),
         "Manage shared CrossOver bottles in CrossOver"
     );
-    if !ember_runtime::is_prefix(prefix) {
+    if !irori_runtime::is_prefix(prefix) {
         tracing::warn!("not deleting {}: not a Wine prefix", prefix.display());
         return Ok(());
     }
-    ember_core::fs_guard::ensure_deletable(prefix, app)?;
+    irori_core::fs_guard::ensure_deletable(prefix, app)?;
     tokio::fs::remove_dir_all(prefix)
         .await
         .with_context(|| format!("Could not delete {}", prefix.display()))
@@ -905,7 +905,7 @@ mod platform_tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("cxbottle.conf"), "[Bottle]").unwrap();
         std::fs::create_dir_all(dir.path().join("drive_c")).unwrap();
-        let error = remove_prefix_dir(dir.path(), &ember_core::AppSettings::default())
+        let error = remove_prefix_dir(dir.path(), &irori_core::AppSettings::default())
             .await
             .unwrap_err();
         assert!(error.to_string().contains("CrossOver"));

@@ -1,5 +1,5 @@
 [package]
-name = "ember-amazon-api"
+name = "irori-amazon-api"
 description = "Amazon Games protocol client: device sign-in, library, signed manifests and downloads"
 version.workspace = true
 edition.workspace = true
@@ -12,7 +12,7 @@ publish.workspace = true
 test-support = []
 
 [dependencies]
-ember-depot.workspace = true
+irori-depot.workspace = true
 anyhow.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -30,6 +30,6 @@ lzma-rs.workspace = true
 rsa.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tokio.workspace = true
 tempfile = "3"

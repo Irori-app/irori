@@ -75,7 +75,7 @@ pub struct ShellCommand {
     pub step: usize,
     /// Verbatim script text.
     pub command: String,
-    /// With Ember's variables filled in.
+    /// With Irori's variables filled in.
     pub resolved: String,
 }
 
@@ -159,7 +159,7 @@ impl Approvals {
 
 const PLACEHOLDER_CHOICE: &str = "<your choice>";
 
-/// Preview values: Ember's variables plus placeholders for what is only
+/// Preview values: Irori's variables plus placeholders for what is only
 /// known later. Returns the names that are placeholders.
 fn preview_vars(script: &Script, ctx: &Context) -> (Vars, BTreeSet<String>) {
     let mut vars = base_vars(script, ctx);
@@ -303,7 +303,7 @@ pub fn consent(script: &Script, ctx: &Context) -> Consent {
         }
     }
 
-    // The default prefix: Ember's, else the game section's, else the game
+    // The default prefix: Irori's, else the game section's, else the game
     // folder.
     let default_prefix = match (&ctx.prefix, &script.game.prefix) {
         (Some(_), _) | (None, None) => None,

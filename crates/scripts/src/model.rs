@@ -170,7 +170,7 @@ pub struct Step {
     pub command: Command,
 }
 
-/// Every command Ember runs. Strings are raw script text; variables are
+/// Every command Irori runs. Strings are raw script text; variables are
 /// substituted when the step runs.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
@@ -217,7 +217,7 @@ pub enum Command {
     },
     Execute(Execute),
     Task(Task),
-    /// A store's own installer (GOG, Amazon, ZOOM): Ember installs it
+    /// A store's own installer (GOG, Amazon, ZOOM): Irori installs it
     /// natively instead.
     StoreAutosetup(StoreAutosetup),
 }
@@ -258,7 +258,7 @@ pub struct Extract {
     pub merge_single: bool,
 }
 
-/// Archive kinds. Tar and zip are unpacked by Ember itself; the rest go to
+/// Archive kinds. Tar and zip are unpacked by Irori itself; the rest go to
 /// [`crate::ScriptHost::extract_external`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArchiveFormat {
@@ -450,7 +450,7 @@ pub struct DosExecTask {
     pub working_dir: Option<String>,
 }
 
-/// Stores whose Lutris autosetup Ember replaces with its native install.
+/// Stores whose Lutris autosetup Irori replaces with its native install.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AutosetupStore {
     Gog,

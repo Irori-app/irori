@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use once_cell::sync::Lazy;
 
-pub const USER_AGENT: &str = concat!("Ember/", env!("CARGO_PKG_VERSION"));
+pub const USER_AGENT: &str = concat!("Irori/", env!("CARGO_PKG_VERSION"));
 
 /// A browser-like user agent for store web APIs that reject unknown clients.
 pub const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";

@@ -318,8 +318,8 @@ impl Storage {
             .get(reqwest::header::CONTENT_ENCODING)
             .is_some_and(|v| v.as_bytes().eq_ignore_ascii_case(b"gzip"));
         let bytes = resp.bytes().await?.to_vec();
-        let rel = ember_depot::path::normalize(path)?;
-        let dest = ember_depot::path::join(dir, &rel);
+        let rel = irori_depot::path::normalize(path)?;
+        let dest = irori_depot::path::join(dir, &rel);
         tokio::task::spawn_blocking(move || -> Result<()> {
             use std::io::Read as _;
             // The body is gzip unless the transport already inflated it.
@@ -409,7 +409,7 @@ impl Storage {
 
 #[cfg(test)]
 mod tests {
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
     use parking_lot::Mutex;
     use serde_json::json;
 

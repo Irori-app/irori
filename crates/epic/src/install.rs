@@ -1,11 +1,11 @@
-//! Turning manifests into [`ember_depot`] download plans.
+//! Turning manifests into [`irori_depot`] download plans.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result};
-use ember_depot::{Algorithm, Chunk, Codec, Digest, FileEntry, Part, Reuse};
 use futures::future::BoxFuture;
+use irori_depot::{Algorithm, Chunk, Codec, Digest, FileEntry, Part, Reuse};
 
 use crate::api::{Asset, Client, Session, Ticket, now};
 use crate::chunk::ChunkDecoder;
@@ -84,7 +84,7 @@ impl<'a> EntryBuilder<'a> {
     /// The entry of `file`, reusing unchanged byte ranges of `old` (the same
     /// file in the installed build) when given.
     pub fn entry(&self, file: &FileManifest, old: Option<&FileManifest>) -> Result<FileEntry> {
-        let path = ember_depot::path::normalize(&file.filename)?;
+        let path = irori_depot::path::normalize(&file.filename)?;
         // Old parts by chunk: (chunk range start, end, offset in old file).
         let mut old_parts: HashMap<Guid, Vec<(u32, u32, u64)>> = HashMap::new();
         for p in old.map(|o| o.parts.as_slice()).unwrap_or_default() {
@@ -186,7 +186,7 @@ pub fn plan(input: &PlanInput<'_>, mode: Mode) -> Result<Plan> {
     );
     let remove = remove
         .into_iter()
-        .filter_map(|p| ember_depot::path::normalize(&p).ok())
+        .filter_map(|p| irori_depot::path::normalize(&p).ok())
         .collect();
 
     let mut counted = HashSet::new();
@@ -226,7 +226,7 @@ impl ChunkSigner {
     }
 }
 
-impl ember_depot::UrlSigner for ChunkSigner {
+impl irori_depot::UrlSigner for ChunkSigner {
     fn sign<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, Result<HashMap<String, String>>> {
         Box::pin(async move {
             let session = (self.session)().await?;

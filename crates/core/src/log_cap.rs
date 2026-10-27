@@ -8,7 +8,7 @@
 //!   output). [`bound_log`] watches such a file and cuts it back to its launch
 //!   header whenever it passes the limit; the game's appends simply continue
 //!   at the new end.
-//! - Operation logs (installs, updates, tools) are written by Ember line by
+//! - Operation logs (installs, updates, tools) are written by Irori line by
 //!   line through [`CappedLog`], which moves a full file aside to `<name>.old`
 //!   and starts afresh, so the newest output is always kept.
 
@@ -53,7 +53,7 @@ pub fn cut_back(path: &Path, keep: u64, cap: u64) -> std::io::Result<bool> {
     file.seek(SeekFrom::End(0))?;
     writeln!(
         file,
-        "\n[Ember] The log passed {} MiB; the {} MiB after the launch details were dropped.\n",
+        "\n[Irori] The log passed {} MiB; the {} MiB after the launch details were dropped.\n",
         cap / (1024 * 1024),
         (len - keep) / (1024 * 1024)
     )?;
@@ -153,7 +153,7 @@ mod tests {
         game.write_all(&vec![b'x'; 4096]).unwrap();
         assert!(cut_back(&path, 7, 1024).unwrap());
         let text = std::fs::read_to_string(&path).unwrap();
-        assert!(text.starts_with("HEADER\n\n[Ember] The log passed"));
+        assert!(text.starts_with("HEADER\n\n[Irori] The log passed"));
         assert!(!text.contains('x'));
         game.write_all(b"after\n").unwrap();
         let text = std::fs::read_to_string(&path).unwrap();

@@ -1,7 +1,7 @@
 # Runtime release verification
 
 The public GitHub release contract and examples were captured on 2026-10-25.
-Only the fields consumed by Ember are retained. The Postman CLI was signed out,
+Only the fields consumed by Irori are retained. The Postman CLI was signed out,
 so an owner-workspace mock search was skipped. Nothing is pushed or deployed.
 
 Start the local simulator from the repository root:
@@ -13,7 +13,7 @@ postman simulation run postman/simulations/runtime-releases.sim.yaml --port 4900
 Wait for its `listening` event. In another terminal, use that event's bound port:
 
 ```sh
-EMBER_RELEASE_TEST_URL=http://127.0.0.1:4900 cargo test -p ember-runtime simulated_macos_releases -- --ignored
+IRORI_RELEASE_TEST_URL=http://127.0.0.1:4900 cargo test -p irori-runtime simulated_macos_releases -- --ignored
 ```
 
 The test runs the production HTTP request and release parser for all three macOS

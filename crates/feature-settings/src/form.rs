@@ -6,10 +6,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context as _;
-use ember_core::settings::{AppSettings, GameSettings, WineInstallation};
-use ember_core::{GameId, InstallPlatform, Paths};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
@@ -27,6 +23,10 @@ use gpui_kit::{
     InteractiveElement as _, IntoElement, ParentElement as _, PathPromptOptions, Render,
     SharedString, Styled as _, Subscription, Task, Window, div,
 };
+use irori_core::settings::{AppSettings, GameSettings, WineInstallation};
+use irori_core::{GameId, InstallPlatform, Paths};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models};
 use serde_json::Value;
 
 use crate::controllers::ControllersPanel;
@@ -220,8 +220,8 @@ impl SettingsForm {
             filter: FormFilter::Sections(sections),
             busy: HashSet::new(),
             import_summary: None,
-            heroic_detected: ember_ui::hooks::heroic_detected(),
-            lutris_detected: ember_ui::hooks::lutris_detected(),
+            heroic_detected: irori_ui::hooks::heroic_detected(),
+            lutris_detected: irori_ui::hooks::lutris_detected(),
             panels: HashMap::new(),
             native: false,
             epic_available: crate::stores::epic(cx).is_some(),
@@ -288,8 +288,8 @@ impl SettingsForm {
         }
         wine.loading = true;
         let app = backend(cx).settings.app();
-        let task = ember_ui::run(cx, async move {
-            Ok(ember_runtime::wine_installations(&app).await)
+        let task = irori_ui::run(cx, async move {
+            Ok(irori_runtime::wine_installations(&app).await)
         });
         cx.spawn_in(window, async move |this, cx| {
             let builds = task.await.unwrap_or_default();
@@ -497,7 +497,7 @@ impl SettingsForm {
                 FormTarget::Game(id) => {
                     let b = backend(cx);
                     match b.game(id) {
-                        Some(game) => ember_runtime::default_prefix(&b.settings.app(), &game)
+                        Some(game) => irori_runtime::default_prefix(&b.settings.app(), &game)
                             .to_string_lossy()
                             .to_string()
                             .into(),
@@ -778,8 +778,8 @@ impl SettingsForm {
                     Ok(next) => *s = next,
                     Err(e) => result = Err(e),
                 });
-                if result.is_ok() && path.starts_with("emberUi.") {
-                    ember_ui::theme::apply(&b.settings.app().ui, Some(window), cx);
+                if result.is_ok() && path.starts_with("iroriUi.") {
+                    irori_ui::theme::apply(&b.settings.app().ui, Some(window), cx);
                 }
                 result
             }
@@ -932,7 +932,7 @@ impl SettingsForm {
             return;
         }
         self.slider_seen.insert(path, v);
-        if path == "emberUi.fontSize" {
+        if path == "iroriUi.fontSize" {
             // The interface size rescales this page, slider included: applied
             // mid-drag, the track would move under the pointer and fight it.
             // The percentage follows the drag; the size applies on release.
@@ -963,14 +963,14 @@ impl SettingsForm {
     /// Use the theme called `name`. A theme for the other colour mode than
     /// the one showing switches the mode too, so picking it always shows it.
     fn pick_theme(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(dark) = ember_ui::theme::is_dark_theme(name, cx)
+        if let Some(dark) = irori_ui::theme::is_dark_theme(name, cx)
             && dark != cx.theme().mode.is_dark()
         {
             let mode = if dark { "dark" } else { "light" };
-            self.write("emberUi.theme", Value::from(mode), window, cx);
+            self.write("iroriUi.theme", Value::from(mode), window, cx);
         }
         self.write(
-            "emberUi.themeName",
+            "iroriUi.themeName",
             Value::String(name.to_string()),
             window,
             cx,
@@ -1150,7 +1150,7 @@ impl SettingsForm {
 
     fn clear_caches(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.busy.insert(ActionKind::ClearCaches);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let paths = Paths::get();
             for dir in [paths.images_dir(), paths.cache.join("stores")] {
                 match tokio::fs::remove_dir_all(&dir).await {
@@ -1174,7 +1174,7 @@ impl SettingsForm {
     fn reset_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.busy.insert(ActionKind::ResetSettings);
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             // Both calls write files synchronously.
             tokio::task::spawn_blocking(move || {
                 b.settings.replace_app(AppSettings::default());
@@ -1194,7 +1194,7 @@ impl SettingsForm {
 
     fn import_lutris(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.busy.insert(ActionKind::ImportLutris);
-        let task = ember_ui::hooks::import_from_lutris(cx);
+        let task = irori_ui::hooks::import_from_lutris(cx);
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {
@@ -1202,7 +1202,7 @@ impl SettingsForm {
                 match result {
                     Ok(summary) => {
                         models::refresh_library(false, cx);
-                        ember_ui::lutris_summary::open_lutris_summary(summary, window, cx);
+                        irori_ui::lutris_summary::open_lutris_summary(summary, window, cx);
                     }
                     Err(e) => window.push_notification(
                         Notification::error(format!("{e:#}"))
@@ -1221,7 +1221,7 @@ impl SettingsForm {
     fn import_heroic(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.busy.insert(ActionKind::ImportHeroic);
         self.import_summary = None;
-        let task = ember_ui::hooks::import_from_heroic(cx);
+        let task = irori_ui::hooks::import_from_heroic(cx);
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {
@@ -1274,7 +1274,7 @@ impl SettingsForm {
                     Ok(()) => {
                         window.push_notification(Notification::success(t(success_key)), cx);
                         if action == ActionKind::ResetSettings {
-                            ember_ui::theme::apply(
+                            irori_ui::theme::apply(
                                 &backend(cx).settings.app().ui,
                                 Some(window),
                                 cx,
@@ -1453,7 +1453,7 @@ impl SettingsForm {
                     row.help = t("settings.wine.none_found");
                     return Button::new("open-wine-manager")
                         .label(t("settings.wine.open_manager"))
-                        .on_click(|_, _, cx| ember_ui::navigate(Route::WineManager, cx))
+                        .on_click(|_, _, cx| irori_ui::navigate(Route::WineManager, cx))
                         .into_any_element();
                 }
                 if let Some(bin) = self
@@ -1711,7 +1711,7 @@ fn choice_items(options: &[ChoiceOption]) -> Vec<ChoiceItem> {
 /// The built-in theme followed by every theme of the theme registry.
 fn theme_items(cx: &App) -> Vec<ChoiceItem> {
     let mut items = vec![ChoiceItem::new("", t("settings.theme.default"))];
-    for (name, dark) in ember_ui::theme::theme_names(cx) {
+    for (name, dark) in irori_ui::theme::theme_names(cx) {
         let key = if dark {
             "settings.theme.dark_variant"
         } else {

@@ -1,11 +1,11 @@
 //! Keeping installs in sync with an Epic Games Launcher (EGL) running in a
-//! Wine prefix (or the native Windows launcher): games installed by EGL show up in Ember and Ember's installs
+//! Wine prefix (or the native Windows launcher): games installed by EGL show up in Irori and Irori's installs
 //! show up in EGL.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_epic_api::egl::{self, EglItem, ExportInfo};
+use irori_epic_api::egl::{self, EglItem, ExportInfo};
 
 use crate::EpicStore;
 use crate::state::{InstalledGame, real_prefix};
@@ -81,7 +81,7 @@ impl EpicStore {
     /// The linked EGL prefix, if sync is enabled.
     pub(crate) fn egl_prefix(&self) -> Option<PathBuf> {
         let linked = (self.settings)().egs_linked_path.clone();
-        (!linked.trim().is_empty()).then(|| ember_core::paths::expand_home(linked.trim()))
+        (!linked.trim().is_empty()).then(|| irori_core::paths::expand_home(linked.trim()))
     }
 
     /// Link with an Epic Games Launcher in a Wine prefix (`Some(prefix)`) and
@@ -101,7 +101,7 @@ impl EpicStore {
         }
     }
 
-    /// Import EGL's installs, export Ember's, and drop installs EGL removed.
+    /// Import EGL's installs, export Irori's, and drop installs EGL removed.
     pub(crate) async fn egl_sync_with(&self, prefix: &Path) -> Result<String> {
         let pfx = real_prefix(prefix).unwrap_or_else(|| prefix.to_path_buf());
         let dir = linked_manifests_dir(&pfx);
@@ -189,9 +189,9 @@ impl EpicStore {
             egl::egstore_dir(&path).join(format!("{}.manifest", item.installation_guid()));
         let bytes = std::fs::read(&manifest)
             .with_context(|| format!("{} is missing", manifest.display()))?;
-        ember_epic_api::Manifest::parse(&bytes, &Default::default())
+        irori_epic_api::Manifest::parse(&bytes, &Default::default())
             .context("the EGL manifest is unreadable")?;
-        ember_core::json_store::write_bytes(&self.layout.build_manifest(item.app_name()), &bytes)?;
+        irori_core::json_store::write_bytes(&self.layout.build_manifest(item.app_name()), &bytes)?;
         let previous = self.installed_entry(item.app_name()).unwrap_or_default();
         let entry = InstalledGame {
             app_name: item.app_name().to_string(),
@@ -219,7 +219,7 @@ impl EpicStore {
         .await
     }
 
-    /// Write EGL's record (and `.egstore`) for an Ember install.
+    /// Write EGL's record (and `.egstore`) for an Irori install.
     pub(crate) async fn egl_export(&self, prefix: &Path, app: &str) -> Result<()> {
         let pfx = real_prefix(prefix).unwrap_or_else(|| prefix.to_path_buf());
         let g = self.installed_entry(app).context("not installed")?;

@@ -4,14 +4,6 @@
 
 use std::sync::Arc;
 
-use ember_core::process::CancellationToken;
-use ember_core::{
-    GameId, GameInfo, InstallPlatform, OpContext, Outcome, Paths, Runner, StatusKind,
-};
-use ember_epic::{EOS_OVERLAY_APP_NAME, EosOverlayStatus};
-use ember_ui::components::ProgressSummary;
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::skeleton::Skeleton;
@@ -24,6 +16,14 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, Context, IntoElement, ParentElement, Render, Styled, Subscription, Window, div, rems,
 };
+use irori_core::process::CancellationToken;
+use irori_core::{
+    GameId, GameInfo, InstallPlatform, OpContext, Outcome, Paths, Runner, StatusKind,
+};
+use irori_epic::{EOS_OVERLAY_APP_NAME, EosOverlayStatus};
+use irori_ui::components::ProgressSummary;
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::hooks;
 use crate::load::Load;
@@ -107,7 +107,7 @@ impl EosOverlayPanel {
 
     fn prefix(&self, cx: &App) -> std::path::PathBuf {
         let b = backend(cx);
-        ember_runtime::prefix_path(
+        irori_runtime::prefix_path(
             &b.settings.app(),
             &b.settings.game(&self.game.id()),
             &self.game,
@@ -128,7 +128,7 @@ impl EosOverlayPanel {
             self.state = Load::Loading;
         }
         let prefix = self.prefix(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let status = epic.eos_overlay_status().await;
             let latest = if status.installed {
                 epic.eos_overlay_latest_version().await.unwrap_or(None)
@@ -164,7 +164,7 @@ impl EosOverlayPanel {
         let cancel = CancellationToken::new();
         self.cancel = Some(cancel.clone());
         cx.notify();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if !b.is_online() {
                 anyhow::bail!(t("game.overlay.offline"));
             }
@@ -220,7 +220,7 @@ impl EosOverlayPanel {
         self.toggling = true;
         cx.notify();
         let prefix = self.prefix(cx);
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             if on {
                 epic.eos_overlay_enable(&prefix).await
             } else {
@@ -269,7 +269,7 @@ impl EosOverlayPanel {
         };
         self.removing = true;
         cx.notify();
-        let task = ember_ui::run(cx, async move { epic.eos_overlay_remove().await });
+        let task = irori_ui::run(cx, async move { epic.eos_overlay_remove().await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, window, cx| {

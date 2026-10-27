@@ -51,7 +51,7 @@ pub(crate) async fn cache_read_entry<T: DeserializeOwned>(path: &Path) -> Option
             return None;
         }
     };
-    let age = ember_core::util::unix_now().saturating_sub(entry.saved_at);
+    let age = irori_core::util::unix_now().saturating_sub(entry.saved_at);
     Some((entry.value, Duration::from_secs(age)))
 }
 
@@ -64,7 +64,7 @@ pub(crate) async fn cache_read<T: DeserializeOwned>(path: &Path, ttl: Duration) 
 /// Store a value in the cache file at `path`, stamped with the current time.
 pub(crate) async fn cache_write<T: Serialize>(path: &Path, value: &T) -> Result<()> {
     let entry = CacheEntry {
-        saved_at: ember_core::util::unix_now(),
+        saved_at: irori_core::util::unix_now(),
         value,
     };
     write_atomic(path, &serde_json::to_vec(&entry)?).await
@@ -72,12 +72,12 @@ pub(crate) async fn cache_write<T: Serialize>(path: &Path, value: &T) -> Result<
 
 /// Directory for this crate's caches.
 pub(crate) fn cache_dir(sub: &str) -> PathBuf {
-    ember_core::Paths::get().cache.join(sub)
+    irori_core::Paths::get().cache.join(sub)
 }
 
 /// GET `url` and decode JSON, failing on non-2xx statuses.
 pub(crate) async fn get_json<T: DeserializeOwned>(url: &str, timeout: Duration) -> Result<T> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .timeout(timeout)
         .send()
@@ -88,7 +88,7 @@ pub(crate) async fn get_json<T: DeserializeOwned>(url: &str, timeout: Duration) 
 
 /// GET `url` as text, failing on non-2xx statuses.
 pub(crate) async fn get_text(url: &str, timeout: Duration) -> Result<String> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .timeout(timeout)
         .send()
@@ -99,7 +99,7 @@ pub(crate) async fn get_text(url: &str, timeout: Duration) -> Result<String> {
 
 /// GET `url` as bytes, failing on non-2xx statuses.
 pub(crate) async fn get_bytes(url: &str, timeout: Duration) -> Result<Vec<u8>> {
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .get(url)
         .timeout(timeout)
         .send()
@@ -122,7 +122,7 @@ pub(crate) async fn load_image_source(source: &str) -> Result<Vec<u8>> {
     }
     let path = match source.strip_prefix("file://") {
         Some(p) => PathBuf::from(decode_component(p).unwrap_or_else(|| p.to_string())),
-        None => ember_core::paths::expand_home(source),
+        None => irori_core::paths::expand_home(source),
     };
     tokio::fs::read(&path)
         .await

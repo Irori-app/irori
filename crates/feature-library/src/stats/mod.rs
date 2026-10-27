@@ -15,12 +15,6 @@ pub(crate) mod storage;
 use std::sync::Arc;
 
 use chrono::{Datelike as _, Local, NaiveDate};
-use ember_core::{GameInfo, Runner};
-use ember_ui::art::LruImageCache;
-use ember_ui::components::{EmptyState, GameCover, PageHeader, SectionTitle};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::style::{KeyboardFocusable as _, caption, panel};
-use ember_ui::{Route, backend, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::chart::BarChart;
 use gpui_kit::component::scroll::ScrollableElement as _;
@@ -32,6 +26,12 @@ use gpui_kit::{
     ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
     Subscription, Window, div, px, relative, rems,
 };
+use irori_core::{GameInfo, Runner};
+use irori_ui::art::LruImageCache;
+use irori_ui::components::{EmptyState, GameCover, PageHeader, SectionTitle};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::style::{KeyboardFocusable as _, caption, panel};
+use irori_ui::{Route, backend, models, navigate};
 
 use model::{GameTotal, Stats, StoreTotal, Week};
 use storage::{DriveUsage, InstalledGame};
@@ -49,7 +49,7 @@ pub struct StatsView {
     /// Installed games by drive; `None` until first read.
     storage: Option<Vec<DriveUsage>>,
     /// Library revision and user data the stats were computed from.
-    seen: Option<(u64, Arc<ember_services::UserData>)>,
+    seen: Option<(u64, Arc<irori_services::UserData>)>,
     images: Entity<LruImageCache>,
     _subscriptions: Vec<Subscription>,
 }
@@ -91,7 +91,7 @@ impl StatsView {
         let (snapshot, user) = (library.snapshot.clone(), library.user.clone());
         let playtime = user.playtime.clone();
         self.seen = Some((snapshot.revision, user));
-        let task = ember_ui::state::run_infallible(cx, async move {
+        let task = irori_ui::state::run_infallible(cx, async move {
             let sessions: Vec<_> = b
                 .sessions()
                 .into_iter()
@@ -119,7 +119,7 @@ impl StatsView {
     /// Read the drives and where the installed games are (off the UI thread).
     fn reload_storage(&mut self, cx: &mut Context<Self>) {
         let b = backend(cx);
-        let installed: Vec<(ember_core::GameId, std::path::PathBuf, u64)> = models(cx)
+        let installed: Vec<(irori_core::GameId, std::path::PathBuf, u64)> = models(cx)
             .library
             .read(cx)
             .snapshot
@@ -131,7 +131,7 @@ impl StatsView {
                 Some((g.id(), g.install_path()?, bytes))
             })
             .collect();
-        let task = ember_ui::state::run_infallible(cx, async move {
+        let task = irori_ui::state::run_infallible(cx, async move {
             b.spawn_blocking(move || {
                 let games: Vec<InstalledGame> = installed
                     .into_iter()
@@ -369,7 +369,7 @@ impl StatsView {
             theme.chart_3,
         );
         let (radius, hover_bg) = (theme.radius, theme.list_hover);
-        let size = |bytes: u64| ember_core::util::format_bytes(bytes);
+        let size = |bytes: u64| irori_core::util::format_bytes(bytes);
         let (label, summary) = match &usage.drive {
             Some(d) => (
                 SharedString::from(d.label()),

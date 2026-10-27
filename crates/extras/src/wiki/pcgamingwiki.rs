@@ -77,7 +77,7 @@ fn list(re: &Regex, text: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Extract the fields Ember shows from page wikitext.
+/// Extract the fields Irori shows from page wikitext.
 pub fn parse_wikitext(page_id: u64, text: &str) -> PcGamingWikiInfo {
     let group = |re: &Regex| {
         re.captures(text)

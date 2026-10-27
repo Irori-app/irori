@@ -2,8 +2,8 @@
 //! conversion and validation, override planning and list-editor rules.
 
 use anyhow::{Context as _, Result};
-use ember_core::settings::{GameSettings, GameSettingsOverrides};
-use ember_ui::i18n::{t, t_args};
+use irori_core::settings::{GameSettings, GameSettingsOverrides};
+use irori_ui::i18n::{t, t_args};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
@@ -233,7 +233,7 @@ pub fn remove_row(rows: &Value, index: usize) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::AppSettings;
+    use irori_core::AppSettings;
 
     #[test]
     fn dotted_paths_read_and_write() {
@@ -250,7 +250,7 @@ mod tests {
         let s = AppSettings::default();
         let s = with_path(&s, "exitToTray", Value::Bool(true)).unwrap();
         assert!(s.exit_to_tray);
-        let s = with_path(&s, "emberUi.fontSize", Value::from(18.0)).unwrap();
+        let s = with_path(&s, "iroriUi.fontSize", Value::from(18.0)).unwrap();
         assert_eq!(s.ui.font_size, 18.0);
         let s = with_path(&s, "gamescope.fpsLimiter", Value::from("60")).unwrap();
         assert_eq!(s.game.gamescope.fps_limiter, "60");

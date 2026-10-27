@@ -1,5 +1,5 @@
 [package]
-name = "ember-gog-api"
+name = "irori-gog-api"
 description = "GOG protocol client: accounts, content system builds, depots, Linux installers, redistributables and cloud saves"
 version.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-depot.workspace = true
+irori-depot.workspace = true
 anyhow.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -25,7 +25,7 @@ md5.workspace = true
 flate2.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tempfile = "3"
 parking_lot.workspace = true
 zip = { workspace = true, features = ["deflate"] }

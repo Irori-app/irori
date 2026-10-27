@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{AppSettings, OpContext, util};
-use ember_depot::{Algorithm, Digest, FileEntry, Finished, Job, Options};
+use irori_core::{AppSettings, OpContext, util};
+use irori_depot::{Algorithm, Digest, FileEntry, Finished, Job, Options};
 
 use crate::discovery::locate_program;
 use crate::host::Os;
@@ -59,8 +59,8 @@ async fn download_file(
         vec![file.url.clone()],
     );
     let progress_sink = ctx.progress.clone();
-    let progress = Arc::new(move |p: ember_depot::Progress| {
-        progress_sink(ember_core::InstallProgress {
+    let progress = Arc::new(move |p: irori_depot::Progress| {
+        progress_sink(irori_core::InstallProgress {
             percent: (p.bytes_total > 0).then_some(p.percent),
             bytes_done: Some(p.bytes_done),
             bytes_total: (p.bytes_total > 0).then_some(p.bytes_total),
@@ -69,8 +69,8 @@ async fn download_file(
             ..Default::default()
         })
     });
-    let finished = ember_depot::download(
-        ember_core::http::download_client(),
+    let finished = irori_depot::download(
+        irori_core::http::download_client(),
         Job {
             root: &folder,
             files: &[entry],
@@ -90,7 +90,7 @@ async fn download_file(
 
 /// The size of the file at `url`, which resumable downloads need up front.
 pub(crate) async fn content_length(url: &str) -> Result<u64> {
-    let response = ember_core::http::client()
+    let response = irori_core::http::client()
         .head(url)
         .send()
         .await
@@ -109,7 +109,7 @@ pub(crate) async fn content_length(url: &str) -> Result<u64> {
 
 /// The SHA-256 of `file_name` from a published checksum file.
 async fn expected_sha256(url: &str, file_name: &str) -> Result<Vec<u8>> {
-    let text = ember_core::http::client()
+    let text = irori_core::http::client()
         .get(url)
         .send()
         .await
@@ -212,7 +212,7 @@ pub async fn install(
     let Some(program) = locate_program(&staging, &names) else {
         let _ = tokio::fs::remove_dir_all(&staging).await;
         bail!(
-            "The {} download does not contain the program Ember expected ({}). The project may have changed how it packages releases.",
+            "The {} download does not contain the program Irori expected ({}). The project may have changed how it packages releases.",
             manifest.name,
             names.join(", ")
         );
@@ -238,7 +238,7 @@ pub async fn install(
     }
     let size = {
         let dir = dir.clone();
-        tokio::task::spawn_blocking(move || ember_runtime::download::dir_size(&dir))
+        tokio::task::spawn_blocking(move || irori_runtime::download::dir_size(&dir))
             .await
             .unwrap_or(0)
     };
@@ -284,10 +284,10 @@ pub async fn remove(engine: &str, version: &str, app: &AppSettings) -> Result<()
     };
     let root = crate::dirs::engine(engine);
     if !m.dir.starts_with(&root) {
-        bail!("{} is not an engine folder Ember manages", m.dir.display());
+        bail!("{} is not an engine folder Irori manages", m.dir.display());
     }
     if m.dir.exists() {
-        ember_core::fs_guard::ensure_deletable(&m.dir, app)?;
+        irori_core::fs_guard::ensure_deletable(&m.dir, app)?;
         tokio::fs::remove_dir_all(&m.dir)
             .await
             .with_context(|| format!("Could not delete {}", m.dir.display()))?;
@@ -377,8 +377,8 @@ mod tests {
             z.finish().unwrap();
             out.into_inner()
         };
-        let server = ember_depot::test_server::TestServer::start(move |req| {
-            ember_depot::test_server::serve_bytes(req, &zip, true)
+        let server = irori_depot::test_server::TestServer::start(move |req| {
+            irori_depot::test_server::serve_bytes(req, &zip, true)
         });
         let manifest = EngineManifest::parse(
             &serde_json::json!({
@@ -437,11 +437,11 @@ mod tests {
             z.finish().unwrap();
             out.into_inner()
         };
-        let server = ember_depot::test_server::TestServer::start(move |req| {
+        let server = irori_depot::test_server::TestServer::start(move |req| {
             if req.path.starts_with("/libs.zip") {
-                ember_depot::test_server::serve_bytes(req, &libs, true)
+                irori_depot::test_server::serve_bytes(req, &libs, true)
             } else {
-                ember_depot::test_server::serve_bytes(req, b"tool", true)
+                irori_depot::test_server::serve_bytes(req, b"tool", true)
             }
         });
         let manifest = EngineManifest::parse(

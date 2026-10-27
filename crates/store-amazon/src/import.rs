@@ -1,4 +1,4 @@
-//! Converting nile's state (as Heroic keeps it) into Ember's files.
+//! Converting nile's state (as Heroic keeps it) into Irori's files.
 //!
 //! nile stores, in its config dir: `current_user.json` (`user_id`, `name`),
 //! the device registration in `<md5(user_id)>.enc` (AES-256-CBC, key
@@ -11,7 +11,7 @@ use std::path::Path;
 
 use aes::cipher::{BlockDecrypt as _, BlockDecryptMut as _, KeyInit as _, KeyIvInit as _};
 use anyhow::{Context as _, Result, bail};
-use ember_amazon_api::{Credentials, Entitlement};
+use irori_amazon_api::{Credentials, Entitlement};
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest as _, Sha256};
@@ -57,7 +57,7 @@ fn decrypt(bytes: &[u8], user_id: &str) -> Result<Vec<u8>> {
         .map_err(|_| anyhow::anyhow!("the encrypted login does not belong to this account"))
 }
 
-/// Ember credentials from nile's device registration record.
+/// Irori credentials from nile's device registration record.
 fn credentials(record: &Value, fallback_name: &str) -> Option<Credentials> {
     let s = |path: &str| {
         record
@@ -85,7 +85,7 @@ fn credentials(record: &Value, fallback_name: &str) -> Option<Credentials> {
 
 fn read_login(nile_dir: &Path) -> Result<Option<Credentials>> {
     let user: NileUser =
-        ember_core::json_store::read(&nile_dir.join("current_user.json"))?.unwrap_or_default();
+        irori_core::json_store::read(&nile_dir.join("current_user.json"))?.unwrap_or_default();
     let record: Option<Value> = if !user.user_id.is_empty() {
         let name = format!("{:x}.enc", md5::compute(user.user_id.as_bytes()));
         match std::fs::read(nile_dir.join(name)) {
@@ -98,16 +98,16 @@ fn read_login(nile_dir: &Path) -> Result<Option<Credentials>> {
     };
     let record = match record {
         Some(r) => Some(r),
-        None => ember_core::json_store::read::<Value>(&nile_dir.join("user.json"))?,
+        None => irori_core::json_store::read::<Value>(&nile_dir.join("user.json"))?,
     };
     Ok(record.and_then(|r| credentials(&r, &user.name)))
 }
 
-/// Convert nile's state in `nile_dir` into Ember's files in `layout`.
+/// Convert nile's state in `nile_dir` into Irori's files in `layout`.
 ///
-/// * The login and owned-games list are taken only when Ember has no login,
-///   so an Ember login is never replaced.
-/// * Install records are merged (Ember's own entries win), with the
+/// * The login and owned-games list are taken only when Irori has no login,
+///   so an Irori login is never replaced.
+/// * Install records are merged (Irori's own entries win), with the
 ///   installed builds' manifests.
 pub fn import_nile_dir(nile_dir: &Path, layout: &Layout) -> Result<Imported> {
     let mut imported = Imported::default();
@@ -120,16 +120,16 @@ pub fn import_nile_dir(nile_dir: &Path, layout: &Layout) -> Result<Imported> {
         layout.write_credentials(&creds)?;
         imported.login = true;
         if let Some(list) =
-            ember_core::json_store::read::<Vec<Entitlement>>(&nile_dir.join("library.json"))
+            irori_core::json_store::read::<Vec<Entitlement>>(&nile_dir.join("library.json"))
                 .ok()
                 .flatten()
         {
-            layout.write_entitlements(&ember_amazon_api::library::dedupe(list))?;
+            layout.write_entitlements(&irori_amazon_api::library::dedupe(list))?;
         }
     }
 
     let nile_installed: Vec<NileInstalled> =
-        ember_core::json_store::read(&nile_dir.join("installed.json"))?.unwrap_or_default();
+        irori_core::json_store::read(&nile_dir.join("installed.json"))?.unwrap_or_default();
     if !nile_installed.is_empty() {
         let mut installed = layout.read_installed();
         for game in nile_installed {
@@ -212,7 +212,7 @@ mod tests {
         .unwrap();
         std::fs::write(nile.join("manifests/b.raw"), b"manifest").unwrap();
 
-        let layout = Layout::new(tmp.path().join("ember"));
+        let layout = Layout::new(tmp.path().join("irori"));
         let mut existing = crate::state::Installed::new();
         existing.insert(
             "a".into(),
@@ -246,7 +246,7 @@ mod tests {
         assert_eq!(installed["b"].size, 10);
         assert_eq!(layout.read_manifest("b").unwrap(), b"manifest");
 
-        // A second import keeps Ember's login.
+        // A second import keeps Irori's login.
         let again = import_nile_dir(&nile, &layout).unwrap();
         assert_eq!(again, Imported::default());
         assert!(
@@ -260,7 +260,7 @@ mod tests {
         let nile = tmp.path().join("nile");
         std::fs::create_dir_all(&nile).unwrap();
         std::fs::write(nile.join("user.json"), record().to_string()).unwrap();
-        let layout = Layout::new(tmp.path().join("ember"));
+        let layout = Layout::new(tmp.path().join("irori"));
         assert!(import_nile_dir(&nile, &layout).unwrap().login);
         assert_eq!(
             layout.read_credentials().unwrap().user_id,

@@ -3,9 +3,9 @@
 //! menu and keyboard shortcuts all read this one policy, so they cannot
 //! disagree about what a game can do.
 
-use ember_core::StatusKind;
-use ember_ui::i18n::t;
 use gpui_kit::assets::IconName;
+use irori_core::StatusKind;
+use irori_ui::i18n::t;
 
 /// A command on one game.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,7 +27,7 @@ pub enum GameCommand {
     RemoveFromRecent,
     AddShortcut,
     RemoveShortcut,
-    /// Add a Steam shortcut, installed or not (Steam starts Ember, which
+    /// Add a Steam shortcut, installed or not (Steam starts Irori, which
     /// offers to install a game that isn't installed yet).
     AddToSteam,
     OpenFolder,

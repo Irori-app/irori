@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::Paths;
+use irori_core::Paths;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
 use tokio::sync::Mutex;
@@ -59,7 +59,7 @@ pub struct UploadedLog {
     pub url: String,
     /// Pass to [`delete_uploaded`]. (dpaste has no tokens; this is the URL.)
     pub delete_token: String,
-    /// Display name chosen by the caller ("Ember log", "Game log: X").
+    /// Display name chosen by the caller ("Irori log", "Game log: X").
     pub name: String,
     /// Unix seconds.
     pub uploaded_at: u64,
@@ -113,7 +113,7 @@ pub async fn upload(path: &Path, name: &str) -> Result<UploadedLog> {
         .read_to_end(&mut bytes)
         .await?;
     let content = String::from_utf8_lossy(&bytes);
-    let resp = ember_core::http::client()
+    let resp = irori_core::http::client()
         .post(DPASTE_URL)
         .header(
             reqwest::header::CONTENT_TYPE,
@@ -137,7 +137,7 @@ pub async fn upload(path: &Path, name: &str) -> Result<UploadedLog> {
         url: url.to_string(),
         delete_token: url.to_string(),
         name: name.to_string(),
-        uploaded_at: ember_core::util::unix_now(),
+        uploaded_at: irori_core::util::unix_now(),
     };
     let _guard = STORE_LOCK.lock().await;
     let mut store = read_store().await;
@@ -160,7 +160,7 @@ pub async fn delete_uploaded(token: &str) -> Result<bool> {
     else {
         return Ok(false);
     };
-    let remote = ember_core::http::client()
+    let remote = irori_core::http::client()
         .delete(&entry.url)
         .timeout(Duration::from_secs(15))
         .send()
@@ -177,7 +177,7 @@ pub async fn delete_uploaded(token: &str) -> Result<bool> {
 pub async fn list_uploaded() -> Result<Vec<UploadedLog>> {
     let _guard = STORE_LOCK.lock().await;
     let mut store = read_store().await;
-    let now = ember_core::util::unix_now();
+    let now = irori_core::util::unix_now();
     let before = store.uploads.len();
     store.uploads.retain(|_, e| !e.is_expired(now));
     if store.uploads.len() != before {

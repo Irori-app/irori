@@ -13,11 +13,11 @@ use anyhow::{Context as _, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_core::process::split_args;
-use ember_core::{OpContext, Outcome};
+use irori_core::process::split_args;
+use irori_core::{OpContext, Outcome};
 
-use ember_gog_api::content::{Client, Repository};
-use ember_gog_api::plan::{self as gplan, BuildFiles};
+use irori_gog_api::content::{Client, Repository};
+use irori_gog_api::plan::{self as gplan, BuildFiles};
 
 use crate::build;
 use crate::installed::InstalledRecord;
@@ -29,9 +29,9 @@ use crate::{GogStore, api, load_json, save_json};
 pub const ISI: &str = "ISI";
 
 /// A redistributable of GOG's dependency repository.
-pub type RedistDepot = ember_gog_api::content::DependencyDepot;
+pub type RedistDepot = irori_gog_api::content::DependencyDepot;
 
-/// What is downloaded of the redistributables (`.ember-redist.json`).
+/// What is downloaded of the redistributables (`.irori-redist.json`).
 /// Earlier versions' gogdl file (`.gogdl-redist-manifest`) reads as one.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -384,22 +384,22 @@ impl GogStore {
         };
         let root = self.paths.redist.clone();
         let plan = {
-            let exists = |_: bool, rel: &str| ember_depot::path::join(&root, rel).is_file();
+            let exists = |_: bool, rel: &str| irori_depot::path::join(&root, rel).is_file();
             gplan::plan(&new, old.as_ref(), &exists)?
         };
         let settings = (self.settings)();
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &Client::download_client()?,
-            ember_depot::Job {
+            irori_depot::Job {
                 root: &root,
                 files: &plan.game,
                 remove: &plan.remove_game,
             },
-            &ember_depot::Options {
+            &irori_depot::Options {
                 workers: settings.max_workers as usize,
                 max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
                 journal: Some(self.paths.resume_file(crate::library::REDIST_APP)),
-                signer: Some(ember_depot::Signer(Arc::new(gplan::Signer::new(
+                signer: Some(irori_depot::Signer(Arc::new(gplan::Signer::new(
                     client.clone(),
                 )))),
                 ..Default::default()
@@ -408,7 +408,7 @@ impl GogStore {
             &ctx.cancel,
         )
         .await?;
-        if finished == ember_depot::Finished::Cancelled {
+        if finished == irori_depot::Finished::Cancelled {
             return Ok(Outcome::Abort);
         }
         let record = RedistRecord {
@@ -645,12 +645,12 @@ impl GogStore {
     }
 }
 
-/// Locate the GalaxyCommunication dummy service binary (Ember's bin dir or a
+/// Locate the GalaxyCommunication dummy service binary (Irori's bin dir or a
 /// Heroic installation).
 fn galaxy_communication_exe() -> Option<PathBuf> {
     const NAME: &str = "GalaxyCommunication.exe";
     const SUFFIX: &str = "resources/app.asar.unpacked/build/bin/x64/win32";
-    let own = ember_core::Paths::get().bin_dir().join(NAME);
+    let own = irori_core::Paths::get().bin_dir().join(NAME);
     if own.is_file() {
         return Some(own);
     }

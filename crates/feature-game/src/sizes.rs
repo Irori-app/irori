@@ -3,9 +3,9 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-use ember_core::InstallInfo;
-use ember_core::util::format_bytes;
-use ember_ui::i18n::{t, t_args};
+use irori_core::InstallInfo;
+use irori_core::util::format_bytes;
+use irori_ui::i18n::{t, t_args};
 
 /// Download and on-disk bytes of an install choice.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -204,7 +204,7 @@ pub fn disk_space(path: &Path) -> anyhow::Result<DiskSpace> {
     // Probe creation with a unique, automatically removed file instead.
     #[cfg(windows)]
     let writable = tempfile::Builder::new()
-        .prefix(".ember-write-test-")
+        .prefix(".irori-write-test-")
         .tempfile_in(&dir)
         .is_ok();
     Ok(DiskSpace {
@@ -226,7 +226,7 @@ pub fn install_button_label(verb: &str, download: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::LanguageSize;
+    use irori_core::LanguageSize;
 
     fn info() -> InstallInfo {
         InstallInfo {

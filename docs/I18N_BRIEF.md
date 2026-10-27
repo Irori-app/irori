@@ -4,13 +4,13 @@ Read `docs/AGENT_BRIEF.md` and `docs/UI_BRIEF.md` first, then `crates/ui/src/i18
 
 Your crate owns a key namespace (given in your task) and its catalogs in
 `crates/<crate>/locales/<code>.json` — one flat JSON object per language for
-every code in `ember_ui::i18n::LANGUAGES` (en, cs, de, es, fr, it, nl, pl, pt,
+every code in `irori_ui::i18n::LANGUAGES` (en, cs, de, es, fr, it, nl, pl, pt,
 pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant).
 
 1. Replace every user-facing string in your crate (labels, button text,
    tooltips, placeholders, titles, descriptions, empty states, notifications,
    dialog copy, menu items, error prefixes shown to users) with
-   `ember_ui::i18n::t("<ns>.<area>.<intent>")` or `t_args(key, &[("name", value)])`.
+   `irori_ui::i18n::t("<ns>.<area>.<intent>")` or `t_args(key, &[("name", value)])`.
    Keys describe intent, never the English text. Never build sentences from
    fragments; give each full sentence its own key with `{placeholders}`.
    Do not translate: log messages, identifiers, store/brand names (Epic Games,
@@ -23,12 +23,12 @@ pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant).
    community translations at
    `/tmp/claude-1000/-home-radud--config-Claude-scratch-workspaces-be9c0f01-1ca9-426c-9323-c4f5fd7497b3-bb73d751-aec5-4f35-9234-f6306f8360c4-scratch-2026-10-22-dd28a5/7cad61c2-7751-448b-add9-7e546ed39814/scratchpad/ref/heroic/public/locales/<code>/translation.json`
    (directory codes match ours) — reuse their wording where the meaning is the
-   same (GPL-3.0, compatible with Ember's license).
-3. Register: `pub static CATALOGS: ember_ui::i18n::Catalogs = &[("en", include_str!("../locales/en.json")), …];`
-   and call `ember_ui::i18n::register(CATALOGS)` from the crate's `pub fn init(cx)`
+   same (GPL-3.0, compatible with Irori's license).
+3. Register: `pub static CATALOGS: irori_ui::i18n::Catalogs = &[("en", include_str!("../locales/en.json")), …];`
+   and call `irori_ui::i18n::register(CATALOGS)` from the crate's `pub fn init(cx)`
    (create `init` if the crate has none, and say so in your report).
    Registration must happen once (guard with `std::sync::Once`).
-4. Tests: (a) every language has every English key (`ember_ui::i18n::missing_keys`),
+4. Tests: (a) every language has every English key (`irori_ui::i18n::missing_keys`),
    no extra keys, and the same `{placeholder}` set per key; (b) every `t("…")` /
    `t_args("…"` key literal in your crate's sources exists in en.json (scan
    `src/**/*.rs` with a regex in the test); (c) all JSON parses.

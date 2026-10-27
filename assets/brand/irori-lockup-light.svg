@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1620 512" fill="none">
+  <title>Irori</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1f1a"/>
+      <stop offset="1" stop-color="#100b0a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="512" cy="640" r="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff6b2c" stop-opacity="0.30"/>
+      <stop offset="0.5" stop-color="#ff6b2c" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#ff6b2c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="0" y1="300" x2="0" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5e9d9"/>
+      <stop offset="1" stop-color="#c4ac90"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="200" x2="0" y2="776" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff5f2a"/>
+      <stop offset="0.5" stop-color="#ff963a"/>
+      <stop offset="1" stop-color="#ffcf6a"/>
+    </linearGradient>
+    <linearGradient id="tongue" x1="0" y1="470" x2="0" y2="776" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c92a1c"/>
+      <stop offset="1" stop-color="#ff6a2b"/>
+    </linearGradient>
+    <path id="heart-shape" d="M552 184C574 300 620 420 620 600C620 702 572 776 512 776C452 776 404 702 404 604C404 482 446 412 482 342C506 296 534 252 552 184Z"/>
+    <mask id="frame-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <use href="#heart-shape" fill="#000" stroke="#000" stroke-width="64" stroke-linejoin="round"/>
+    </mask>
+    <mask id="tongue-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <use href="#heart-shape" fill="#000" stroke="#000" stroke-width="36" stroke-linejoin="round"/>
+    </mask>
+  
+    <linearGradient id="spark" x1="0" y1="112" x2="0" y2="238" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff5f2a"/>
+      <stop offset="1" stop-color="#ffb24f"/>
+    </linearGradient>
+  </defs>
+  <g transform="scale(0.5)"><rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="228" fill="url(#glow)"/>
+  <path mask="url(#frame-cut)" fill="url(#frame)" fill-rule="evenodd"
+        d="M336 300H688A104 104 0 0 1 792 404V756A104 104 0 0 1 688 860H336A104 104 0 0 1 232 756V404A104 104 0 0 1 336 300Z
+           M340 364A44 44 0 0 0 296 408V752A44 44 0 0 0 340 796H684A44 44 0 0 0 728 752V408A44 44 0 0 0 684 364Z"/>
+  <g mask="url(#tongue-cut)" fill="url(#tongue)">
+    <path d="M356 448C414 528 470 596 470 680C470 736 440 776 398 776C356 776 328 740 328 688C328 604 372 556 356 448Z"/>
+    <path d="M676 492C618 558 560 612 560 686C560 740 590 776 632 776C672 776 698 742 698 692C698 616 662 572 676 492Z"/>
+  </g>
+  <use href="#heart-shape" fill="url(#heart)"/></g>
+  <g transform="translate(600 96) scale(0.55)" color="#1d1512"><g stroke="currentColor" stroke-width="72" stroke-linecap="round">
+    <path d="M36 316V604"/>
+    <path d="M164 604V316M164 470C164 370 204 316 304 316"/>
+    <circle cx="540" cy="460" r="144"/>
+    <path d="M812 604V316M812 470C812 370 852 316 952 316"/>
+    <path d="M1064 316V604"/>
+  </g>
+  <g fill="url(#spark)">
+    <path d="M44 112C56 150 80 168 80 194A44 44 0 0 1 -8 194C-8 164 26 150 44 112Z"/>
+    <path d="M1072 112C1084 150 1108 168 1108 194A44 44 0 0 1 1020 194C1020 164 1054 150 1072 112Z"/>
+  </g></g>
+</svg>

@@ -3,10 +3,10 @@
 Status: accepted for implementation, October 2026.
 Behaviour reference: [`docs/parity/lutris.md`](../parity/lutris.md) (Lutris at commit 1f32fe0).
 
-P4 makes Ember the launcher that replaces Lutris as well as Heroic: emulators and ROM
+P4 makes Irori the launcher that replaces Lutris as well as Heroic: emulators and ROM
 libraries, community install scripts, the official third-party launchers (Battle.net, EA
 app, Ubisoft Connect, Rockstar) and importing an existing Lutris setup. The bar is that
-someone who has never heard of Wine, BIOS files or libretro cores points Ember at a ROM
+someone who has never heard of Wine, BIOS files or libretro cores points Irori at a ROM
 folder and plays, with a controller, in under two minutes, on Linux, macOS or Windows.
 
 Contents:
@@ -28,12 +28,12 @@ Contents:
 
 ## 1. Terminology and ids
 
-Ember's `Runner` already means *the store a game belongs to* and is serialized into user
+Irori's `Runner` already means *the store a game belongs to* and is serialized into user
 data, so P4 never reuses the word.
 
 | Concept | In code | In the interface | Notes |
 | --- | --- | --- | --- |
-| An emulator, RetroArch, ScummVM, DOSBox | `Engine` (`ember_engines::EngineManifest`) | "Emulator" | Wine/Proton stay in `ember-runtime` and show as "Windows (Wine/Proton)". |
+| An emulator, RetroArch, ScummVM, DOSBox | `Engine` (`irori_engines::EngineManifest`) | "Emulator" | Wine/Proton stay in `irori-runtime` and show as "Windows (Wine/Proton)". |
 | A libretro core | `Core` | the core's own name ("Snes9x") | Shown only on the engine card and in "Play with…". |
 | A console or platform | `System` | "System" (PlayStation, SNES, Arcade, MS-DOS) | Ids are short, lower case: `psx`, `snes`, `dos`. |
 | An engine choice | `EngineRef`, written `duckstation` or `retroarch:snes9x` | "Play with…" | Stored in settings. |
@@ -45,8 +45,8 @@ New serialized ids (they land in user data, so they are fixed now):
 | --- | --- | --- |
 | `emulation` | `Runner::Emulation` | The ROM library store (P4.2). `GameId` keys look like `emulation:<sha1-of-path>`. |
 | `launchers` | `Runner::Launchers` | Games of Battle.net, EA app, Ubisoft Connect and Rockstar Games Launcher (P4.5). App names are `<launcher>:<product id>`. |
-| `emberEngine`, `emberEngineVersion`, `emberEngineOptions`, `emberEngineOwnSettings` | game settings | The game's engine, pinned installation, option values by engine, and whether to use the engine's own settings. Sparse per game like every other key. |
-| `emberSystemEngines`, `emberRomFolders`, `emberBiosFolder`, `emberThirdPartyLaunchers` | app settings | Default engine per system, watched ROM folders, the BIOS folder, the launchers switch. |
+| `iroriEngine`, `iroriEngineVersion`, `iroriEngineOptions`, `iroriEngineOwnSettings` | game settings | The game's engine, pinned installation, option values by engine, and whether to use the engine's own settings. Sparse per game like every other key. |
+| `iroriSystemEngines`, `iroriRomFolders`, `iroriBiosFolder`, `iroriThirdPartyLaunchers` | app settings | Default engine per system, watched ROM folders, the BIOS folder, the launchers switch. |
 
 Both new `Runner` values have no account (`has_account()` is false). `Emulation` manages
 its own entries but has nothing to download per game; `Launchers` games belong to the
@@ -55,30 +55,30 @@ official launcher, so `manages_installs()` is false for it, like Steam.
 ## 2. Crates
 
 ```text
-ember-core
-  ├─ ember-runtime                    (Wine/Proton; unchanged)
-  ├─ ember-engines   (new)            core, runtime (download, extraction), depot
-  ├─ ember-extras                     + lutris_import (P4.3)
-  ├─ ember-scripts   (new, P4.4)      core, runtime, depot; the install-script interpreter
+irori-core
+  ├─ irori-runtime                    (Wine/Proton; unchanged)
+  ├─ irori-engines   (new)            core, runtime (download, extraction), depot
+  ├─ irori-extras                     + lutris_import (P4.3)
+  ├─ irori-scripts   (new, P4.4)      core, runtime, depot; the install-script interpreter
   ├─ store crates
-  │    ember-emulation (new, P4.2)    core, engines
-  │    ember-launchers (new, P4.5)    core, runtime, extras
-  └─ ember-services                   + engines.rs, emulation and scripts hooks
-ember-ui, feature crates              the Emulators page lives in ember-manage
+  │    irori-emulation (new, P4.2)    core, engines
+  │    irori-launchers (new, P4.5)    core, runtime, extras
+  └─ irori-services                   + engines.rs, emulation and scripts hooks
+irori-ui, feature crates              the Emulators page lives in irori-manage
 ```
 
-- `ember-engines` (`crates/engines`) has no UI, no settings knowledge beyond what it is
+- `irori-engines` (`crates/engines`) has no UI, no settings knowledge beyond what it is
   given, and never blocks a Tokio worker. It owns manifests, discovery, managed installs,
   cores, the BIOS index and launch commands.
-- `ember-emulation` (`crates/store-emulation`) is a `Store`. It owns the ROM library file
-  and the scanner. Launching asks `ember-engines` for a command.
-- `ember-services` gains `Backend` methods for engines (list, releases, install, update,
+- `irori-emulation` (`crates/store-emulation`) is a `Store`. It owns the ROM library file
+  and the scanner. Launching asks `irori-engines` for a command.
+- `irori-services` gains `Backend` methods for engines (list, releases, install, update,
   remove, choose the default, custom path, cores, BIOS status and rescan). Installs report
   through the same `OpContext` progress as Wine builds and show in the Emulators page and
   the status bar.
-- Feature crates never depend on each other. The Emulators page is in `ember-manage`
-  beside the Wine manager, "Play with…" is in `ember-game`, the system filter and the
-  setup guide are in `ember-library`, shelves are in `ember-bigpicture`.
+- Feature crates never depend on each other. The Emulators page is in `irori-manage`
+  beside the Wine manager, "Play with…" is in `irori-game`, the system filter and the
+  setup guide are in `irori-library`, shelves are in `irori-bigpicture`.
 
 ## 3. Engines
 
@@ -86,7 +86,7 @@ ember-ui, feature crates              the Emulators page lives in ember-manage
 
 Each engine is one JSON file in `assets/engines/<id>.json`, compiled in. The user can
 drop a file of the same name into `<config>/engines/`; it is merged key by key (JSON
-merge patch) over the built-in one, or, with an id Ember does not ship, adds an engine.
+merge patch) over the built-in one, or, with an id Irori does not ship, adds an engine.
 A broken override is logged and the built-in manifest is used. Nothing in a manifest is
 executed; it is data.
 
@@ -100,12 +100,12 @@ executed; it is data.
 | `launch.args` | The argument template: strings with `{rom}`, `{rom_dir}`, `{engine_home}`, `{engine_dir}`, `{opt.<id>}`; `{"if": "<toggle>", "args": […]}` and `{"unless": …}`. |
 | `launch.env` | Extra environment, placeholders expanded. |
 | `options` | `id`, `kind` (`toggle`, `choice`, `text`), `default`, `advanced`, `choices`, and **one** visibility rule, `visibleWhen` (`hosts`, and/or `option` + `is`). Labels and help are translation keys derived from the id (`manage.engines.option.<id>.label` / `.help`), shared by every engine with that option. |
-| `biosDir` | Per OS, where the engine looks for BIOS files; Ember links the user's files there before a launch. RetroArch has none because Ember sets its `system_directory`. |
+| `biosDir` | Per OS, where the engine looks for BIOS files; Irori links the user's files there before a launch. RetroArch has none because Irori sets its `system_directory`. |
 | `portableMarker` | Per OS, a file that makes a managed install keep its settings beside itself. |
 | `exitHotkey` | Shown once per engine, the first time a game starts with it. |
 | `experimental` | Never recommended; shown with a warning. |
 | `cpuFeatures` | x86-64 features the engine's games use unchecked (`avx2`, `bmi2`, …); a processor lacking one gets an explanation instead of a crash. |
-| `cores` | RetroArch only: id, name, licence and systems of each core Ember offers. |
+| `cores` | RetroArch only: id, name, licence and systems of each core Irori offers. |
 
 Download links are never pinned in a manifest: each source says where versions are
 listed and how to recognise this computer's build. Lists are cached for a day per engine
@@ -165,13 +165,13 @@ AnyPS5's own system libraries. Its `kind` is `relinker`.
   relinker. Releases exist for Linux and Windows on x86-64 only.
 - **macOS.** AnyPS5 publishes no macOS build: its relinker can produce Mac programs,
   but the libraries they need are not released, and the port is still open work
-  upstream. Ember lists PS5 games there but explains, on the Emulators page and when
+  upstream. Irori lists PS5 games there but explains, on the Emulators page and when
   Play is pressed, that AnyPS5 has no version for this computer and where it runs. The
-  manifest needs no change once a macOS release appears; Ember offers it then.
+  manifest needs no change once a macOS release appears; Irori offers it then.
 - **Games.** PS5 games are folders inside a `PS5` folder, holding `eboot.bin`; the
   title comes from `sce_sys/param.json` (`folderTitle`), since dumps are usually named
   by title id.
-- **Converting.** On Play, Ember checks the processor (AVX2, FMA, F16C, BMI1/2, LZCNT,
+- **Converting.** On Play, Irori checks the processor (AVX2, FMA, F16C, BMI1/2, LZCNT,
   MOVBE, from `cpuFeatures`) and that `eboot.bin` is a plain ELF file, then runs the
   relinker into `<data>/engines/relinked/anyps5/<key>/`: `app.elf` or `app.exe`, with
   `--rpath` at the installed `libs/` (copied beside the program on Windows when that
@@ -182,18 +182,18 @@ AnyPS5's own system libraries. Its `kind` is `relinker`.
   (size and modification time) skips converting again until one changes. Output goes to
   the game's operation log.
 - **Linux.** Without access to `/dev/udmabuf`, AnyPS5 games run slowly on drivers other
-  than NVIDIA's; Ember says so once per run and names the usual fix (the `kvm` group).
+  than NVIDIA's; Irori says so once per run and names the usual fix (the `kvm` group).
 
 ### 3.2.3 Legal review of the experimental engines
 
 - All five are open source (MPL-2.0 or GPL-2.0), developed in public, and distributed by
-  their projects from GitHub. Ember downloads the projects' own unmodified releases when
+  their projects from GitHub. Irori downloads the projects' own unmodified releases when
   the user asks, exactly as for the other engines; it redistributes nothing.
-- None of them needs Ember to handle copyrighted material, and Ember never does:
+- None of them needs Irori to handle copyrighted material, and Irori never does:
   firmware (PS3 system software from Sony's site, PS4 modules), decrypted PS5 games
   (AnyPS5 needs no firmware or keys, but only converts dumps the user made), console keys (Wii U
   `keys.txt`) and Xbox BIOS, MCPX boot ROM and hard-disk image are set up in each
-  emulator's own settings by the user, from hardware they own. Ember neither downloads,
+  emulator's own settings by the user, from hardware they own. Irori neither downloads,
   links to, nor names a source for them; it only explains that they are needed.
 - They are marked `experimental`: shown with an "Experimental" tag, never picked as a
   system's default while another emulator plays it, and their compatibility is game by
@@ -205,25 +205,25 @@ AnyPS5's own system libraries. Its `kind` is `relinker`.
 - Discovery (`discovery.rs`) only looks at the filesystem: managed versions recorded in
   `<state>/engines.json`, Flatpak `current` folders, `which` on `PATH` (skipping Flatpak
   export shims), app bundles in `/Applications` and `~/Applications`, known Windows
-  paths, and the custom program the user picked. Ember never installs a Flatpak or a
+  paths, and the custom program the user picked. Irori never installs a Flatpak or a
   distribution package.
 - Managed versions live side by side in `<data>/engines/<id>/<version>/`. Downloads go
-  through `ember-depot` (resumable, SHA-256 checked when the project publishes checksums,
+  through `irori-depot` (resumable, SHA-256 checked when the project publishes checksums,
   CRC-32 checked for cores against the buildbot index) and are unpacked into a staging
   folder first (zip, 7-Zip, tar, macOS disk images through `hdiutil`, or the bare program).
 - The first managed version becomes the engine's default. Later installs do not change
   it. **Update** installs the newest version and makes it the default; the old version
-  stays until the user removes it. A game pinned to a version (`emberEngineVersion`)
+  stays until the user removes it. A game pinned to a version (`iroriEngineVersion`)
   keeps it. If its pinned version disappears, the launch fails with `EngineMissing` and the
   failed-start sheet offers to install that engine or to use the default.
-- Engine data stays in Ember-owned folders: `<data>/engines/home/<id>` for settings and
-  saves of engines Ember configures, a portable marker for managed Windows installs that
+- Engine data stays in Irori-owned folders: `<data>/engines/home/<id>` for settings and
+  saves of engines Irori configures, a portable marker for managed Windows installs that
   support one. The per-game toggle "Use the emulator's own settings" leaves the engine's
-  configuration alone (RetroArch then only gets Ember's BIOS and core folders appended).
+  configuration alone (RetroArch then only gets Irori's BIOS and core folders appended).
 
 ### 3.4 BIOS
 
-- Ember never downloads or links to BIOS files or ROMs.
+- Irori never downloads or links to BIOS files or ROMs.
 - The systems catalog (`assets/engines/systems.json`) lists each system's BIOS files with
   names, regions, known-good MD5s and a rule: `optional`, `anyOf` (one region is enough)
   or `all`.
@@ -239,7 +239,7 @@ AnyPS5's own system libraries. Its `kind` is `relinker`.
 
 ### 3.5 Launching
 
-`ember-engines::launch::command` returns a `CommandSpec`. The emulation store wraps it in
+`irori-engines::launch::command` returns a `CommandSpec`. The emulation store wraps it in
 a `LaunchPlan`, so wrappers, environment variables, sessions, playtime, sleep inhibition,
 logs and the failed-start sheet all work as for any other game. Flatpak engines are
 started with `flatpak run --filesystem=<dir>` for the ROM, BIOS and engine folders, so the
@@ -258,35 +258,35 @@ Typed errors that the failed-start sheet turns into fix buttons:
 | unknown system or format | Choose the system · Play with… |
 | a crash right after start with Vulkan in the log | Use OpenGL for this game (RetroArch `video_driver`) |
 
-Running state follows the engine's process tree, which Ember started itself; nothing
+Running state follows the engine's process tree, which Irori started itself; nothing
 polls `/proc` and nothing sleeps at launch.
 
 ## 4. The ROM library
 
-- **Store** `ember-emulation`, `Runner::Emulation`, `LoginFlow::None`, no accounts. Its
+- **Store** `irori-emulation`, `Runner::Emulation`, `LoginFlow::None`, no accounts. Its
   library is `<config>/stores/emulation/library.json`: one entry per game with the
   system, the main file, the other files (discs, tracks), the clean title, region and
   revision tags, and an optional DAT match.
 - **Folders.** The user adds ROM folders (the setup guide, the Emulators page, the library's
-  Add game flow or drag and drop). They are stored in `emberRomFolders` and scanned in the
+  Add game flow or drag and drop). They are stored in `iroriRomFolders` and scanned in the
   background, incrementally: a file whose path, size and modification time are unchanged is
-  not looked at again. A `notify` watcher picks up changes while Ember runs; a full rescan
+  not looked at again. A `notify` watcher picks up changes while Irori runs; a full rescan
   runs at start-up. Nothing touches the network per file.
 - **Detection** (`systems.rs`): the folder name first (`SNES/`, `Mega Drive/`), then the
   extension when only one system claims it, then header magic for shared extensions
   (`.iso`, `.bin`, `.rvz`). Zip and 7z archives inside a system folder belong to it.
 - **Discs.** A `.cue` owns the `.bin` tracks it lists; `.m3u` playlists own their discs;
-  files named `(Disc 1)`, `(Disc 2)` become one entry with an `.m3u` written into Ember's
+  files named `(Disc 1)`, `(Disc 2)` become one entry with an `.m3u` written into Irori's
   cache when the engine needs one.
 - **Names.** Titles are cleaned locally (No-Intro/Redump naming): `(USA)`, `(Rev 1)`,
   `[!]` become region and revision badges. DAT files (No-Intro, Redump) the user supplies
-  are matched by CRC-32 in the background; Ember does not bundle them because their
+  are matched by CRC-32 in the background; Irori does not bundle them because their
   licence is unstated.
 - **Art.** In order: the user's override, libretro-thumbnails fetched on demand by clean
   title (never bundled), SteamGridDB when the user has a key, else a generated cover in
   the system's colours with its short name and the title.
 - **Choosing engines.** The default per system is the first installed engine from the
-  system's recommendation list, changeable in the Emulators page (`emberSystemEngines`).
+  system's recommendation list, changeable in the Emulators page (`iroriSystemEngines`).
   Each game can override it in "Play with…", which lists engines (and cores) with their
   installed versions.
 - **Scale.** 10,000+ entries: the library keeps `Arc<GameInfo>`, the scanner runs on the
@@ -298,7 +298,7 @@ Engine options are rendered from the manifest by the settings form, with the sam
 as every other field: plain help under each label, advanced options collapsed under
 "Advanced", a "Set for this game" marker with a one-click reset on overridden values, and
 "From defaults" otherwise. Option values are stored per engine
-(`emberEngineOptions: {"retroarch": {"vsync": false}}`), globally and sparsely per game.
+(`iroriEngineOptions: {"retroarch": {"vsync": false}}`), globally and sparsely per game.
 
 There is one visibility rule per option (`visibleWhen`). Options that do not apply on this
 OS are not shown at all.
@@ -309,9 +309,9 @@ Every flow below is reachable from a visible button, the command palette and the
 keyboard, and works with arrows, Enter and Escape in Big Picture.
 
 **Sidebar.** "Emulators" sits under "Wine manager" (on Windows, where there is no Wine
-manager, in its place). Route `Route::Emulators`, link `ember://emulators`.
+manager, in its place). Route `Route::Emulators`, link `irori://emulators`.
 
-**Emulators page** (`ember-manage::emulators`), modelled on the Wine manager:
+**Emulators page** (`irori-manage::emulators`), modelled on the Wine manager:
 
 - A header with a search field, "Set up emulation" and "Refresh".
 - **Systems**: a grid of system cards (name, maker, game count, default emulator and a
@@ -353,7 +353,7 @@ engine hints of [3.5](#35-launching), each with its fix button.
 
 ## 7. Lutris import
 
-`ember-extras::lutris_import`, mirroring `heroic_import`. Read-only: it opens `pga.db`
+`irori-extras::lutris_import`, mirroring `heroic_import`. Read-only: it opens `pga.db`
 with SQLite in read-only, immutable mode and reads the YAML files.
 
 - **Locations**: `pga_path` from `lutris.conf` if set, else `~/.local/share/lutris/pga.db`;
@@ -365,14 +365,14 @@ with SQLite in read-only, immutable mode and reads the YAML files.
   `system` sections, `env` merged key by key, entry points `exe`, `main_file`, `iso`,
   `rom`, `disk-a`, `path` resolved against `directory`.
 - **Mapping**: `wine` → a sideloaded Windows app with its prefix and Wine build (mapped
-  to a build Ember knows by name, else flagged); `linux` → a sideloaded native app;
+  to a build Irori knows by name, else flagged); `linux` → a sideloaded native app;
   emulator runners → the emulation library with the matching engine and core; `steam` →
   the Steam library (matched by app id, nothing imported); store services (`gog`, `egs`,
   `amazon`, `itchio`, `zoom`) → a note pointing at the native store; anything else →
   "not imported" with the reason.
 - **Also**: categories, favourites, hidden games, playtime (hours → minutes, keeping the
   larger total), last played, and covers from `coverart/` and `banners/`.
-- **Entry points**: `ember import-lutris`, an onboarding card, a Settings card, and a
+- **Entry points**: `irori import-lutris`, an onboarding card, a Settings card, and a
   summary sheet that lists what was imported and, per game, why anything was skipped.
 - **Dependency**: `rusqlite` with the `bundled` feature (SQLite compiled in on every OS).
 
@@ -381,27 +381,27 @@ with SQLite in read-only, immutable mode and reads the YAML files.
 ### 8.1 Sources and etiquette
 
 lutris.net publishes no terms of service and no API licence; its scripts are
-user-contributed without a stated licence. Ember therefore fetches scripts only when the
+user-contributed without a stated licence. Irori therefore fetches scripts only when the
 user asks, one at a time, as the Lutris client does, and never bundles or mirrors them:
 
 - search: `GET https://lutris.net/api/games?search=<q>&with-installers=True`;
 - scripts: `GET https://lutris.net/api/installers/<slug>`;
-- `User-Agent: Ember/<version>`, at most two requests a second, responses cached for a day;
+- `User-Agent: Irori/<version>`, at most two requests a second, responses cached for a day;
 - every script shows its name, version, author, date and a link to its lutris.net page.
 
-Local `.yml`/`.json` files and `lutris:<slug>` links (`ember://lutris/<slug>`) are also
+Local `.yml`/`.json` files and `lutris:<slug>` links (`irori://lutris/<slug>`) are also
 accepted.
 
 ### 8.2 Native first
 
-When the game is in a store Ember supports natively (GOG, Epic, Amazon, itch.io, ZOOM,
+When the game is in a store Irori supports natively (GOG, Epic, Amazon, itch.io, ZOOM,
 Steam), the installer offers the native install first. Scripts that install the Epic
 Games Launcher, EA app or Ubisoft Connect inside Wine are refused in favour of native
 stores or the third-party launcher setup.
 
 ### 8.3 Interpreter
 
-`ember-scripts` parses a script into a typed plan before anything runs:
+`irori-scripts` parses a script into a typed plan before anything runs:
 
 - Commands are an enum: file (`chmodx`, `extract`, `merge`, `copy`, `move`, `rename`,
   `mkdir`, `write_file`, `write_json`, `write_config`, `substitute_vars`), prompts
@@ -435,9 +435,9 @@ plus a record of the script slug and revision so the game can be reinstalled or 
 
 ## 9. Third-party launchers
 
-Behind `emberThirdPartyLaunchers` (off by default), like ZOOM.
+Behind `iroriThirdPartyLaunchers` (off by default), like ZOOM.
 
-- Ember never sees these launchers' credentials.
+- Irori never sees these launchers' credentials.
 - A card per launcher (Battle.net, EA app, Ubisoft Connect, Rockstar Games Launcher):
   "Set up" creates a dedicated prefix with a known-good Wine build and the launcher's
   known fixes, downloads the official installer from the vendor and runs it, with
@@ -464,9 +464,9 @@ plus a store crate, sign-in window with cookie capture).
 
 ## 11. Licences and terms
 
-- Ember downloads engines from their projects' own servers when the user asks; it does
+- Irori downloads engines from their projects' own servers when the user asks; it does
   not redistribute them. Non-commercial cores (Snes9x, Genesis Plus GX) and DuckStation
-  (CC BY-NC-ND 4.0) are never bundled or linked; they run as separate programs. Ember
+  (CC BY-NC-ND 4.0) are never bundled or linked; they run as separate programs. Irori
   ships no DuckStation settings: it only passes command-line flags and links BIOS files.
 - No BIOS files, ROMs, DAT files or thumbnails are bundled. libretro-thumbnails are
   fetched on demand.
@@ -480,10 +480,10 @@ Stacked pull requests, each retargeted to `main` once its parent merges:
 | PR | Branch | Contents |
 | --- | --- | --- |
 | P4.0 | `docs/lutris-parity-and-engines` | This document and the Lutris parity document. |
-| P4.1 | `feat/engines-core` | `ember-engines`, the services API and the Emulators page with the starter engines. |
-| P4.2 | `feat/rom-library` | `ember-emulation`, scanner and watcher, BIOS page, setup guide, "Play with…", system filter, Big Picture shelves, failed-start fixes. |
+| P4.1 | `feat/engines-core` | `irori-engines`, the services API and the Emulators page with the starter engines. |
+| P4.2 | `feat/rom-library` | `irori-emulation`, scanner and watcher, BIOS page, setup guide, "Play with…", system filter, Big Picture shelves, failed-start fixes. |
 | P4.3 | `feat/lutris-import` | Lutris import (CLI, onboarding, Settings) with a summary. |
-| P4.4 | `feat/lutris-scripts` | `ember-scripts`, consent screen, installer window, lutris.net source. |
+| P4.4 | `feat/lutris-scripts` | `irori-scripts`, consent screen, installer window, lutris.net source. |
 | P4.5 | `feat/third-party-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar setup and library import. |
 | P4.6 | — | Not built; see [10](#10-humble-bundle-not-shipped). |
 | P4.7 | `feat/more-engines` | PCSX2, melonDS, mGBA, Azahar, MAME, then the experimental engines. |

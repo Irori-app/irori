@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use ember_core::{GameId, GameInfo, OpContext, Paths, Runner};
+use irori_core::{GameId, GameInfo, OpContext, Paths, Runner};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
@@ -21,7 +21,7 @@ use crate::env::umu_store;
 pub trait LaunchHooks: Send + Sync {
     /// Known-fixes environment variables of a game (Heroic's
     /// `knownFixes.envVariables`). They override the user's variables but
-    /// not Ember's Wine variables.
+    /// not Irori's Wine variables.
     async fn known_fixes_env(&self, _id: &GameId) -> BTreeMap<String, String> {
         BTreeMap::new()
     }
@@ -81,7 +81,7 @@ pub async fn lookup_umu_id(id: &GameId) -> Option<String> {
     let key = format!("{}_{}", id.runner.id(), id.app_name);
     let file = umu_cache_file();
     let mut cache: BTreeMap<String, Option<String>> =
-        ember_core::json_store::read_or_default(&file);
+        irori_core::json_store::read_or_default(&file);
     if let Some(hit) = cache.get(&key) {
         return hit.clone();
     }
@@ -98,7 +98,7 @@ pub async fn lookup_umu_id(id: &GameId) -> Option<String> {
     };
     let value = entries.into_iter().next().and_then(|e| e.umu_id);
     cache.insert(key, value.clone());
-    if let Err(e) = ember_core::json_store::write(&file, &cache) {
+    if let Err(e) = irori_core::json_store::write(&file, &cache) {
         tracing::debug!("saving umu id cache: {e:#}");
     }
     value

@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Irori
+GenericName=Game Launcher
+Comment=Play your Epic, GOG, Amazon and ZOOM games on Linux
+Exec=irori %u
+Icon=irori
+Terminal=false
+Categories=Game;
+Keywords=epic;gog;amazon;zoom;launcher;wine;proton;heroic;
+MimeType=x-scheme-handler/irori;
+StartupWMClass=irori
+Actions=BigPicture;
+
+[Desktop Action BigPicture]
+Name=Big Picture
+Exec=irori --big-picture

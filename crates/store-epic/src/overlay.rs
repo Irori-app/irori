@@ -1,4 +1,4 @@
-//! The Epic Online Services overlay: installed once under Ember's tools
+//! The Epic Online Services overlay: installed once under Irori's tools
 //! directory (downloaded like a game, anonymously) and enabled per Wine
 //! prefix through a registry value.
 
@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{OpContext, Outcome, json_store};
-use ember_epic_api::install::{Mode as PlanMode, PlanInput, plan};
-use ember_epic_api::{Manifest, overlay, registry};
+use irori_core::{OpContext, Outcome, json_store};
+use irori_epic_api::install::{Mode as PlanMode, PlanInput, plan};
+use irori_epic_api::{Manifest, overlay, registry};
 
 use crate::EpicStore;
 use crate::deploy::log_line;
@@ -59,7 +59,7 @@ impl EpicStore {
     }
 
     /// The overlay's current build (anonymous session).
-    async fn overlay_build(&self) -> Result<(ember_epic_api::ManifestInfo, Vec<u8>, Manifest)> {
+    async fn overlay_build(&self) -> Result<(irori_epic_api::ManifestInfo, Vec<u8>, Manifest)> {
         let client = self.client().await?;
         let session = client.client_credentials().await?;
         let info = client
@@ -93,7 +93,7 @@ impl EpicStore {
         Ok(Some(info.build_version).filter(|v| !v.is_empty()))
     }
 
-    /// Download and install the overlay into Ember's tools directory, with
+    /// Download and install the overlay into Irori's tools directory, with
     /// progress. Updates it when already installed.
     pub async fn eos_overlay_install(&self, ctx: OpContext) -> Result<Outcome> {
         match self.overlay_download(&ctx).await {
@@ -125,8 +125,8 @@ impl EpicStore {
             .ok()
             .and_then(|b| Manifest::parse(&b, &info.secrets).ok());
         let exists = |rel: &str| {
-            ember_depot::path::normalize(rel)
-                .map(|r| ember_depot::path::join(&dir, &r).is_file())
+            irori_depot::path::normalize(rel)
+                .map(|r| irori_depot::path::join(&dir, &r).is_file())
                 .unwrap_or(false)
         };
         let p = plan(
@@ -147,19 +147,19 @@ impl EpicStore {
         (ctx.step)("Downloading");
         let client = self.client().await?;
         let sink = ctx.progress.clone();
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &client.download_client()?,
-            ember_depot::Job {
+            irori_depot::Job {
                 root: &dir,
                 files: &p.files,
                 remove: &p.remove,
             },
-            &ember_depot::Options {
+            &irori_depot::Options {
                 journal: Some(self.layout.resume_file(overlay::APP_NAME)),
                 ..Default::default()
             },
-            Arc::new(move |p: ember_depot::Progress| {
-                sink(ember_core::InstallProgress {
+            Arc::new(move |p: irori_depot::Progress| {
+                sink(irori_core::InstallProgress {
                     percent: Some(p.percent),
                     bytes_done: Some(p.bytes_done),
                     bytes_total: Some(p.bytes_total),
@@ -173,7 +173,7 @@ impl EpicStore {
             &ctx.cancel,
         )
         .await?;
-        if finished == ember_depot::Finished::Cancelled {
+        if finished == irori_depot::Finished::Cancelled {
             return Ok(Outcome::Abort);
         }
         json_store::write_bytes(&self.layout.build_manifest(overlay::APP_NAME), &bytes)?;

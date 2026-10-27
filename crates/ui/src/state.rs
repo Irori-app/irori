@@ -4,8 +4,8 @@
 use std::future::Future;
 
 use anyhow::{Result, anyhow};
-use ember_services::Backend;
 use gpui_kit::{App, Global, Task};
+use irori_services::Backend;
 
 /// The backend handle, installed once at startup.
 pub struct AppState {

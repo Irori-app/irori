@@ -1,17 +1,17 @@
 //! RetroArch specifics: libretro cores from the libretro buildbot (the same
 //! files RetroArch's own online updater fetches), and the settings file
-//! Ember hands RetroArch so BIOS files, saves and cores are found without the
+//! Irori hands RetroArch so BIOS files, saves and cores are found without the
 //! user opening RetroArch's menus.
 //!
-//! Cores live in Ember's folder, whichever RetroArch install runs them, so a
+//! Cores live in Irori's folder, whichever RetroArch install runs them, so a
 //! Flatpak or system RetroArch plays with the same cores as a managed one.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{OpContext, json_store};
-use ember_depot::{FileEntry, Finished, Job, Options};
+use irori_core::{OpContext, json_store};
+use irori_depot::{FileEntry, Finished, Job, Options};
 use serde_json::Value;
 
 use crate::host::{Host, Os};
@@ -36,7 +36,7 @@ pub fn cores_dir() -> PathBuf {
     crate::dirs::engine("retroarch").join("cores")
 }
 
-/// Where Ember keeps RetroArch's settings, saves and states.
+/// Where Irori keeps RetroArch's settings, saves and states.
 pub fn home() -> PathBuf {
     crate::dirs::home("retroarch")
 }
@@ -92,7 +92,7 @@ pub async fn install_core(core: &str, ctx: &OpContext) -> Result<Option<CoreInst
     let file = core_file(core).context("no cores for this computer")?;
     let zip_name = format!("{file}.zip");
     let base = format!("{BUILDBOT}/{dir}");
-    let index = ember_core::http::client()
+    let index = irori_core::http::client()
         .get(format!("{base}/.index-extended"))
         .send()
         .await
@@ -116,8 +116,8 @@ pub(crate) async fn install_core_from(
     let size = crate::install::content_length(url).await?;
     let downloads = crate::dirs::cache().join("downloads").join("cores");
     let progress = ctx.progress.clone();
-    let finished = ember_depot::download(
-        ember_core::http::download_client(),
+    let finished = irori_depot::download(
+        irori_core::http::download_client(),
         Job {
             root: &downloads,
             files: &[FileEntry::whole(
@@ -131,8 +131,8 @@ pub(crate) async fn install_core_from(
             remove: &[],
         },
         &Options::default(),
-        std::sync::Arc::new(move |p: ember_depot::Progress| {
-            progress(ember_core::InstallProgress {
+        std::sync::Arc::new(move |p: irori_depot::Progress| {
+            progress(irori_core::InstallProgress {
                 percent: Some(p.percent),
                 bytes_done: Some(p.bytes_done),
                 bytes_total: Some(p.bytes_total),
@@ -211,7 +211,7 @@ pub async fn remove_core(core: &str) -> Result<()> {
     Ok(())
 }
 
-/// RetroArch settings Ember manages, from the engine's option values.
+/// RetroArch settings Irori manages, from the engine's option values.
 pub fn managed_settings(values: &BTreeMap<String, Value>) -> Vec<(&'static str, String)> {
     let flag = |id: &str, default: bool| {
         values
@@ -330,8 +330,8 @@ mod tests {
         };
         let crc = format!("{:08x}", crc32fast::hash(b"core"));
         let served = zip.clone();
-        let server = ember_depot::test_server::TestServer::start(move |req| {
-            ember_depot::test_server::serve_bytes(req, &served, true)
+        let server = irori_depot::test_server::TestServer::start(move |req| {
+            irori_depot::test_server::serve_bytes(req, &served, true)
         });
         let entry = IndexEntry {
             date: "2025-10-01".into(),

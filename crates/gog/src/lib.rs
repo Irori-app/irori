@@ -1,10 +1,10 @@
-//! GOG protocol client (a Rust port of the parts of gogdl Ember needs,
+//! GOG protocol client (a Rust port of the parts of gogdl Irori needs,
 //! GPL-3.0).
 //!
 //! * [`auth`]: sign-in, token refresh and game-scoped tokens.
 //! * [`content`]: builds, build metadata, depot manifests, signed download
 //!   links and the redistributables repository.
-//! * [`plan`]: download plans for [`ember_depot`] (v1 and v2 depots,
+//! * [`plan`]: download plans for [`irori_depot`] (v1 and v2 depots,
 //!   updates that reuse unchanged chunks, Linux installers via [`linux`]).
 //! * [`saves`]: cloud saves.
 

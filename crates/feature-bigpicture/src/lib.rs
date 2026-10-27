@@ -1,8 +1,8 @@
 //! Big Picture: controller support for the whole application and a
 //! fullscreen, 10-foot library for playing from the couch.
 //!
-//! The shell calls [`init`] once after `ember_ui::init`, renders
-//! [`BigPictureView`] for [`ember_ui::Route::BigPicture`] (hiding its own
+//! The shell calls [`init`] once after `irori_ui::init`, renders
+//! [`BigPictureView`] for [`irori_ui::Route::BigPicture`] (hiding its own
 //! chrome), and may show [`gamepad::connected_controllers`] on the settings
 //! page.
 
@@ -12,10 +12,10 @@ mod model;
 mod text;
 mod view;
 
-use ember_core::GameId;
-use ember_ui::Route;
-use ember_ui::nav::{self, navigator};
 use gpui_kit::{App, Global, KeyBinding};
+use irori_core::GameId;
+use irori_ui::Route;
+use irori_ui::nav::{self, navigator};
 
 pub use grid::{FocusGrid, GridMove};
 pub use view::BigPictureView;
@@ -24,8 +24,8 @@ pub use view::BigPictureView;
 pub const CONTEXT: &str = "BigPicture";
 
 /// Big Picture's interface translations (`bigpicture.*` keys), one catalog
-/// per language in [`ember_ui::i18n::LANGUAGES`].
-pub static CATALOGS: ember_ui::i18n::Catalogs = &[
+/// per language in [`irori_ui::i18n::LANGUAGES`].
+pub static CATALOGS: irori_ui::i18n::Catalogs = &[
     ("en", include_str!("../locales/en.json")),
     ("cs", include_str!("../locales/cs.json")),
     ("de", include_str!("../locales/de.json")),
@@ -47,12 +47,12 @@ pub static CATALOGS: ember_ui::i18n::Catalogs = &[
     ("zh_Hant", include_str!("../locales/zh_Hant.json")),
 ];
 
-/// Register [`CATALOGS`] with `ember_ui::i18n`. Runs once; later calls do
+/// Register [`CATALOGS`] with `irori_ui::i18n`. Runs once; later calls do
 /// nothing. Public helpers that return text (such as
 /// [`gamepad::Battery::label`]) call it too, so they work before [`init`].
 pub(crate) fn register_catalogs() {
     static REGISTER: std::sync::Once = std::sync::Once::new();
-    REGISTER.call_once(|| ember_ui::i18n::register(CATALOGS));
+    REGISTER.call_once(|| irori_ui::i18n::register(CATALOGS));
 }
 
 /// Register translations, bind Big Picture's keys and start controller
@@ -115,7 +115,7 @@ pub(crate) fn take_shown_game(cx: &mut App) -> Option<GameId> {
 }
 
 /// Leave Big Picture: back to where the user came from, or the library when
-/// Ember started in Big Picture. The view restores the window's previous
+/// Irori started in Big Picture. The view restores the window's previous
 /// fullscreen state when it is released.
 pub fn exit_big_picture(cx: &mut App) {
     let nav = navigator(cx);
@@ -131,7 +131,7 @@ mod catalog_tests {
     use std::collections::{BTreeSet, HashMap};
     use std::path::Path;
 
-    use ember_ui::i18n::{LANGUAGES, missing_keys};
+    use irori_ui::i18n::{LANGUAGES, missing_keys};
     use regex::Regex;
 
     use super::CATALOGS;

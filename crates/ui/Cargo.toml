@@ -1,5 +1,5 @@
 [package]
-name = "ember-ui"
+name = "irori-ui"
 description = "Shared UI layer: backend bridge, observable models, navigation, art pipeline, theme and common components"
 version.workspace = true
 edition.workspace = true
@@ -8,9 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-services.workspace = true
-ember-engines.workspace = true
+irori-core.workspace = true
+irori-services.workspace = true
+irori-engines.workspace = true
 dirs.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true

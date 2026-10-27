@@ -11,7 +11,7 @@ use futures::StreamExt as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_core::{
+use irori_core::{
     CloudSaveLocation, DlcInfo, Event, ExtraInfo, GameInfo, InstallPlatform, InstalledInfo, Runner,
     json_store, util,
 };
@@ -307,7 +307,7 @@ struct CachedGamesDb {
 }
 
 fn gamesdb_cache_file(dir: &Path, id: &str) -> PathBuf {
-    dir.join(format!("{}.json", ember_core::paths::sanitize(id)))
+    dir.join(format!("{}.json", irori_core::paths::sanitize(id)))
 }
 
 /// Look up one release: cached GamesDB, conditional request with retries,

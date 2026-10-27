@@ -59,41 +59,41 @@ jobs:
         if: runner.os != 'Linux'
         run: cargo test --locked --workspace --no-fail-fast --profile ci
       - name: Build desktop and sign-in helper
-        run: cargo build --locked --profile ci -p ember -p ember-sign-in
+        run: cargo build --locked --profile ci -p irori -p irori-sign-in
       - name: Package native application
         run: python packaging/package.py --platform ${{ matrix.platform }} --binary-dir target/ci --output dist
       - name: Verify per-user Windows installation
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $destination = Join-Path $env:RUNNER_TEMP 'Ember installation test'
-          & ./dist/Ember/install.ps1 -Destination $destination
-          foreach ($name in @('ember.exe', 'ember-sign-in.exe', 'ember.ico', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+          $destination = Join-Path $env:RUNNER_TEMP 'Irori installation test'
+          & ./dist/Irori/install.ps1 -Destination $destination
+          foreach ($name in @('irori.exe', 'irori-sign-in.exe', 'irori.ico', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
             if (!(Test-Path -LiteralPath (Join-Path $destination $name))) {
               throw "Missing installed file: $name"
             }
           }
-          $exe = Join-Path $destination 'ember.exe'
-          $versionOutput = Join-Path $env:RUNNER_TEMP 'ember-version.txt'
+          $exe = Join-Path $destination 'irori.exe'
+          $versionOutput = Join-Path $env:RUNNER_TEMP 'irori-version.txt'
           $process = Start-Process -FilePath $exe -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $versionOutput
-          if ($process.ExitCode -ne 0 -or (Get-Content $versionOutput -Raw) -notmatch '^ember [0-9]+\.[0-9]+\.[0-9]+') {
-            throw 'Installed Ember failed to start'
+          if ($process.ExitCode -ne 0 -or (Get-Content $versionOutput -Raw) -notmatch '^irori [0-9]+\.[0-9]+\.[0-9]+') {
+            throw 'Installed Irori failed to start'
           }
-          $helper = Join-Path $destination 'ember-sign-in.exe'
-          $helperError = Join-Path $env:RUNNER_TEMP 'ember-helper-error.txt'
+          $helper = Join-Path $destination 'irori-sign-in.exe'
+          $helperError = Join-Path $env:RUNNER_TEMP 'irori-helper-error.txt'
           $process = Start-Process -FilePath $helper -ArgumentList '--unsupported' -Wait -PassThru -RedirectStandardError $helperError
           if ($process.ExitCode -ne 1 -or (Get-Content $helperError -Raw) -notmatch 'unknown argument --unsupported') {
             throw 'Installed sign-in helper failed to load'
           }
-          $command = (Get-Item 'HKCU:\Software\Classes\ember\shell\open\command').GetValue('')
+          $command = (Get-Item 'HKCU:\Software\Classes\irori\shell\open\command').GetValue('')
           if ($command -ne ('"' + $exe + '" "%1"')) { throw 'Invalid URL handler' }
           $menu = [Environment]::GetFolderPath('Programs')
           $shell = New-Object -ComObject WScript.Shell
-          $link = $shell.CreateShortcut((Join-Path $menu 'Ember.lnk'))
+          $link = $shell.CreateShortcut((Join-Path $menu 'Irori.lnk'))
           if ($link.TargetPath -ne $exe) { throw 'Invalid Start menu shortcut' }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ember-${{ matrix.os }}-unsigned
+          name: Irori-${{ matrix.os }}-unsigned
           path: |
             dist/*.zip
             dist/*.tar.gz

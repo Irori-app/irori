@@ -1,22 +1,22 @@
 //! freedesktop `.desktop` entries: per-game launchers on the desktop and in
-//! the application menu, and the `x-scheme-handler/ember` URL handler.
+//! the application menu, and the `x-scheme-handler/irori` URL handler.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::process::{CommandSpec, RunOptions};
-use ember_core::{GameId, GameInfo, Paths};
+use irori_core::process::{CommandSpec, RunOptions};
+use irori_core::{GameId, GameInfo, Paths};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use super::LauncherCommand;
 use crate::util;
 
-/// Key in Ember's entries that identifies the game (`runner/app_name`).
-const GAME_KEY: &str = "X-Ember-Game";
+/// Key in Irori's entries that identifies the game (`runner/app_name`).
+const GAME_KEY: &str = "X-Irori-Game";
 /// File name of the URL handler entry.
-pub const URL_HANDLER_FILE: &str = "ember-url-handler.desktop";
+pub const URL_HANDLER_FILE: &str = "irori-url-handler.desktop";
 
 /// `~/.local/share/applications`.
 pub fn applications_dir() -> PathBuf {
@@ -37,9 +37,9 @@ pub fn desktop_dir() -> Option<PathBuf> {
 /// Stable menu entry path of a game (independent of its title).
 pub fn menu_file(id: &GameId) -> PathBuf {
     applications_dir().join(format!(
-        "ember-{}-{}.desktop",
+        "irori-{}-{}.desktop",
         id.runner.id(),
-        ember_core::paths::sanitize(&id.app_name).replace(' ', "_")
+        irori_core::paths::sanitize(&id.app_name).replace(' ', "_")
     ))
 }
 
@@ -86,7 +86,7 @@ pub fn game_entry(game: &GameInfo, launcher: &LauncherCommand, icon: Option<&Pat
     s.push_str("Type=Application\nVersion=1.0\n");
     s.push_str(&format!("Name={}\n", escape_value(&game.title)));
     s.push_str(&format!(
-        "Comment=Play {} with Ember\n",
+        "Comment=Play {} with Irori\n",
         escape_value(&game.title)
     ));
     s.push_str(&format!("Exec={}\n", exec.join(" ")));
@@ -103,7 +103,7 @@ pub fn game_entry(game: &GameInfo, launcher: &LauncherCommand, icon: Option<&Pat
     s
 }
 
-/// Content of the `x-scheme-handler/ember` entry.
+/// Content of the `x-scheme-handler/irori` entry.
 pub fn url_handler_entry(launcher: &LauncherCommand) -> String {
     let mut exec: Vec<String> = std::iter::once(launcher.program.as_str())
         .chain(launcher.prefix_args.iter().map(String::as_str))
@@ -111,12 +111,12 @@ pub fn url_handler_entry(launcher: &LauncherCommand) -> String {
         .collect();
     exec.push("%u".into());
     format!(
-        "[Desktop Entry]\nType=Application\nName=Ember\nExec={}\nTerminal=false\nNoDisplay=true\nMimeType=x-scheme-handler/ember;\n",
+        "[Desktop Entry]\nType=Application\nName=Irori\nExec={}\nTerminal=false\nNoDisplay=true\nMimeType=x-scheme-handler/irori;\n",
         exec.join(" ")
     )
 }
 
-/// The game an existing entry belongs to, if Ember wrote it.
+/// The game an existing entry belongs to, if Irori wrote it.
 fn entry_game(content: &str) -> Option<&str> {
     content
         .lines()
@@ -221,7 +221,7 @@ pub async fn create(
     Ok(created)
 }
 
-/// Remove every entry Ember wrote for the game: recorded files, the stable
+/// Remove every entry Irori wrote for the game: recorded files, the stable
 /// menu entry, and a desktop file under the current title that belongs to
 /// the game. Returns the removed paths.
 pub async fn remove(game: &GameInfo) -> Result<Vec<PathBuf>> {
@@ -265,8 +265,8 @@ pub async fn exists(game: &GameInfo) -> bool {
     false
 }
 
-/// Install `ember-url-handler.desktop` and make Ember the default handler for
-/// `ember://` URLs. Does nothing when the entry is already current. Missing
+/// Install `irori-url-handler.desktop` and make Irori the default handler for
+/// `irori://` URLs. Does nothing when the entry is already current. Missing
 /// `xdg-mime` / `update-desktop-database` tools are tolerated.
 pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
     let dir = applications_dir();
@@ -277,11 +277,11 @@ pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
     }
     write_entry(&path, &content, false).await?;
     let tools = [
-        CommandSpec::new("xdg-mime").args(["default", URL_HANDLER_FILE, "x-scheme-handler/ember"]),
+        CommandSpec::new("xdg-mime").args(["default", URL_HANDLER_FILE, "x-scheme-handler/irori"]),
         CommandSpec::new("update-desktop-database").arg(dir.as_os_str()),
     ];
     for spec in &tools {
-        match ember_core::process::run(spec, RunOptions::default()).await {
+        match irori_core::process::run(spec, RunOptions::default()).await {
             Ok(r) if r.success() => {}
             Ok(r) => tracing::debug!("{spec} failed: {}", r.error_summary()),
             Err(e) => tracing::debug!("{spec} unavailable: {e:#}"),
@@ -293,13 +293,13 @@ pub async fn register_url_scheme(launcher: &LauncherCommand) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     #[test]
     fn exec_quoting() {
-        assert_eq!(exec_arg("/usr/bin/ember"), "/usr/bin/ember");
+        assert_eq!(exec_arg("/usr/bin/irori"), "/usr/bin/irori");
         assert_eq!(exec_arg("gog/123"), "gog/123");
-        assert_eq!(exec_arg("/opt/My Apps/ember"), "\"/opt/My Apps/ember\"");
+        assert_eq!(exec_arg("/opt/My Apps/irori"), "\"/opt/My Apps/irori\"");
         assert_eq!(exec_arg("a$b"), "\"a\\\\$b\"");
         assert_eq!(exec_arg("100%"), "100%%");
         assert_eq!(exec_arg(""), "\"\"");
@@ -314,7 +314,7 @@ mod tests {
             ..Default::default()
         };
         let launcher = LauncherCommand {
-            program: "/usr/bin/ember".into(),
+            program: "/usr/bin/irori".into(),
             prefix_args: vec![],
             working_dir: "/usr/bin".into(),
         };
@@ -322,9 +322,9 @@ mod tests {
         assert_eq!(
             s,
             "[Desktop Entry]\nType=Application\nVersion=1.0\nName=Cyberpunk 2077\\\\x\n\
-             Comment=Play Cyberpunk 2077\\\\x with Ember\n\
-             Exec=/usr/bin/ember --launch gog/1423049311\nIcon=/i/gog-1.png\n\
-             Terminal=false\nCategories=Game;\nX-Ember-Game=gog/1423049311\n"
+             Comment=Play Cyberpunk 2077\\\\x with Irori\n\
+             Exec=/usr/bin/irori --launch gog/1423049311\nIcon=/i/gog-1.png\n\
+             Terminal=false\nCategories=Game;\nX-Irori-Game=gog/1423049311\n"
         );
         assert_eq!(entry_game(&s), Some("gog/1423049311"));
     }
@@ -333,17 +333,17 @@ mod tests {
     fn url_handler_content() {
         let launcher = LauncherCommand {
             program: "flatpak".into(),
-            prefix_args: vec!["run".into(), "org.ember.Ember".into()],
+            prefix_args: vec!["run".into(), "app.irori.Irori".into()],
             working_dir: "/home/u".into(),
         };
         let s = url_handler_entry(&launcher);
-        assert!(s.contains("Exec=flatpak run org.ember.Ember %u\n"));
-        assert!(s.contains("MimeType=x-scheme-handler/ember;\n"));
+        assert!(s.contains("Exec=flatpak run app.irori.Irori %u\n"));
+        assert!(s.contains("MimeType=x-scheme-handler/irori;\n"));
     }
 
     #[test]
     fn menu_file_is_stable() {
         let p = menu_file(&GameId::new(Runner::Sideload, "my app/x"));
-        assert!(p.ends_with("ember-sideload-my_app_x.desktop"));
+        assert!(p.ends_with("irori-sideload-my_app_x.desktop"));
     }
 }

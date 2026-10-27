@@ -32,15 +32,15 @@ pub struct LutrisSkip {
 pub struct LutrisSummary {
     /// Games in Lutris's library.
     pub found: usize,
-    /// Games added to Ember (apps and ROM library entries).
+    /// Games added to Irori (apps and ROM library entries).
     pub imported: usize,
-    /// Games Ember already had through its own stores or Steam; their
+    /// Games Irori already had through its own stores or Steam; their
     /// favourites, categories and playtime were brought over.
     pub matched: usize,
-    /// Store games Ember doesn't have yet, with the store to log in to.
+    /// Store games Irori doesn't have yet, with the store to log in to.
     pub store_games: Vec<(String, String)>,
     pub skipped: Vec<LutrisSkip>,
-    /// Games whose Wine build Ember doesn't have, with the build's name;
+    /// Games whose Wine build Irori doesn't have, with the build's name;
     /// they use the default build.
     pub wine_missing: Vec<(String, String)>,
     pub favourites: usize,
@@ -117,5 +117,5 @@ pub fn lutris_detected() -> bool {
 
 /// Whether a Heroic installation with importable data exists.
 pub fn heroic_detected() -> bool {
-    ember_core::paths::heroic_config_dir().is_some()
+    irori_core::paths::heroic_config_dir().is_some()
 }

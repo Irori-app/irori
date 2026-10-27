@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context as _, Result, bail};
-use ember_amazon_api::{Entitlement, FetchedManifest, GameDownload, Manifest};
-use ember_core::{OpContext, Outcome};
-use ember_depot::{FileEntry, Finished, Job, Verified};
+use irori_amazon_api::{Entitlement, FetchedManifest, GameDownload, Manifest};
+use irori_core::{OpContext, Outcome};
+use irori_depot::{FileEntry, Finished, Job, Verified};
 
 use crate::AmazonStore;
 use crate::mapping;
@@ -28,7 +28,7 @@ pub(crate) fn log_line(ctx: &OpContext, line: &str) {
     }
 }
 
-fn progress_sink(ctx: &OpContext) -> ember_depot::ProgressFn {
+fn progress_sink(ctx: &OpContext) -> irori_depot::ProgressFn {
     let sink = ctx.progress.clone();
     Arc::new(move |p| sink(mapping::progress(p)))
 }
@@ -45,9 +45,9 @@ pub(crate) enum Mode {
 }
 
 impl AmazonStore {
-    fn depot_options(&self, app_name: &str) -> ember_depot::Options {
+    fn depot_options(&self, app_name: &str) -> irori_depot::Options {
         let settings = (self.settings)();
-        ember_depot::Options {
+        irori_depot::Options {
             workers: settings.max_workers as usize,
             max_bytes_per_sec: u64::from(settings.max_download_speed) * 1024,
             journal: Some(self.journal_file(app_name)),
@@ -119,7 +119,7 @@ impl AmazonStore {
         let removed = old
             .as_ref()
             .map(|old| {
-                ember_depot::diff(
+                irori_depot::diff(
                     old.files.iter().map(|f| (f.path.as_str(), Some(&f.hash))),
                     &entries,
                 )
@@ -131,7 +131,7 @@ impl AmazonStore {
             (Mode::Repair, removed) => {
                 (ctx.step)("Verifying files");
                 let verified =
-                    ember_depot::verify(dir, &entries, 0, progress_sink(ctx), &ctx.cancel).await?;
+                    irori_depot::verify(dir, &entries, 0, progress_sink(ctx), &ctx.cancel).await?;
                 let broken = match verified {
                     Verified::Cancelled => return Ok(Outcome::Abort),
                     Verified::Checked(bad) => bad,
@@ -145,7 +145,7 @@ impl AmazonStore {
 
         (ctx.step)("Downloading");
         let client = AmazonStore::download_client()?;
-        let finished = ember_depot::download(
+        let finished = irori_depot::download(
             &client,
             Job {
                 root: dir,
@@ -185,7 +185,7 @@ impl AmazonStore {
             return Ok(());
         }
         let Some(manifest) = self.installed_manifest(app_name) else {
-            ember_core::fs_guard::ensure_deletable(dir, &(self.settings)())?;
+            irori_core::fs_guard::ensure_deletable(dir, &(self.settings)())?;
             return tokio::fs::remove_dir_all(dir)
                 .await
                 .with_context(|| format!("Could not delete {}", dir.display()));
@@ -197,14 +197,14 @@ impl AmazonStore {
     pub(crate) fn journal_file(&self, app_name: &str) -> PathBuf {
         self.cache_dir
             .join("resume")
-            .join(format!("{}.jsonl", ember_core::paths::sanitize(app_name)))
+            .join(format!("{}.jsonl", irori_core::paths::sanitize(app_name)))
     }
 }
 
 fn remove_listed(dir: &Path, manifest: &Manifest) -> Result<()> {
     for f in &manifest.files {
-        let p = ember_depot::path::join(dir, &f.path);
-        for p in [ember_depot::path::part_path(&p), p] {
+        let p = irori_depot::path::join(dir, &f.path);
+        for p in [irori_depot::path::part_path(&p), p] {
             match std::fs::remove_file(&p) {
                 Ok(()) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
@@ -239,19 +239,19 @@ mod tests {
         std::fs::create_dir_all(dir.join("bin")).unwrap();
         std::fs::create_dir_all(dir.join("saves")).unwrap();
         std::fs::write(dir.join("bin/game.exe"), b"x").unwrap();
-        std::fs::write(dir.join("bin/data.pak.ember-part"), b"x").unwrap();
+        std::fs::write(dir.join("bin/data.pak.irori-part"), b"x").unwrap();
         std::fs::write(dir.join("saves/slot1"), b"x").unwrap();
         let manifest = Manifest {
             files: vec![
-                ember_amazon_api::ManifestFile {
+                irori_amazon_api::ManifestFile {
                     path: "bin/game.exe".into(),
                     size: 1,
-                    hash: ember_depot::Digest::new(ember_depot::Algorithm::Sha256, vec![0; 32]),
+                    hash: irori_depot::Digest::new(irori_depot::Algorithm::Sha256, vec![0; 32]),
                 },
-                ember_amazon_api::ManifestFile {
+                irori_amazon_api::ManifestFile {
                     path: "bin/data.pak".into(),
                     size: 1,
-                    hash: ember_depot::Digest::new(ember_depot::Algorithm::Sha256, vec![0; 32]),
+                    hash: irori_depot::Digest::new(irori_depot::Algorithm::Sha256, vec![0; 32]),
                 },
             ],
         };

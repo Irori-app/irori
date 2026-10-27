@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Pausar descargas",
   "bigpicture.menu.resume_downloads": "Reanudar descargas",
   "bigpicture.menu.toggle_fullscreen": "Alternar pantalla completa",
-  "bigpicture.menu.quit": "Salir de Ember",
+  "bigpicture.menu.quit": "Salir de Irori",
   "bigpicture.menu.no_downloads": "No hay descargas",
   "bigpicture.error.launch": "No se pudo iniciar {title}",
   "bigpicture.error.stop": "No se pudo detener {title}",

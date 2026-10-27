@@ -1,9 +1,9 @@
 //! Installed games by drive, for the stats page: how much of each drive
-//! Ember's games take, what else is on it, and how much room is left.
+//! Irori's games take, what else is on it, and how much room is left.
 
 use std::path::{Path, PathBuf};
 
-use ember_core::GameId;
+use irori_core::GameId;
 
 /// A mounted drive.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,7 +117,7 @@ pub fn resolve(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn drive(mount: &str, name: &str) -> Drive {
         Drive {

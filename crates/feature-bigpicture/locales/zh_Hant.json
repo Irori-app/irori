@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "暫停下載",
   "bigpicture.menu.resume_downloads": "繼續下載",
   "bigpicture.menu.toggle_fullscreen": "切換全螢幕",
-  "bigpicture.menu.quit": "結束 Ember",
+  "bigpicture.menu.quit": "結束 Irori",
   "bigpicture.menu.no_downloads": "沒有下載項目",
   "bigpicture.error.launch": "無法啟動 {title}",
   "bigpicture.error.stop": "無法停止 {title}",

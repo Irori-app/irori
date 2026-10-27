@@ -15,23 +15,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::GameId;
-use ember_core::process::CancellationToken;
-use ember_core::util::format_bytes;
-use ember_runtime::is_cancelled;
-use ember_scripts::model::AutosetupStore;
-use ember_scripts::{
-    Consent, DiscRequest, FileRequest, GameResult, MenuRequest, NativeLauncher, Outcome,
-    ProgramKind, Script, ScriptError, UnfinishedInstall, WineMatch, consent, script_error,
-};
-use ember_services::scripts::{
-    InstallFromStore, ScriptGame, ScriptLibraryEntry, ScriptProgress, WinePick,
-    autosetup_store_name, script_context, script_game,
-};
-use ember_services::{ScriptInstall, ScriptPrompt};
-use ember_sideload::{SideloadApp, SideloadPlatform};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, backend, models, navigate};
 use futures::StreamExt as _;
 use futures::channel::oneshot;
 use gpui_kit::assets::IconName;
@@ -54,6 +37,23 @@ use gpui_kit::{
     InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
     StatefulInteractiveElement as _, Styled as _, Subscription, Task, Window, div, rems,
 };
+use irori_core::GameId;
+use irori_core::process::CancellationToken;
+use irori_core::util::format_bytes;
+use irori_runtime::is_cancelled;
+use irori_scripts::model::AutosetupStore;
+use irori_scripts::{
+    Consent, DiscRequest, FileRequest, GameResult, MenuRequest, NativeLauncher, Outcome,
+    ProgramKind, Script, ScriptError, UnfinishedInstall, WineMatch, consent, script_error,
+};
+use irori_services::scripts::{
+    InstallFromStore, ScriptGame, ScriptLibraryEntry, ScriptProgress, WinePick,
+    autosetup_store_name, script_context, script_game,
+};
+use irori_services::{ScriptInstall, ScriptPrompt};
+use irori_sideload::{SideloadApp, SideloadPlatform};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, backend, models, navigate};
 use parking_lot::Mutex;
 
 use super::{dialog_width, pick_path, text};
@@ -88,7 +88,7 @@ struct Failure {
     cancelled: bool,
     /// The files are in place; only the program is missing.
     unfinished: Option<Box<Outcome>>,
-    /// The script wanted a store Ember has natively.
+    /// The script wanted a store Irori has natively.
     store: Option<AutosetupStore>,
 }
 
@@ -206,7 +206,7 @@ impl LutrisDialog {
         self.error = None;
         cx.notify();
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move { b.search_lutris(query).await });
+        let task = irori_ui::run(cx, async move { b.search_lutris(query).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update(cx, |this, cx| {
@@ -234,12 +234,12 @@ impl LutrisDialog {
         self.error = None;
         self.step = Step::Version;
         self.game = Some((slug.clone(), name));
-        self.page_url = Some(ember_scripts::api::page_url(&slug));
+        self.page_url = Some(irori_scripts::api::page_url(&slug));
         self.choices.clear();
         self.selected = None;
         cx.notify();
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move { b.lutris_installers(slug).await });
+        let task = irori_ui::run(cx, async move { b.lutris_installers(slug).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {
@@ -273,7 +273,7 @@ impl LutrisDialog {
                 cx.notify();
                 let p = path.clone();
                 let b = backend(cx);
-                ember_ui::run(cx, async move {
+                irori_ui::run(cx, async move {
                     let shown = p.display().to_string();
                     let text = b
                         .spawn_blocking(move || std::fs::read_to_string(&p))
@@ -369,8 +369,8 @@ impl LutrisDialog {
 
     fn destination_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let dir = self.game_dir(cx);
-        let task = ember_ui::state::run_infallible(cx, async move {
-            ember_services::scripts::free_space(&dir)
+        let task = irori_ui::state::run_infallible(cx, async move {
+            irori_services::scripts::free_space(&dir)
         });
         cx.spawn_in(window, async move |this, cx| {
             let free = task.await.flatten();
@@ -392,7 +392,7 @@ impl LutrisDialog {
                     .script()
                     .map(|s| s.info.game_slug.clone())
                     .unwrap_or_default();
-                let dir = folder.join(ember_core::paths::sanitize(&slug));
+                let dir = folder.join(irori_core::paths::sanitize(&slug));
                 let value = dir.to_string_lossy().into_owned();
                 this.destination
                     .update(cx, |s, cx| s.set_value(value, window, cx));
@@ -410,7 +410,7 @@ impl LutrisDialog {
             return;
         }
         self.probing = true;
-        let task = ember_ui::state::run_infallible(cx, async move {
+        let task = irori_ui::state::run_infallible(cx, async move {
             let mut plan = plan;
             plan.probe_sizes().await;
             plan.downloads
@@ -432,7 +432,7 @@ impl LutrisDialog {
     fn load_wine(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(script) = self.script() else { return };
         let b = backend(cx);
-        let task = ember_ui::state::run_infallible(cx, async move { b.script_wine(&script).await });
+        let task = irori_ui::state::run_infallible(cx, async move { b.script_wine(&script).await });
         cx.spawn_in(window, async move |this, cx| {
             let wine = task.await.flatten();
             this.update(cx, |this, cx| {
@@ -672,7 +672,7 @@ impl LutrisDialog {
         let b = backend(cx);
         self.finishing = true;
         cx.notify();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let id = add_game(&game, sideload, emulation).await?;
             for (key, value) in game.settings {
                 b.settings.set_game_value(&id, key, Some(value));
@@ -712,7 +712,7 @@ impl LutrisDialog {
         window.close_dialog(cx);
         navigate(Route::Game(id.clone()), cx);
         let b = backend(cx);
-        let task = ember_ui::run(cx, async move { b.launch(&id, None, Vec::new()).await });
+        let task = irori_ui::run(cx, async move { b.launch(&id, None, Vec::new()).await });
         window
             .spawn(cx, async move |cx| {
                 if let Err(e) = task.await {
@@ -766,8 +766,8 @@ impl LutrisDialog {
 /// Add a finished install to the library.
 async fn add_game(
     game: &ScriptGame,
-    sideload: Option<Arc<ember_sideload::SideloadStore>>,
-    emulation: Option<Arc<ember_emulation::EmulationStore>>,
+    sideload: Option<Arc<irori_sideload::SideloadStore>>,
+    emulation: Option<Arc<irori_emulation::EmulationStore>>,
 ) -> anyhow::Result<GameId> {
     match &game.entry {
         ScriptLibraryEntry::App {
@@ -1930,7 +1930,7 @@ impl Render for LutrisDialog {
 }
 
 /// Open the Lutris script installer, at the scripts of the lutris.net game
-/// `slug` when given (`ember://lutris/<slug>`, `lutris:<slug>`).
+/// `slug` when given (`irori://lutris/<slug>`, `lutris:<slug>`).
 pub fn open_lutris_installer(slug: Option<String>, window: &mut Window, cx: &mut App) {
     crate::init(cx);
     let view = cx.new(|cx| {

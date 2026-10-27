@@ -3,10 +3,6 @@
 
 use std::sync::Arc;
 
-use ember_core::util::{format_bytes, unix_now};
-use ember_core::{GameId, GameInfo};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::skeleton::Skeleton;
@@ -21,6 +17,10 @@ use gpui_kit::{
     AnyElement, App, Context, InteractiveElement as _, IntoElement, ParentElement, SharedString,
     Styled, Window, div, rems,
 };
+use irori_core::util::{format_bytes, unix_now};
+use irori_core::{GameId, GameInfo};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use super::{GamePage, InfoTab};
 use crate::i18n::{platform_label, playtime_label, status_label};
@@ -161,7 +161,7 @@ impl GamePage {
             tabs.push((InfoTab::Changelog, t("game.info.tab_changelog")));
         }
         // GOG offers offline installers and goodies for every game it sells.
-        if self.id.runner == ember_core::Runner::Gog {
+        if self.id.runner == irori_core::Runner::Gog {
             tabs.push((InfoTab::Extras, t("game.info.tab_extras")));
         }
         tabs
@@ -354,7 +354,7 @@ impl GamePage {
             let queued = queue.active.iter().any(|i| i.id == dlc_id);
             let state: Option<SharedString> = busy
                 .map(status_label)
-                .or_else(|| queued.then(|| status_label(ember_core::StatusKind::Queued)));
+                .or_else(|| queued.then(|| status_label(irori_core::StatusKind::Queued)));
             let base = game.clone();
             let info = d.clone();
             col = col.child(
@@ -537,7 +537,7 @@ impl GamePage {
             }
         }
         // Steam picks the build and Proton, syncs saves and decides about
-        // offline play for its games; Ember only knows where they are.
+        // offline play for its games; Irori only knows where they are.
         let managed = self.id.runner.manages_installs();
         match &game.install {
             Some(install) if game.is_installed => {
@@ -598,7 +598,7 @@ impl GamePage {
                         t("game.info.not_set").to_string()
                     };
                     col = col.child(detail_row("Wine".into(), wine, cx));
-                    let prefix = ember_runtime::prefix_path(&b.settings.app(), &settings, game);
+                    let prefix = irori_runtime::prefix_path(&b.settings.app(), &settings, game);
                     col = col.child(detail_row(
                         t("game.common.prefix"),
                         prefix.display().to_string(),

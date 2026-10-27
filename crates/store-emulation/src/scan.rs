@@ -2,7 +2,7 @@
 //! pool.
 //!
 //! A file's system comes from the folder it sits in, its extension, or its
-//! header ([`ember_engines::systems::detect`]). Files a `.cue` sheet or an
+//! header ([`irori_engines::systems::detect`]). Files a `.cue` sheet or an
 //! `.m3u` playlist lists belong to that sheet; discs of one game become one
 //! entry (with a playlist written for engines that switch discs). DOS and
 //! ScummVM games are folders. Detection results are cached by path, size and
@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use ember_engines::systems::{self, System};
+use irori_engines::systems::{self, System};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest as _, Sha1};
 
@@ -422,7 +422,7 @@ fn write_playlist(dir: &Path, app_name: &str, discs: &[PathBuf]) -> Option<PathB
     let path = dir.join(format!("{app_name}.m3u"));
     let text: String = discs.iter().map(|d| format!("{}\n", d.display())).collect();
     if std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str()) {
-        ember_core::json_store::write_bytes(&path, text.as_bytes()).ok()?;
+        irori_core::json_store::write_bytes(&path, text.as_bytes()).ok()?;
     }
     Some(path)
 }

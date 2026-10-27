@@ -1,4 +1,4 @@
-//! Ember's motion: a few shared tempos and helpers so every animation moves
+//! Irori's motion: a few shared tempos and helpers so every animation moves
 //! the same way. GPUI renders all of them in their end state while the user
 //! reduces motion (the shell keeps `App::reduce_motion` in sync with the
 //! setting), so callers need no checks of their own.

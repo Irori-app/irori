@@ -18,9 +18,9 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::paths::{expand_home, sanitize};
-use ember_core::process::{CommandSpec, split_args};
-use ember_core::{LaunchEnvironment, LaunchOption, LaunchPlan, LaunchRequest};
+use irori_core::paths::{expand_home, sanitize};
+use irori_core::process::{CommandSpec, split_args};
+use irori_core::{LaunchEnvironment, LaunchOption, LaunchPlan, LaunchRequest};
 
 use crate::app::SideloadApp;
 
@@ -291,7 +291,7 @@ pub(crate) fn wine_plan(
 mod tests {
     use std::ffi::OsString;
 
-    use ember_core::{GameSettings, WineKind, WineLaunch};
+    use irori_core::{GameSettings, WineKind, WineLaunch};
 
     use super::*;
     use crate::app::SideloadPlatform;

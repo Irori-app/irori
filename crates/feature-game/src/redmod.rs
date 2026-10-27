@@ -4,10 +4,6 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, Runner};
-use ember_gog::{CyberpunkConfig, GogStore};
-use ember_ui::backend;
-use ember_ui::i18n::{t, t_args};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::switch::Switch;
@@ -20,6 +16,10 @@ use gpui_kit::{
     AnyElement, App, AppContext as _, Context, InteractiveElement as _, IntoElement, ParentElement,
     Pixels, Render, SharedString, Size, Styled, Window, div, px, rems, size,
 };
+use irori_core::{GameId, GameInfo, Runner};
+use irori_gog::{CyberpunkConfig, GogStore};
+use irori_ui::backend;
+use irori_ui::i18n::{t, t_args};
 use serde_json::Value;
 
 use crate::hooks;
@@ -195,7 +195,7 @@ impl RedmodPanel {
         self.list = Load::Loading;
         cx.notify();
         let app = self.id.app_name.to_string();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let available = gog.cyberpunk_mods(&app).await?;
             let saved = saved_config(&gog, &app).await;
             Ok(ModList {
@@ -234,7 +234,7 @@ impl RedmodPanel {
         let app = self.id.app_name.to_string();
         self.saving = true;
         cx.notify();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             gog.set_cyberpunk_mod_config(&app, config).await
         });
         cx.spawn_in(window, async move |this, cx| {

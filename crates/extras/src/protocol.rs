@@ -1,4 +1,4 @@
-//! `ember://` and `heroic://` URLs, and the `--launch <runner>/<app>` command
+//! `irori://` and `heroic://` URLs, and the `--launch <runner>/<app>` command
 //! line form, parsed into a typed [`ProtocolAction`].
 //!
 //! Accepted forms (both schemes):
@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow, bail};
-use ember_core::{GameId, Runner};
+use irori_core::{GameId, Runner};
 use url::Url;
 
 use crate::util;
@@ -23,14 +23,14 @@ use crate::util;
 /// URL scheme a request arrived with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scheme {
-    Ember,
+    Irori,
     Heroic,
 }
 
 impl Scheme {
     pub fn prefix(self) -> &'static str {
         match self {
-            Scheme::Ember => "ember://",
+            Scheme::Irori => "irori://",
             Scheme::Heroic => "heroic://",
         }
     }
@@ -91,24 +91,24 @@ impl ProtocolRequest {
     }
 }
 
-/// `ember://launch/<runner>/<app>` for a game (app name percent-encoded).
+/// `irori://launch/<runner>/<app>` for a game (app name percent-encoded).
 pub fn launch_url(id: &GameId) -> String {
     format!(
-        "ember://launch/{}/{}",
+        "irori://launch/{}/{}",
         id.runner.id(),
         util::encode_component(&id.app_name)
     )
 }
 
-/// Parse an `ember://` or `heroic://` URL.
+/// Parse an `irori://` or `heroic://` URL.
 pub fn parse(input: &str) -> Result<ProtocolRequest> {
     let trimmed = input.trim();
-    let scheme = if starts_with_ci(trimmed, "ember://") {
-        Scheme::Ember
+    let scheme = if starts_with_ci(trimmed, "irori://") {
+        Scheme::Irori
     } else if starts_with_ci(trimmed, "heroic://") {
         Scheme::Heroic
     } else {
-        bail!("not an ember:// or heroic:// link: {trimmed}");
+        bail!("not an irori:// or heroic:// link: {trimmed}");
     };
     let url = Url::parse(trimmed).map_err(|e| anyhow!("invalid link {trimmed}: {e}"))?;
     let action_name = url.host_str().unwrap_or("").to_ascii_lowercase();
@@ -183,7 +183,7 @@ pub fn parse_launch_target(value: &str) -> Option<LaunchUrl> {
     if value.is_empty() {
         return None;
     }
-    if starts_with_ci(value, "ember://") || starts_with_ci(value, "heroic://") {
+    if starts_with_ci(value, "irori://") || starts_with_ci(value, "heroic://") {
         return match parse(value).ok()?.action {
             ProtocolAction::Launch(l) => Some(l),
             _ => None,
@@ -202,7 +202,7 @@ pub fn parse_launch_target(value: &str) -> Option<LaunchUrl> {
     })
 }
 
-/// Find a request in a command line: the first `ember://`/`heroic://`
+/// Find a request in a command line: the first `irori://`/`heroic://`
 /// argument, or `--launch <target>` / `--launch=<target>`.
 pub fn find_in_args<I, S>(args: I) -> Option<ProtocolRequest>
 where
@@ -212,7 +212,7 @@ where
     let mut iter = args.into_iter();
     while let Some(arg) = iter.next() {
         let arg = arg.as_ref();
-        if starts_with_ci(arg, "ember://") || starts_with_ci(arg, "heroic://") {
+        if starts_with_ci(arg, "irori://") || starts_with_ci(arg, "heroic://") {
             match parse(arg) {
                 Ok(req) => return Some(req),
                 Err(e) => {
@@ -228,7 +228,7 @@ where
         };
         if let Some(target) = target {
             return parse_launch_target(&target).map(|l| ProtocolRequest {
-                scheme: Scheme::Ember,
+                scheme: Scheme::Irori,
                 action: ProtocolAction::Launch(l),
             });
         }
@@ -267,15 +267,15 @@ mod tests {
 
     #[test]
     fn path_forms() {
-        let l = launch("ember://launch/gog/1423049311");
+        let l = launch("irori://launch/gog/1423049311");
         assert_eq!(l.game_id(), Some(GameId::new(Runner::Gog, "1423049311")));
         let l = launch("heroic://launch/Fortnite");
         assert_eq!((l.runner, l.app_name.as_str()), (None, "Fortnite"));
-        let l = launch("ember://launch/sideload/my%20app");
+        let l = launch("irori://launch/sideload/my%20app");
         assert_eq!(l.app_name, "my app");
-        let l = launch("ember://Launch/zoom/42");
+        let l = launch("irori://Launch/zoom/42");
         assert_eq!(l.runner, Some(Runner::Zoom));
-        let l = launch("ember://launch/steam/620");
+        let l = launch("irori://launch/steam/620");
         assert_eq!(l.game_id(), Some(GameId::new(Runner::Steam, "620")));
         let l = launch("heroic://launch/uplay/42");
         assert_eq!(l.runner, None);
@@ -311,7 +311,7 @@ mod tests {
             }
         );
         assert_eq!(
-            parse("ember://install/nile/amzn1.adg.product.x")
+            parse("irori://install/nile/amzn1.adg.product.x")
                 .unwrap()
                 .action,
             ProtocolAction::Install {
@@ -320,7 +320,7 @@ mod tests {
             }
         );
         assert_eq!(
-            parse("ember://foo").unwrap().action,
+            parse("irori://foo").unwrap().action,
             ProtocolAction::Unknown {
                 action: "foo".into()
             }
@@ -334,13 +334,13 @@ mod tests {
     fn launch_url_roundtrip() {
         let id = GameId::new(Runner::Sideload, "a b/c");
         let url = launch_url(&id);
-        assert_eq!(url, "ember://launch/sideload/a%20b%2Fc");
+        assert_eq!(url, "irori://launch/sideload/a%20b%2Fc");
         assert_eq!(launch(&url).game_id(), Some(id));
     }
 
     #[test]
     fn command_line() {
-        let r = find_in_args(["ember", "--launch", "gog/123"]).unwrap();
+        let r = find_in_args(["irori", "--launch", "gog/123"]).unwrap();
         assert_eq!(
             r.action,
             ProtocolAction::Launch(LaunchUrl {
@@ -351,11 +351,11 @@ mod tests {
                 no_gui: false,
             })
         );
-        let r = find_in_args(["ember", "--launch=Fortnite"]).unwrap();
+        let r = find_in_args(["irori", "--launch=Fortnite"]).unwrap();
         assert!(matches!(r.action, ProtocolAction::Launch(ref l) if l.runner.is_none()));
-        let r = find_in_args(["ember", "--no-gui", "heroic://launch?appName=x&gui=no"]).unwrap();
+        let r = find_in_args(["irori", "--no-gui", "heroic://launch?appName=x&gui=no"]).unwrap();
         assert_eq!(r.scheme, Scheme::Heroic);
         assert!(r.hides_window(false));
-        assert!(find_in_args(["ember", "--foo"]).is_none());
+        assert!(find_in_args(["irori", "--foo"]).is_none());
     }
 }

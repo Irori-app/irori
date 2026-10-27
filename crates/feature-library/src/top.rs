@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 
-use ember_core::{GameId, GameInfo, LibraryTopSection, Runner};
-use ember_services::{LibrarySnapshot, UserData};
-use ember_ui::i18n::t;
 use gpui_kit::SharedString;
+use irori_core::{GameId, GameInfo, LibraryTopSection, Runner};
+use irori_services::{LibrarySnapshot, UserData};
+use irori_ui::i18n::t;
 
 /// What the top row shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,7 +46,7 @@ pub fn top_games(
         LibraryTopSection::Disabled => return None,
         LibraryTopSection::RecentlyPlayed | LibraryTopSection::RecentlyPlayedInstalled => {
             let installed_only = setting == LibraryTopSection::RecentlyPlayedInstalled;
-            // Without Ember's own history (such as right after importing from
+            // Without Irori's own history (such as right after importing from
             // Heroic), recorded playtime still says what was played last.
             let keys: Vec<String> = if user.recent.is_empty() {
                 let mut played: Vec<(&String, &str)> = user
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn recent_falls_back_to_playtime() {
-        use ember_core::PlaytimeRecord;
+        use irori_core::PlaytimeRecord;
         let games: HashMap<GameId, Arc<GameInfo>> = [
             game(Runner::Gog, "1", "Witcher", true),
             game(Runner::Legendary, "a", "Alan Wake", false),

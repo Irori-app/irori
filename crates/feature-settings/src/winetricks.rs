@@ -3,7 +3,7 @@
 //! installed in the game's prefix.
 //!
 //! The verb catalogue is listed once per process by running the winetricks
-//! script Ember manages (`list-all`) against an empty scratch prefix, so
+//! script Irori manages (`list-all`) against an empty scratch prefix, so
 //! listing never touches a game's prefix.
 
 use std::collections::HashSet;
@@ -12,10 +12,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::process::{self, CommandSpec};
-use ember_core::{GameId, Paths, StatusKind};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -30,6 +26,10 @@ use gpui_kit::{
     AppContext as _, Context, ElementId, Entity, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div,
 };
+use irori_core::process::{self, CommandSpec};
+use irori_core::{GameId, Paths, StatusKind};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::i18n::LanguageStamp;
 use crate::widgets::{muted, panel};
@@ -186,7 +186,7 @@ async fn list_verbs(messages: [SharedString; 4]) -> Result<Arc<Vec<WinetricksVer
         return Ok(c);
     }
     let [unavailable, timeout, failed, empty] = messages;
-    let script = ember_runtime::tools::ensure_winetricks(false)
+    let script = irori_runtime::tools::ensure_winetricks(false)
         .await
         .context(unavailable)?;
     // An empty scratch prefix: listing must not touch (or create) a real one.
@@ -297,7 +297,7 @@ impl WinetricksPanel {
             t("settings.winetricks.error.failed"),
             t("settings.winetricks.error.empty"),
         ];
-        let task = ember_ui::run(cx, list_verbs(messages));
+        let task = irori_ui::run(cx, list_verbs(messages));
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update(cx, |this, cx| {
@@ -318,10 +318,10 @@ impl WinetricksPanel {
         let b = backend(cx);
         let id = self.id.clone();
         let missing = t("settings.error.game_missing");
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let game = b.game(&id).context(missing)?;
             let prefix =
-                ember_runtime::prefix_path(&b.settings.app(), &b.settings.game(&id), &game);
+                irori_runtime::prefix_path(&b.settings.app(), &b.settings.game(&id), &game);
             Ok(read_installed(&prefix).await)
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -361,7 +361,7 @@ impl WinetricksPanel {
         let b = backend(cx);
         let id = self.id.clone();
         let v = verb.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             b.winetricks(&id, vec![v]).await?.check()?;
             Ok(())
         });

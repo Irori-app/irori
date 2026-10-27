@@ -1,8 +1,5 @@
 //! Per-game "Sync saves now" panel of the Cloud saves section.
 
-use ember_core::{GameId, StatusKind, SyncDirection};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariant};
 use gpui_kit::component::notification::Notification;
@@ -16,6 +13,9 @@ use gpui_kit::{
     AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render, SharedString,
     Styled as _, Subscription, Window, div,
 };
+use irori_core::{GameId, StatusKind, SyncDirection};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{backend, models};
 
 use crate::form::ChoiceItem;
 use crate::i18n::LanguageStamp;
@@ -208,7 +208,7 @@ impl SaveSyncPanel {
         self.result = None;
         let b = backend(cx);
         let id = self.id.clone();
-        let task = ember_ui::run(cx, async move { b.sync_saves(&id, direction).await });
+        let task = irori_ui::run(cx, async move { b.sync_saves(&id, direction).await });
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {

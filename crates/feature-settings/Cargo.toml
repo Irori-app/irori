@@ -1,5 +1,5 @@
 [package]
-name = "ember-settings"
+name = "irori-settings"
 description = "Settings screens: application settings, game defaults, per-game overrides, logs, system information"
 version.workspace = true
 edition.workspace = true
@@ -8,13 +8,13 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-services.workspace = true
-ember-ui.workspace = true
-ember-runtime.workspace = true
-ember-extras.workspace = true
-ember-epic.workspace = true
-ember-bigpicture.workspace = true
+irori-core.workspace = true
+irori-services.workspace = true
+irori-ui.workspace = true
+irori-runtime.workspace = true
+irori-extras.workspace = true
+irori-epic.workspace = true
+irori-bigpicture.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 tokio.workspace = true

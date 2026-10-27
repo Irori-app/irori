@@ -1,6 +1,6 @@
 //! System information for the settings page and log headers: CPU, memory,
 //! GPUs, distribution, kernel, desktop session, Vulkan and the versions of
-//! the gaming tools Ember uses.
+//! the gaming tools Irori uses.
 //!
 //! Everything is read locally (`/proc`, `/sys`, `pci.ids`, short tool
 //! probes); unlike Heroic no DNS lookups are made and a GPU whose name is
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ember_core::process::CommandSpec;
+use irori_core::process::CommandSpec;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Serialize;
@@ -84,7 +84,7 @@ impl VulkanInfo {
 /// Versions of tools; `None` when not installed.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct SoftwareVersions {
-    pub ember: String,
+    pub irori: String,
     pub wine: Option<String>,
     pub gamescope: Option<String>,
     pub gamemode: Option<String>,
@@ -150,7 +150,7 @@ async fn collect() -> SystemInfo {
                     kernel: sysinfo::System::kernel_version().unwrap_or_default(),
                 },
                 software: SoftwareVersions {
-                    ember: env!("CARGO_PKG_VERSION").into(),
+                    irori: env!("CARGO_PKG_VERSION").into(),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -435,7 +435,7 @@ async fn name_gpus_with_lspci(gpus: &mut [GpuInfo]) {
         let Some(res) = run_with_timeout(&spec, Duration::from_secs(5)).await else {
             continue;
         };
-        let fields = ember_core::process::split_args(res.stdout.lines().next().unwrap_or(""));
+        let fields = irori_core::process::split_args(res.stdout.lines().next().unwrap_or(""));
         if fields.len() >= 4 {
             g.vendor_name.get_or_insert_with(|| fields[2].clone());
             g.device_name = Some(fields[3].clone());
@@ -580,7 +580,7 @@ async fn software_versions() -> SoftwareVersions {
         probe("umu-run", &["--version"]),
     );
     SoftwareVersions {
-        ember: env!("CARGO_PKG_VERSION").to_string(),
+        irori: env!("CARGO_PKG_VERSION").to_string(),
         wine,
         gamescope,
         gamemode,
@@ -681,8 +681,8 @@ pub fn format(info: &SystemInfo) -> String {
     let s = &info.software;
     let ni = |v: &Option<String>| v.clone().unwrap_or_else(|| "not installed".into());
     out.push_str(&format!(
-        "\nSoftware Versions:\n  Ember: {}\n  Wine: {}\n  gamescope: {}\n  GameMode: {}\n  MangoHud: {}\n  umu-launcher: {}\n",
-        s.ember,
+        "\nSoftware Versions:\n  Irori: {}\n  Wine: {}\n  gamescope: {}\n  GameMode: {}\n  MangoHud: {}\n  umu-launcher: {}\n",
+        s.irori,
         ni(&s.wine),
         ni(&s.gamescope),
         ni(&s.gamemode),

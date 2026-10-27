@@ -1,9 +1,9 @@
-//! Carry a Heroic GOG setup over to Ember: session tokens, account, installed
+//! Carry a Heroic GOG setup over to Irori: session tokens, account, installed
 //! games (gogdl manifests become build records), support files, private
 //! branch passwords, save
 //! sync timestamps, queued playtime and the cached library.
 //!
-//! Existing Ember data wins over Heroic's where both exist. Token contents are
+//! Existing Irori data wins over Heroic's where both exist. Token contents are
 //! never logged.
 
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ use anyhow::{Context as _, Result};
 use serde::Deserialize;
 use serde_json::Value;
 
-use ember_core::{CloudSaveLocation, ExtraInfo, GameInfo, InstallPlatform, Runner, json_store};
+use irori_core::{CloudSaveLocation, ExtraInfo, GameInfo, InstallPlatform, Runner, json_store};
 
 use crate::auth::{CLIENT_ID, UserData};
 use crate::installed::{InstalledFile, InstalledRecord};
@@ -21,9 +21,9 @@ use crate::library::REDIST_APP;
 use crate::paths::GogPaths;
 use crate::playtime::{PlaytimeQueue, QueuedSession};
 
-/// Import from a Heroic config dir (`~/.config/heroic`) into Ember's layout.
+/// Import from a Heroic config dir (`~/.config/heroic`) into Irori's layout.
 pub fn import_from_heroic(heroic_config_dir: &Path) -> Result<()> {
-    import_into(heroic_config_dir, &GogPaths::from_ember())
+    import_into(heroic_config_dir, &GogPaths::from_irori())
 }
 
 /// Heroic's GOG library entry (subset).
@@ -350,7 +350,7 @@ mod tests {
             .unwrap();
         assert_eq!(pb["1423049311"], "pw");
 
-        // A second import keeps Ember's data and does not duplicate.
+        // A second import keeps Irori's data and does not duplicate.
         import_into(h.path(), &dst).unwrap();
         let q: PlaytimeQueue = json_store::read(&dst.playtime_queue_file())
             .unwrap()

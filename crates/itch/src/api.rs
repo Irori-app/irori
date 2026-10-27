@@ -50,7 +50,7 @@ impl Client {
     pub fn with_base(base: &str, key: &str) -> Result<Self> {
         let build = |redirects: reqwest::redirect::Policy| {
             reqwest::Client::builder()
-                .user_agent(concat!("Ember/", env!("CARGO_PKG_VERSION")))
+                .user_agent(concat!("Irori/", env!("CARGO_PKG_VERSION")))
                 .connect_timeout(Duration::from_secs(10))
                 .timeout(Duration::from_secs(60))
                 .redirect(redirects)
@@ -196,7 +196,7 @@ fn api_error(status: u16, value: &Value) -> Option<ApiError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_depot::test_server::{Resp, TestServer};
+    use irori_depot::test_server::{Resp, TestServer};
     use serde_json::json;
 
     #[tokio::test]

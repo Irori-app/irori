@@ -2,7 +2,7 @@
 //! management, DXVK/VKD3D, umu and the Steam runtime, and assembly of the
 //! launch environment (env vars and wrapper chain) handed to stores.
 //!
-//! The top-level functions are the contract used by `ember-services`; the
+//! The top-level functions are the contract used by `irori-services`; the
 //! modules expose the building blocks (Wine manager, tools, system info) for
 //! the settings UI.
 
@@ -27,8 +27,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, anyhow, bail};
-use ember_core::process::{CommandSpec, ExecResult};
-use ember_core::{
+use irori_core::process::{CommandSpec, ExecResult};
+use irori_core::{
     AppSettings, GameId, GameInfo, GameSettings, InstallPlatform, LaunchEnvironment, OpContext,
     WineInstallation, WineKind, WineLaunch,
 };
@@ -89,7 +89,7 @@ fn note(ctx: &OpContext, msg: &str) {
 /// Pick the Wine/Proton build for a game: its own setting when valid, else
 /// the global default, else the recommended discovered build, else (when
 /// `allow_download`) a freshly downloaded Proton. Heroic asks the user in a
-/// dialog at this point; Ember falls back and says so in the status line.
+/// dialog at this point; Irori falls back and says so in the status line.
 pub async fn resolve_wine(
     app: &AppSettings,
     settings: &GameSettings,
@@ -147,9 +147,9 @@ pub async fn wine_context(
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         // These macOS Wine distributions execute Intel Windows code through
         // Rosetta. Test its availability without installing anything silently.
-        let rosetta = ember_core::process::run(
+        let rosetta = irori_core::process::run(
             &CommandSpec::new("/usr/bin/arch").args(["-x86_64", "/usr/bin/true"]),
-            ember_core::process::RunOptions::default(),
+            irori_core::process::RunOptions::default(),
         )
         .await;
         anyhow::ensure!(
@@ -228,7 +228,7 @@ async fn wrapper_parts(settings: &GameSettings, ctx: &OpContext) -> Result<Wrapp
     }
     let deck_game_mode = locations::is_steam_deck_game_mode();
     let flatpak_hint = if locations::is_flatpak() {
-        ". Make sure to install the MangoHud Flatpak extension matching Ember's runtime and restart Ember."
+        ". Make sure to install the MangoHud Flatpak extension matching Irori's runtime and restart Irori."
     } else {
         ""
     };
@@ -284,7 +284,7 @@ pub async fn prepare_launch(
     ctx: &OpContext,
 ) -> Result<LaunchEnvironment> {
     anyhow::ensure!(
-        ember_core::HostPlatform::current().supports(target.platform),
+        irori_core::HostPlatform::current().supports(target.platform),
         "{} builds cannot run on this operating system. Install a compatible build instead.",
         target.platform.label()
     );
@@ -471,7 +471,7 @@ fn resolve_for_settings(settings: &GameSettings) -> Option<(WineInstallation, Pa
         if settings.wine_prefix.is_empty() || settings.wine_version.kind == WineKind::Crossover {
             recorded.as_ref().map(|(_, p)| p.clone())?
         } else {
-            ember_core::paths::expand_home(&settings.wine_prefix)
+            irori_core::paths::expand_home(&settings.wine_prefix)
         };
     let wine = if discovery::is_usable(&settings.wine_version) {
         settings.wine_version.clone()
@@ -515,7 +515,7 @@ pub fn default_prefix(app: &AppSettings, game: &GameInfo) -> PathBuf {
     } else {
         PathBuf::from(&app.default_wine_prefix_dir)
     };
-    base.join(ember_core::paths::sanitize(&game.title))
+    base.join(irori_core::paths::sanitize(&game.title))
 }
 
 /// Every Wine/Proton build usable on this system (system Wine, downloaded
@@ -572,7 +572,7 @@ pub fn prefix_path(app: &AppSettings, settings: &GameSettings, game: &GameInfo) 
     if settings.wine_prefix.is_empty() {
         default_prefix(app, game)
     } else {
-        ember_core::paths::expand_home(&settings.wine_prefix)
+        irori_core::paths::expand_home(&settings.wine_prefix)
     }
 }
 
@@ -581,7 +581,7 @@ pub fn prefix_path(app: &AppSettings, settings: &GameSettings, game: &GameInfo) 
 /// Deleting it with one game would take the others' saves with it.
 pub fn prefix_is_shared(app: &AppSettings, prefix: &Path) -> bool {
     let same = |setting: &str| {
-        !setting.trim().is_empty() && ember_core::paths::expand_home(setting) == prefix
+        !setting.trim().is_empty() && irori_core::paths::expand_home(setting) == prefix
     };
     same(&app.default_wine_prefix_dir) || same(&app.game.wine_prefix)
 }
@@ -664,13 +664,13 @@ pub fn open_prefix_folder(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn game() -> GameInfo {
         GameInfo {
             app_name: "app".into(),
             title: "My: Game".into(),
-            install: Some(ember_core::InstalledInfo {
+            install: Some(irori_core::InstalledInfo {
                 install_path: "/games/my".into(),
                 ..Default::default()
             }),
@@ -680,7 +680,7 @@ mod tests {
 
     #[test]
     fn knows_shared_prefixes() {
-        let root = ember_core::paths::expand_home("~/Games/Prefixes");
+        let root = irori_core::paths::expand_home("~/Games/Prefixes");
         let mut app = AppSettings {
             default_wine_prefix_dir: "~/Games/Prefixes".into(),
             ..Default::default()
@@ -746,11 +746,11 @@ mod tests {
         let id = GameId::new(Runner::Gog, "app");
         let g = game();
         let gs = GameSettings {
-            wrapper_options: vec![ember_core::Wrapper {
+            wrapper_options: vec![irori_core::Wrapper {
                 exe: "env".into(),
                 args: "-u X".into(),
             }],
-            environment_options: vec![ember_core::EnvVar {
+            environment_options: vec![irori_core::EnvVar {
                 key: "A".into(),
                 value: "1".into(),
             }],
@@ -759,7 +759,7 @@ mod tests {
         let target = Target {
             id: &id,
             game: &g,
-            platform: ember_core::HostPlatform::current().native(),
+            platform: irori_core::HostPlatform::current().native(),
         };
         let le = prepare_launch(&AppSettings::default(), &gs, target, &OpContext::detached())
             .await

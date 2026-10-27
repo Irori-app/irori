@@ -1,4 +1,4 @@
-//! Ember's backend facade. The UI talks only to [`Backend`]; stores, the Wine
+//! Irori's backend facade. The UI talks only to [`Backend`]; stores, the Wine
 //! runtime and the filesystem sit behind it.
 //!
 //! Threading: the backend owns a small Tokio runtime. Async methods must run on
@@ -32,7 +32,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use ember_core::{DynStore, Event, EventBus, Notice, NoticeLevel, Runner, SessionExpired};
+use irori_core::{DynStore, Event, EventBus, Notice, NoticeLevel, Runner, SessionExpired};
 use parking_lot::{Mutex, RwLock};
 use tokio::runtime::Runtime;
 use tokio::sync::{Notify, broadcast};
@@ -70,8 +70,8 @@ pub struct Inner {
     downloads_wake: Notify,
     files: Mutex<files::FilesState>,
     files_wake: Notify,
-    running: Mutex<BTreeMap<ember_core::GameId, games::RunningGame>>,
-    updates: RwLock<Arc<std::collections::HashSet<ember_core::GameId>>>,
+    running: Mutex<BTreeMap<irori_core::GameId, games::RunningGame>>,
+    updates: RwLock<Arc<std::collections::HashSet<irori_core::GameId>>>,
     online: AtomicBool,
     /// The queue was paused by [`Backend::pause_downloads_while_offline`].
     auto_paused: AtomicBool,
@@ -95,7 +95,7 @@ impl Backend {
     /// state synchronously; store initialisation and the first library build
     /// run in the background (watch for [`Event::LibraryUpdated`]).
     pub fn start(
-        make_stores: impl FnOnce(EventBus, ember_core::SettingsFn) -> Vec<DynStore>,
+        make_stores: impl FnOnce(EventBus, irori_core::SettingsFn) -> Vec<DynStore>,
     ) -> anyhow::Result<Self> {
         Self::start_with(make_stores, true)
     }
@@ -103,27 +103,27 @@ impl Backend {
     /// Like [`Backend::start`] for one-shot command-line use: no startup
     /// refresh, compatibility-data update or periodic checks.
     pub fn start_headless(
-        make_stores: impl FnOnce(EventBus, ember_core::SettingsFn) -> Vec<DynStore>,
+        make_stores: impl FnOnce(EventBus, irori_core::SettingsFn) -> Vec<DynStore>,
     ) -> anyhow::Result<Self> {
         Self::start_with(make_stores, false)
     }
 
     fn start_with(
-        make_stores: impl FnOnce(EventBus, ember_core::SettingsFn) -> Vec<DynStore>,
+        make_stores: impl FnOnce(EventBus, irori_core::SettingsFn) -> Vec<DynStore>,
         interactive: bool,
     ) -> anyhow::Result<Self> {
         let rt: &'static Runtime = Box::leak(Box::new(
             tokio::runtime::Builder::new_multi_thread()
                 .worker_threads(3)
                 .max_blocking_threads(16)
-                .thread_name("ember-io")
+                .thread_name("irori-io")
                 .enable_all()
                 .build()?,
         ));
         let _guard = rt.enter();
         let bus = EventBus::new();
         let settings = Arc::new(SettingsService::load(bus.clone()));
-        let settings_fn: ember_core::SettingsFn = {
+        let settings_fn: irori_core::SettingsFn = {
             let settings = settings.clone();
             Arc::new(move || settings.app())
         };
@@ -149,7 +149,7 @@ impl Backend {
             updates_checked: AtomicBool::new(false),
             bus,
         }));
-        ember_runtime::set_hooks(Arc::new(hooks::KnownFixHooks {
+        irori_runtime::set_hooks(Arc::new(hooks::KnownFixHooks {
             backend: backend.clone(),
         }));
         backend.spawn_background_tasks(interactive);
@@ -209,7 +209,7 @@ impl Backend {
             futures::future::join_all(inits).await;
             // Items restored from the persisted queue are waiting again.
             for item in b.downloads().active {
-                b.statuses.set(&item.id, ember_core::StatusKind::Queued);
+                b.statuses.set(&item.id, irori_core::StatusKind::Queued);
             }
             b.check_connectivity().await;
             b.rebuild_library();
@@ -230,7 +230,7 @@ impl Backend {
             let mut rx = b.subscribe();
             let mut shown = b.settings.app().ui.stores;
             // Opt-in stores show their account and games only while on.
-            let switches = |a: &ember_core::AppSettings| [a.zoom_platform, a.itch_io];
+            let switches = |a: &irori_core::AppSettings| [a.zoom_platform, a.itch_io];
             let mut on = switches(&b.settings.app());
             loop {
                 match rx.recv().await {
@@ -305,15 +305,15 @@ impl Backend {
     /// Update the anticheat and known-fixes databases when their published
     /// checksums change.
     pub async fn refresh_compat_data(&self) {
-        match ember_extras::releases::fetch().await {
+        match irori_extras::releases::fetch().await {
             Ok(info) => {
                 if let Err(e) =
-                    ember_extras::anticheat::refresh(Some(&info.anticheat_files.sha_linux)).await
+                    irori_extras::anticheat::refresh(Some(&info.anticheat_files.sha_linux)).await
                 {
                     tracing::warn!("anticheat data: {e:#}");
                 }
                 if let Err(e) =
-                    ember_extras::known_fixes::refresh(Some(&info.known_fixes_sha)).await
+                    irori_extras::known_fixes::refresh(Some(&info.known_fixes_sha)).await
                 {
                     tracing::warn!("known fixes data: {e:#}");
                 }
@@ -330,7 +330,7 @@ impl Backend {
             self.auto_paused.store(true, Ordering::Relaxed);
             self.pause_downloads();
             self.bus.notice(
-                ember_core::Notice::new(ember_core::NoticeLevel::Warning, "Downloads paused")
+                irori_core::Notice::new(irori_core::NoticeLevel::Warning, "Downloads paused")
                     .message("You're offline. Downloads resume when the connection is back.")
                     .keys(
                         "shell.notice.downloads_paused",
@@ -344,7 +344,7 @@ impl Backend {
     }
 
     pub async fn check_connectivity(&self) -> bool {
-        let ok = ember_core::http::client()
+        let ok = irori_core::http::client()
             .head("https://www.gstatic.com/generate_204")
             .timeout(Duration::from_secs(5))
             .send()
@@ -358,7 +358,7 @@ impl Backend {
 
     /// Refresh every logged-in store's catalogue.
     /// Take stores' own playtime totals (time played in their launchers)
-    /// into Ember's.
+    /// into Irori's.
     async fn sync_store_playtime(&self) {
         for store in self.stores.values().filter(|s| s.is_logged_in()) {
             match store.remote_playtime().await {
@@ -404,7 +404,7 @@ impl Backend {
     }
 
     /// Games with a pending update (cached; refreshed with the library).
-    pub fn updates(&self) -> Arc<std::collections::HashSet<ember_core::GameId>> {
+    pub fn updates(&self) -> Arc<std::collections::HashSet<irori_core::GameId>> {
         self.updates.read().clone()
     }
 
@@ -417,7 +417,7 @@ impl Backend {
                 match s.updatable_games().await {
                     Ok(apps) => apps
                         .into_iter()
-                        .map(|a| ember_core::GameId::new(s.runner(), a))
+                        .map(|a| irori_core::GameId::new(s.runner(), a))
                         .collect::<Vec<_>>(),
                     Err(e) => {
                         tracing::warn!("update check for {}: {e:#}", s.runner().store_name());
@@ -435,7 +435,7 @@ impl Backend {
             .flatten()
             .filter(|id| !self.settings.game(id).ignore_game_updates)
             .collect();
-        let new: Vec<ember_core::GameId> = {
+        let new: Vec<irori_core::GameId> = {
             let old = self.updates.read();
             all.iter()
                 .filter(|id| !old.contains(*id))
@@ -444,7 +444,7 @@ impl Backend {
         };
         *self.updates.write() = Arc::new(all);
         // The first check of a session shows as badges in the library; later
-        // ones find updates released while Ember was running, which the user
+        // ones find updates released while Irori was running, which the user
         // may not see unless told. Automatic updates queue them instead.
         let first = !self.updates_checked.swap(true, Ordering::Relaxed);
         if !first && !self.settings.app().auto_update_games {
@@ -465,7 +465,7 @@ impl Backend {
         Ok(())
     }
 
-    /// Refresh one account of a store (`slot` from [`ember_core::Store::accounts`]).
+    /// Refresh one account of a store (`slot` from [`irori_core::Store::accounts`]).
     pub async fn refresh_account(
         &self,
         runner: Runner,
@@ -483,7 +483,7 @@ impl Backend {
     }
 
     /// Tell the user about updates that appeared since the last check.
-    fn notice_new_updates(&self, new: &[ember_core::GameId]) {
+    fn notice_new_updates(&self, new: &[irori_core::GameId]) {
         let notice = match new {
             [] => return,
             [id] => {

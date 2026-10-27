@@ -5,13 +5,13 @@
 //!
 //! Download links are never pinned in a manifest: each source says where
 //! versions are listed and how to recognise this computer's build, so new
-//! versions appear without an Ember update.
+//! versions appear without an Irori update.
 
 use std::cmp::Ordering;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::json_store;
+use irori_core::json_store;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -186,7 +186,7 @@ async fn get_text(url: &str) -> Result<String> {
         .ok()
         .and_then(|u| u.host_str().map(str::to_string))
         .unwrap_or_default();
-    ember_core::http::client()
+    irori_core::http::client()
         .get(url)
         .send()
         .await

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::error::ScriptError;
 
-/// Variables Ember provides. `INPUT_<id>` exists for every `input_menu`
+/// Variables Irori provides. `INPUT_<id>` exists for every `input_menu`
 /// with an id.
 pub const BUILTINS: &[&str] = &[
     "GAMEDIR",

@@ -1,6 +1,6 @@
 [package]
-name = "ember-amazon"
-description = "Amazon Games store backend for Ember"
+name = "irori-amazon"
+description = "Amazon Games store backend for Irori"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-amazon-api.workspace = true
-ember-depot.workspace = true
+irori-core.workspace = true
+irori-amazon-api.workspace = true
+irori-depot.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
@@ -29,6 +29,6 @@ cbc = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]
 tempfile = "3"
-ember-amazon-api = { workspace = true, features = ["test-support"] }
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-amazon-api = { workspace = true, features = ["test-support"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 hex.workspace = true

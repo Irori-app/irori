@@ -8,7 +8,7 @@ use std::time::Duration;
 /// How long to wait for the portal before giving up.
 const PORTAL_TIMEOUT: Duration = Duration::from_secs(3);
 
-/// An active inhibition; [`Inhibitor::release`] ends it (so does Ember
+/// An active inhibition; [`Inhibitor::release`] ends it (so does Irori
 /// exiting, which closes its session bus connection).
 pub struct Inhibitor {
     #[cfg(target_os = "linux")]
@@ -69,7 +69,7 @@ impl Inhibitor {
         let (release, released) = std::sync::mpsc::channel();
         let (ready, started) = tokio::sync::oneshot::channel();
         std::thread::Builder::new()
-            .name("ember-awake".into())
+            .name("irori-awake".into())
             .spawn(move || {
                 // This API is thread-scoped: hold the request and release it on the
                 // same dedicated thread, never on a migrating async worker.
@@ -114,14 +114,14 @@ impl Inhibitor {
 mod tests {
     use super::*;
 
-    /// Talks to the real desktop. Run with `cargo test -p ember-services --
+    /// Talks to the real desktop. Run with `cargo test -p irori-services --
     /// --ignored keeps_the_screen_awake` while watching the session bus
     /// (`dbus-monitor --session`): on KDE the portal turns it into
     /// `PolicyAgent.AddInhibition`, and release into `ReleaseInhibition`.
     #[tokio::test]
     #[ignore = "needs a desktop session with a portal"]
     async fn keeps_the_screen_awake() {
-        let inhibitor = Inhibitor::acquire("Ember test")
+        let inhibitor = Inhibitor::acquire("Irori test")
             .await
             .expect("portal answered");
         inhibitor.release().await;

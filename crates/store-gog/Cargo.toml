@@ -1,6 +1,6 @@
 [package]
-name = "ember-gog"
-description = "GOG store backend for Ember"
+name = "irori-gog"
+description = "GOG store backend for Irori"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,10 +8,10 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-depot.workspace = true
-ember-gog-api.workspace = true
-ember-gog-galaxy.workspace = true
+irori-core.workspace = true
+irori-depot.workspace = true
+irori-gog-api.workspace = true
+irori-gog-galaxy.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
@@ -32,4 +32,4 @@ dirs.workspace = true
 [dev-dependencies]
 md5.workspace = true
 tempfile = "3"
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }

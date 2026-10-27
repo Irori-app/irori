@@ -1,11 +1,11 @@
-//! ZOOM Platform store for Ember.
+//! ZOOM Platform store for Irori.
 //!
 //! The store talks to ZOOM's HTTP API directly
 //! (Bearer `li_token` from the browser login), downloads installers through
-//! the [`ember_depot`] engine (resumable, verified, speed-limited), and
+//! the [`irori_depot`] engine (resumable, verified, speed-limited), and
 //! installs them natively (Linux archives, MojoSetup and makeself installers,
 //! unpacked without running them) or through Wine (InnoSetup/NSIS installers,
-//! run silently via [`ember_runtime::run_in_prefix`]).
+//! run silently via [`irori_runtime::run_in_prefix`]).
 //!
 //! Ownership: [`ZoomStore`] owns the credentials, the cached catalogue and the
 //! installed-games records under the store config/cache directories. The
@@ -29,7 +29,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context as _, Result, bail};
-use ember_core::{
+use irori_core::{
     Event, EventBus, ExtraInfo, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, Notice, NoticeLevel, OpContext, Outcome,
     RemoveArgs, Runner, SessionExpired, SettingsFn, Store, UpdateRequest, UserInfo, async_trait,
@@ -115,7 +115,7 @@ impl ZoomStore {
     }
 
     /// The store of one more account, keeping its login, installs and
-    /// caches in `config` and `cache`; shared tools stay in Ember's
+    /// caches in `config` and `cache`; shared tools stay in Irori's
     /// directories.
     pub fn for_account(
         bus: EventBus,
@@ -269,14 +269,14 @@ impl ZoomStore {
     /// Delete a directory tree unless it is obviously not a game folder.
     pub(crate) async fn remove_dir_if_safe(&self, path: &Path) {
         let app = (self.settings)();
-        let protected = [ember_core::paths::expand_home(&app.default_install_path)];
+        let protected = [irori_core::paths::expand_home(&app.default_install_path)];
         if !is_safe_to_delete(path, &protected) {
             tracing::warn!("refusing to delete {}", path.display());
             return;
         }
-        // The launcher-wide guard as well: system folders, Ember's own
+        // The launcher-wide guard as well: system folders, Irori's own
         // folders and anything holding them, after resolving symlinks.
-        if let Err(e) = ember_core::fs_guard::ensure_deletable(path, &app) {
+        if let Err(e) = irori_core::fs_guard::ensure_deletable(path, &app) {
             tracing::warn!("refusing to delete {}: {e:#}", path.display());
             return;
         }
@@ -291,9 +291,9 @@ impl ZoomStore {
         self.bus.notice(
             Notice::new(NoticeLevel::Warning, format!("Executable of {title} not found"))
                 .message(
-                    "Ember could not tell which program starts the game. Choose it in the game settings (target executable).",
+                    "Irori could not tell which program starts the game. Choose it in the game settings (target executable).",
                 )
-                .game(ember_core::GameId::new(Runner::Zoom, app)),
+                .game(irori_core::GameId::new(Runner::Zoom, app)),
         );
     }
 
@@ -351,7 +351,7 @@ impl Store for ZoomStore {
                 records::load_auth(&layout),
                 records::load_installed(&layout),
                 records::load_pending(&layout),
-                ember_core::json_store::read_or_default::<LibraryCache>(&layout.library_cache()),
+                irori_core::json_store::read_or_default::<LibraryCache>(&layout.library_cache()),
             )
         })
         .await
@@ -463,7 +463,7 @@ impl Store for ZoomStore {
             games,
         };
         let path = self.layout().library_cache();
-        if let Err(e) = ember_core::json_store::write(&path, &cache) {
+        if let Err(e) = irori_core::json_store::write(&path, &cache) {
             tracing::warn!("caching ZOOM library: {e:#}");
         }
         {
@@ -597,16 +597,16 @@ impl Store for ZoomStore {
             .game(app_name)
             .with_context(|| format!("{app_name} is not in your ZOOM Platform library"))?;
         let base = if request.path.as_os_str().is_empty() {
-            ember_core::paths::expand_home(&(self.settings)().default_install_path)
+            irori_core::paths::expand_home(&(self.settings)().default_install_path)
         } else {
-            ember_core::paths::expand_home(&request.path.to_string_lossy())
+            irori_core::paths::expand_home(&request.path.to_string_lossy())
         };
         let folder = game
             .folder_name
             .clone()
             .filter(|f| !f.trim().is_empty())
             .unwrap_or_else(|| game.title.clone());
-        let install_path = base.join(ember_core::paths::sanitize(folder.trim()));
+        let install_path = base.join(irori_core::paths::sanitize(folder.trim()));
         self.run_pipeline(
             app_name,
             install_path,

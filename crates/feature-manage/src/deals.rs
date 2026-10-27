@@ -6,12 +6,6 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use ember_core::sort_key;
-use ember_extras::discounts::{self, CatalogLocale, CatalogProduct, DealStore};
-use ember_ui::art::{LruImageCache, art_store};
-use ember_ui::components::{SectionTitle, art_img, physical_width};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::models;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
@@ -30,6 +24,12 @@ use gpui_kit::{
     IntoElement, ObjectFit, ParentElement as _, Render, SharedString, Styled as _,
     StyledImage as _, Subscription, Window, div, rems,
 };
+use irori_core::sort_key;
+use irori_extras::discounts::{self, CatalogLocale, CatalogProduct, DealStore};
+use irori_ui::art::{LruImageCache, art_store};
+use irori_ui::components::{SectionTitle, art_img, physical_width};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::models;
 
 /// Deals rendered per "Show more" step.
 const PAGE: usize = 40;
@@ -79,7 +79,7 @@ fn load(entity: Entity<DealsCache>, cx: &mut App) {
         c.state = DealsState::Loading;
         cx.notify();
     });
-    let task = ember_ui::run(cx, async move {
+    let task = irori_ui::run(cx, async move {
         let locale = CatalogLocale::default();
         let (gog, gmg, humble) = futures::join!(
             discounts::gog_discounts(&locale, None),
@@ -239,7 +239,7 @@ impl DealsSection {
             owned: owned_titles(cx),
             shown: PAGE,
             visible: Vec::new(),
-            placeholder_language: ember_ui::i18n::language(),
+            placeholder_language: irori_ui::i18n::language(),
             images: LruImageCache::new(64, cx),
             _subscriptions: subscriptions,
         };
@@ -353,7 +353,7 @@ fn owned_titles(cx: &App) -> HashSet<String> {
 
 impl Render for DealsSection {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let language = ember_ui::i18n::language();
+        let language = irori_ui::i18n::language();
         if language != self.placeholder_language {
             self.placeholder_language = language;
             self.search.update(cx, |s, cx| {
@@ -485,7 +485,7 @@ impl Render for DealsSection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_extras::discounts::CatalogPrice;
+    use irori_extras::discounts::CatalogPrice;
 
     fn deal(title: &str, store: DealStore, discount: &str) -> CatalogProduct {
         CatalogProduct {

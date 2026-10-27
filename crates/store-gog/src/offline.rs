@@ -12,9 +12,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result, bail};
 use serde_json::Value;
 
-use ember_core::Store as _;
-use ember_core::process::{self, CommandSpec, RunOptions};
-use ember_core::{ExtraFile, ExtraGroup, InstallPlatform, InstallRequest, OpContext, Outcome};
+use irori_core::Store as _;
+use irori_core::process::{self, CommandSpec, RunOptions};
+use irori_core::{ExtraFile, ExtraGroup, InstallPlatform, InstallRequest, OpContext, Outcome};
 
 use crate::GogStore;
 
@@ -289,14 +289,14 @@ impl GogStore {
             .and_then(|g| g.folder_name.clone())
             .filter(|f| !f.is_empty())
             .unwrap_or_else(|| self.title_of(app_name));
-        let dest = request.path.join(ember_core::paths::sanitize(&folder));
+        let dest = request.path.join(irori_core::paths::sanitize(&folder));
         if dest.exists() {
             bail!(
                 "{} already exists; choose another install folder",
                 dest.display()
             );
         }
-        let scratch = request.path.join(format!(".ember-unpack-{app_name}"));
+        let scratch = request.path.join(format!(".irori-unpack-{app_name}"));
         let _ = tokio::fs::remove_dir_all(&scratch).await;
         tokio::fs::create_dir_all(&scratch).await?;
 

@@ -6,13 +6,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::util::format_bytes;
-use ember_core::{ExtraFile, ExtraGroup, GameInfo};
-use ember_services::{FileDownload, FileState, file_download_key};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::motion::gliding_progress;
-use ember_ui::style::{caption, panel};
-use ember_ui::{backend, models};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::skeleton::Skeleton;
@@ -22,6 +15,13 @@ use gpui_kit::{
     AnyElement, App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
     SharedString, Styled as _, Window, div, rems,
 };
+use irori_core::util::format_bytes;
+use irori_core::{ExtraFile, ExtraGroup, GameInfo};
+use irori_services::{FileDownload, FileState, file_download_key};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::motion::gliding_progress;
+use irori_ui::style::{caption, panel};
+use irori_ui::{backend, models};
 
 use super::GamePage;
 use crate::i18n::platform_label;
@@ -40,7 +40,7 @@ impl GamePage {
         self.extras = Load::Loading;
         let b = backend(cx);
         let id = self.id.clone();
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let store = b
                 .store(id.runner)
                 .ok_or_else(|| crate::i18n::store_unavailable(id.runner))?;
@@ -60,7 +60,7 @@ impl GamePage {
     /// The folder this game's extras are saved in.
     fn extras_folder(&self, game: &GameInfo, cx: &App) -> PathBuf {
         let base = models(cx).settings.read(cx).app.extras_path.clone();
-        PathBuf::from(base).join(ember_core::paths::sanitize(&game.title))
+        PathBuf::from(base).join(irori_core::paths::sanitize(&game.title))
     }
 
     pub(super) fn render_extras(

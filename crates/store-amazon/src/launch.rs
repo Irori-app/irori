@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
-use ember_amazon_api::fuel::{FuelAction, LaunchInfo};
-use ember_amazon_api::sdk;
-use ember_core::process::{CommandSpec, split_args};
-use ember_core::{GameSettings, LaunchEnvironment, LaunchOption, LaunchPlan, WineKind, WineLaunch};
+use irori_amazon_api::fuel::{FuelAction, LaunchInfo};
+use irori_amazon_api::sdk;
+use irori_core::process::{CommandSpec, split_args};
+use irori_core::{GameSettings, LaunchEnvironment, LaunchOption, LaunchPlan, WineKind, WineLaunch};
 
 /// Everything a game command depends on.
 pub struct LaunchInputs<'a> {
@@ -62,7 +62,7 @@ fn executable(i: &LaunchInputs<'_>) -> PathBuf {
     };
     match chosen {
         Some(exe) if Path::new(exe).is_absolute() => PathBuf::from(exe),
-        Some(exe) => ember_amazon_api::fuel::resolve(i.install_dir, exe),
+        Some(exe) => irori_amazon_api::fuel::resolve(i.install_dir, exe),
         None => i.info.executable.clone(),
     }
 }
@@ -126,7 +126,7 @@ pub fn build_launch_plan(i: &LaunchInputs<'_>) -> Result<LaunchPlan> {
 /// Resolve a fuel.json command against the install directory: relative
 /// Windows-style paths become absolute paths when the file exists.
 fn resolve_command(command: &str, install_dir: &Path) -> String {
-    let candidate = ember_amazon_api::fuel::resolve(install_dir, command);
+    let candidate = irori_amazon_api::fuel::resolve(install_dir, command);
     let is_relative = !command.starts_with(['\\', '/']) && !command.contains(':');
     if is_relative && candidate.is_file() {
         candidate.to_string_lossy().into_owned()

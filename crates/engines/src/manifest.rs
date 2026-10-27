@@ -86,7 +86,7 @@ pub enum Source {
 }
 
 impl Source {
-    /// Whether Ember downloads and manages this source.
+    /// Whether Irori downloads and manages this source.
     pub fn is_managed(&self) -> bool {
         matches!(
             self,
@@ -221,7 +221,7 @@ impl<T> PerOs<T> {
     }
 }
 
-/// Everything Ember knows about one engine.
+/// Everything Irori knows about one engine.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EngineManifest {
@@ -243,8 +243,8 @@ pub struct EngineManifest {
     #[serde(default)]
     pub options: Vec<EngineOption>,
     /// Where the engine looks for BIOS files, per OS (placeholders
-    /// expanded). Ember links the user's files there before a launch.
-    /// Engines configured by Ember (RetroArch) have none.
+    /// expanded). Irori links the user's files there before a launch.
+    /// Engines configured by Irori (RetroArch) have none.
     #[serde(default)]
     pub bios_dir: PerOs<Option<String>>,
     /// A file whose presence beside the program makes the engine keep its
@@ -371,7 +371,7 @@ impl EngineManifest {
         self.cores.iter().find(|c| c.id == id)
     }
 
-    /// Whether Ember can download this engine for `host`.
+    /// Whether Irori can download this engine for `host`.
     pub fn downloadable_on(&self, host: Host) -> bool {
         self.sources.iter().any(|s| s.asset_for(host).is_some())
     }

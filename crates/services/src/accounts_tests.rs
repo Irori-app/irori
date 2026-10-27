@@ -168,7 +168,7 @@ impl Setup {
         }
     }
 
-    /// A store over these directories, as Ember builds one at startup.
+    /// A store over these directories, as Irori builds one at startup.
     async fn open(&self) -> Arc<MultiAccountStore<FakeStore>> {
         let store = MultiAccountStore::with_roots(
             FakeStore::new(&self.main_dirs()),
@@ -211,7 +211,7 @@ async fn launch_error(store: &MultiAccountStore<FakeStore>, app: &str) -> String
 #[tokio::test]
 async fn a_single_account_from_earlier_versions_keeps_working() {
     let setup = Setup::new();
-    // What an earlier Ember left: the login and an install, nothing else.
+    // What an earlier Irori left: the login and an install, nothing else.
     let main = setup.main_dirs();
     json_store::write(
         &main.config.join("user.json"),

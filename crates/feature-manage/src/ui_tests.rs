@@ -1,5 +1,5 @@
 //! UI integration tests: real views in headless windows over a backend with
-//! no stores, under a temporary `EMBER_HOME`.
+//! no stores, under a temporary `IRORI_HOME`.
 
 use std::cell::RefCell;
 use std::path::Path;
@@ -7,14 +7,14 @@ use std::rc::Rc;
 use std::sync::{Arc, Once};
 
 use anyhow::{Result, bail};
-use ember_core::{
+use gpui_kit::{AppContext as _, Modifiers, TestAppContext, VisualTestContext, WindowOptions};
+use irori_core::{
     DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, MAIN_ACCOUNT, OpContext, Outcome, Paths,
     RemoveArgs, Runner, Store, StoreAccount, UpdateRequest, UserInfo, async_trait,
 };
-use ember_services::{Backend, DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
-use ember_ui::models;
-use gpui_kit::{AppContext as _, Modifiers, TestAppContext, VisualTestContext, WindowOptions};
+use irori_services::{Backend, DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
+use irori_ui::models;
 
 use crate::onboarding::OnboardingStep;
 use crate::{AccountsView, DownloadsView, OnboardingEvent, OnboardingView, should_show_onboarding};
@@ -34,7 +34,7 @@ fn setup_with(cx: &mut TestAppContext, stores: impl FnOnce() -> Vec<DynStore>) {
     let backend = Backend::start(|_, _| stores()).expect("backend starts");
     cx.update(|cx| {
         gpui_kit::init(cx);
-        ember_ui::init(backend, cx);
+        irori_ui::init(backend, cx);
     });
 }
 

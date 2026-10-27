@@ -1,5 +1,5 @@
 //! Import launcher-level data from a Heroic config directory
-//! (`ember_core::paths::heroic_config_dir()`): global settings, per-game
+//! (`irori_core::paths::heroic_config_dir()`): global settings, per-game
 //! settings, favourites, hidden games, recently played, custom categories,
 //! playtime and title/art overrides.
 //!
@@ -16,21 +16,21 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use ember_core::game::{GameOverrides, PlaytimeRecord};
-use ember_core::{AppSettings, GameId, GameSettings, GameSettingsOverrides, Runner};
+use irori_core::game::{GameOverrides, PlaytimeRecord};
+use irori_core::{AppSettings, GameId, GameSettings, GameSettingsOverrides, Runner};
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
 /// Everything imported from Heroic, ready to apply.
 #[derive(Debug, Clone, Default)]
 pub struct HeroicImport {
-    /// Global settings: Heroic's values on top of Ember's defaults. `None`
+    /// Global settings: Heroic's values on top of Irori's defaults. `None`
     /// when Heroic's `config.json` has no `defaultSettings`.
     pub settings: Option<AppSettings>,
     /// Heroic stored the SteamGridDB key encrypted (unreadable outside
     /// Heroic); the user has to enter it again.
     pub steam_grid_db_key_needs_reentry: bool,
-    /// Sparse per-game settings relative to `settings` (or Ember's defaults).
+    /// Sparse per-game settings relative to `settings` (or Irori's defaults).
     pub game_settings: BTreeMap<GameId, GameSettingsOverrides>,
     pub favourites: Vec<GameId>,
     pub hidden: Vec<GameId>,
@@ -38,8 +38,8 @@ pub struct HeroicImport {
     pub recent: Vec<GameId>,
     pub categories: BTreeMap<String, Vec<GameId>>,
     pub playtime: BTreeMap<GameId, PlaytimeRecord>,
-    /// Title/art overrides. Heroic's `art_square` (vertical) maps to Ember's
-    /// `art_cover` and Heroic's `art_cover` (wide) to Ember's `art_square`.
+    /// Title/art overrides. Heroic's `art_square` (vertical) maps to Irori's
+    /// `art_cover` and Heroic's `art_cover` (wide) to Irori's `art_square`.
     pub overrides: BTreeMap<GameId, GameOverrides>,
     /// App names whose runner could not be determined (skipped).
     pub unresolved: Vec<String>,
@@ -252,8 +252,8 @@ pub struct MappedSettings {
     pub warnings: Vec<String>,
 }
 
-/// Layer Heroic's `defaultSettings` over Ember's defaults, key by key. A
-/// value that does not fit Ember's schema is skipped with a warning, so one
+/// Layer Heroic's `defaultSettings` over Irori's defaults, key by key. A
+/// value that does not fit Irori's schema is skipped with a warning, so one
 /// odd key never discards the rest. Heroic's `language` (the UI language)
 /// becomes `uiLanguage`.
 pub fn map_global_settings(defaults: &Value, home: &Path) -> MappedSettings {
@@ -349,7 +349,7 @@ fn map_playtime(entry: &Value) -> Option<PlaytimeRecord> {
         entry
             .get(k)
             .and_then(Value::as_str)
-            .filter(|s| ember_core::util::parse_rfc3339(s).is_some())
+            .filter(|s| irori_core::util::parse_rfc3339(s).is_some())
             .map(str::to_string)
     };
     let minutes = entry
@@ -544,7 +544,7 @@ mod tests {
         assert_eq!(s.default_wine_prefix_dir, "/games/prefixes");
         assert_eq!(
             s.library_top_section,
-            ember_core::LibraryTopSection::Favourites
+            irori_core::LibraryTopSection::Favourites
         );
         assert_eq!(s.max_workers, 0);
         assert!(imp.warnings.iter().any(|w| w.contains("maxWorkers")));

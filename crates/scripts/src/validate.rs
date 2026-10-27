@@ -1,5 +1,5 @@
 //! Checks on a parsed script: every variable it uses exists, built-ins are
-//! not redefined, and launchers Ember supports natively are not installed
+//! not redefined, and launchers Irori supports natively are not installed
 //! inside Wine.
 
 use std::collections::BTreeSet;
@@ -251,7 +251,7 @@ fn file_name_of(path: &str) -> String {
         .to_ascii_lowercase()
 }
 
-/// The launcher a script installs inside Wine, when it is one Ember
+/// The launcher a script installs inside Wine, when it is one Irori
 /// supports natively: by slug (the script's, or a game it requires), or for
 /// Wine scripts by the program it downloads, runs or starts.
 pub fn native_launcher(script: &Script) -> Option<NativeLauncher> {

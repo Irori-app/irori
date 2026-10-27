@@ -1,5 +1,5 @@
 [package]
-name = "ember-scripts"
+name = "irori-scripts"
 description = "Safe interpreter for Lutris community install scripts: typed parsing, consent plan, confined execution and the lutris.net client"
 version.workspace = true
 edition.workspace = true
@@ -8,9 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ember-core.workspace = true
-ember-runtime.workspace = true
-ember-depot.workspace = true
+irori-core.workspace = true
+irori-runtime.workspace = true
+irori-depot.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
@@ -34,5 +34,5 @@ xz2.workspace = true
 zstd.workspace = true
 
 [dev-dependencies]
-ember-depot = { workspace = true, features = ["test-server"] }
+irori-depot = { workspace = true, features = ["test-server"] }
 tempfile = "3"

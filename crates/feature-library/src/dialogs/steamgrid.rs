@@ -6,10 +6,6 @@
 //! it. Nothing is searched until the user opens the picker (Heroic looked up
 //! art on a third-party server whenever the title field lost focus).
 
-use ember_extras::steamgrid::{self, ApiKey, ImageFilter, SgdbGame, SgdbImage};
-use ember_ui::components::{art_img, physical_width};
-use ember_ui::i18n::{t, t_args};
-use ember_ui::{Route, models, navigate};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -26,6 +22,10 @@ use gpui_kit::{
     SharedString, StatefulInteractiveElement as _, Styled as _, StyledImage as _, Subscription,
     Task, Window, div, rems,
 };
+use irori_extras::steamgrid::{self, ApiKey, ImageFilter, SgdbGame, SgdbImage};
+use irori_ui::components::{art_img, physical_width};
+use irori_ui::i18n::{t, t_args};
+use irori_ui::{Route, models, navigate};
 
 /// Where SteamGridDB users create an API key.
 const API_KEY_PAGE: &str = "https://www.steamgriddb.com/profile/preferences/api";
@@ -149,7 +149,7 @@ impl ArtPicker {
                 .placeholder(t("library.art.placeholder"))
                 .default_value(title.trim().to_string())
         });
-        let art = ember_ui::art::art_store(cx);
+        let art = irori_ui::art::art_store(cx);
         let subscriptions = vec![
             cx.observe(&art, |_, _, cx| cx.notify()),
             cx.subscribe_in(&query, window, |this, _, event, _, cx| {
@@ -196,7 +196,7 @@ impl ArtPicker {
         }
         self.phase = Phase::Searching;
         cx.notify();
-        let task = ember_ui::run(
+        let task = irori_ui::run(
             cx,
             async move { steamgrid::search_games(&key, &query).await },
         );
@@ -232,7 +232,7 @@ impl ArtPicker {
         self.phase = Phase::Loading(name.clone());
         cx.notify();
         let kind = self.kind;
-        let task = ember_ui::run(cx, async move {
+        let task = irori_ui::run(cx, async move {
             let filter = kind.filter();
             match kind {
                 ArtKind::Background => steamgrid::heroes(&key, game.id, &filter).await,

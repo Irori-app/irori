@@ -10,7 +10,7 @@
 //!    [`install_sideload_store`] with the same `Arc<SideloadStore>` handed to the
 //!    backend, so the "Add game" and "Edit app" dialogs can reach it.
 //! 2. Create the view with [`LibraryView::new`] and render it for
-//!    [`ember_ui::Route::Library`].
+//!    [`irori_ui::Route::Library`].
 //! 3. Subscribe to [`LibraryEvent`]s: the library asks the game feature to open
 //!    its install sheet, uninstall confirmation and log viewer, which it does
 //!    not own.
@@ -37,9 +37,9 @@ mod view;
 
 use std::sync::Arc;
 
-use ember_core::GameId;
-use ember_sideload::SideloadStore;
 use gpui_kit::{App, Global, KeyBinding, Window};
+use irori_core::GameId;
+use irori_sideload::SideloadStore;
 
 pub use commands::{GameCommand, GameState};
 pub use dialogs::categories::open_categories_dialog;
@@ -140,16 +140,16 @@ pub(crate) fn sideload_store(cx: &App) -> Option<Arc<SideloadStore>> {
     cx.try_global::<SideloadHandle>().map(|h| h.0.clone())
 }
 
-struct EmulationHandle(Arc<ember_emulation::EmulationStore>);
+struct EmulationHandle(Arc<irori_emulation::EmulationStore>);
 impl Global for EmulationHandle {}
 
 /// Give the library access to the ROM library store, so Add game can put a
 /// ROM there.
-pub fn install_emulation_store(store: Arc<ember_emulation::EmulationStore>, cx: &mut App) {
+pub fn install_emulation_store(store: Arc<irori_emulation::EmulationStore>, cx: &mut App) {
     cx.set_global(EmulationHandle(store));
 }
 
-pub(crate) fn emulation_store(cx: &App) -> Option<Arc<ember_emulation::EmulationStore>> {
+pub(crate) fn emulation_store(cx: &App) -> Option<Arc<irori_emulation::EmulationStore>> {
     cx.try_global::<EmulationHandle>().map(|h| h.0.clone())
 }
 

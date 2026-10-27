@@ -1,15 +1,15 @@
-//! `ember-sign-in`: a store's sign-in page in a window of its own.
+//! `irori-sign-in`: a store's sign-in page in a window of its own.
 //!
-//! Ember runs this as a separate process so its own window never embeds a web
-//! engine: either the `ember-sign-in` helper, or (on macOS and Windows, whose
-//! web engines come with the system) Ember itself started with
+//! Irori runs this as a separate process so its own window never embeds a web
+//! engine: either the `irori-sign-in` helper, or (on macOS and Windows, whose
+//! web engines come with the system) Irori itself started with
 //! [`SIGN_IN_FLAG`] first. The page is watched for what the store's login returns: every address
 //! it visits and the text of every page it loads are matched against the
 //! `--capture` pattern. The first match is printed to stdout as one JSON line,
 //! `{"text": "..."}`, and the window closes. Closing the window without a match
 //! exits with status 2.
 //!
-//! Usage: ember-sign-in --url <url> --capture <regex> [--title <window title>]
+//! Usage: irori-sign-in --url <url> --capture <regex> [--title <window title>]
 
 use std::io::Write as _;
 use std::time::{Duration, Instant};
@@ -32,7 +32,7 @@ const RECHECK: Duration = Duration::from_secs(1);
 /// Exit status when the window was closed without signing in.
 const CANCELLED: u8 = 2;
 
-/// The first argument that makes Ember run the sign-in window instead of
+/// The first argument that makes Irori run the sign-in window instead of
 /// itself; the rest are this window's arguments.
 pub const SIGN_IN_FLAG: &str = "--sign-in-window";
 
@@ -88,14 +88,14 @@ pub fn main(args: impl IntoIterator<Item = String>) -> u8 {
     let args = match parse_args(args) {
         Ok(args) => args,
         Err(e) => {
-            eprintln!("ember-sign-in: {e:#}");
+            eprintln!("irori-sign-in: {e:#}");
             return 1;
         }
     };
     match run(args) {
         Ok(()) => 0,
         Err(e) => {
-            eprintln!("ember-sign-in: {e:#}");
+            eprintln!("irori-sign-in: {e:#}");
             1
         }
     }
@@ -181,7 +181,7 @@ fn read_page_text(webview: &wry::WebView, re: Regex, proxy: EventLoopProxy<PageE
         }
     });
     if let Err(e) = result {
-        eprintln!("ember-sign-in: reading the page failed: {e}");
+        eprintln!("irori-sign-in: reading the page failed: {e}");
     }
 }
 

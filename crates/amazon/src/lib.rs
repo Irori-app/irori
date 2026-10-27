@@ -1,10 +1,10 @@
-//! Amazon Games protocol client (a Rust port of the parts of nile Ember
+//! Amazon Games protocol client (a Rust port of the parts of nile Irori
 //! needs, GPL-3.0).
 //!
 //! * [`auth`]: the PKCE sign-in page and device registration.
 //! * [`Client`]: tokens, owned games, build locations and update checks.
 //! * [`Manifest`]: Amazon's signed build manifests, turned into
-//!   [`ember_depot`] download entries.
+//!   [`irori_depot`] download entries.
 //! * [`fuel`]: `fuel.json` (launch command and post-install steps).
 //! * [`sdk`]: the runtime SDK files games expect.
 

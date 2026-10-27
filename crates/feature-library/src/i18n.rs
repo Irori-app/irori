@@ -3,9 +3,9 @@
 
 use std::sync::Once;
 
-use ember_core::StatusKind;
-use ember_services::LibrarySort;
-use ember_ui::i18n::{Catalogs, t, t_args};
+use irori_core::StatusKind;
+use irori_services::LibrarySort;
+use irori_ui::i18n::{Catalogs, t, t_args};
 
 /// One flat JSON catalog per interface language, English first.
 pub static CATALOGS: Catalogs = &[
@@ -33,7 +33,7 @@ pub static CATALOGS: Catalogs = &[
 /// Hand [`CATALOGS`] to the translation registry, once per process.
 pub(crate) fn register() {
     static ONCE: Once = Once::new();
-    ONCE.call_once(|| ember_ui::i18n::register(CATALOGS));
+    ONCE.call_once(|| irori_ui::i18n::register(CATALOGS));
 }
 
 /// Label of a game's live status ("Installing", "Verifying"…).
@@ -94,7 +94,7 @@ mod tests {
     use std::collections::{BTreeSet, HashMap};
     use std::path::Path;
 
-    use ember_ui::i18n::{LANGUAGES, missing_keys};
+    use irori_ui::i18n::{LANGUAGES, missing_keys};
 
     use super::CATALOGS;
 

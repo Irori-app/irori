@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use ember_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
-use ember_core::{LaunchEnvironment, WineKind};
+use irori_core::process::{self, CancellationToken, CommandSpec, ExecResult, RunOptions};
+use irori_core::{LaunchEnvironment, WineKind};
 
 /// The Wine layer of a game, as prepared by the runtime for its last launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -176,7 +176,7 @@ pub fn to_windows_path(unix: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::WineLaunch;
+    use irori_core::WineLaunch;
 
     fn launch_env(kind: WineKind, uses_umu: bool, prefix: &Path) -> LaunchEnvironment {
         let mut env = BTreeMap::new();

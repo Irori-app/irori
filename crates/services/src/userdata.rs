@@ -5,8 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ember_core::game::{GameOverrides, PlaytimeRecord};
-use ember_core::{Event, EventBus, GameId, GameInfo, Paths, json_store, util};
+use irori_core::game::{GameOverrides, PlaytimeRecord};
+use irori_core::{Event, EventBus, GameId, GameInfo, Paths, json_store, util};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
@@ -64,10 +64,10 @@ fn split_store_playtime(
     (totals, dlc)
 }
 
-/// Store totals larger than Ember's, by game key.
+/// Store totals larger than Irori's, by game key.
 fn grown_totals(
     data: &UserData,
-    runner: ember_core::Runner,
+    runner: irori_core::Runner,
     totals: &std::collections::HashMap<String, u64>,
 ) -> Vec<(String, u64)> {
     totals
@@ -314,7 +314,7 @@ impl UserDataService {
     }
 
     /// Take a store's own playtime totals (minutes by app name) into account:
-    /// each game keeps the larger of Ember's total and the store's, so time
+    /// each game keeps the larger of Irori's total and the store's, so time
     /// played in the store's launcher shows here and nothing is counted
     /// twice. Writes only when a total grew.
     ///
@@ -322,7 +322,7 @@ impl UserDataService {
     /// an earlier sync kept for its DLC are removed.
     pub fn merge_store_playtime(
         &self,
-        runner: ember_core::Runner,
+        runner: irori_core::Runner,
         games: &[Arc<GameInfo>],
         totals: &std::collections::HashMap<String, u64>,
     ) -> usize {
@@ -370,7 +370,7 @@ impl UserDataService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::Runner;
+    use irori_core::Runner;
 
     fn game(app: &str, store_hidden: bool) -> Arc<GameInfo> {
         Arc::new(GameInfo {
@@ -412,7 +412,7 @@ mod tests {
         // Epic reports Civilization VI's DLC with the base game's time.
         let base = Arc::new(GameInfo {
             app_name: "Kinglet".into(),
-            dlcs: vec![ember_core::game::DlcInfo {
+            dlcs: vec![irori_core::game::DlcInfo {
                 app_name: "KingletAztec".into(),
                 title: "Aztec".into(),
                 is_installed: true,

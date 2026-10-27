@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "İndirmeleri duraklat",
   "bigpicture.menu.resume_downloads": "İndirmeleri sürdür",
   "bigpicture.menu.toggle_fullscreen": "Tam ekranı aç/kapat",
-  "bigpicture.menu.quit": "Ember'den çık",
+  "bigpicture.menu.quit": "Irori'den çık",
   "bigpicture.menu.no_downloads": "İndirme yok",
   "bigpicture.error.launch": "{title} başlatılamadı",
   "bigpicture.error.stop": "{title} durdurulamadı",

@@ -3,11 +3,11 @@
 
 use std::sync::Once;
 
-use ember_core::{InstallPlatform, StatusKind};
-use ember_ui::i18n::{Catalogs, t, t_args};
 use gpui_kit::SharedString;
+use irori_core::{InstallPlatform, StatusKind};
+use irori_ui::i18n::{Catalogs, t, t_args};
 
-/// Catalogs of this crate, one per language in `ember_ui::i18n::LANGUAGES`.
+/// Catalogs of this crate, one per language in `irori_ui::i18n::LANGUAGES`.
 pub static CATALOGS: Catalogs = &[
     ("en", include_str!("../locales/en.json")),
     ("cs", include_str!("../locales/cs.json")),
@@ -32,10 +32,10 @@ pub static CATALOGS: Catalogs = &[
 
 static REGISTER: Once = Once::new();
 
-/// Register [`CATALOGS`] with `ember_ui::i18n`. Runs once however often it
+/// Register [`CATALOGS`] with `irori_ui::i18n`. Runs once however often it
 /// is called.
 pub(crate) fn register() {
-    REGISTER.call_once(|| ember_ui::i18n::register(CATALOGS));
+    REGISTER.call_once(|| irori_ui::i18n::register(CATALOGS));
 }
 
 /// Present-progressive label of a live status ("Installing", "Verifying"…).
@@ -92,7 +92,7 @@ pub(crate) fn format_playtime(minutes: u64) -> SharedString {
 }
 
 /// "{store} is not available" for a store without a backend.
-pub(crate) fn store_unavailable(runner: ember_core::Runner) -> anyhow::Error {
+pub(crate) fn store_unavailable(runner: irori_core::Runner) -> anyhow::Error {
     anyhow::anyhow!(t_args(
         "game.error.store_unavailable",
         &[("store", runner.store_name())]
@@ -104,7 +104,7 @@ mod tests {
     use std::collections::{BTreeSet, HashMap};
     use std::path::Path;
 
-    use ember_ui::i18n::{LANGUAGES, missing_keys};
+    use irori_ui::i18n::{LANGUAGES, missing_keys};
     use regex::Regex;
 
     use super::*;

@@ -1,4 +1,4 @@
-//! What Ember records about an installed build (`builds/<app>.json`): the
+//! What Irori records about an installed build (`builds/<app>.json`): the
 //! build meta it was installed from and the selection, so updates download
 //! only what changed and repairs know every file.
 
@@ -7,8 +7,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use ember_gog_api::content::BuildMeta;
-use ember_gog_api::plan::{LinuxFiles, Selection};
+use irori_gog_api::content::BuildMeta;
+use irori_gog_api::plan::{LinuxFiles, Selection};
 
 use crate::manifest;
 
@@ -80,25 +80,25 @@ pub fn from_gogdl_manifest(mut m: Value) -> Option<BuildRecord> {
     let language = map
         .remove("HGLInstallLanguage")
         .and_then(|v| v.as_str().map(str::to_string))
-        .and_then(|l| ember_gog_api::languages::code(&l).map(str::to_string))
+        .and_then(|l| irori_gog_api::languages::code(&l).map(str::to_string))
         .unwrap_or_else(|| "en-US".into());
     let dlcs = map
         .remove("HGLdlcs")
         .and_then(|v| v.as_array().cloned())
         .unwrap_or_default()
         .iter()
-        .map(|d| ember_gog_api::content::id_string(d.get("id").unwrap_or(d)))
+        .map(|d| irori_gog_api::content::id_string(d.get("id").unwrap_or(d)))
         .filter(|s| !s.is_empty())
         .collect();
     map.retain(|k, _| !k.starts_with("HGL"));
     let meta = BuildMeta::parse(m.clone()).ok()?;
     let build_id = if meta.generation == 1 {
         m.pointer("/product/timestamp")
-            .map(ember_gog_api::content::id_string)
+            .map(irori_gog_api::content::id_string)
             .unwrap_or_default()
     } else {
         m.get("buildId")
-            .map(ember_gog_api::content::id_string)
+            .map(irori_gog_api::content::id_string)
             .unwrap_or_default()
     };
     Some(BuildRecord {
@@ -118,11 +118,11 @@ pub fn from_gogdl_linux_manifest(v: &Value) -> Option<LinuxFiles> {
     let mut out = LinuxFiles::default();
     for f in files {
         let name = f.get("file_name").and_then(Value::as_str)?;
-        let Some(rel) = name.strip_prefix(ember_gog_api::linux::DATA_PREFIX) else {
+        let Some(rel) = name.strip_prefix(irori_gog_api::linux::DATA_PREFIX) else {
             continue;
         };
         let crc = f.get("crc32").and_then(Value::as_u64).unwrap_or(0) as u32;
-        if let Ok(rel) = ember_depot::path::normalize(rel) {
+        if let Ok(rel) = irori_depot::path::normalize(rel) {
             out.files.insert(rel, crc);
         }
     }

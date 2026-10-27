@@ -1,8 +1,8 @@
 //! Display strings for library metadata.
 
-use ember_core::util::{format_bytes, parse_rfc3339};
-use ember_core::{GameInfo, Runner};
-use ember_ui::i18n::{t, t_args};
+use irori_core::util::{format_bytes, parse_rfc3339};
+use irori_core::{GameInfo, Runner};
+use irori_ui::i18n::{t, t_args};
 
 /// "Just now", "3 hours ago", "Yesterday", "5 days ago", "2 weeks ago",
 /// "4 months ago", "2 years ago".
@@ -76,13 +76,13 @@ pub fn install_size(game: &GameInfo) -> Option<String> {
 
 /// Current unix time in seconds.
 pub fn now() -> i64 {
-    ember_core::util::unix_now() as i64
+    irori_core::util::unix_now() as i64
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ember_core::InstalledInfo;
+    use irori_core::InstalledInfo;
 
     #[test]
     fn relative_times() {

@@ -2,13 +2,13 @@
 //! the cloud since the last sync. Every place that starts a game sends that
 //! error here instead of showing it as a failure.
 
-use ember_core::{GameId, SaveConflict, SyncDirection, util};
-use ember_services::LaunchParams;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::dialog::DialogFooter;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::{ActiveTheme as _, StyledExt as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::{App, IntoElement, ParentElement as _, SharedString, Styled as _, Window, div};
+use irori_core::{GameId, SaveConflict, SyncDirection, util};
+use irori_services::LaunchParams;
 
 use crate::i18n::{t, t_args};
 use crate::state::{backend, run};

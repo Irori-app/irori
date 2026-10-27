@@ -5,12 +5,12 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use ember_core::process::CancellationToken;
-use ember_core::{Event, InstallProgress, Notice, NoticeLevel, OpContext};
-use ember_runtime::manager::{self, Release};
-use ember_ui::backend;
-use ember_ui::i18n::t_args;
 use gpui_kit::{App, AppContext as _, Entity, Global};
+use irori_core::process::CancellationToken;
+use irori_core::{Event, InstallProgress, Notice, NoticeLevel, OpContext};
+use irori_runtime::manager::{self, Release};
+use irori_ui::backend;
+use irori_ui::i18n::t_args;
 
 /// Stable key of a release across list refreshes.
 pub(crate) fn release_key(r: &Release) -> String {
@@ -95,7 +95,7 @@ pub(crate) fn start_install(release: Release, cx: &mut App) {
     let app = b.settings.app();
     let version = release.version.clone();
     let bus = b.bus.clone();
-    let task = ember_ui::run(cx, async move {
+    let task = irori_ui::run(cx, async move {
         let result = manager::install(&release, &app, &ctx).await;
         match &result {
             Ok(_) => bus.notice(Notice::new(

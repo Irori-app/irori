@@ -126,7 +126,7 @@ pub fn remove_overlay_path(prefix: &Path) -> Result<()> {
 fn write_lines(file: &Path, lines: &[String]) -> Result<()> {
     let mut text = lines.join("\n");
     text.push('\n');
-    let tmp = file.with_extension("reg.ember-tmp");
+    let tmp = file.with_extension("reg.irori-tmp");
     std::fs::write(&tmp, text).with_context(|| format!("writing {}", tmp.display()))?;
     std::fs::rename(&tmp, file).with_context(|| format!("updating {}", file.display()))?;
     Ok(())
@@ -176,14 +176,14 @@ pub(crate) mod tests {
         let pfx = dir.path();
         std::fs::write(pfx.join("user.reg"), USER_REG).unwrap();
         assert_eq!(overlay_path(pfx).unwrap(), None);
-        set_overlay_path(pfx, Path::new("/home/u/.local/share/ember/eos")).unwrap();
+        set_overlay_path(pfx, Path::new("/home/u/.local/share/irori/eos")).unwrap();
         assert_eq!(
             overlay_path(pfx).unwrap(),
-            Some(PathBuf::from("/home/u/.local/share/ember/eos"))
+            Some(PathBuf::from("/home/u/.local/share/irori/eos"))
         );
         let text = std::fs::read_to_string(pfx.join("user.reg")).unwrap();
         assert!(text.contains(r#"[Software\\Epic Games\\EOS]"#));
-        assert!(text.contains(r#""OverlayPath"="Z:/home/u/.local/share/ember/eos""#));
+        assert!(text.contains(r#""OverlayPath"="Z:/home/u/.local/share/irori/eos""#));
         set_overlay_path(pfx, Path::new("/other")).unwrap();
         let text = std::fs::read_to_string(pfx.join("user.reg")).unwrap();
         assert_eq!(text.matches("OverlayPath").count(), 1);

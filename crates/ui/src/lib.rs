@@ -1,4 +1,4 @@
-//! Ember's shared UI layer. Feature crates depend on this crate for backend
+//! Irori's shared UI layer. Feature crates depend on this crate for backend
 //! access ([`state`]), observable models ([`models`]), navigation ([`nav`]),
 //! game art ([`art`]), theming ([`theme`]), motion ([`motion`]), desktop
 //! notifications ([`system_notify`]) and domain components.
@@ -23,8 +23,8 @@ pub use models::{Models, models};
 pub use nav::{Route, navigate};
 pub use state::{backend, run};
 
-use ember_services::Backend;
 use gpui_kit::App;
+use irori_services::Backend;
 
 /// Install backend access, models, navigation, art and themes. Call after
 /// `gpui_kit::init` and before opening windows.

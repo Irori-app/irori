@@ -167,11 +167,11 @@ impl<'a> ShortcutEntry<'a> {
     }
 }
 
-/// Fields of a new shortcut written by Ember.
+/// Fields of a new shortcut written by Irori.
 #[derive(Debug, Clone)]
 pub struct NewShortcut {
     pub app_name: String,
-    /// Quoted executable (`"\"/usr/bin/ember\""`).
+    /// Quoted executable (`"\"/usr/bin/irori\""`).
     pub exe: String,
     /// Quoted start directory.
     pub start_dir: String,
@@ -285,12 +285,12 @@ mod tests {
     fn sample(name: &str) -> NewShortcut {
         NewShortcut {
             app_name: name.into(),
-            exe: "\"/usr/bin/ember\"".into(),
+            exe: "\"/usr/bin/irori\"".into(),
             start_dir: "\"/usr/bin\"".into(),
             icon: Some("/icons/x.png".into()),
             launch_options: "--launch \"gog/123\"".into(),
             last_play_time: 1_700_000_000,
-            tags: vec!["Ember".into()],
+            tags: vec!["Irori".into()],
         }
     }
 
@@ -304,12 +304,12 @@ mod tests {
     #[test]
     fn app_ids_match_steam() {
         assert_eq!(crc32(b"123456789"), 0xCBF4_3926);
-        let exe = "\"/usr/bin/ember\"";
-        assert_eq!(short_app_id(exe, "Test Game"), 4_208_632_960);
-        assert_eq!(shortcut_id(exe, "Test Game"), -86_334_336);
+        let exe = "\"/usr/bin/irori\"";
+        assert_eq!(short_app_id(exe, "Test Game"), 3_178_406_524);
+        assert_eq!(shortcut_id(exe, "Test Game"), -1_116_560_772);
         assert_eq!(
             GridIds::from_exe_name(exe, "Test Game").big_picture,
-            18_075_940_924_101_230_592
+            13_651_152_074_006_593_536
         );
     }
 
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(reparsed.entries().count(), 2);
         let e = reparsed.entries().nth(1).unwrap();
         assert_eq!(e.app_name(), "Test Game");
-        assert_eq!(e.app_id(), Some(4_208_632_960));
+        assert_eq!(e.app_id(), Some(3_178_406_524));
 
         let removed = reparsed.remove_where(|e| e.launch_options().contains("gog/123"));
         assert_eq!(removed.len(), 1);
@@ -348,7 +348,7 @@ mod tests {
     fn entries_carry_their_collections() {
         let entry = sample("Test Game").to_entry();
         let tags = entry.get_ci("tags").and_then(Value::as_map).unwrap();
-        assert_eq!(tags.0, [("0".into(), Value::String("Ember".into()))]);
+        assert_eq!(tags.0, [("0".into(), Value::String("Irori".into()))]);
         let bytes = vdf::write(&Map::new().with(
             "shortcuts",
             Value::Map(Map::new().with("0", Value::Map(entry))),

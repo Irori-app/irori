@@ -146,7 +146,7 @@ impl ZoomApi {
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T> {
         let url = format!("{}{path}", self.base);
-        let resp = ember_core::http::client()
+        let resp = irori_core::http::client()
             .get(&url)
             .bearer_auth(&self.token)
             .header(ACCEPT, "application/json")

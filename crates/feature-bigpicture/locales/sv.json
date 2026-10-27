@@ -20,7 +20,7 @@
   "bigpicture.menu.pause_downloads": "Pausa nedladdningar",
   "bigpicture.menu.resume_downloads": "Återuppta nedladdningar",
   "bigpicture.menu.toggle_fullscreen": "Växla helskärm",
-  "bigpicture.menu.quit": "Avsluta Ember",
+  "bigpicture.menu.quit": "Avsluta Irori",
   "bigpicture.menu.no_downloads": "Inga nedladdningar",
   "bigpicture.error.launch": "Kunde inte starta {title}",
   "bigpicture.error.stop": "Kunde inte stoppa {title}",
