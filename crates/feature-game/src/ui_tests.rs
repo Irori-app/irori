@@ -259,3 +259,42 @@ fn download_queue_drives_the_primary_action(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert_eq!(primary(cx, &page), Some(PrimaryAction::Install));
 }
+
+#[gpui_kit::test]
+fn play_twice_with_a_missing_emulator_opens_one_dialog(cx: &mut TestAppContext) {
+    let id = test_game().id();
+    let (_b, handle, _page) = open_page(cx, id.clone());
+    let error = anyhow::Error::new(ember_engines::EngineMissing {
+        engine: "retroarch".into(),
+        name: "RetroArch".into(),
+        core: None,
+        pinned: None,
+    });
+    let play = |cx: &mut TestAppContext| {
+        cx.update_window(handle, |_, window, cx| {
+            let params = ember_services::LaunchParams::default();
+            assert!(ember_ui::save_conflict::resolve_launch_error(
+                &id, params, &error, window, cx
+            ));
+        })
+        .expect("window");
+        cx.run_until_parked();
+    };
+    let has_dialog = |cx: &mut TestAppContext| {
+        cx.update_window(handle, |_, window, cx| window.has_active_dialog(cx))
+            .expect("window")
+    };
+
+    // A second press before the first dialog is answered doesn't stack another.
+    play(cx);
+    play(cx);
+    assert!(has_dialog(cx));
+    cx.update_window(handle, |_, window, cx| window.close_dialog(cx))
+        .expect("window");
+    cx.run_until_parked();
+    assert!(!has_dialog(cx));
+
+    // Once it's closed, Play offers the fix again.
+    play(cx);
+    assert!(has_dialog(cx));
+}
