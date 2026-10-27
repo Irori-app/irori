@@ -374,10 +374,8 @@ fn windows_registry() -> Registry {
 #[cfg(windows)]
 fn decode_reg(bytes: &[u8]) -> String {
     if bytes.starts_with(&[0xff, 0xfe]) {
-        let units: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
-            .collect();
+        let (pairs, _) = bytes[2..].as_chunks::<2>();
+        let units: Vec<u16> = pairs.iter().map(|c| u16::from_le_bytes(*c)).collect();
         String::from_utf16_lossy(&units)
     } else {
         String::from_utf8_lossy(bytes).into_owned()
