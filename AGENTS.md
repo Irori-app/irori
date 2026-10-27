@@ -147,7 +147,10 @@ Other top-level paths:
   `install-windows.ps1`, the desktop entry, icons and entitlements.
 - `docs/`:
   - `PLATFORMS.md`: paths, desktop behaviour, translucency, packaging, release checklist.
-  - `parity/`: the Heroic behaviour Ember matches.
+  - `parity/`: the Heroic behaviour Ember matches, and the Lutris behaviour
+    (`parity/lutris.md`).
+  - `design/`: designs of larger features (`design/engines.md`: emulators, ROM
+    libraries, Lutris import and scripts, third-party launchers).
   - The three briefs (see the top of this file).
 - `postman/`: contract, mock and simulation used by an ignored runtime test.
 - `.github/`: CI, the PR-rule check and the PR template.
