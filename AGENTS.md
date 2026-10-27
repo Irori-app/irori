@@ -133,6 +133,8 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/store-itch` | `ember-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `emberItchIo` |
 | `crates/store-steam` | `ember-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
 | `crates/store-sideload` | `ember-sideload` | Apps the user adds (native, Windows, browser) |
+| `crates/launchers` | `ember-launchers-data` | Reads third-party launchers' local data (Battle.net `product.db`, Ubisoft cache and registry, EA manifests, Rockstar registry) |
+| `crates/store-launchers` | `ember-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar (`Runner::Launchers`): setup and library, opt-in through `emberThirdPartyLaunchers` |
 | `crates/store-emulation` | `ember-emulation` | The ROM library (`Runner::Emulation`): scanned folders, played with emulators |
 | `crates/extras` | `ember-extras` | Shortcuts, PCGamingWiki/HLTB/ProtonDB/anticheat info, known fixes, SteamGridDB, deals, Heroic import, Lutris import planning |
 | `crates/services` | `ember-services` | The `Backend` facade: library, settings, user data, download queue, launching, playtime, Lutris script installs (`scripts.rs`) |
@@ -174,7 +176,8 @@ ember-core                        (depends on nothing internal)
   ├─ protocol crates: ember-epic-api, ember-gog-api, ember-amazon-api, ember-itch-api
   │                   (depot only, not core)
   ├─ store crates:    ember-epic, ember-gog, ember-amazon, ember-zoom, ember-itch,
-  │                   ember-steam, ember-sideload, ember-emulation (+ engines)
+  │                   ember-steam, ember-sideload, ember-emulation (+ engines),
+  │                   ember-launchers (+ runtime, ember-launchers-data)
   └─ ember-services   (core, depot, runtime, extras, engines, scripts; stores reach it as `DynStore`)
 ember-ui          (services, core)
 feature crates    (ui, services, core; concrete store crates only where a screen needs a store's own API)
@@ -233,11 +236,12 @@ and `launch.rs` before changing anything below the UI.
   - `SaveConflict`: saves changed both locally and in the cloud since the last sync.
     Return it for every direction except the forced ones; the launch stops and the UI
     asks which saves to keep (`ember_ui::save_conflict`).
-- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam, Sideload and Emulation. Their
+- `Runner` values are Legendary, Gog, Nile, Zoom, Itch, Steam, Sideload, Emulation and
+  Launchers. Their
   serialized ids are Heroic's (`legendary`, `gog`, `nile`, …); `from_id` also accepts
   `epic` and `amazon`. Ember-only runners use their store's plain name (`itch`,
   `steam`).
-- `Runner::manages_installs()` is false for Steam: its games are listed and launched,
+- `Runner::manages_installs()` is false for Steam and Launchers: its games are listed and launched,
   never installed, moved, repaired or removed. UI code hides those commands and
   services refuse them before touching files.
 - `GameId { runner, app_name: Arc<str> }` has `key() == "runner:app"`, which keys
@@ -360,7 +364,8 @@ which runs one instance per account ("slot") and merges them into one `Store`:
 The shell registers the stores in `crates/ember/src/stores.rs`, in this order: Epic,
 GOG, Amazon, ZOOM (only when `settings.zoom_platform` is on), itch.io (always
 registered; empty and signed out while `settings.itch_io` is off, so its account card
-can turn it on), Steam, Emulation (the ROM library), then Sideload. Adding a
+can turn it on), Steam, Launchers (always registered; empty while
+`emberThirdPartyLaunchers` is off), Emulation (the ROM library), then Sideload. Adding a
 store means:
 
 1. A protocol crate, if the store has a protocol.
@@ -595,6 +600,21 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
     records its script in the Ember-only per-game setting `emberLutrisScript`
     (`{slug, installerSlug, version, revision, sourceUrl}`) for later reinstalls and
     updates.
+
+### 4.9 Third-party launchers
+
+- Ember never handles Battle.net, EA app, Ubisoft Connect or Rockstar accounts. The
+  Stores page sets a launcher up once: a prefix of its own (`<prefixes>/<launcher
+  name>`) with the Wine build the user picks, and the vendor's official installer
+  (natively on Windows). The user signs in and installs games inside the launcher.
+- Games are read from the launcher's local data (`ember-launchers-data`) and listed as
+  `Runner::Launchers` with `third_party_managed_app` set. App names are
+  `<launcher>:<id>` (`battlenet`, `ea`, `ubisoft`, `rockstar`). They start through the
+  launcher's flags or URI; Ember never installs, updates or removes them.
+- **Sessions follow the game, not the launcher** (`crates/services/src/follow.rs`):
+  while such a game runs, services look every 3 s for processes running from its
+  install folder; the session ends when they are gone, or when the launcher exits
+  without starting the game. Nothing polls when no launcher game runs.
 
 ## 5. Rust conventions
 

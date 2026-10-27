@@ -12,6 +12,7 @@ ember-core.workspace = true
 ember-depot.workspace = true
 ember-runtime.workspace = true
 ember-engines.workspace = true
+sysinfo.workspace = true
 ember-extras.workspace = true
 ember-scripts.workspace = true
 anyhow.workspace = true

@@ -14,6 +14,7 @@ mod downloads;
 mod engines;
 mod facts;
 mod files;
+mod follow;
 mod games;
 mod hooks;
 mod inhibit;

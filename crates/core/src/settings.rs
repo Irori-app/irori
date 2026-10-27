@@ -432,6 +432,10 @@ pub struct AppSettings {
     /// Where the user keeps BIOS files ("" = not chosen).
     #[serde(rename = "emberBiosFolder")]
     pub bios_folder: String,
+    /// List games of Battle.net, EA app, Ubisoft Connect and Rockstar
+    /// (off until turned on). Ember-only.
+    #[serde(rename = "emberThirdPartyLaunchers")]
+    pub third_party_launchers: bool,
 }
 
 impl Default for AppSettings {
@@ -447,6 +451,7 @@ impl Default for AppSettings {
             system_engines: BTreeMap::new(),
             rom_folders: Vec::new(),
             bios_folder: String::new(),
+            third_party_launchers: false,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,
@@ -585,7 +590,11 @@ impl ShownStores {
             Runner::Gog => self.gog,
             Runner::Nile => self.amazon,
             Runner::Steam => self.steam,
-            Runner::Zoom | Runner::Itch | Runner::Sideload | Runner::Emulation => true,
+            Runner::Zoom
+            | Runner::Itch
+            | Runner::Sideload
+            | Runner::Emulation
+            | Runner::Launchers => true,
         }
     }
 
@@ -597,7 +606,11 @@ impl ShownStores {
             Runner::Gog => self.gog = shown,
             Runner::Nile => self.amazon = shown,
             Runner::Steam => self.steam = shown,
-            Runner::Zoom | Runner::Itch | Runner::Sideload | Runner::Emulation => {}
+            Runner::Zoom
+            | Runner::Itch
+            | Runner::Sideload
+            | Runner::Emulation
+            | Runner::Launchers => {}
         }
     }
 

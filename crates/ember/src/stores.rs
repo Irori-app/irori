@@ -80,6 +80,11 @@ pub fn build(bus: EventBus, settings: SettingsFn) -> Vec<DynStore> {
         ember_itch::ItchStore::for_account,
     ));
     stores.push(ember_steam::SteamStore::new(bus.clone(), settings.clone()));
+    // Always present so its switch on the Stores page can turn it on; it
+    // lists nothing while `third_party_launchers` is off.
+    let launchers = ember_launchers::LaunchersStore::new(bus.clone(), settings.clone());
+    let _ = LAUNCHERS.set(launchers.clone());
+    stores.push(launchers);
     let emulation = ember_emulation::EmulationStore::new(bus.clone(), settings.clone());
     let _ = EMULATION.set(emulation.clone());
     stores.push(emulation);
@@ -111,6 +116,10 @@ pub fn game_hooks() -> ember_game::GameHooks {
     }
     hooks
 }
+
+/// The third-party launchers store (setup and scanning on the Stores page).
+pub static LAUNCHERS: once_cell::sync::OnceCell<Arc<ember_launchers::LaunchersStore>> =
+    once_cell::sync::OnceCell::new();
 
 /// The ROM library store (scan state for the setup guide).
 pub static EMULATION: once_cell::sync::OnceCell<Arc<ember_emulation::EmulationStore>> =

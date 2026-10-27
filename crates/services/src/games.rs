@@ -254,10 +254,18 @@ impl Backend {
             self.spawn(async move { presence.playing(client_id, title, store, started).await });
         }
 
+        // A third-party launcher's games are followed by their own processes.
+        let follow_folder = (id.runner == ember_core::Runner::Launchers)
+            .then(|| game.install.as_ref().map(|i| i.install_path.clone()))
+            .flatten()
+            .filter(|p| !p.is_empty());
         let b = self.clone();
         let id = id.clone();
         self.spawn(async move {
-            let status = child.wait().await.ok();
+            let status = match &follow_folder {
+                Some(folder) => crate::follow::follow(&mut child, folder.clone()).await,
+                None => child.wait().await.ok(),
+            };
             if let Some(bound) = bound {
                 bound.abort();
                 let _ = log_cap::cut_back(&log_file, header, log_cap::GAME_LOG_CAP);

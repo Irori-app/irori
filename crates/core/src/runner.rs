@@ -26,10 +26,13 @@ pub enum Runner {
     /// Console and retro games in the user's ROM folders, played with
     /// emulators.
     Emulation,
+    /// Games of official third-party launchers (Battle.net, EA app, Ubisoft
+    /// Connect, Rockstar). Read-only: the launcher installs and updates them.
+    Launchers,
 }
 
 impl Runner {
-    pub const ALL: [Runner; 8] = [
+    pub const ALL: [Runner; 9] = [
         Runner::Legendary,
         Runner::Gog,
         Runner::Nile,
@@ -38,6 +41,7 @@ impl Runner {
         Runner::Steam,
         Runner::Sideload,
         Runner::Emulation,
+        Runner::Launchers,
     ];
 
     /// Stable identifier used in paths, IDs and config keys.
@@ -51,6 +55,7 @@ impl Runner {
             Runner::Steam => "steam",
             Runner::Sideload => "sideload",
             Runner::Emulation => "emulation",
+            Runner::Launchers => "launchers",
         }
     }
 
@@ -65,6 +70,7 @@ impl Runner {
             Runner::Steam => "Steam",
             Runner::Sideload => "Added manually",
             Runner::Emulation => "Emulated",
+            Runner::Launchers => "Other launchers",
         }
     }
 
@@ -79,6 +85,7 @@ impl Runner {
             Runner::Steam => "Steam",
             Runner::Sideload => "Other",
             Runner::Emulation => "Emulated",
+            Runner::Launchers => "Launchers",
         }
     }
 
@@ -92,20 +99,24 @@ impl Runner {
             "steam" => Runner::Steam,
             "sideload" => Runner::Sideload,
             "emulation" => Runner::Emulation,
+            "launchers" => Runner::Launchers,
             _ => return None,
         })
     }
 
     /// Whether this store has an account to log in to.
     pub fn has_account(self) -> bool {
-        !matches!(self, Runner::Sideload | Runner::Steam | Runner::Emulation)
+        !matches!(
+            self,
+            Runner::Sideload | Runner::Steam | Runner::Emulation | Runner::Launchers
+        )
     }
 
     /// Whether Ember installs, updates, repairs, moves and removes this
     /// store's games. Steam's games belong to the Steam client: Ember lists
     /// and starts them, nothing more.
     pub fn manages_installs(self) -> bool {
-        !matches!(self, Runner::Steam)
+        !matches!(self, Runner::Steam | Runner::Launchers)
     }
 }
 
