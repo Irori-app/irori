@@ -1,11 +1,35 @@
-# Ember
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/irori-lockup-dark.svg">
+    <img alt="Irori" src="assets/brand/irori-lockup-light.svg" height="96">
+  </picture>
+</p>
 
-A fast, native game launcher for Linux, macOS and Windows. Ember plays your **Epic Games**, **GOG**,
-**Amazon Games**, **ZOOM Platform** and **itch.io** libraries, lists your installed **Steam** games,
-and runs any game you add yourself, running
-Windows games natively on Windows, through Wine/Proton/umu on Linux, and through macOS Wine, CrossOver or Game Porting Toolkit on macOS.
+<p align="center"><b>Every game you own, around one fire.</b></p>
 
-Ember is written in Rust with [GPUI](https://www.gpui.rs) and
+An *irori* (囲炉裏) is the sunken hearth of a traditional Japanese house, the place
+everyone gathers. Irori is a fast, native game launcher for Linux, macOS and Windows
+that gathers your **Epic Games**, **GOG**, **Amazon Games**, **ZOOM Platform** and
+**itch.io** libraries, your installed **Steam** games, your emulated games and anything
+you add yourself into one calm library. Windows games run natively on Windows, through
+Wine, Proton or umu on Linux, and through Wine, CrossOver or Game Porting Toolkit on
+macOS.
+
+## Install
+
+Irori has not published a release yet. The first one will ship as:
+
+| Platform | Packages |
+| --- | --- |
+| Linux | `.deb` and `.rpm` (with apt and dnf repositories), Flathub, AUR, tarball |
+| macOS | Signed and notarized `.dmg`, Homebrew cask |
+| Windows | Signed installer, winget, Scoop |
+
+Until then, build it from source (see [Building](#building)).
+
+## About
+
+Irori is written in Rust with [GPUI](https://www.gpui.rs) and
 [GPUI Kit](https://gpui-kit.com). It is a new application, built from scratch to
 match the feature set of Heroic Games Launcher without Electron: one native process,
 GPU-rendered UI, a small Tokio runtime for I/O, and art that is thumbnailed once to disk
@@ -15,10 +39,10 @@ and kept in a bounded GPU cache.
 
 - One library across stores: fuzzy search, filters, sorting, categories, favourites,
   hidden games, "Continue playing", grid and list views — virtualized for large libraries.
-  Hide the stores you don't use, see installed games by drive, or let Ember pick a
+  Hide the stores you don't use, see installed games by drive, or let Irori pick a
   random game (Ctrl+Shift+G).
 - One-click play from anywhere: library tiles, the game page, the Ctrl+K command palette,
-  the tray menu, desktop/Steam shortcuts and `ember://launch/<runner>/<app>` links
+  the tray menu, desktop/Steam shortcuts and `irori://launch/<runner>/<app>` links
   (Heroic's `heroic://` links work too).
 - Download queue with pause/resume, reordering, speed and ETA, history and "Update all".
 - Per-game settings that inherit your global defaults and show what you overrode.
@@ -31,13 +55,13 @@ and kept in a bounded GPU cache.
   Switch Pro, Steam Deck), with hotplug and battery display. It opens by itself in the
   Steam Deck's Game Mode, reads each press once alongside Steam Input, and scales up to
   200 % for TVs.
-- "Add to Steam" for any game, installed or not, filed under an "Ember" collection;
-  Steam starts Ember, which offers to install a game that isn't installed yet.
+- "Add to Steam" for any game, installed or not, filed under an "Irori" collection;
+  Steam starts Irori, which offers to install a game that isn't installed yet.
 - itch.io, opt-in: log in with an API key, then install, update and play the games you
-  own there. Ember downloads the best upload for your system (resumable), unpacks zip and
+  own there. Irori downloads the best upload for your system (resumable), unpacks zip and
   tar archives and finds the program to start.
 - Your installed Steam games in the same library, read from Steam's own files with no
-  login. Play opens them in Steam, and the playtime Steam recorded is shown in Ember;
+  login. Play opens them in Steam, and the playtime Steam recorded is shown in Irori;
   installing, updating and removing them stays in Steam. On Linux, Protontricks opens
   on a Steam game's Proton prefix from its menu.
 - Several accounts per store (Epic Games, GOG, Amazon Games, ZOOM Platform, itch.io) in
@@ -58,16 +82,16 @@ thumbnails and held in an LRU GPU cache; every long list is virtualized.
 ## Building
 
 Requirements: Rust 1.95+. See [platform support and packaging](docs/PLATFORMS.md) for macOS and Windows. Linux needs the usual GPUI system libraries (Vulkan, Wayland, X11/xcb,
-xkbcommon, fontconfig, freetype). The sign-in window (`cargo build -p ember-sign-in`)
+xkbcommon, fontconfig, freetype). The sign-in window (`cargo build -p irori-sign-in`)
 also needs WebKitGTK 4.1 (`webkit2gtk4.1-devel` on Fedora, `libwebkit2gtk-4.1-dev` on
-Debian/Ubuntu); Ember runs without it. Store downloads, updates and cloud saves are
-built in: Ember needs no external store tools.
+Debian/Ubuntu); Irori runs without it. Store downloads, updates and cloud saves are
+built in: Irori needs no external store tools.
 
 ```bash
-cargo run --release -p ember
+cargo run --release -p irori
 ```
 
-Install for your user (binary, desktop entry, icon and `ember://` handler):
+Install for your user (binary, desktop entry, icon and `irori://` handler):
 
 ```bash
 packaging/install.sh
@@ -88,21 +112,21 @@ packaging/install.sh
 | `crates/ui` | Shared UI layer: models, navigation, art pipeline, theme, components |
 | `crates/feature-*` | Screens: library, game page, settings, downloads/Wine/accounts, Big Picture |
 | `crates/*/locales` | Translation catalogs per crate (`docs/I18N_BRIEF.md`) |
-| `crates/ember` | The application shell and binary |
+| `crates/irori` | The application shell and binary |
 
-`docs/parity/` documents the behaviour Ember matches, `docs/AGENT_BRIEF.md`,
+`docs/parity/` documents the behaviour Irori matches, `docs/AGENT_BRIEF.md`,
 `docs/UI_BRIEF.md` and `docs/I18N_BRIEF.md` the engineering rules.
 
 ## Notes
 
-- Store logins open in Ember's sign-in window (`ember-sign-in`, a small helper process
-  using WebKitGTK on Linux, WKWebView on macOS, and WebView2 on Windows) and finish on their own: Ember never needs anything copied. On macOS
-  and Windows, Ember shows the window itself when the helper isn't built (as after
-  `cargo run -p ember`). On Linux without the helper, or with "Use the browser instead",
-  the page opens in your browser and Ember watches the clipboard for the code or redirect URL.
+- Store logins open in Irori's sign-in window (`irori-sign-in`, a small helper process
+  using WebKitGTK on Linux, WKWebView on macOS, and WebView2 on Windows) and finish on their own: Irori never needs anything copied. On macOS
+  and Windows, Irori shows the window itself when the helper isn't built (as after
+  `cargo run -p irori`). On Linux without the helper, or with "Use the browser instead",
+  the page opens in your browser and Irori watches the clipboard for the code or redirect URL.
 - Discord Rich Presence needs a Discord application ID (Settings → General → Integrations).
 - Data uses each operating system’s application-data and cache directories;
-  `EMBER_HOME` relocates all of it. See [platform paths](docs/PLATFORMS.md#paths-and-desktop-behavior).
+  `IRORI_HOME` relocates all of it. See [platform paths](docs/PLATFORMS.md#paths-and-desktop-behavior).
 
 ## License
 
