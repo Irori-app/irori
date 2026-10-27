@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>app.irori.Irori</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Irori</name>
+  <summary>Every game you own, around one fire</summary>
+  <developer id="app.irori">
+    <name>Irori developers</name>
+  </developer>
+  <description>
+    <p>
+      Irori is a fast, native game launcher. It gathers your Epic Games, GOG, Amazon Games,
+      ZOOM Platform and itch.io libraries, your installed Steam games, your emulated games
+      and anything you add yourself into one calm library.
+    </p>
+    <ul>
+      <li>One-click play, with Wine, Proton and umu managed for you</li>
+      <li>Downloads with pause, resume, verification and delta updates</li>
+      <li>Cloud saves, achievements and playtime</li>
+      <li>Emulators and ROM folders, with BIOS checks before a game starts</li>
+      <li>Big Picture mode with full controller navigation</li>
+      <li>Imports your Heroic and Lutris libraries</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">irori.desktop</launchable>
+  <icon type="remote" width="1024" height="1024">https://irori.app/brand/irori-mark.svg</icon>
+  <url type="homepage">https://irori.app</url>
+  <url type="bugtracker">https://github.com/irori-app/irori/issues</url>
+  <url type="vcs-browser">https://github.com/irori-app/irori</url>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <keywords>
+    <keyword>launcher</keyword>
+    <keyword>epic</keyword>
+    <keyword>gog</keyword>
+    <keyword>wine</keyword>
+    <keyword>proton</keyword>
+    <keyword>emulator</keyword>
+  </keywords>
+  <provides>
+    <binary>irori</binary>
+  </provides>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>gamepad</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Every store in one library</caption>
+      <image>https://irori.app/screenshots/library.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-27"/>
+  </releases>
+</component>

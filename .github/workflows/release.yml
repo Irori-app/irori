@@ -1,0 +1,367 @@
+name: Release
+
+# Builds every package Irori ships. A `v*` tag publishes them as a draft GitHub
+# release; pull requests that touch packaging build and test them without
+# publishing. Signing runs only where its secrets exist (docs/RELEASING.md), so
+# forks and pull requests produce unsigned packages.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/**
+      - crates/irori/Cargo.toml
+      - crates/sign-in/Cargo.toml
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        name: Read the version and match it to the tag
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the workspace version $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    # The oldest glibc Irori supports: these packages run on Ubuntu 22.04+,
+    # Debian 12+, Fedora and openSUSE.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+            libvulkan-dev libfontconfig-dev libfreetype-dev libxcb1-dev libx11-xcb-dev \
+            libudev-dev libssl-dev pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+      - run: cargo build --locked --release -p irori -p irori-sign-in
+      - name: Tarball
+        run: python packaging/package.py --platform linux --binary-dir target/release --output dist
+      - name: Debian packages
+        run: |
+          cargo deb -p irori --no-build --output dist/
+          cargo deb -p irori-sign-in --no-build --output dist/
+          for deb in dist/*.deb; do echo "$deb: $(dpkg-deb -f "$deb" Depends)"; done
+      - name: RPM packages
+        run: |
+          cargo generate-rpm -p crates/irori --output dist/
+          cargo generate-rpm -p crates/sign-in --output dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+            dist/*.rpm
+          if-no-files-found: error
+
+  linux-install:
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['ubuntu:22.04', 'ubuntu:24.04', 'debian:12', 'fedora:42', 'opensuse/tumbleweed']
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+      # Irori alone first, as a system without WebKitGTK gets it: it must start
+      # without the sign-in window's libraries.
+      - name: Install on Debian and Ubuntu
+        if: startsWith(matrix.image, 'ubuntu') || startsWith(matrix.image, 'debian')
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ./irori_*.deb
+          irori --version
+          DEBIAN_FRONTEND=noninteractive apt-get install -y ./irori-sign-in_*.deb
+      - name: Install on Fedora
+        if: startsWith(matrix.image, 'fedora')
+        run: |
+          dnf install -y --setopt=install_weak_deps=False ./irori-[0-9]*.rpm
+          irori --version
+          dnf install -y ./irori-sign-in-*.rpm
+      - name: Install on openSUSE
+        if: startsWith(matrix.image, 'opensuse')
+        run: |
+          zypper --non-interactive install --no-recommends --allow-unsigned-rpm ./irori-[0-9]*.rpm
+          irori --version
+          zypper --non-interactive install --allow-unsigned-rpm ./irori-sign-in-*.rpm
+      - name: The sign-in window loads its libraries
+        shell: bash
+        run: |
+          set +e
+          irori-sign-in --unsupported 2> error.txt
+          status=$?
+          set -e
+          cat error.txt
+          [ "$status" -eq 1 ] && grep -q 'unknown argument --unsupported' error.txt
+
+  # The Flatpak builds offline, so every crate is listed as a source first.
+  # This runs outside the builder image, which has no package manager.
+  cargo-sources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate cargo-sources.json
+        run: |
+          python -m pip install --quiet 'aiohttp>=3.9.5,<4' 'tomlkit>=0.13.3,<1' 'PyYAML>=6.0.2,<7'
+          curl -fsSLo "$RUNNER_TEMP/flatpak-cargo-generator.py" \
+            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/9d86d336a39b9af38b86f114b6ce5820fe260f91/cargo/flatpak-cargo-generator.py
+          python "$RUNNER_TEMP/flatpak-cargo-generator.py" Cargo.lock -o cargo-sources.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cargo-sources
+          path: cargo-sources.json
+          if-no-files-found: error
+
+  flatpak:
+    needs: [version, cargo-sources]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: cargo-sources
+          path: packaging/flatpak
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/flatpak/app.irori.Irori.yml
+          bundle: Irori-${{ needs.version.outputs.version }}-linux.flatpak
+          cache-key: flatpak-${{ hashFiles('Cargo.lock') }}
+          upload-artifact: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: '*.flatpak'
+          if-no-files-found: error
+
+  macos:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    env:
+      SIGNED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      NOTARIZED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_API_KEY_P8 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: cargo build --locked --release -p irori -p irori-sign-in
+      - name: Import the Developer ID certificate
+        if: env.SIGNED == 'true'
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 24)
+          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain" > /dev/null
+          read -r -a existing <<< "$(security list-keychains -d user | tr -d '"' | tr '\n' ' ')"
+          security list-keychains -d user -s "$keychain" "${existing[@]}"
+          rm "$RUNNER_TEMP/certificate.p12"
+          echo "IRORI_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+      - name: App and disk image
+        run: python packaging/package.py --platform macos --binary-dir target/release --output dist --dmg
+      - name: Notarize
+        if: env.NOTARIZED == 'true'
+        env:
+          API_KEY: ${{ secrets.APPLE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          echo "$API_KEY" | base64 --decode > "$RUNNER_TEMP/key.p8"
+          for dmg in dist/*.dmg; do
+            xcrun notarytool submit "$dmg" --key "$RUNNER_TEMP/key.p8" \
+              --key-id "$API_KEY_ID" --issuer "$API_ISSUER" --wait
+            xcrun stapler staple "$dmg"
+            spctl --assess --type open --context context:primary-signature --verbose "$dmg"
+          done
+          rm "$RUNNER_TEMP/key.p8"
+      - name: The packaged app starts
+        run: |
+          hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/irori" dist/*.dmg
+          "$RUNNER_TEMP/irori/Irori.app/Contents/MacOS/irori" --version
+          hdiutil detach "$RUNNER_TEMP/irori"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    runs-on: windows-2022
+    env:
+      SIGNED: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: cargo build --locked --release -p irori -p irori-sign-in
+      - name: Upload the executables for signing
+        if: env.SIGNED == 'true'
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: |
+            target/release/irori.exe
+            target/release/irori-sign-in.exe
+      - name: Sign the executables
+        if: env.SIGNED == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: irori
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: executables
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: target/release
+      - name: Portable zip
+        run: python packaging/package.py --platform windows --binary-dir target/release --output dist
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          & $iscc /Q "/DVersion=${{ needs.version.outputs.version }}" "/DSource=$PWD\dist\Irori" "/DOutput=$PWD\dist" packaging\windows\irori.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
+      - name: Upload the installer for signing
+        if: env.SIGNED == 'true'
+        id: unsigned-setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned-setup
+          path: dist/*-setup.exe
+      - name: Sign the installer
+        if: env.SIGNED == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: irori
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist
+      - name: Install, start and uninstall
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist\*-setup.exe | Select-Object -First 1
+          $process = Start-Process $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Setup exited with $($process.ExitCode)" }
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\Irori'
+          foreach ($name in @('irori.exe', 'irori-sign-in.exe', 'vcruntime140.dll', 'vcruntime140_1.dll', 'irori.ico')) {
+            if (!(Test-Path (Join-Path $app $name))) { throw "Missing installed file: $name" }
+          }
+          $out = Join-Path $env:RUNNER_TEMP 'version.txt'
+          $process = Start-Process (Join-Path $app 'irori.exe') -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $out
+          if ($process.ExitCode -ne 0 -or (Get-Content $out -Raw) -notmatch '^irori [0-9]+\.[0-9]+\.[0-9]+') { throw 'Irori failed to start' }
+          $command = (Get-Item 'HKCU:\Software\Classes\irori\shell\open\command').GetValue('')
+          if ($command -ne ('"' + (Join-Path $app 'irori.exe') + '" "%1"')) { throw "Invalid URL handler: $command" }
+          if (!(Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Irori.lnk'))) { throw 'Missing Start menu shortcut' }
+          $process = Start-Process (Join-Path $app 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Uninstall failed' }
+          Start-Sleep -Seconds 2
+          if (Test-Path (Join-Path $app 'irori.exe')) { throw 'Uninstall left irori.exe behind' }
+          if (Test-Path 'HKCU:\Software\Classes\irori') { throw 'Uninstall left the URL handler behind' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, linux, linux-install, flatpak, macos, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: '{linux,flatpak,macos-*,windows}'
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --draft --verify-tag \
+            --title "Irori ${{ needs.version.outputs.version }}" --generate-notes

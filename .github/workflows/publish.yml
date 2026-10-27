@@ -1,0 +1,207 @@
+name: Publish
+
+# Runs when a release is published (after its draft is reviewed) and sends it to
+# each package channel. Every channel is switched on by a repository variable
+# and needs its own secret; docs/RELEASING.md lists them.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, such as v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  # Where the apt and dnf repositories are served: this repository's GitHub
+  # Pages under its custom domain (docs/RELEASING.md).
+  PACKAGES_URL: https://packages.irori.app
+
+jobs:
+  assets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --dir dist
+      - name: Verify checksums
+        working-directory: dist
+        run: sha256sum --check --ignore-missing SHA256SUMS
+      - name: Package-manager manifests
+        run: python3 packaging/release_manifests.py --version "$TAG" --dist dist --repo "$GITHUB_REPOSITORY" --output manifests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifests
+          path: manifests
+
+  # apt and dnf repositories on this repository's GitHub Pages.
+  repositories:
+    if: vars.PUBLISH_PACKAGE_REPOSITORIES == 'true'
+    needs: assets
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: dist
+      - name: Tools
+        run: sudo apt-get update && sudo apt-get install -y apt-utils createrepo-c rpm gnupg
+      - name: Import the signing key
+        env:
+          KEY: ${{ secrets.PACKAGES_GPG_PRIVATE_KEY }}
+        run: |
+          echo "$KEY" | gpg --batch --import
+          fingerprint=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')
+          echo "FINGERPRINT=$fingerprint" >> "$GITHUB_ENV"
+          printf '%%_gpg_name %s\n' "$fingerprint" > ~/.rpmmacros
+      - name: Build the repositories
+        run: |
+          base="$PACKAGES_URL"
+          mkdir -p site/apt/pool/main site/apt/dists/stable/main/binary-amd64 site/rpm/x86_64
+          cp dist/*.deb site/apt/pool/main/
+          cp dist/*.rpm site/rpm/x86_64/
+          rpm --addsign site/rpm/x86_64/*.rpm
+
+          cd site/apt
+          apt-ftparchive packages pool > dists/stable/main/binary-amd64/Packages
+          gzip -k9 dists/stable/main/binary-amd64/Packages
+          apt-ftparchive \
+            -o APT::FTPArchive::Release::Origin=Irori -o APT::FTPArchive::Release::Label=Irori \
+            -o APT::FTPArchive::Release::Suite=stable -o APT::FTPArchive::Release::Codename=stable \
+            -o APT::FTPArchive::Release::Architectures=amd64 -o APT::FTPArchive::Release::Components=main \
+            release dists/stable > Release.tmp
+          mv Release.tmp dists/stable/Release
+          gpg --batch --yes --local-user "$FINGERPRINT" --clearsign -o dists/stable/InRelease dists/stable/Release
+          gpg --batch --yes --local-user "$FINGERPRINT" -abs -o dists/stable/Release.gpg dists/stable/Release
+          cd ../..
+
+          createrepo_c site/rpm
+          gpg --batch --yes --local-user "$FINGERPRINT" --detach-sign --armor site/rpm/repodata/repomd.xml
+
+          gpg --export "$FINGERPRINT" > site/irori.gpg
+          gpg --armor --export "$FINGERPRINT" > site/irori.asc
+          cat > site/irori.repo <<EOF
+          [irori]
+          name=Irori
+          baseurl=$base/rpm
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=$base/irori.asc
+          EOF
+          echo "deb [signed-by=/usr/share/keyrings/irori.gpg] $base/apt stable main" > site/irori.list
+          cat > site/index.html <<EOF
+          <!doctype html><meta charset="utf-8"><title>Irori packages</title>
+          <h1>Irori packages</h1>
+          <h2>Debian and Ubuntu</h2>
+          <pre>curl -fsSL $base/irori.gpg | sudo tee /usr/share/keyrings/irori.gpg &gt; /dev/null
+          curl -fsSL $base/irori.list | sudo tee /etc/apt/sources.list.d/irori.list
+          sudo apt update &amp;&amp; sudo apt install irori</pre>
+          <h2>Fedora and openSUSE</h2>
+          <pre>sudo curl -fsSLo /etc/yum.repos.d/irori.repo $base/irori.repo
+          sudo dnf install irori</pre>
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  aur:
+    if: vars.PUBLISH_AUR == 'true'
+    needs: assets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: manifests
+          path: manifests
+      - uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: irori-bin
+          pkgbuild: manifests/aur/PKGBUILD
+          commit_username: Irori release bot
+          commit_email: ${{ vars.AUR_COMMIT_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update to ${{ env.TAG }}
+          ssh_keyscan_types: ed25519
+
+  homebrew:
+    if: vars.PUBLISH_HOMEBREW == 'true'
+    needs: assets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: manifests
+          path: manifests
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/homebrew-tap
+          token: ${{ secrets.PACKAGING_TOKEN }}
+          path: tap
+      - name: Update the cask
+        working-directory: tap
+        run: |
+          mkdir -p Casks
+          cp ../manifests/homebrew/Casks/irori.rb Casks/irori.rb
+          git config user.name 'Irori release bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Casks/irori.rb
+          git diff --cached --quiet || git commit -m "irori ${TAG#v}"
+          git push
+
+  scoop:
+    if: vars.PUBLISH_SCOOP == 'true'
+    needs: assets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: manifests
+          path: manifests
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/scoop-bucket
+          token: ${{ secrets.PACKAGING_TOKEN }}
+          path: bucket
+      - name: Update the manifest
+        working-directory: bucket
+        run: |
+          mkdir -p bucket
+          cp ../manifests/scoop/bucket/irori.json bucket/irori.json
+          git config user.name 'Irori release bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add bucket/irori.json
+          git diff --cached --quiet || git commit -m "irori: Update to version ${TAG#v}"
+          git push
+
+  # winget-pkgs only accepts updates to a package it already has: submit the
+  # first version by hand (docs/RELEASING.md).
+  winget:
+    if: vars.PUBLISH_WINGET == 'true'
+    needs: assets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Irori.Irori
+          installers-regex: '-windows-setup\.exe$'
+          release-tag: ${{ env.TAG }}
+          token: ${{ secrets.WINGET_TOKEN }}

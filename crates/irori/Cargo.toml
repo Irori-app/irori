@@ -59,3 +59,40 @@ resvg = "0.45"
 # Irori runs the sign-in window itself when the helper is missing: these
 # systems ship their web engines, so it adds no runtime dependency.
 irori-sign-in.workspace = true
+
+# `.deb` (cargo-deb) and `.rpm` (cargo-generate-rpm). The sign-in window is a
+# package of its own, recommended rather than required, because it pulls in
+# WebKitGTK and Irori signs in through the browser without it.
+[package.metadata.deb]
+maintainer = "Diaconu Radu-Mihai <52667211+countradooku@users.noreply.github.com>"
+copyright = "Irori developers"
+license-file = ["../../LICENSE", "0"]
+extended-description = """\
+Irori gathers your Epic Games, GOG, Amazon Games, ZOOM Platform and itch.io \
+libraries, your installed Steam games, your emulated games and anything you \
+add yourself into one native, GPU-rendered library."""
+section = "games"
+priority = "optional"
+depends = "$auto"
+recommends = "irori-sign-in"
+suggests = "wine, umu-launcher, gamemode, mangohud"
+assets = [
+    ["target/release/irori", "usr/bin/", "755"],
+    ["../../packaging/irori.desktop", "usr/share/applications/", "644"],
+    ["../../packaging/irori.svg", "usr/share/icons/hicolor/scalable/apps/", "644"],
+    ["../../packaging/linux/app.irori.Irori.metainfo.xml", "usr/share/metainfo/", "644"],
+]
+
+[package.metadata.generate-rpm]
+summary = "Every game you own, around one fire"
+url = "https://irori.app"
+assets = [
+    { source = "target/release/irori", dest = "/usr/bin/irori", mode = "755" },
+    { source = "packaging/irori.desktop", dest = "/usr/share/applications/irori.desktop", mode = "644" },
+    { source = "packaging/irori.svg", dest = "/usr/share/icons/hicolor/scalable/apps/irori.svg", mode = "644" },
+    { source = "packaging/linux/app.irori.Irori.metainfo.xml", dest = "/usr/share/metainfo/app.irori.Irori.metainfo.xml", mode = "644" },
+    { source = "LICENSE", dest = "/usr/share/licenses/irori/LICENSE", mode = "644", doc = true },
+]
+
+[package.metadata.generate-rpm.recommends]
+irori-sign-in = "*"

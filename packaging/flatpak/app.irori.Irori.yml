@@ -1,0 +1,97 @@
+# Irori as a Flatpak. CI builds it from this checkout (`release.yml`); the
+# Flathub submission uses the same manifest with a `git` source pinned to a tag.
+#
+# cargo-sources.json is generated, not committed:
+#   python3 flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
+id: app.irori.Irori
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: irori
+rename-desktop-file: irori.desktop
+rename-icon: irori
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  # GPUs for rendering, and controllers for Big Picture and games.
+  - --device=all
+  # 32-bit Wine needs the multiarch personality.
+  - --allow=multiarch
+  - --allow=per-app-dev-shm
+  # Game libraries, Wine prefixes, ROM folders and Steam's files live anywhere
+  # in the home folder or on other drives.
+  - --filesystem=home
+  - --filesystem=/mnt
+  - --filesystem=/media
+  - --filesystem=/run/media
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # Sleep inhibition while a game runs.
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.freedesktop.PowerManagement.Inhibit
+  - --system-talk-name=org.freedesktop.login1
+  # Steam, Lutris and other tools installed on the host.
+  - --talk-name=org.freedesktop.Flatpak
+  - --env=PATH=/app/bin:/app/utils/bin:/usr/bin
+
+add-extensions:
+  org.freedesktop.Platform.Compat.i386:
+    directory: lib/i386-linux-gnu
+    version: '25.08'
+  org.freedesktop.Platform.Compat.i386.Debug:
+    directory: lib/debug/lib/i386-linux-gnu
+    version: '25.08'
+    no-autodownload: true
+  org.freedesktop.Platform.GL32:
+    directory: lib/i386-linux-gnu/GL
+    version: '1.4'
+    versions: 25.08;1.4
+    subdirectories: true
+    no-autodownload: true
+    autodelete: false
+    add-ld-path: lib
+    merge-dirs: vulkan/icd.d;glvnd/egl_vendor.d;OpenCL/vendors;lib/dri;lib/d3d;vulkan/explicit_layer.d;vulkan/implicit_layer.d
+    download-if: active-gl-driver
+    enable-if: active-gl-driver
+
+modules:
+  - name: i386-compat
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/i386-linux-gnu /app/lib/i386-linux-gnu/GL /app/lib/debug/lib/i386-linux-gnu
+      - install -Dm644 ld.so.conf /app/etc/ld.so.conf
+    sources:
+      - type: inline
+        dest-filename: ld.so.conf
+        contents: |
+          /app/lib32
+          /app/lib/i386-linux-gnu
+
+  - name: irori
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/irori/cargo
+        CARGO_NET_OFFLINE: 'true'
+    build-commands:
+      - cargo --offline build --release --locked -p irori -p irori-sign-in
+      - install -Dm755 target/release/irori /app/bin/irori
+      - install -Dm755 target/release/irori-sign-in /app/bin/irori-sign-in
+      - install -Dm644 packaging/irori.desktop /app/share/applications/irori.desktop
+      - install -Dm644 packaging/irori.svg /app/share/icons/hicolor/scalable/apps/irori.svg
+      - install -Dm644 packaging/linux/app.irori.Irori.metainfo.xml /app/share/metainfo/app.irori.Irori.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - dist
+          - website
+      - cargo-sources.json
