@@ -130,20 +130,39 @@ jobs:
           cat error.txt
           [ "$status" -eq 1 ] && grep -q 'unknown argument --unsupported' error.txt
 
+  # The Flatpak builds offline, so every crate is listed as a source first.
+  # This runs outside the builder image, which has no package manager.
+  cargo-sources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate cargo-sources.json
+        run: |
+          python -m pip install --quiet 'aiohttp>=3.9.5,<4' 'tomlkit>=0.13.3,<1' 'PyYAML>=6.0.2,<7'
+          curl -fsSLo "$RUNNER_TEMP/flatpak-cargo-generator.py" \
+            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/9d86d336a39b9af38b86f114b6ce5820fe260f91/cargo/flatpak-cargo-generator.py
+          python "$RUNNER_TEMP/flatpak-cargo-generator.py" Cargo.lock -o cargo-sources.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cargo-sources
+          path: cargo-sources.json
+          if-no-files-found: error
+
   flatpak:
-    needs: version
+    needs: [version, cargo-sources]
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - name: Cargo sources for the offline build
-        run: |
-          dnf install -y python3-aiohttp python3-tomlkit
-          curl -fsSLo /tmp/flatpak-cargo-generator.py \
-            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/9d86d336a39b9af38b86f114b6ce5820fe260f91/cargo/flatpak-cargo-generator.py
-          python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: cargo-sources
+          path: packaging/flatpak
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           manifest-path: packaging/flatpak/io.github.irori_app.Irori.yml
