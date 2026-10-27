@@ -162,6 +162,7 @@ Other top-level paths:
   - `design/`: designs of larger features (`design/engines.md`: emulators, ROM
     libraries, Lutris import and scripts, third-party launchers).
   - The three briefs (see the top of this file).
+- `website/`: the project site (Vue, shadcn-vue), deployed with Coolify; see its README.
 - `postman/`: contract, mock and simulation used by an ignored runtime test.
 - `.github/`: CI, the PR-rule check and the PR template.
 

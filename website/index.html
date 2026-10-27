@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Irori</title>
+    <meta name="description" content="Irori is a fast, native game launcher for Linux, macOS and Windows. Epic Games, GOG, Amazon Games, itch.io, Steam, emulators and your own games in one library." />
+    <meta name="theme-color" content="#15110e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f4ee" media="(prefers-color-scheme: light)" />
+    <meta property="og:title" content="Irori — every game you own, around one fire" />
+    <meta property="og:description" content="A fast, native game launcher for Linux, macOS and Windows." />
+    <meta property="og:image" content="/screenshots/library.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Set the theme before the first paint so the page never flashes.
+      try {
+        var choice = localStorage.getItem('irori-theme') || 'auto'
+        var dark = choice === 'dark' || (choice === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+      } catch (e) {
+        document.documentElement.classList.toggle('dark', matchMedia('(prefers-color-scheme: dark)').matches)
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

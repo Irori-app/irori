@@ -1,0 +1,38 @@
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths: [website/**, .github/workflows/website.yml]
+  pull_request:
+    paths: [website/**, .github/workflows/website.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: The container serves the site
+        run: |
+          docker build -t irori-website .
+          docker run -d --rm -p 8080:80 --name site irori-website
+          sleep 2
+          curl -fsS http://localhost:8080/ | grep -q '<title>Irori</title>'
+          curl -fsS -o /dev/null http://localhost:8080/screenshots/library.webp
+          docker stop site
