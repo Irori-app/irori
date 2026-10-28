@@ -26,6 +26,9 @@ gtk = "0.18"
 # The version Wry pins, so pop-ups share its WebKitGTK types.
 webkit2gtk = { version = "=2.0.1", features = ["v2_40"] }
 
+[target.'cfg(windows)'.build-dependencies]
+winresource.workspace = true
+
 # Packaged on its own (see `crates/irori/Cargo.toml`), so Irori's package never
 # requires WebKitGTK.
 [package.metadata.deb]

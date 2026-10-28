@@ -357,6 +357,10 @@ jobs:
           $out = Join-Path $env:RUNNER_TEMP 'version.txt'
           $process = Start-Process (Join-Path $app 'irori.exe') -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $out
           if ($process.ExitCode -ne 0 -or (Get-Content $out -Raw) -notmatch '^irori [0-9]+\.[0-9]+\.[0-9]+') { throw 'Irori failed to start' }
+          foreach ($name in @('irori.exe', 'irori-sign-in.exe')) {
+            $info = (Get-Item (Join-Path $app $name)).VersionInfo
+            if ($info.ProductName -ne 'Irori' -or $info.FileVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+') { throw "$name has no embedded version details" }
+          }
           $command = (Get-Item 'HKCU:\Software\Classes\irori\shell\open\command').GetValue('')
           if ($command -ne ('"' + (Join-Path $app 'irori.exe') + '" "%1"')) { throw "Invalid URL handler: $command" }
           if (!(Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Irori.lnk'))) { throw 'Missing Start menu shortcut' }

@@ -60,6 +60,9 @@ resvg = "0.45"
 # systems ship their web engines, so it adds no runtime dependency.
 irori-sign-in.workspace = true
 
+[target.'cfg(windows)'.build-dependencies]
+winresource.workspace = true
+
 # `.deb` (cargo-deb) and `.rpm` (cargo-generate-rpm). The sign-in window is a
 # package of its own, recommended rather than required, because it pulls in
 # WebKitGTK and Irori signs in through the browser without it.
