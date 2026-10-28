@@ -364,10 +364,17 @@ jobs:
           $command = (Get-Item 'HKCU:\Software\Classes\irori\shell\open\command').GetValue('')
           if ($command -ne ('"' + (Join-Path $app 'irori.exe') + '" "%1"')) { throw "Invalid URL handler: $command" }
           if (!(Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Irori.lnk'))) { throw 'Missing Start menu shortcut' }
+          # Uninstall as winget does, silently, while Irori runs and after the
+          # sign-in window left its WebView2 data folder.
+          $env:IRORI_HOME = Join-Path $env:RUNNER_TEMP 'irori-home'
+          $running = Start-Process (Join-Path $app 'irori.exe') -PassThru
+          New-Item -ItemType Directory -Force (Join-Path $app 'irori-sign-in.exe.WebView2\EBWebView') | Out-Null
+          Start-Sleep -Seconds 5
+          if ($running.HasExited) { Write-Warning "Irori exited before the uninstall ($($running.ExitCode)); not testing a running uninstall" }
           $process = Start-Process (Join-Path $app 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES' -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw 'Uninstall failed' }
           Start-Sleep -Seconds 2
-          if (Test-Path (Join-Path $app 'irori.exe')) { throw 'Uninstall left irori.exe behind' }
+          if (Test-Path $app) { throw "Uninstall left files behind: $((Get-ChildItem -Recurse $app).FullName -join ', ')" }
           if (Test-Path 'HKCU:\Software\Classes\irori') { throw 'Uninstall left the URL handler behind' }
       - uses: actions/upload-artifact@v4
         with:

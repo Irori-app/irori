@@ -82,3 +82,16 @@ Root: HKCU; Subkey: "Software\Classes\irori\shell\open\command"; ValueType: stri
 
 [Run]
 Filename: "{app}\irori.exe"; Description: "{cm:LaunchProgram,Irori}"; Flags: nowait postinstall skipifsilent
+
+; The uninstaller doesn't close running programs when it runs silently, as
+; winget runs it, and a running Irori keeps its files. Without /T, a game
+; started from Irori keeps running.
+[UninstallRun]
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM irori-sign-in.exe"; Flags: runhidden; RunOnceId: "CloseSignIn"
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM irori.exe"; Flags: runhidden; RunOnceId: "CloseIrori"
+
+; WebView2's data folders, made next to the program that shows the sign-in
+; window: irori-sign-in.exe, or irori.exe when it shows the window itself.
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\irori-sign-in.exe.WebView2"
+Type: filesandordirs; Name: "{app}\irori.exe.WebView2"
