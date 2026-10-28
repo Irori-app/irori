@@ -202,7 +202,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SIGNED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
-      NOTARIZED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_API_KEY_P8 != '' }}
+      # Pull requests sign but don't notarize: nothing from them ships, and Apple's
+      # queue can take hours, which would hold up unrelated changes.
+      NOTARIZED: ${{ github.event_name != 'pull_request' && secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_API_KEY_P8 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
