@@ -54,7 +54,14 @@ export const INSTALL: Record<'linux' | 'macos' | 'windows', InstallOption[]> = {
         'sudo dnf install irori',
       ],
     },
-    { label: 'Flatpak', commands: ['flatpak install flathub app.irori.Irori'], note: 'Also the way to install on Steam Deck.' },
+    {
+      label: 'Flatpak',
+      commands: [
+        'flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo',
+        'flatpak install --user ./Irori-*-linux.flatpak',
+      ],
+      note: 'Download the .flatpak from the releases page first. Also the way to install on Steam Deck, in Desktop Mode. Irori isn’t on Flathub yet, so install each new version the same way.',
+    },
     {
       label: 'Arch Linux',
       commands: [
@@ -71,9 +78,8 @@ export const INSTALL: Record<'linux' | 'macos' | 'windows', InstallOption[]> = {
     { label: 'Disk image', commands: [], note: 'Download the .dmg for Apple silicon or Intel from the releases page and drag Irori to Applications.' },
   ],
   windows: [
-    { label: 'winget', commands: ['winget install Irori.Irori'] },
+    { label: 'Installer', commands: [], note: 'Download Irori-…-windows-setup.exe from the releases page. It installs for your user and never asks for administrator rights.' },
     { label: 'Scoop', commands: ['scoop bucket add irori https://github.com/irori-app/scoop-bucket', 'scoop install irori'] },
-    { label: 'Installer', commands: [], note: 'Download Irori-setup.exe from the releases page. It installs for your user and never asks for administrator rights.' },
   ],
 }
 
