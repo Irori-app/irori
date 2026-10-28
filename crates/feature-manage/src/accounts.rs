@@ -2,7 +2,9 @@
 //! account of each store with its game count, log in / log out / refresh
 //! per account, and adding another account.
 
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
@@ -16,14 +18,14 @@ use gpui_kit::component::{
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, ElementId, InteractiveElement as _, IntoElement, ParentElement as _,
-    Render, SharedString, Styled as _, Subscription, Window, div, rems,
+    Pixels, Render, SharedString, Styled as _, Subscription, Window, div, px,
 };
 use irori_core::{Runner, ShownStores, StoreAccount};
 use irori_ui::components::PageHeader;
 use irori_ui::i18n::{t, t_args};
 use irori_ui::{backend, models};
 
-use crate::common::{backend_op, card, notify_error, notify_success};
+use crate::common::{backend_op, card, card_grid, notify_error, notify_success};
 use crate::login::{open_account_login_dialog, open_login_dialog};
 
 /// Stores with a card on the accounts page, in display order. Steam has no
@@ -36,6 +38,9 @@ pub(crate) const ACCOUNT_STORES: [Runner; 6] = [
     Runner::Itch,
     Runner::Steam,
 ];
+
+/// Narrowest an account card gets before the grid drops a column, in rem.
+const MIN_CARD_REM: f32 = 20.;
 
 /// Icon used for a store across the management screens.
 pub(crate) fn store_icon(runner: Runner) -> IconName {
@@ -141,6 +146,8 @@ const STORE_WIDE: &str = "";
 /// One card per store with its account state and actions.
 pub struct AccountsView {
     cards: Vec<StoreCard>,
+    /// Width of the cards' grid at the last layout.
+    grid_width: Rc<Cell<Pixels>>,
     online: bool,
     /// Accounts being refreshed or logged out, by store and slot.
     refreshing: BTreeSet<(Runner, String)>,
@@ -159,6 +166,7 @@ impl AccountsView {
         ];
         let mut this = Self {
             cards: Vec::new(),
+            grid_width: Rc::new(Cell::new(px(0.))),
             online: true,
             refreshing: BTreeSet::new(),
             logging_out: BTreeSet::new(),
@@ -597,7 +605,7 @@ impl AccountsView {
         let theme = cx.theme();
         card(cx)
             .id(ElementId::Name(format!("account-{}", runner.id()).into()))
-            .w(rems(20.))
+            .debug_selector(move || format!("account-{}", runner.id()))
             .child(
                 h_flex()
                     .gap_2()
@@ -612,7 +620,9 @@ impl AccountsView {
                     )
                     .child(state_tag),
             )
-            .child(div().min_h_10().child(detail))
+            // Takes the card's spare height, so the actions sit at the bottom
+            // of every card in a row.
+            .child(div().flex_1().min_h_10().child(detail))
             .child(actions)
             .into_any_element()
     }
@@ -710,7 +720,7 @@ impl AccountsView {
 }
 
 impl Render for AccountsView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let cards: Vec<AnyElement> = self
             .cards
             .clone()
@@ -737,7 +747,7 @@ impl Render for AccountsView {
                             t("manage.accounts.offline"),
                         ))
                     })
-                    .child(h_flex().flex_wrap().items_start().gap_4().children(cards)),
+                    .child(card_grid(&self.grid_width, MIN_CARD_REM, cards, window)),
             )
     }
 }

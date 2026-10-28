@@ -2,6 +2,9 @@
 //! open each store in the browser, and deals on games the user owns or
 //! wishes for.
 
+use std::cell::Cell;
+use std::rc::Rc;
+
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::link::Link;
@@ -10,7 +13,7 @@ use gpui_kit::component::{ActiveTheme as _, Icon, Sizable as _, StyledExt as _, 
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, AppContext as _, Context, ElementId, Entity, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div, rems,
+    ParentElement as _, Pixels, Render, SharedString, Styled as _, Subscription, Window, div, px,
 };
 use irori_core::Runner;
 use irori_ui::components::{PageHeader, SectionTitle};
@@ -18,7 +21,7 @@ use irori_ui::i18n::t;
 use irori_ui::models;
 
 use crate::accounts::{ACCOUNT_STORES, StoreCard, store_cards, store_icon};
-use crate::common::card;
+use crate::common::{card, card_grid};
 use crate::deals::DealsSection;
 use crate::login::open_login_dialog;
 
@@ -62,9 +65,14 @@ pub(crate) fn store_site(runner: Runner) -> Option<StoreSite> {
     })
 }
 
+/// Narrowest a store card gets before the grid drops a column, in rem.
+const MIN_CARD_REM: f32 = 17.;
+
 /// Store links plus deals.
 pub struct StoresView {
     cards: Vec<StoreCard>,
+    /// Width of the store cards' grid at the last layout.
+    grid_width: Rc<Cell<Pixels>>,
     deals: Entity<DealsSection>,
     launchers: Entity<crate::launchers::LaunchersSection>,
     _subscriptions: Vec<Subscription>,
@@ -82,6 +90,7 @@ impl StoresView {
         let launchers = cx.new(|cx| crate::launchers::LaunchersSection::new(window, cx));
         Self {
             cards: store_cards(cx),
+            grid_width: Rc::new(Cell::new(px(0.))),
             deals,
             launchers,
             _subscriptions: subscriptions,
@@ -103,27 +112,34 @@ impl StoresView {
         Some(
             card(cx)
                 .id(ElementId::Name(format!("store-{}", runner.id()).into()))
-                .w(rems(17.))
+                .debug_selector(move || format!("store-{}", runner.id()))
                 .child(
                     h_flex()
                         .gap_2()
                         .child(Icon::new(store_icon(runner)).text_color(theme.muted_foreground))
                         .child(div().font_semibold().child(runner.store_name())),
                 )
+                // Takes the card's spare height, so the login row sits at the
+                // bottom of every card in a row.
                 .child(
-                    div()
-                        .text_sm()
-                        .text_color(theme.muted_foreground)
-                        .child(site.blurb),
-                )
-                .child(
-                    Link::new("site").href(site.url).child(
-                        h_flex()
-                            .gap_1()
-                            .text_sm()
-                            .child(site.host)
-                            .child(Icon::new(IconName::ExternalLink).xsmall()),
-                    ),
+                    v_flex()
+                        .flex_1()
+                        .gap_3()
+                        .child(
+                            div()
+                                .text_sm()
+                                .text_color(theme.muted_foreground)
+                                .child(site.blurb),
+                        )
+                        .child(
+                            Link::new("site").href(site.url).child(
+                                h_flex()
+                                    .gap_1()
+                                    .text_sm()
+                                    .child(site.host)
+                                    .child(Icon::new(IconName::ExternalLink).xsmall()),
+                            ),
+                        ),
                 )
                 .when(data.user.is_none() && !data.disabled, |this| {
                     this.child(
@@ -154,7 +170,7 @@ impl StoresView {
 }
 
 impl Render for StoresView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let cards: Vec<AnyElement> = self
             .cards
             .clone()
@@ -180,7 +196,7 @@ impl Render for StoresView {
                         v_flex()
                             .gap_3()
                             .child(SectionTitle::new(t("manage.stores.websites")))
-                            .child(h_flex().flex_wrap().items_start().gap_4().children(cards)),
+                            .child(card_grid(&self.grid_width, MIN_CARD_REM, cards, window)),
                     )
                     .child(self.launchers.clone())
                     .child(self.deals.clone()),
