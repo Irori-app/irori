@@ -133,10 +133,13 @@ impl AccountsModel {
         self.expired.get(&runner).map(String::as_str)
     }
 
+    /// Whether the user is signed in to a store with accounts. Stores without
+    /// one (added games, Steam, the ROM library, launchers) always report a
+    /// local user, so they never count.
     pub fn any_logged_in(&self) -> bool {
         self.users
             .iter()
-            .any(|(r, u)| *r != Runner::Sideload && u.is_some())
+            .any(|(r, u)| r.has_account() && u.is_some())
     }
 }
 
@@ -442,4 +445,41 @@ pub fn refresh_library(full: bool, cx: &mut App) {
         });
     })
     .detach();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn accounts(users: &[(Runner, bool)]) -> AccountsModel {
+        let local = || UserInfo {
+            account_id: "local".into(),
+            display_name: "Local".into(),
+        };
+        AccountsModel {
+            users: users
+                .iter()
+                .map(|&(runner, signed_in)| (runner, signed_in.then(local)))
+                .collect(),
+            accounts: BTreeMap::new(),
+            expired: BTreeMap::new(),
+            online: true,
+        }
+    }
+
+    #[test]
+    fn stores_without_accounts_do_not_count_as_logged_in() {
+        let fresh = accounts(&[
+            (Runner::Legendary, false),
+            (Runner::Gog, false),
+            (Runner::Steam, true),
+            (Runner::Sideload, true),
+            (Runner::Emulation, true),
+            (Runner::Launchers, true),
+        ]);
+        assert!(!fresh.any_logged_in());
+
+        let signed_in = accounts(&[(Runner::Gog, true), (Runner::Emulation, true)]);
+        assert!(signed_in.any_logged_in());
+    }
 }
