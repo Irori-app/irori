@@ -18,7 +18,7 @@ const platform = ref<Platform>(detect())
 const platforms: { id: Platform; label: string; note: string }[] = [
   { id: 'linux', label: 'Linux', note: 'x86-64. The sign-in window is a separate, recommended package that brings WebKitGTK.' },
   { id: 'macos', label: 'macOS', note: 'macOS 12 or later, on Apple silicon and Intel.' },
-  { id: 'windows', label: 'Windows', note: 'Windows 10 and 11, x64. Installs for your user only.' },
+  { id: 'windows', label: 'Windows', note: 'Windows 10 and 11, x64. Builds aren’t signed yet, so SmartScreen may warn the first time: choose More info, then Run anyway.' },
 ]
 </script>
 
@@ -34,22 +34,15 @@ const platforms: { id: Platform; label: string; note: string }[] = [
           Irori comes from the package manager you already use, and updates with the rest of
           your system.
         </p>
-        <div class="flex flex-col gap-2 rounded-xl border border-ember/40 bg-ember/10 p-4 text-[0.95rem]">
-          <p class="font-medium text-paper">The first release is on its way.</p>
-          <p class="text-smoke">
-            These commands work once it’s out. Until then, build Irori from source with Rust 1.95
-            or newer:
-          </p>
-          <CopyCommand command="cargo run --release -p irori" />
-        </div>
-        <a :href="`${REPO}/releases`" class="inline-flex items-center gap-1 text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">
-          All releases <ArrowUpRight class="size-4" />
+        <a :href="`${REPO}/releases/latest`" class="inline-flex items-center gap-1 text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">
+          Latest release <ArrowUpRight class="size-4" />
         </a>
         <p class="text-[0.95rem] text-smoke">
-          Every download is signed: on macOS with Irori’s Apple Developer ID, on Linux with the
-          packages key, and on Windows through
+          The Mac app is signed with Irori’s Apple Developer ID and notarized by Apple, and the
+          Linux packages are signed with the Irori packages key. Windows builds will be signed
+          through
           <a href="https://signpath.org" class="text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">SignPath Foundation</a>,
-          which provides free code signing for open-source projects.
+          which provides free code signing for open-source projects; until then they are unsigned.
           <a href="/code-signing" class="text-paper underline decoration-wood underline-offset-4 hover:decoration-flame">How releases are signed</a>
         </p>
       </div>

@@ -17,15 +17,18 @@ macOS.
 
 ## Install
 
-Irori has not published a release yet. The first one will ship as:
+Every release is on the [releases page](https://github.com/irori-app/irori/releases),
+and [irori.app](https://irori.app/#download) has the commands for each system.
 
 | Platform | Packages |
 | --- | --- |
-| Linux | `.deb` and `.rpm` (with apt and dnf repositories), Flathub, AUR, tarball |
-| macOS | Signed and notarized `.dmg`, Homebrew cask |
-| Windows | Signed installer, winget, Scoop |
+| Linux | apt, dnf and pacman repositories at `packages.irori.app`, a Flatpak bundle, tarball |
+| macOS | Signed and notarized `.dmg`, Homebrew cask (`irori-app/tap/irori`) |
+| Windows | Installer, Scoop bucket (`irori-app/scoop-bucket`) |
 
-Until then, build it from source (see [Building](#building)).
+Windows builds aren't signed yet, so SmartScreen may warn the first time you run the
+installer. Flathub, winget and the AUR are planned. To build Irori yourself, see
+[Building](#building).
 
 ## About
 
