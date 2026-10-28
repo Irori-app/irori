@@ -7,7 +7,10 @@ use std::rc::Rc;
 use std::sync::{Arc, Once};
 
 use anyhow::{Result, bail};
-use gpui_kit::{AppContext as _, Modifiers, TestAppContext, VisualTestContext, WindowOptions};
+use gpui_kit::{
+    AppContext as _, Bounds, Modifiers, TestAppContext, VisualTestContext, WindowBounds,
+    WindowOptions, px, size,
+};
 use irori_core::{
     DynStore, ExtraInfo, GameId, GameInfo, InstallInfo, InstallInfoQuery, InstallPlatform,
     InstallRequest, LaunchPlan, LaunchRequest, LoginFlow, MAIN_ACCOUNT, OpContext, Outcome, Paths,
@@ -143,45 +146,69 @@ fn downloads_show_items_of_every_store_in_queue_order(cx: &mut TestAppContext) {
     assert!(vcx.debug_bounds("queue-gog:a").is_none());
 }
 
-/// A GOG with two accounts: one signed in, one logged out that still has a
-/// game installed with it.
-struct TwoAccounts;
+/// A store with fixed accounts and no games.
+struct TestStore {
+    runner: Runner,
+    accounts: Vec<StoreAccount>,
+}
+
+impl TestStore {
+    /// A store nobody is signed in to.
+    fn signed_out(runner: Runner) -> DynStore {
+        Arc::new(Self {
+            runner,
+            accounts: Vec::new(),
+        })
+    }
+
+    /// A GOG with two accounts: one signed in, one logged out that still has
+    /// a game installed with it.
+    fn two_accounts() -> DynStore {
+        Arc::new(Self {
+            runner: Runner::Gog,
+            accounts: vec![
+                StoreAccount {
+                    slot: MAIN_ACCOUNT.into(),
+                    account_id: "1".into(),
+                    display_name: "Alice".into(),
+                    signed_in: true,
+                    games: 12,
+                    ..Default::default()
+                },
+                StoreAccount {
+                    slot: "2".into(),
+                    account_id: "2".into(),
+                    display_name: "Bob".into(),
+                    installed: 1,
+                    ..Default::default()
+                },
+            ],
+        })
+    }
+}
 
 #[async_trait]
-impl Store for TwoAccounts {
+impl Store for TestStore {
     fn runner(&self) -> Runner {
-        Runner::Gog
+        self.runner
     }
     async fn init(&self) -> Result<()> {
         Ok(())
     }
     fn user(&self) -> Option<UserInfo> {
-        Some(UserInfo {
-            account_id: "1".into(),
-            display_name: "Alice".into(),
-        })
+        self.accounts
+            .iter()
+            .find(|a| a.signed_in)
+            .map(|a| UserInfo {
+                account_id: a.account_id.clone(),
+                display_name: a.display_name.clone(),
+            })
     }
     fn accounts(&self) -> Vec<StoreAccount> {
-        vec![
-            StoreAccount {
-                slot: MAIN_ACCOUNT.into(),
-                account_id: "1".into(),
-                display_name: "Alice".into(),
-                signed_in: true,
-                games: 12,
-                ..Default::default()
-            },
-            StoreAccount {
-                slot: "2".into(),
-                account_id: "2".into(),
-                display_name: "Bob".into(),
-                installed: 1,
-                ..Default::default()
-            },
-        ]
+        self.accounts.clone()
     }
     fn can_add_account(&self) -> bool {
-        true
+        !self.accounts.is_empty()
     }
     fn login_flow(&self) -> LoginFlow {
         LoginFlow::None
@@ -240,7 +267,7 @@ impl Store for TwoAccounts {
 
 #[gpui_kit::test]
 fn accounts_page_lists_every_account_of_a_store(cx: &mut TestAppContext) {
-    setup_with(cx, || vec![Arc::new(TwoAccounts) as DynStore]);
+    setup_with(cx, || vec![TestStore::two_accounts()]);
     let (handle, _view) = cx.update(|cx| {
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
             cx.new(|cx| AccountsView::new(window, cx))
@@ -257,4 +284,50 @@ fn accounts_page_lists_every_account_of_a_store(cx: &mut TestAppContext) {
         .expect("the logged-out account with an install is listed");
     assert!(alice.top() < bob.top(), "in the store's order");
     assert!(vcx.debug_bounds("add-account").is_some());
+}
+
+#[gpui_kit::test]
+fn account_cards_are_all_as_tall_as_the_tallest(cx: &mut TestAppContext) {
+    setup_with(cx, || {
+        vec![
+            TestStore::signed_out(Runner::Legendary),
+            TestStore::two_accounts(),
+            TestStore::signed_out(Runner::Nile),
+            TestStore::signed_out(Runner::Zoom),
+        ]
+    });
+    // Narrow enough for two rows of cards.
+    let options = cx.update(|cx| WindowOptions {
+        window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+            None,
+            size(px(900.), px(800.)),
+            cx,
+        ))),
+        ..Default::default()
+    });
+    let (handle, _view) = cx.update(|cx| {
+        gpui_kit::open_window(options, cx, |window, cx| {
+            cx.new(|cx| AccountsView::new(window, cx))
+        })
+        .expect("window opens")
+    });
+    let mut vcx = VisualTestContext::from_window(handle, cx);
+    vcx.run_until_parked();
+    let mut card = |id: &'static str| {
+        vcx.debug_bounds(id)
+            .unwrap_or_else(|| panic!("{id} is rendered"))
+    };
+    let gog = card("account-gog");
+    let cards = [
+        card("account-legendary"),
+        card("account-nile"),
+        card("account-zoom"),
+    ];
+    assert!(
+        cards.iter().any(|c| c.top() > gog.bottom()),
+        "the cards take two rows"
+    );
+    for other in cards {
+        assert_eq!(other.size.height, gog.size.height);
+    }
 }
