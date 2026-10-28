@@ -42,6 +42,7 @@ export const INSTALL: Record<'linux' | 'macos' | 'windows', InstallOption[]> = {
     {
       label: 'Debian, Ubuntu',
       commands: [
+        'sudo apt install -y curl',
         'curl -fsSL https://packages.irori.app/irori.gpg | sudo tee /usr/share/keyrings/irori.gpg > /dev/null',
         'curl -fsSL https://packages.irori.app/irori.list | sudo tee /etc/apt/sources.list.d/irori.list',
         'sudo apt update && sudo apt install irori',
