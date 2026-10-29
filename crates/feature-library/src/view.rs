@@ -68,8 +68,9 @@ const TILE_LIFT_PX: f32 = 3.0;
 const CARD_LOGO_REM: f32 = 3.25;
 /// Width of a favourite tile in the top row, in rem.
 const FAVOURITE_REM: f32 = 8.0;
-/// Decoded images kept by the library's image cache.
-const IMAGE_CACHE_CAPACITY: usize = 240;
+/// Decoded images kept by the library's image cache until the first layout
+/// sizes it to the viewport (see [`grid::cached_images`]).
+const IMAGE_CACHE_CAPACITY: usize = 96;
 /// How long a checked shortcut state is trusted before it is checked again.
 const SHORTCUT_TTL: Duration = Duration::from_secs(30);
 
@@ -141,8 +142,10 @@ pub struct LibraryView {
     top: TopCache,
     layout: LibraryLayout,
     tile_rem: f32,
-    /// Measured width of the scroll region (zero until the first paint).
-    viewport: Pixels,
+    /// Measured size of the scroll region (zero until the first paint).
+    viewport: Size<Pixels>,
+    /// Capacity last given to `images`.
+    image_capacity: usize,
     frame: Frame,
     focused: Option<GameId>,
     hovered: Option<GameId>,
@@ -250,7 +253,8 @@ impl LibraryView {
             top: TopCache::default(),
             layout: ui.library_layout,
             tile_rem,
-            viewport: px(0.),
+            viewport: Size::default(),
+            image_capacity: IMAGE_CACHE_CAPACITY,
             frame: Frame::default(),
             focused: None,
             hovered: None,
@@ -354,10 +358,15 @@ impl LibraryView {
         };
 
         let rem = window.rem_size();
-        let width = if self.viewport > px(0.) {
-            self.viewport
+        let width = if self.viewport.width > px(0.) {
+            self.viewport.width
         } else {
             window.viewport_size().width
+        };
+        let height = if self.viewport.height > px(0.) {
+            self.viewport.height
+        } else {
+            window.viewport_size().height
         };
         let available = f32::from(width) / f32::from(rem) - 2.0 * grid::EDGE_REM;
         let metrics = grid::grid_metrics(available, self.tile_rem);
@@ -408,6 +417,28 @@ impl LibraryView {
         };
         self.frame.metrics = metrics;
         self.frame.list_columns = grid::list_columns(available);
+
+        // Continue-playing cards show art and a logo each.
+        let top_images = self
+            .frame
+            .top
+            .as_ref()
+            .map_or(0, |(_, games)| 2 * games.len());
+        let (per_row, row_rem) = match self.layout {
+            LibraryLayout::Grid => (metrics.columns, metrics.row_rem),
+            LibraryLayout::List => (1, grid::LIST_ROW_REM),
+        };
+        let capacity = grid::cached_images(
+            per_row,
+            row_rem,
+            f32::from(height) / f32::from(rem),
+            top_images,
+        );
+        if capacity != self.image_capacity {
+            self.image_capacity = capacity;
+            self.images
+                .update(cx, |images, cx| images.set_capacity(capacity, cx));
+        }
     }
 
     fn columns(&self) -> usize {
@@ -1575,10 +1606,12 @@ impl LibraryView {
         let view = cx.entity().downgrade();
         let measure = canvas(
             move |bounds, _, cx| {
-                let width = bounds.size.width;
+                let size = bounds.size;
                 view.update(cx, |this, cx| {
-                    if (this.viewport - width).abs() > px(0.5) {
-                        this.viewport = width;
+                    if (this.viewport.width - size.width).abs() > px(0.5)
+                        || (this.viewport.height - size.height).abs() > px(0.5)
+                    {
+                        this.viewport = size;
                         cx.notify();
                     }
                 })
