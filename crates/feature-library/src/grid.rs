@@ -80,6 +80,22 @@ pub fn grid_metrics(available_rem: f32, preferred_rem: f32) -> GridMetrics {
     }
 }
 
+/// Screens of covers the library keeps decoded: the one shown plus one above
+/// and one below, so scrolling back a little never reloads art.
+const SCREENS_CACHED: usize = 3;
+/// Fewest decoded images the library keeps, for tiny windows.
+const MIN_CACHED_IMAGES: usize = 24;
+
+/// Decoded images the library's image cache should hold for a viewport
+/// `viewport_rem` tall showing rows `row_rem` tall of `per_row` images, plus
+/// `extra` images outside the rows (the top section). Each cover costs its
+/// pixels twice, in memory and in the GPU atlas, so this follows what fits on
+/// screen instead of a fixed number.
+pub fn cached_images(per_row: usize, row_rem: f32, viewport_rem: f32, extra: usize) -> usize {
+    let rows = (viewport_rem / row_rem.max(1.0)).ceil() as usize + 1;
+    (per_row.max(1) * rows * SCREENS_CACHED + extra).max(MIN_CACHED_IMAGES)
+}
+
 /// Rows needed for `count` tiles.
 pub fn row_count(count: usize, columns: usize) -> usize {
     count.div_ceil(columns.max(1))
@@ -137,6 +153,19 @@ pub fn move_focus(current: Option<usize>, len: usize, columns: usize, step: Move
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cached_images_cover_three_screens() {
+        // 7 columns of 21.3rem rows in a 48.75rem viewport: 4 partial rows on screen.
+        assert_eq!(cached_images(7, 21.3, 48.75, 0), 84);
+        // The smallest tiles filling a 4K screen at 1x still keep three screens.
+        let m = grid_metrics(1920.0 / 16.0 * 2.0 - 3.0, MIN_TILE_REM);
+        let on_screen = m.columns * (2160.0 / 16.0 / m.row_rem).ceil() as usize;
+        assert!(cached_images(m.columns, m.row_rem, 2160.0 / 16.0, 0) >= 3 * on_screen);
+        // Top-section art comes on top, and tiny windows keep a floor.
+        assert_eq!(cached_images(7, 21.3, 48.75, 10), 94);
+        assert_eq!(cached_images(1, 3.75, 1.0, 0), MIN_CACHED_IMAGES);
+    }
 
     #[test]
     fn metrics_fill_the_row() {

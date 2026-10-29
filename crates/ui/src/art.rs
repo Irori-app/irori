@@ -509,6 +509,22 @@ impl LruImageCache {
         entity
     }
 
+    /// Keep at most `capacity` decoded images from now on, dropping the least
+    /// recently used ones that no longer fit.
+    pub fn set_capacity(&mut self, capacity: usize, cx: &mut App) {
+        self.capacity = capacity.max(8);
+        while self.items.len() > self.capacity {
+            let Some(old) = self.order.pop_front() else {
+                break;
+            };
+            if let Some(item) = self.items.remove(&old)
+                && let Some(Ok(image)) = item.get()
+            {
+                cx.drop_image(image, None);
+            }
+        }
+    }
+
     fn touch(&mut self, key: u64) {
         if let Some(pos) = self.order.iter().rposition(|k| *k == key) {
             if pos + 1 == self.order.len() {
