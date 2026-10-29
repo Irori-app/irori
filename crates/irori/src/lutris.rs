@@ -218,11 +218,21 @@ async fn apply_game(
                 }
             }
         }
-        ImportKind::Steam { app_id } => {
+        ImportKind::Steam { app_id, args } => {
             let id = GameId::new(Runner::Steam, app_id.as_str());
             if backend.library().get(&id).is_none() {
                 skip(summary, "steamNotFound", None);
                 return;
+            }
+            // Arguments set in Irori already win over Lutris's.
+            if let Some(args) = args
+                && backend.settings.game(&id).launcher_args.trim().is_empty()
+            {
+                backend.settings.set_game_value(
+                    &id,
+                    "launcherArgs",
+                    Some(Value::String(args.clone())),
+                );
             }
             summary.matched += 1;
             Some(id)

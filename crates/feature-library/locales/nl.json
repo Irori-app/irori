@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Kan snelkoppelingen voor {title} niet verwijderen",
   "library.error.start": "Kan {title} niet starten",
   "library.error.stop": "Kan {title} niet stoppen",
+  "library.error.uninstall_in_client": "Kan {title} niet verwijderen",
   "library.error.verify": "Kan {title} niet verifiëren",
   "library.filter.category_count": "{count} categorieën",
   "library.filter.describe.categories": "Categorieën {names}",

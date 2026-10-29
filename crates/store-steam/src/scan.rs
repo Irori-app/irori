@@ -18,11 +18,37 @@ pub(crate) struct InstalledApp {
     pub build_id: String,
     /// Unix time of the last update.
     pub last_updated: Option<u64>,
+    /// The `appmanifest_<id>.acf` it was read from.
+    pub manifest: PathBuf,
 }
 
-/// Bit of `StateFlags` set once an app is fully installed. It stays set
-/// while an update downloads, so those games remain playable.
-const STATE_FULLY_INSTALLED: u64 = 4;
+/// Bits of a manifest's `StateFlags` (Steam's `EAppState`).
+pub(crate) mod state {
+    /// Set once an app is fully installed. It stays set while an update
+    /// downloads, so those games remain playable.
+    pub const FULLY_INSTALLED: u64 = 1 << 2;
+    pub const APP_RUNNING: u64 = 1 << 6;
+    pub const UPDATE_RUNNING: u64 = 1 << 8;
+    pub const UPDATE_STARTED: u64 = 1 << 10;
+    pub const VALIDATING: u64 = 1 << 14;
+
+    /// States that only occur while Steam prepares or runs a launch. A
+    /// pending or paused update is a library state and doesn't count.
+    pub const LAUNCHING_OR_RUNNING: u64 =
+        APP_RUNNING | UPDATE_RUNNING | UPDATE_STARTED | VALIDATING;
+}
+
+/// `StateFlags` of the manifest at `path`, read afresh.
+pub(crate) fn manifest_flags(path: &Path) -> Option<u64> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let doc = vdf::parse(&text);
+    doc.get("AppState")?
+        .get("StateFlags")?
+        .as_str()?
+        .trim()
+        .parse()
+        .ok()
+}
 
 /// Steam tools that are installed like games but are not games: Proton
 /// builds, the Steam Linux Runtime containers, the shared redistributables
@@ -59,7 +85,7 @@ pub(crate) fn parse_manifest(text: &str, library: &Path) -> Option<InstalledApp>
     let name = field("name").filter(|n| !n.is_empty())?;
     let install_dir = field("installdir").filter(|d| !d.is_empty())?;
     let flags: u64 = field("StateFlags")?.parse().ok()?;
-    if flags & STATE_FULLY_INSTALLED == 0 || is_tool(app_id, name) {
+    if flags & state::FULLY_INSTALLED == 0 || is_tool(app_id, name) {
         return None;
     }
     Some(InstalledApp {
@@ -73,6 +99,9 @@ pub(crate) fn parse_manifest(text: &str, library: &Path) -> Option<InstalledApp>
         last_updated: field("LastUpdated")
             .and_then(|s| s.parse().ok())
             .filter(|t| *t > 0),
+        manifest: library
+            .join("steamapps")
+            .join(format!("appmanifest_{app_id}.acf")),
     })
 }
 
@@ -121,10 +150,26 @@ pub(crate) fn installed_apps(steam_dir: &Path) -> Vec<InstalledApp> {
     apps
 }
 
-/// Minutes played per app ID, from the `localconfig.vdf` of the Steam user
-/// who used this computer last (the most recently written one).
-pub(crate) fn playtime_minutes(steam_dir: &Path) -> HashMap<String, u64> {
-    let Some(config) = latest_local_config(steam_dir) else {
+/// Steam's offset between a SteamID64 and the account ID that names the
+/// user's `userdata` folder.
+const STEAMID64_BASE: u64 = 76_561_197_960_265_728;
+
+/// Minutes played per app ID, from the `localconfig.vdf` of `steamid` (the
+/// signed-in account) when Steam has one for it, else of the Steam user who
+/// used this computer last (the most recently written one).
+pub(crate) fn playtime_minutes(steam_dir: &Path, steamid: Option<&str>) -> HashMap<String, u64> {
+    let own = steamid
+        .and_then(|id| id.parse::<u64>().ok())
+        .and_then(|id| id.checked_sub(STEAMID64_BASE))
+        .map(|account| {
+            steam_dir
+                .join("userdata")
+                .join(account.to_string())
+                .join("config")
+                .join("localconfig.vdf")
+        })
+        .filter(|p| p.is_file());
+    let Some(config) = own.or_else(|| latest_local_config(steam_dir)) else {
         return HashMap::new();
     };
     match std::fs::read_to_string(&config) {
@@ -166,6 +211,88 @@ pub(crate) fn parse_playtime(text: &str) -> HashMap<String, u64> {
             (minutes > 0).then(|| (id.clone(), minutes))
         })
         .collect()
+}
+
+/// The name `steamid` shows as in Steam, from the accounts Steam remembers
+/// on this computer (`config/loginusers.vdf`).
+pub(crate) fn persona_name(steam_dir: &Path, steamid: &str) -> Option<String> {
+    let text = std::fs::read_to_string(steam_dir.join("config").join("loginusers.vdf")).ok()?;
+    let doc = vdf::parse(&text);
+    let name = doc
+        .get("users")?
+        .get(steamid)?
+        .get("PersonaName")?
+        .as_str()?
+        .trim()
+        .to_string();
+    (!name.is_empty()).then_some(name)
+}
+
+/// Art the Steam client keeps for an app in `appcache/librarycache/<id>`:
+/// directly in that folder for older apps, in hashed subfolders (one per
+/// version of the image) for newer ones. Paths of existing files only.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct LocalArt {
+    pub cover: Option<PathBuf>,
+    pub hero: Option<PathBuf>,
+    pub logo: Option<PathBuf>,
+    pub header: Option<PathBuf>,
+}
+
+/// File names Steam uses for each image, best first.
+const COVER_NAMES: [&str; 3] = [
+    "library_600x900_2x.jpg",
+    "library_600x900.jpg",
+    "library_capsule.jpg",
+];
+const HERO_NAMES: [&str; 1] = ["library_hero.jpg"];
+const LOGO_NAMES: [&str; 1] = ["logo.png"];
+const HEADER_NAMES: [&str; 2] = ["library_header.jpg", "header.jpg"];
+
+/// The cached art of `app_id`. Blocking: one folder listing per app.
+pub(crate) fn local_art(steam_dir: &Path, app_id: &str) -> LocalArt {
+    let root = steam_dir.join("appcache").join("librarycache").join(app_id);
+    let Ok(entries) = std::fs::read_dir(&root) else {
+        return LocalArt::default();
+    };
+    // (name, modified, path) of every image in the folder and one level down.
+    let mut files: Vec<(String, std::time::SystemTime, PathBuf)> = Vec::new();
+    let mut add = |path: PathBuf| {
+        let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
+            return;
+        };
+        let modified = std::fs::metadata(&path)
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        files.push((name, modified, path));
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            for inner in std::fs::read_dir(&path).into_iter().flatten().flatten() {
+                add(inner.path());
+            }
+        } else {
+            add(path);
+        }
+    }
+    // The newest file of the best-ranked name: Steam leaves older versions
+    // of an image behind when it fetches a new one.
+    let pick = |names: &[&str]| {
+        names.iter().find_map(|wanted| {
+            files
+                .iter()
+                .filter(|(name, _, _)| name == wanted)
+                .max_by_key(|(_, modified, _)| *modified)
+                .map(|(_, _, path)| path.clone())
+        })
+    };
+    LocalArt {
+        cover: pick(&COVER_NAMES),
+        hero: pick(&HERO_NAMES),
+        logo: pick(&LOGO_NAMES),
+        header: pick(&HEADER_NAMES),
+    }
 }
 
 #[cfg(test)]
@@ -285,7 +412,72 @@ mod tests {
         let config = dir.path().join("userdata/1234/config");
         std::fs::create_dir_all(&config).unwrap();
         std::fs::write(config.join("localconfig.vdf"), text).unwrap();
-        assert_eq!(playtime_minutes(dir.path())["620"], 95);
-        assert!(playtime_minutes(&dir.path().join("none")).is_empty());
+        assert_eq!(playtime_minutes(dir.path(), None)["620"], 95);
+        assert!(playtime_minutes(&dir.path().join("none"), None).is_empty());
+        // The signed-in account's own file wins over the latest one.
+        let own = dir.path().join("userdata/7/config");
+        std::fs::create_dir_all(&own).unwrap();
+        std::fs::write(
+            own.join("localconfig.vdf"),
+            "\"UserLocalConfigStore\" { \"Software\" { \"Valve\" { \"Steam\" { \"apps\" { \"620\" { \"Playtime\" \"5\" } } } } } }",
+        )
+        .unwrap();
+        let steamid = (STEAMID64_BASE + 7).to_string();
+        assert_eq!(playtime_minutes(dir.path(), Some(&steamid))["620"], 5);
+    }
+
+    #[test]
+    fn finds_cached_art_in_both_layouts() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("appcache/librarycache");
+        // Older layout: files directly in the app's folder.
+        std::fs::create_dir_all(cache.join("10")).unwrap();
+        for name in [
+            "library_600x900.jpg",
+            "library_hero.jpg",
+            "logo.png",
+            "header.jpg",
+        ] {
+            std::fs::write(cache.join("10").join(name), "x").unwrap();
+        }
+        let old = local_art(dir.path(), "10");
+        assert!(old.cover.unwrap().ends_with("10/library_600x900.jpg"));
+        assert!(old.header.unwrap().ends_with("10/header.jpg"));
+        assert!(old.hero.is_some() && old.logo.is_some());
+
+        // Newer layout: one hashed folder per image.
+        let app = cache.join("3393110");
+        for (hash, name) in [
+            ("145d", "library_capsule.jpg"),
+            ("0f3e", "library_hero.jpg"),
+            ("7d14", "library_header.jpg"),
+            ("a2c3", "logo.png"),
+        ] {
+            std::fs::create_dir_all(app.join(hash)).unwrap();
+            std::fs::write(app.join(hash).join(name), "x").unwrap();
+        }
+        let new = local_art(dir.path(), "3393110");
+        assert!(new.cover.unwrap().ends_with("145d/library_capsule.jpg"));
+        assert!(new.header.unwrap().ends_with("7d14/library_header.jpg"));
+        assert!(new.hero.unwrap().ends_with("0f3e/library_hero.jpg"));
+        assert!(new.logo.unwrap().ends_with("a2c3/logo.png"));
+
+        assert_eq!(local_art(dir.path(), "1"), LocalArt::default());
+    }
+
+    #[test]
+    fn reads_the_persona_name() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("config")).unwrap();
+        std::fs::write(
+            dir.path().join("config/loginusers.vdf"),
+            "\"users\" { \"76561197960265729\" { \"AccountName\" \"player\" \"PersonaName\" \"Player One\" } }",
+        )
+        .unwrap();
+        assert_eq!(
+            persona_name(dir.path(), "76561197960265729").as_deref(),
+            Some("Player One")
+        );
+        assert!(persona_name(dir.path(), "1").is_none());
     }
 }

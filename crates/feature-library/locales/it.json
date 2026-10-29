@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Impossibile rimuovere i collegamenti per {title}",
   "library.error.start": "Impossibile avviare {title}",
   "library.error.stop": "Impossibile interrompere {title}",
+  "library.error.uninstall_in_client": "Impossibile disinstallare {title}",
   "library.error.verify": "Impossibile verificare {title}",
   "library.filter.category_count": "{count} categorie",
   "library.filter.describe.categories": "Categorie {names}",

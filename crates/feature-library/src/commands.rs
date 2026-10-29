@@ -47,6 +47,9 @@ pub struct GameState {
     /// Another launcher (Steam) installs and runs it: Play, page, library
     /// and folder commands only.
     pub external: bool,
+    /// That launcher's client takes install, verify and uninstall requests
+    /// (Steam), so those commands are handed to it.
+    pub client: bool,
     pub status: Option<StatusKind>,
     pub has_update: bool,
     pub favourite: bool,
@@ -141,12 +144,13 @@ pub fn menu(state: &GameState) -> Vec<Vec<GameCommand>> {
     if state.installed && state.has_install_path && !state.browser {
         files.push(OpenFolder);
     }
-    if state.installed && !state.sideload && !state.external && !busy && !playing {
+    let managed = !state.external || state.client;
+    if state.installed && !state.sideload && managed && !busy && !playing {
         files.push(Verify);
     }
 
     let mut danger = Vec::new();
-    if state.installed && !state.external && !busy && !playing {
+    if state.installed && managed && !busy && !playing {
         danger.push(Uninstall);
     }
 
@@ -292,6 +296,12 @@ mod tests {
             assert!(!steam.contains(&gone), "{gone:?}");
         }
         assert!(steam.contains(&OpenFolder));
+        // Steam itself verifies and removes its games.
+        s.client = true;
+        let steam = flat(&s);
+        assert!(steam.contains(&Verify) && steam.contains(&Uninstall));
+        assert!(!steam.contains(&Settings) && !steam.contains(&AddToSteam));
+        s.client = false;
         s.status = Some(StatusKind::Playing);
         s.status = Some(StatusKind::Repairing);
         assert!(!flat(&s).contains(&Uninstall));

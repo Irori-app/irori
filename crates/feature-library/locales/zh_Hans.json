@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "无法移除 {title} 的快捷方式",
   "library.error.start": "无法启动 {title}",
   "library.error.stop": "无法停止 {title}",
+  "library.error.uninstall_in_client": "无法卸载 {title}",
   "library.error.verify": "无法验证 {title}",
   "library.filter.category_count": "{count} 个分类",
   "library.filter.describe.categories": "分类 {names}",

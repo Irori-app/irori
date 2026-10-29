@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Não foi possível remover os atalhos de {title}",
   "library.error.start": "Não foi possível iniciar {title}",
   "library.error.stop": "Não foi possível parar {title}",
+  "library.error.uninstall_in_client": "Não foi possível desinstalar {title}",
   "library.error.verify": "Não foi possível verificar {title}",
   "library.filter.category_count": "{count} categorias",
   "library.filter.describe.categories": "Categorias {names}",
