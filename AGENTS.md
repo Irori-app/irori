@@ -44,7 +44,7 @@ Wine, Proton or umu, and on macOS through Wine, CrossOver or Game Porting Toolki
 - Product goals, in order: correct, fast, calm, one click to play. It runs as one
   process, renders on the GPU, uses no CPU when idle, keeps memory bounded, and
   virtualizes every long list.
-- License: GPL-3.0-or-later. Bundled themes are from GPUI Kit (Apache-2.0). The
+- License: MIT. Bundled themes are from GPUI Kit (Apache-2.0). The
   vendored `crates/webview` is Apache-2.0 and keeps its own `LICENSE-APACHE`.
 
 ## 2. Commands

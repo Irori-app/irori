@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUIとGPUI Kit",
   "settings.about.credit_lucide": "Lucideアイコン",
   "settings.about.credit_themes": "同梱テーマ",
-  "settings.about.tagline": "Linux向けのゲームランチャーです。GPL-3.0-or-laterでライセンスされています。",
+  "settings.about.tagline": "Linux向けのゲームランチャーです。MITライセンスで提供されています。",
   "settings.about.third_party": "サードパーティーソフトウェア",
   "settings.action.clear_caches": "キャッシュを消去…",
   "settings.action.import": "インポート",

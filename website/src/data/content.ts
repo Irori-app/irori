@@ -107,6 +107,6 @@ export const FAQ = [
   },
   {
     q: 'What does it cost?',
-    a: 'Nothing. Irori is free software under the GPL-3.0 licence, and its source is on GitHub.',
+    a: 'Nothing. Irori is free software under the MIT licence, and its source is on GitHub.',
   },
 ]

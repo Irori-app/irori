@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUI 與 GPUI Kit",
   "settings.about.credit_lucide": "Lucide 圖示",
   "settings.about.credit_themes": "內建主題",
-  "settings.about.tagline": "適用於 Linux 的遊戲啟動器。依 GPL-3.0-or-later 授權條款釋出。",
+  "settings.about.tagline": "適用於 Linux 的遊戲啟動器。依 MIT 授權條款釋出。",
   "settings.about.third_party": "第三方軟體",
   "settings.action.clear_caches": "清除快取…",
   "settings.action.import": "匯入",

@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUI ve GPUI Kit",
   "settings.about.credit_lucide": "Lucide simgeleri",
   "settings.about.credit_themes": "Birlikte gelen temalar",
-  "settings.about.tagline": "Linux için bir oyun başlatıcı. GPL-3.0-or-later lisansıyla dağıtılır.",
+  "settings.about.tagline": "Linux için bir oyun başlatıcı. MIT lisansıyla dağıtılır.",
   "settings.about.third_party": "Üçüncü taraf yazılımlar",
   "settings.action.clear_caches": "Önbellekleri temizle…",
   "settings.action.import": "İçe aktar",

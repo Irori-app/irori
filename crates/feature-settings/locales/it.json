@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUI e GPUI Kit",
   "settings.about.credit_lucide": "Icone Lucide",
   "settings.about.credit_themes": "Temi inclusi",
-  "settings.about.tagline": "Un launcher di giochi per Linux. Distribuito con licenza GPL-3.0-or-later.",
+  "settings.about.tagline": "Un launcher di giochi per Linux. Distribuito con licenza MIT.",
   "settings.about.third_party": "Software di terze parti",
   "settings.action.clear_caches": "Svuota cache…",
   "settings.action.import": "Importa",

@@ -133,6 +133,11 @@ packaging/install.sh
 
 ## License
 
-GPL-3.0-or-later. Bundled community themes are from GPUI Kit (Apache-2.0). The store
-protocol crates are ports of legendary, gogdl and nile (GPL-3.0); the Galaxy service uses
-comet (Apache-2.0).
+MIT, see [LICENSE](LICENSE). Bundled community themes are from GPUI Kit (Apache-2.0),
+and the Galaxy service uses comet (Apache-2.0). The store protocol crates are Rust ports
+of the parts of legendary, gogdl and nile that Irori needs.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Everyone taking
+part in the project follows the [code of conduct](CODE_OF_CONDUCT.md).

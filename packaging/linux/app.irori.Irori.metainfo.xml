@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>app.irori.Irori</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0-or-later</project_license>
+  <project_license>MIT</project_license>
   <name>Irori</name>
   <summary>Every game you own, around one fire</summary>
   <developer id="app.irori">
