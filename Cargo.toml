@@ -30,6 +30,7 @@ irori-epic-api = { path = "crates/epic" }
 irori-gog-api = { path = "crates/gog" }
 irori-gog-galaxy = { path = "crates/gog-galaxy" }
 irori-itch-api = { path = "crates/itch" }
+irori-steam-api = { path = "crates/steam" }
 irori-itch = { path = "crates/store-itch" }
 irori-launchers-data = { path = "crates/launchers" }
 irori-services = { path = "crates/services" }
