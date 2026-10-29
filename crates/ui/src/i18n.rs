@@ -172,14 +172,52 @@ struct State {
     english: Catalog,
 }
 
-static STATE: Lazy<RwLock<State>> = Lazy::new(|| {
-    RwLock::new(State {
-        code: "en".into(),
-        sources: Vec::new(),
-        current: Catalog::new(),
-        english: Catalog::new(),
-    })
-});
+impl State {
+    fn new() -> Self {
+        Self {
+            code: "en".into(),
+            sources: Vec::new(),
+            current: Catalog::new(),
+            english: Catalog::new(),
+        }
+    }
+
+    fn register(&mut self, catalogs: Catalogs) {
+        self.sources.push(catalogs);
+        self.english = load(&self.sources, "en");
+        self.current = if self.code == "en" {
+            Catalog::new()
+        } else {
+            load(&self.sources, &self.code)
+        };
+    }
+
+    fn set_language(&mut self, code: &str) {
+        let base = code.split(['_', '-']).next().unwrap_or(code);
+        let resolved = LANGUAGES
+            .iter()
+            .find(|l| l.code == code)
+            .or_else(|| LANGUAGES.iter().find(|l| l.code == base))
+            .map(|l| l.code)
+            .unwrap_or("en");
+        self.code = resolved.to_string();
+        self.current = if resolved == "en" {
+            Catalog::new()
+        } else {
+            load(&self.sources, resolved)
+        };
+    }
+
+    fn t(&self, key: &str) -> SharedString {
+        self.current
+            .get(key)
+            .or_else(|| self.english.get(key))
+            .map(|s| SharedString::from(s.clone()))
+            .unwrap_or_else(|| SharedString::from(key.to_string()))
+    }
+}
+
+static STATE: Lazy<RwLock<State>> = Lazy::new(|| RwLock::new(State::new()));
 
 fn parse(json: &str) -> Catalog {
     match serde_json::from_str::<Catalog>(json) {
@@ -203,36 +241,23 @@ fn load(sources: &[Catalogs], code: &str) -> Catalog {
     out
 }
 
+fn fill(text: &str, args: &[(&str, &str)]) -> SharedString {
+    let mut text = text.to_string();
+    for (name, value) in args {
+        text = text.replace(&format!("{{{name}}}"), value);
+    }
+    SharedString::from(text)
+}
+
 /// Add a crate's catalogs. Call once from the crate's `init`.
 pub fn register(catalogs: Catalogs) {
-    let mut state = STATE.write();
-    state.sources.push(catalogs);
-    state.english = load(&state.sources, "en");
-    let code = state.code.clone();
-    state.current = if code == "en" {
-        Catalog::new()
-    } else {
-        load(&state.sources, &code)
-    };
+    STATE.write().register(catalogs);
 }
 
 /// Switch the interface language. Unknown codes fall back to English (a
 /// region-specific code like `pt_PT` falls back to `pt` first).
 pub fn set_language(code: &str) {
-    let base = code.split(['_', '-']).next().unwrap_or(code);
-    let resolved = LANGUAGES
-        .iter()
-        .find(|l| l.code == code)
-        .or_else(|| LANGUAGES.iter().find(|l| l.code == base))
-        .map(|l| l.code)
-        .unwrap_or("en");
-    let mut state = STATE.write();
-    state.code = resolved.to_string();
-    state.current = if resolved == "en" {
-        Catalog::new()
-    } else {
-        load(&state.sources, resolved)
-    };
+    STATE.write().set_language(code);
 }
 
 /// Code of the active language.
@@ -243,22 +268,12 @@ pub fn language() -> String {
 /// Translate `key`. Missing keys fall back to English, then to the key itself
 /// (so a missing string is visible rather than blank).
 pub fn t(key: &str) -> SharedString {
-    let state = STATE.read();
-    state
-        .current
-        .get(key)
-        .or_else(|| state.english.get(key))
-        .map(|s| SharedString::from(s.clone()))
-        .unwrap_or_else(|| SharedString::from(key.to_string()))
+    STATE.read().t(key)
 }
 
 /// Translate `key` and fill `{name}` placeholders.
 pub fn t_args(key: &str, args: &[(&str, &str)]) -> SharedString {
-    let mut text = t(key).to_string();
-    for (name, value) in args {
-        text = text.replace(&format!("{{{name}}}"), value);
-    }
-    SharedString::from(text)
+    fill(&t(key), args)
 }
 
 /// Keys present in English but missing in `code` (for catalog tests).
@@ -297,19 +312,25 @@ mod tests {
         }
     }
 
+    // Uses its own state: switching the global language would race with
+    // every test that compares translated text.
     #[test]
     fn registers_falls_back_and_fills_placeholders() {
-        register(TEST);
-        set_language("de_AT");
-        assert_eq!(language(), "de");
-        assert_eq!(t_args("i18n.test.hello", &[("name", "Ana")]), "Hallo Ana");
-        assert_eq!(t("i18n.test.only_en"), "Only");
-        assert_eq!(t("i18n.test.missing"), "i18n.test.missing");
+        let mut state = State::new();
+        state.register(TEST);
+        state.set_language("de_AT");
+        assert_eq!(state.code, "de");
+        assert_eq!(
+            fill(&state.t("i18n.test.hello"), &[("name", "Ana")]),
+            "Hallo Ana"
+        );
+        assert_eq!(state.t("i18n.test.only_en"), "Only");
+        assert_eq!(state.t("i18n.test.missing"), "i18n.test.missing");
         assert_eq!(
             missing_keys(TEST, "de"),
             vec!["i18n.test.only_en".to_string()]
         );
-        set_language("xx");
-        assert_eq!(language(), "en");
+        state.set_language("xx");
+        assert_eq!(state.code, "en");
     }
 }

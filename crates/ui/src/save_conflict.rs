@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn says_how_long_ago_saves_changed() {
-        // Other tests switch the language; compare with the keys, not English.
+        // Compare with the catalog, not English, so copy edits don't break it.
         crate::i18n::register(crate::i18n::CATALOGS);
         let n = |key: &str, count: &str| t_args(key, &[("count", count)]);
         assert_eq!(changed_ago(None, 100), t("ui.saves.no_saves"));
