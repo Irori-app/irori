@@ -10,7 +10,7 @@
 An *irori* (囲炉裏) is the sunken hearth of a traditional Japanese house, the place
 everyone gathers. Irori is a fast, native game launcher for Linux, macOS and Windows
 that gathers your **Epic Games**, **GOG**, **Amazon Games**, **ZOOM Platform** and
-**itch.io** libraries, your installed **Steam** games, your emulated games and anything
+**itch.io** libraries, your **Steam** games, your emulated games and anything
 you add yourself into one calm library. Windows games run natively on Windows, through
 Wine, Proton or umu on Linux, and through Wine, CrossOver or Game Porting Toolkit on
 macOS.
@@ -64,9 +64,11 @@ and kept in a bounded GPU cache.
   own there. Irori downloads the best upload for your system (resumable), unpacks zip and
   tar archives and finds the program to start.
 - Your installed Steam games in the same library, read from Steam's own files with no
-  login. Play opens them in Steam, and the playtime Steam recorded is shown in Irori;
-  installing, updating and removing them stays in Steam. On Linux, Protontricks opens
-  on a Steam game's Proton prefix from its menu.
+  login, with Steam's own art. Log in to Steam (QR code or password with Steam Guard)
+  to add every game you own and your Steam Family's games. Play hands games to Steam
+  with your launch options and follows them until they end, so playtime counts;
+  Install, Verify files and Uninstall open Steam's own dialogs. On Linux, Protontricks
+  opens on a Steam game's Proton prefix from its menu.
 - Several accounts per store (Epic Games, GOG, Amazon Games, ZOOM Platform, itch.io) in
   one library; each installed game launches with the account it was installed with.
 - One-click import of your Heroic accounts, installs, settings, favourites and categories.
@@ -106,7 +108,7 @@ packaging/install.sh
 | --- | --- |
 | `crates/core` | Domain types, settings schema, the `Store` trait, process/HTTP/JSON utilities |
 | `crates/runtime` | Wine/Proton discovery and downloads, prefixes, DXVK/VKD3D, launch environment |
-| `crates/store-*` | One store backend each: Epic, GOG, Amazon, ZOOM, itch.io, Steam (read-only), sideloaded apps |
+| `crates/store-*` | One store backend each: Epic, GOG, Amazon, ZOOM, itch.io, Steam, sideloaded apps |
 | `crates/depot` | Shared download engine: parallel chunked downloads, resume, verify/repair, delta updates |
 | `crates/epic`, `crates/gog`, `crates/amazon` | Store protocols (Rust ports of legendary, gogdl and nile) |
 | `crates/gog-galaxy` | GOG Galaxy communication service for games (comet, as a library) |
