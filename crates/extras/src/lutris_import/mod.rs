@@ -101,8 +101,13 @@ pub enum ImportKind {
         /// ScummVM's game id, when set.
         game_id: Option<String>,
     },
-    /// Runner `steam`: already in Irori's Steam library, matched by app id.
-    Steam { app_id: String },
+    /// Runner `steam`, or Steam for Windows started with `-applaunch`: in
+    /// Irori's Steam library, matched by app id. `args` are the game's own
+    /// arguments, which Irori passes when it starts the game.
+    Steam {
+        app_id: String,
+        args: Option<String>,
+    },
     /// A game of a store Irori has natively; the user is pointed at it.
     StoreGame {
         /// Lutris's service id: `gog`, `egs`, `amazon`, `itchio`, `zoom` or
@@ -112,6 +117,31 @@ pub enum ImportKind {
     },
     /// Not imported.
     Skipped { reason: SkipReason },
+}
+
+/// The app id and the game's own arguments when `exe` is Steam's Windows
+/// client started with `-applaunch <id>`. Steam's own flags before it (such
+/// as `-no-cef-sandbox`) are left out.
+fn steam_for_windows(exe: &str, args: Option<&str>) -> Option<(String, Option<String>)> {
+    let name = exe.rsplit(['/', '\\']).next()?;
+    if !name.eq_ignore_ascii_case("steam.exe") {
+        return None;
+    }
+    let args = irori_core::process::split_args(args?);
+    let at = args
+        .iter()
+        .position(|a| a.eq_ignore_ascii_case("-applaunch"))?;
+    let app_id = args
+        .get(at + 1)
+        .filter(|id| id.chars().all(|c| c.is_ascii_digit()))?;
+    let rest = &args[at + 2..];
+    let rest = (!rest.is_empty()).then(|| {
+        rest.iter()
+            .map(|a| irori_core::process::shell_quote(a))
+            .collect::<Vec<_>>()
+            .join(" ")
+    });
+    Some((app_id.clone(), rest))
 }
 
 /// Why a game is not imported. Each variant maps to one translatable
@@ -289,7 +319,10 @@ fn classify(
                 .flatten()
         });
         return match app_id {
-            Some(app_id) => ImportKind::Steam { app_id },
+            Some(app_id) => ImportKind::Steam {
+                app_id,
+                args: cascade.game_str("args").filter(|a| !a.trim().is_empty()),
+            },
             None => ImportKind::skipped(SkipReason::MissingEntryPoint),
         };
     }
@@ -310,6 +343,13 @@ fn classify(
     }
 
     let args = cascade.game_str("args");
+    // Lutris's "Steam for Windows" runs a game through Steam in a Wine
+    // prefix; Irori starts the same game through the Steam it lists.
+    if runner == "wine"
+        && let Some((app_id, args)) = steam_for_windows(&raw_entry, args.as_deref())
+    {
+        return ImportKind::Steam { app_id, args };
+    }
     let working_dir = cascade.game_str("working_dir").map(|w| resolve(&w));
     let env = cascade.env();
     match runner {

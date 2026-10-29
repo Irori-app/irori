@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Verknüpfungen für {title} konnten nicht entfernt werden",
   "library.error.start": "{title} konnte nicht gestartet werden",
   "library.error.stop": "{title} konnte nicht beendet werden",
+  "library.error.uninstall_in_client": "{title} konnte nicht deinstalliert werden",
   "library.error.verify": "{title} konnte nicht überprüft werden",
   "library.filter.category_count": "{count} Kategorien",
   "library.filter.describe.categories": "Kategorien {names}",

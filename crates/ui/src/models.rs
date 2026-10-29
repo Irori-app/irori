@@ -220,7 +220,7 @@ fn accounts_now(cx: &App) -> AccountsNow {
     let users = b.stores().map(|s| (s.runner(), s.user())).collect();
     let accounts = b
         .stores()
-        .filter(|s| s.runner().has_account())
+        .filter(|s| s.runner().has_account() || s.runner().has_optional_account())
         .map(|s| (s.runner(), s.accounts()))
         .collect();
     (users, accounts)

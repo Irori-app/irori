@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Couldn’t remove shortcuts for {title}",
   "library.error.start": "Couldn’t start {title}",
   "library.error.stop": "Couldn’t stop {title}",
+  "library.error.uninstall_in_client": "Couldn’t uninstall {title}",
   "library.error.verify": "Couldn’t verify {title}",
   "library.filter.category_count": "{count} categories",
   "library.filter.describe.categories": "Categories {names}",

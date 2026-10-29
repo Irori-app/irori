@@ -610,7 +610,14 @@ impl GamePage {
                         .primary()
                         .large()
                         .icon(IconName::Download)
-                        .label(t("game.common.install_ellipsis"))
+                        .label(if id.runner.manages_installs() {
+                            t("game.common.install_ellipsis")
+                        } else {
+                            t_args(
+                                "game.menu.install_in_client",
+                                &[("store", id.runner.store_name())],
+                            )
+                        })
                         .on_click(cx.listener(|this, _, window, cx| this.run_primary(window, cx))),
                 )
                 .into_any_element(),

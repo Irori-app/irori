@@ -103,6 +103,13 @@ pub fn open_modify_sheet(id: GameId, window: &mut Window, cx: &mut App) {
 }
 
 fn open_sheet(id: GameId, mode: InstallMode, window: &mut Window, cx: &mut App) {
+    // Steam installs its own games, with its own dialog.
+    if !id.runner.manages_installs() {
+        if mode == InstallMode::Install {
+            crate::ops::client_action(&id, irori_core::ClientAction::Install, window, cx);
+        }
+        return;
+    }
     let Some(game) = backend(cx).game(&id) else {
         notify_error(
             window,

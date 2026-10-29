@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use gpui_kit::component::WindowExt as _;
 use gpui_kit::component::notification::Notification;
 use gpui_kit::{App, PathPromptOptions, SharedString, Task, Window};
-use irori_core::{GameId, LaunchOption, UpdateRequest};
+use irori_core::{ClientAction, GameId, LaunchOption, UpdateRequest};
 use irori_extras::shortcuts::{self, ShortcutTargets};
 use irori_services::LaunchParams;
 use irori_ui::i18n::{t, t_args};
@@ -359,6 +359,22 @@ pub fn protontricks(id: &GameId, window: &mut Window, cx: &mut App) -> Task<bool
         async move { b.protontricks(&id, Vec::new()).await.map(|_| ()) },
         |_, _, _| {},
     )
+}
+
+/// Ask the client of a store that installs its own games (Steam) to install,
+/// remove, verify or show `id`; the client opens its own window.
+pub fn client_action(id: &GameId, action: ClientAction, window: &mut Window, cx: &mut App) {
+    let b = backend(cx);
+    let store = id.runner.store_name();
+    let id = id.clone();
+    run_reporting(
+        window,
+        cx,
+        t_args("game.ops.client_failed", &[("store", store)]),
+        async move { b.client_action(&id, action).await },
+        |_, _, _| {},
+    )
+    .detach();
 }
 
 /// Point the install record at another folder without moving files (for

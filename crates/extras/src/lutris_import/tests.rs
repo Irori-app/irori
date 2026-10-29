@@ -93,17 +93,19 @@ fn fixture(home: &Path) -> LutrisDirs {
     write(&games.join("supertux/run.sh"), "");
     write(&games.join("roms/chrono.sfc"), "");
     write(&games.join("dos/keen/KEEN.EXE"), "");
+    write(&games.join("steam-windows/drive_c/Steam/steam.exe"), "");
     std::fs::create_dir_all(games.join("prefixes/witcher")).unwrap();
 
     let conn = Connection::open(data.join("pga.db")).unwrap();
     conn.execute_batch(SCHEMA).unwrap();
     let dir = |d: &str| games.join(d).to_string_lossy().into_owned();
-    let (witcher, supertux, roms, keen, nothing) = (
+    let (witcher, supertux, roms, keen, nothing, steam_windows) = (
         dir("witcher"),
         dir("supertux"),
         dir("roms"),
         dir("dos/keen"),
         dir("nothing"),
+        dir("steam-windows"),
     );
     insert(
         &conn,
@@ -157,6 +159,14 @@ fn fixture(home: &Path) -> LutrisDirs {
     );
     insert(&conn, row(9, "lost", "linux", &nothing));
     insert(&conn, row(10, "no-config", "linux", &nothing));
+    insert(
+        &conn,
+        Row {
+            service: Some("steamwindows"),
+            service_id: Some("400"),
+            ..row(11, "portal-windows", "wine", &steam_windows)
+        },
+    );
 
     conn.execute_batch(
         "INSERT INTO categories (id, name) VALUES (1, 'favorite'), (2, '.hidden'), (3, 'RPG');
@@ -194,7 +204,11 @@ fn fixture(home: &Path) -> LutrisDirs {
     );
     write(
         &config.join("games/half-life-2.yml"),
-        "game:\n  appid: 220\n",
+        "game:\n  appid: 220\n  args: -novid\n",
+    );
+    write(
+        &config.join("games/portal-windows.yml"),
+        "game:\n  exe: drive_c/Steam/steam.exe\n  args: -no-cef-sandbox -applaunch 400 -fullscreen\n  prefix: .\n",
     );
     write(
         &config.join("games/lost.yml"),
@@ -226,7 +240,7 @@ fn plans_every_kind_of_game() {
     let dirs = fixture(home);
     let games = home.join("Games");
     let plan = plan(&dirs).unwrap();
-    assert_eq!(plan.games.len(), 10);
+    assert_eq!(plan.games.len(), 11);
     assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
 
     let witcher = by_slug(&plan, "the-witcher");
@@ -323,7 +337,15 @@ fn plans_every_kind_of_game() {
     assert_eq!(
         by_slug(&plan, "half-life-2").kind,
         ImportKind::Steam {
-            app_id: "220".into()
+            app_id: "220".into(),
+            args: Some("-novid".into())
+        }
+    );
+    assert_eq!(
+        by_slug(&plan, "portal-windows").kind,
+        ImportKind::Steam {
+            app_id: "400".into(),
+            args: Some("-fullscreen".into())
         }
     );
     assert_eq!(

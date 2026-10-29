@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "No se pudieron quitar los accesos directos de {title}",
   "library.error.start": "No se pudo iniciar {title}",
   "library.error.stop": "No se pudo detener {title}",
+  "library.error.uninstall_in_client": "No se pudo desinstalar {title}",
   "library.error.verify": "No se pudo verificar {title}",
   "library.filter.category_count": "{count} categorías",
   "library.filter.describe.categories": "Categorías {names}",

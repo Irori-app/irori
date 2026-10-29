@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "無法移除 {title} 的捷徑",
   "library.error.start": "無法啟動 {title}",
   "library.error.stop": "無法停止 {title}",
+  "library.error.uninstall_in_client": "無法解除安裝 {title}",
   "library.error.verify": "無法驗證 {title}",
   "library.filter.category_count": "{count} 個分類",
   "library.filter.describe.categories": "分類 {names}",

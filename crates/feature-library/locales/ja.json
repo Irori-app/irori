@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "{title} のショートカットを削除できませんでした",
   "library.error.start": "{title} を起動できませんでした",
   "library.error.stop": "{title} を停止できませんでした",
+  "library.error.uninstall_in_client": "{title} をアンインストールできませんでした",
   "library.error.verify": "{title} を検証できませんでした",
   "library.filter.category_count": "{count} 個のカテゴリー",
   "library.filter.describe.categories": "カテゴリー {names}",

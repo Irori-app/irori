@@ -88,7 +88,8 @@ pub fn crossover_bottles_dir(app: &AppSettings) -> PathBuf {
 }
 
 /// The Steam installation: the configured path (quotes removed, `~`
-/// expanded), else Flatpak Steam when present, else `~/.steam/steam`.
+/// expanded) when it exists, else on Linux the first native, Flatpak or Snap
+/// Steam with a library, else the platform's default.
 pub fn steam_path(app: &AppSettings) -> PathBuf {
     let configured = app.default_steam_path.replace('\'', "");
     if !configured.trim().is_empty() {
@@ -100,11 +101,27 @@ pub fn steam_path(app: &AppSettings) -> PathBuf {
     if !cfg!(target_os = "linux") {
         return irori_core::platform::steam_dir();
     }
-    let flatpak = home().join(".var/app/com.valvesoftware.Steam/.steam/steam");
-    if flatpak.exists() {
-        return flatpak;
-    }
-    irori_core::platform::steam_dir()
+    // Every place a Linux Steam installs to: native, Flatpak (old and new
+    // layouts) and Snap. The first with a library wins.
+    let home = home();
+    linux_steam_dirs(&home)
+        .into_iter()
+        .find(|p| p.join("steamapps").is_dir())
+        .unwrap_or_else(irori_core::platform::steam_dir)
+}
+
+/// Where Steam keeps its files on Linux, most common first.
+fn linux_steam_dirs(home: &std::path::Path) -> Vec<PathBuf> {
+    let flatpak = home.join(".var/app/com.valvesoftware.Steam");
+    vec![
+        home.join(".steam/steam"),
+        home.join(".local/share/Steam"),
+        home.join(".steam/debian-installation"),
+        flatpak.join(".steam/steam"),
+        flatpak.join(".local/share/Steam"),
+        flatpak.join("data/Steam"),
+        home.join("snap/steam/common/.local/share/Steam"),
+    ]
 }
 
 /// Value for `STEAM_COMPAT_CLIENT_INSTALL_PATH`.
@@ -127,4 +144,20 @@ pub fn first_existing(candidates: &[PathBuf]) -> Option<PathBuf> {
 /// Canonical form for de-duplication (falls back to the input).
 pub fn canonical(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finds_steam_installed_as_a_snap() {
+        let home = tempfile::tempdir().unwrap();
+        let snap = home.path().join("snap/steam/common/.local/share/Steam");
+        std::fs::create_dir_all(snap.join("steamapps")).unwrap();
+        let found = linux_steam_dirs(home.path())
+            .into_iter()
+            .find(|p| p.join("steamapps").is_dir());
+        assert_eq!(found, Some(snap));
+    }
 }

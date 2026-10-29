@@ -9,6 +9,7 @@
 //! matching the store's capture pattern.
 
 mod capture;
+mod steam;
 mod window;
 
 use std::time::Duration;
@@ -89,6 +90,8 @@ enum FlowState {
         instructions: String,
         capture: Option<Regex>,
     },
+    /// Irori draws the store's own sign-in (Steam).
+    InApp(Entity<steam::SteamSignInView>),
     /// Sign-in cannot start; `title` (when set) heads the message.
     Unavailable {
         title: Option<SharedString>,
@@ -215,6 +218,23 @@ impl LoginDialog {
             LoginFlow::None => {
                 self.flow = FlowState::unavailable(t_args(
                     "manage.login.no_account",
+                    &[("store", self.runner.store_name())],
+                ));
+            }
+            LoginFlow::InApp if self.runner == Runner::Steam => {
+                let view = cx.new(|cx| steam::SteamSignInView::new(window, cx));
+                self._subscriptions.push(cx.subscribe_in(
+                    &view,
+                    window,
+                    |this, _, signed_in: &steam::SteamSignedIn, window, cx| {
+                        this.submit(signed_in.0.clone(), window, cx)
+                    },
+                ));
+                self.flow = FlowState::InApp(view);
+            }
+            LoginFlow::InApp => {
+                self.flow = FlowState::unavailable(t_args(
+                    "manage.login.not_in_build",
                     &[("store", self.runner.store_name())],
                 ));
             }
@@ -468,6 +488,20 @@ impl Render for LoginDialog {
                 .child(Spinner::new().small())
                 .child(t("manage.login.preparing"))
                 .into_any_element(),
+            FlowState::InApp(view) => v_flex()
+                .gap_3()
+                .child(view.clone())
+                .when(self.submitting, |this| {
+                    this.child(
+                        h_flex()
+                            .gap_2()
+                            .text_sm()
+                            .text_color(muted)
+                            .child(Spinner::new().small())
+                            .child(t("manage.login.window.finishing")),
+                    )
+                })
+                .into_any_element(),
             FlowState::Unavailable { title, message } => {
                 Alert::error("login-unavailable", message.clone())
                     .when_some(title.clone(), |a, title| a.title(title))
@@ -614,7 +648,8 @@ impl Render for LoginDialog {
                 .into_any_element(),
         };
         let ready = matches!(self.flow, FlowState::Ready { .. });
-        let browser = matches!(self.window, SignInWindow::None);
+        let browser =
+            matches!(self.window, SignInWindow::None) && !matches!(self.flow, FlowState::InApp(_));
         let has_input = !self.input.read(cx).value().trim().is_empty();
         v_flex()
             .gap_4()
