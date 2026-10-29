@@ -4349,7 +4349,7 @@ checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
 
 [[package]]
 name = "irori"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "futures",
@@ -4395,7 +4395,7 @@ dependencies = [
 
 [[package]]
 name = "irori-amazon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes",
  "anyhow",
@@ -4421,7 +4421,7 @@ dependencies = [
 
 [[package]]
 name = "irori-amazon-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4445,7 +4445,7 @@ dependencies = [
 
 [[package]]
 name = "irori-bigpicture"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4465,7 +4465,7 @@ dependencies = [
 
 [[package]]
 name = "irori-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4491,7 +4491,7 @@ dependencies = [
 
 [[package]]
 name = "irori-depot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "flate2",
@@ -4516,7 +4516,7 @@ dependencies = [
 
 [[package]]
 name = "irori-emulation"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4538,7 +4538,7 @@ dependencies = [
 
 [[package]]
 name = "irori-engines"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "crc32fast",
@@ -4567,7 +4567,7 @@ dependencies = [
 
 [[package]]
 name = "irori-epic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4591,7 +4591,7 @@ dependencies = [
 
 [[package]]
 name = "irori-epic-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -4619,7 +4619,7 @@ dependencies = [
 
 [[package]]
 name = "irori-extras"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "dirs 6.0.0",
@@ -4646,7 +4646,7 @@ dependencies = [
 
 [[package]]
 name = "irori-game"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "fs4",
@@ -4672,7 +4672,7 @@ dependencies = [
 
 [[package]]
 name = "irori-gog"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4700,7 +4700,7 @@ dependencies = [
 
 [[package]]
 name = "irori-gog-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "flate2",
@@ -4724,7 +4724,7 @@ dependencies = [
 
 [[package]]
 name = "irori-gog-galaxy"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "comet",
@@ -4736,7 +4736,7 @@ dependencies = [
 
 [[package]]
 name = "irori-itch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4763,7 +4763,7 @@ dependencies = [
 
 [[package]]
 name = "irori-itch-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "irori-depot",
@@ -4779,7 +4779,7 @@ dependencies = [
 
 [[package]]
 name = "irori-launchers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4796,7 +4796,7 @@ dependencies = [
 
 [[package]]
 name = "irori-launchers-data"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "prost",
@@ -4808,7 +4808,7 @@ dependencies = [
 
 [[package]]
 name = "irori-library"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4834,7 +4834,7 @@ dependencies = [
 
 [[package]]
 name = "irori-manage"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "futures",
@@ -4860,7 +4860,7 @@ dependencies = [
 
 [[package]]
 name = "irori-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4893,7 +4893,7 @@ dependencies = [
 
 [[package]]
 name = "irori-scripts"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4924,7 +4924,7 @@ dependencies = [
 
 [[package]]
 name = "irori-services"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -4952,7 +4952,7 @@ dependencies = [
 
 [[package]]
 name = "irori-settings"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "gpui-kit",
@@ -4975,7 +4975,7 @@ dependencies = [
 
 [[package]]
 name = "irori-sideload"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4994,7 +4994,7 @@ dependencies = [
 
 [[package]]
 name = "irori-sign-in"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "gtk",
@@ -5008,7 +5008,7 @@ dependencies = [
 
 [[package]]
 name = "irori-steam"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5022,7 +5022,7 @@ dependencies = [
 
 [[package]]
 name = "irori-ui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "dirs 6.0.0",
@@ -5048,7 +5048,7 @@ dependencies = [
 
 [[package]]
 name = "irori-zoom"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
