@@ -19,6 +19,7 @@
 //! (`update_app` / `set_game_value`). Text fields commit on blur or Enter,
 //! never per keystroke.
 
+mod app_update;
 mod backup;
 mod controllers;
 mod epic;

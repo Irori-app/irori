@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "에뮬레이션 설정",
   "shell.palette.set_up_emulation_keywords": "에뮬레이터 ROM 콘솔 레트로 BIOS RetroArch",
   "shell.palette.lutris_script": "Lutris 스크립트로 설치",
-  "shell.palette.lutris_script_keywords": "Lutris 스크립트 설치 프로그램 lutris.net 커뮤니티"
+  "shell.palette.lutris_script_keywords": "Lutris 스크립트 설치 프로그램 lutris.net 커뮤니티",
+  "shell.app_update.available": "Irori {version}을(를) 사용할 수 있습니다",
+  "shell.app_update.available_message": "현재 버전은 {current}입니다.",
+  "shell.app_update.available_command": "현재 버전은 {current}입니다. 업데이트하려면 {command}을(를) 실행하세요",
+  "shell.app_update.download": "다운로드",
+  "shell.app_update.copy_command": "명령 복사",
+  "shell.app_update.updated": "Irori가 {version}(으)로 업데이트되었습니다",
+  "shell.app_update.release_notes": "릴리스 노트"
 }

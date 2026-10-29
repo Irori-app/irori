@@ -21,6 +21,7 @@ use irori_runtime::sysinfo::{self, SystemInfo};
 use irori_ui::components::{EmptyState, PageHeader};
 use irori_ui::i18n::{t, t_args};
 
+use crate::app_update::AppUpdatePanel;
 use crate::backup::BackupPanel;
 use crate::form::{FormTarget, SettingsForm};
 use crate::i18n::{LanguageStamp, english};
@@ -167,6 +168,7 @@ pub struct SettingsView {
     defaults_form: Entity<SettingsForm>,
     log: Entity<LogViewer>,
     backup: Entity<BackupPanel>,
+    app_update: Entity<AppUpdatePanel>,
     sysinfo: SysInfoState,
     language: LanguageStamp,
     _subscriptions: Vec<Subscription>,
@@ -202,6 +204,7 @@ impl SettingsView {
             defaults_form,
             log,
             backup: cx.new(|_| BackupPanel::new()),
+            app_update: cx.new(AppUpdatePanel::new),
             sysinfo: SysInfoState::default(),
             language: LanguageStamp::new(),
             _subscriptions: vec![sub],
@@ -565,6 +568,7 @@ impl SettingsView {
                     )
                     .child(muted(t("settings.about.tagline"), cx)),
             )
+            .child(self.app_update.clone())
             .child(group_heading(t("settings.about.third_party"), cx))
             .child(credits.into_iter().fold(panel(cx), |p, (name, license)| {
                 p.child(

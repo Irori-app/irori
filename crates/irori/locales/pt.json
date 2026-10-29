@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "Configurar a emulação",
   "shell.palette.set_up_emulation_keywords": "emulador ROM consola retro BIOS RetroArch",
   "shell.palette.lutris_script": "Instalar com um script do Lutris",
-  "shell.palette.lutris_script_keywords": "Lutris script instalador lutris.net comunidade"
+  "shell.palette.lutris_script_keywords": "Lutris script instalador lutris.net comunidade",
+  "shell.app_update.available": "O Irori {version} está disponível",
+  "shell.app_update.available_message": "Tem a versão {current}.",
+  "shell.app_update.available_command": "Tem a versão {current}. Para atualizar, execute {command}",
+  "shell.app_update.download": "Transferir",
+  "shell.app_update.copy_command": "Copiar comando",
+  "shell.app_update.updated": "Irori atualizado para a versão {version}",
+  "shell.app_update.release_notes": "Notas da versão"
 }

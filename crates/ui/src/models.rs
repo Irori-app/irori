@@ -12,7 +12,7 @@ use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
 use irori_core::{
     AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, StoreAccount, UserInfo,
 };
-use irori_services::{DownloadQueueSnapshot, LibrarySnapshot, UserData};
+use irori_services::{AppUpdateStatus, DownloadQueueSnapshot, LibrarySnapshot, UserData};
 use tokio::sync::broadcast::error::{RecvError, TryRecvError};
 
 use crate::state::backend;
@@ -168,6 +168,11 @@ impl NoticeModel {
     }
 }
 
+/// New versions of Irori itself.
+pub struct AppUpdateModel {
+    pub status: AppUpdateStatus,
+}
+
 /// A game session that ended.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExitedGame {
@@ -195,6 +200,7 @@ pub struct Models {
     pub settings: Entity<SettingsModel>,
     pub notices: Entity<NoticeModel>,
     pub sessions: Entity<SessionModel>,
+    pub app_update: Entity<AppUpdateModel>,
 }
 
 impl Global for Models {}
@@ -254,6 +260,9 @@ pub(crate) fn install(cx: &mut App) {
     });
     let notices = cx.new(|_| NoticeModel::default());
     let sessions = cx.new(|_| SessionModel::default());
+    let app_update = cx.new(|_| AppUpdateModel {
+        status: b.app_update(),
+    });
     cx.set_global(Models {
         library,
         statuses,
@@ -262,6 +271,7 @@ pub(crate) fn install(cx: &mut App) {
         settings,
         notices,
         sessions,
+        app_update,
     });
     spawn_pump(cx);
 }
@@ -306,6 +316,7 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
     let mut downloads = resync;
     let mut accounts = resync;
     let mut settings = resync;
+    let mut app_update = resync;
     let mut statuses: Vec<Event> = Vec::new();
     let mut changed_game = None;
 
@@ -326,7 +337,10 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
             Event::SettingsChanged => {
                 settings = true;
                 library = true;
+                // Announcing follows the setting.
+                app_update = true;
             }
+            Event::AppUpdateChanged => app_update = true,
             Event::GameSettingsChanged(id) => changed_game = Some(id),
             Event::Connectivity(online) => {
                 m.accounts.update(cx, |a, cx| {
@@ -390,6 +404,15 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
             l.user = user;
             l.updates = updates;
             cx.notify();
+        });
+    }
+    if app_update {
+        let status = b.app_update();
+        m.app_update.update(cx, |u, cx| {
+            if u.status != status {
+                u.status = status;
+                cx.notify();
+            }
         });
     }
     if downloads {

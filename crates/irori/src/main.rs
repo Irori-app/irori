@@ -2,6 +2,7 @@
 //! Irori: a fast, native game launcher for Linux.
 
 mod actions;
+mod app_update;
 mod cli;
 mod crash;
 mod headless;

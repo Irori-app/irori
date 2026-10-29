@@ -354,6 +354,7 @@ jobs:
           foreach ($name in @('irori.exe', 'irori-sign-in.exe', 'vcruntime140.dll', 'vcruntime140_1.dll', 'irori.ico')) {
             if (!(Test-Path (Join-Path $app $name))) { throw "Missing installed file: $name" }
           }
+          if ((Get-Content (Join-Path $app 'install.ini') -Raw) -notmatch 'Channel=setup') { throw 'install.ini does not name the setup' }
           $out = Join-Path $env:RUNNER_TEMP 'version.txt'
           $process = Start-Process (Join-Path $app 'irori.exe') -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $out
           if ($process.ExitCode -ne 0 -or (Get-Content $out -Raw) -notmatch '^irori [0-9]+\.[0-9]+\.[0-9]+') { throw 'Irori failed to start' }

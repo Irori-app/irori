@@ -47,6 +47,8 @@ pub struct AppShell {
     /// Glass last applied to the window, so it is changed only when the
     /// preference, route or fullscreen state calls for another.
     glass: Option<Glass>,
+    /// Notices about Irori's own versions shown this session.
+    app_update: crate::app_update::Announced,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -70,6 +72,9 @@ impl AppShell {
             }),
             cx.observe_in(&m.sessions, window, |this, sessions, window, cx| {
                 this.on_sessions(&sessions, window, cx);
+            }),
+            cx.observe_in(&m.app_update, window, |this, _, window, cx| {
+                this.app_update.show(window, cx);
             }),
             cx.observe_in(&m.settings, window, |this, settings, window, cx| {
                 let lang = settings.read(cx).app.ui_language.clone();
@@ -106,6 +111,7 @@ impl AppShell {
             let m = models(cx).clone();
             this.show_notices(&m.notices, window, cx);
             this.on_sessions(&m.sessions, window, cx);
+            this.app_update.show(window, cx);
         });
         let collapsed = m.settings.read(cx).app.ui.sidebar_collapsed;
         let reduce = irori_ui::style::reduce_motion(cx);
@@ -121,6 +127,7 @@ impl AppShell {
             playing_ticker: None,
             applied_ui: Some(m.settings.read(cx).app.ui.clone()),
             glass: None,
+            app_update: Default::default(),
             _subscriptions: subs,
         }
     }

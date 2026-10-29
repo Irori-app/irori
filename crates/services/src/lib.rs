@@ -8,6 +8,7 @@
 //! safe to call from render.
 
 pub mod accounts;
+pub mod app_update;
 pub mod backup;
 mod discord;
 mod downloads;
@@ -38,6 +39,7 @@ use tokio::runtime::Runtime;
 use tokio::sync::{Notify, broadcast};
 
 pub use accounts::{MakeSlot, MultiAccountStore, SlotDirs};
+pub use app_update::{AppUpdateStatus, InstallKind, Release};
 pub use backup::{Backup, BackupParts, ExportFormat, RestoreSummary};
 pub use downloads::{DownloadItem, DownloadKind, DownloadQueueSnapshot, DownloadState};
 pub use engines::EngineStatus;
@@ -80,6 +82,8 @@ pub struct Inner {
     expired_logins: RwLock<BTreeMap<Runner, String>>,
     /// The update check ran at least once this session.
     updates_checked: AtomicBool,
+    /// New versions of Irori itself.
+    app_update: app_update::AppUpdater,
 }
 
 impl Deref for Backend {
@@ -147,6 +151,7 @@ impl Backend {
             presence: discord::Presence::default(),
             expired_logins: RwLock::new(BTreeMap::new()),
             updates_checked: AtomicBool::new(false),
+            app_update: app_update::AppUpdater::load(interactive),
             bus,
         }));
         irori_runtime::set_hooks(Arc::new(hooks::KnownFixHooks {
@@ -217,6 +222,7 @@ impl Backend {
             if !interactive {
                 return;
             }
+            b.check_app_update_when_due().await;
             b.refresh_compat_data().await;
             if b.settings.app().check_for_updates_on_startup {
                 b.refresh_all(false).await;
@@ -289,6 +295,7 @@ impl Backend {
             let was_online = self.is_online();
             let online = self.check_connectivity().await;
             self.pause_downloads_while_offline(was_online, online);
+            self.check_app_update_when_due().await;
             let interval =
                 Duration::from_secs(self.settings.app().check_updates_interval.max(5) as u64 * 60);
             let reconnected = online && !was_online;
@@ -299,6 +306,44 @@ impl Backend {
                     self.enqueue_all_updates().await;
                 }
             }
+        }
+    }
+
+    /// What Irori knows about its own new versions.
+    pub fn app_update(&self) -> AppUpdateStatus {
+        self.app_update
+            .status(self.settings.app().check_for_app_updates)
+    }
+
+    /// Ask GitHub for a new version of Irori now, however recent the last
+    /// check ("Check now").
+    pub async fn check_app_update(&self) -> anyhow::Result<AppUpdateStatus> {
+        self.app_update.set_checking(true);
+        self.bus.emit(Event::AppUpdateChanged);
+        let result = self.app_update.check().await;
+        self.app_update.set_checking(false);
+        self.bus.emit(Event::AppUpdateChanged);
+        result.map(|()| self.app_update())
+    }
+
+    /// Stop announcing `version` of Irori; a later one is announced again.
+    pub fn dismiss_app_update(&self, version: &str) {
+        self.app_update.dismiss(version);
+        self.bus.emit(Event::AppUpdateChanged);
+    }
+
+    /// The daily check, for installs the system doesn't update, while online
+    /// and with the setting on.
+    async fn check_app_update_when_due(&self) {
+        if !self.is_online()
+            || !self.settings.app().check_for_app_updates
+            || !self.app_update.kind().checks()
+            || !self.app_update.due(irori_core::util::unix_now())
+        {
+            return;
+        }
+        if let Err(e) = self.check_app_update().await {
+            tracing::info!("checking for a new version of Irori: {e:#}");
         }
     }
 

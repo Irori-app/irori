@@ -102,6 +102,9 @@ pub enum Event {
     /// Per-game settings changed.
     GameSettingsChanged(GameId),
     Connectivity(bool),
+    /// What Irori knows about its own new versions changed (a check
+    /// started or answered, a version was dismissed).
+    AppUpdateChanged,
     Notice(Notice),
     /// A game process exited after `seconds` of play. `crashed` means it
     /// failed to start: it exited with an error within seconds, unasked.

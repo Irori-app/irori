@@ -156,6 +156,36 @@ Windows cancellation uses `taskkill /T /F`; games that deliberately escape their
 launcher process tree still require game-specific testing. External EA/Ubisoft
 launchers may reuse an existing process, which limits playtime tracking.
 
+### New versions of Irori
+
+Irori looks for its own new versions only where nothing else updates it. It works out
+how it was installed when it starts:
+
+| Install | Recognised by | Irori |
+| --- | --- | --- |
+| Flatpak | `FLATPAK_ID` or `/.flatpak-info` | Never checks |
+| apt, dnf, pacman, AUR | the program lives under `/usr` (not `/usr/local`) | Never checks |
+| Nix | the program lives under `/nix/store` | Never checks |
+| Built from source | the program lives in a Cargo `target` folder | Never checks |
+| Any build with `IRORI_UPDATE_EXPLANATION` | the variable, at build or run time | Never checks; Settings › About shows its text |
+| Homebrew | `Caskroom/irori` under `/opt/homebrew` or `/usr/local` | Checks; offers `brew upgrade --cask irori` |
+| Scoop | `scoop/apps/irori` in the program's path | Checks; offers `scoop update irori` |
+| winget | `install.ini` beside the program says `Channel=winget` | Checks; offers `winget upgrade Irori.Irori` |
+| Windows setup or zip, disk image, macOS zip, tarball | none of the above | Checks; links to the release page |
+
+The check asks GitHub's `releases/latest` for `irori-app/irori` (which leaves out drafts
+and pre-releases) at most once a day, only while online and only in the app, never in the
+commands without a window. Only `vX.Y.Z` tags count. `state/app-update.json` keeps the
+time of the last answer, the newest version, the version the user dismissed and the
+version that ran last. A newer release shows a notice that stays until closed; closing
+it, or using its button, dismisses that version. Settings › About shows the state and
+"Check now", and Settings › General › Updates turns the check off
+(`iroriCheckForAppUpdates`). The first start of a new version says so, with a link to its
+release notes. Irori never downloads or installs itself.
+
+Packagers who build Irori themselves set `IRORI_UPDATE_EXPLANATION` (for example
+"Update Irori with your distribution's package manager.") when building.
+
 ### Steam Deck and Steam Input
 
 When Steam's controller interface starts Irori (`XDG_CURRENT_DESKTOP=gamescope`

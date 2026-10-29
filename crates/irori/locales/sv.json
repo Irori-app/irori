@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "Konfigurera emulering",
   "shell.palette.set_up_emulation_keywords": "emulator ROM konsol retro BIOS RetroArch",
   "shell.palette.lutris_script": "Installera med ett Lutris-skript",
-  "shell.palette.lutris_script_keywords": "Lutris skript installation lutris.net community"
+  "shell.palette.lutris_script_keywords": "Lutris skript installation lutris.net community",
+  "shell.app_update.available": "Irori {version} finns tillgänglig",
+  "shell.app_update.available_message": "Du har version {current}.",
+  "shell.app_update.available_command": "Du har version {current}. Kör {command} för att uppdatera",
+  "shell.app_update.download": "Ladda ned",
+  "shell.app_update.copy_command": "Kopiera kommando",
+  "shell.app_update.updated": "Irori har uppdaterats till version {version}",
+  "shell.app_update.release_notes": "Versionsinformation"
 }

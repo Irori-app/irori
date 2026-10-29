@@ -101,6 +101,7 @@ Environment variables:
 | `IRORI_LOG` | `tracing` filter, e.g. `IRORI_LOG=irori_services=debug,info`. The default is `info` in the app and `warn` for the commands without a window. |
 | `IRORI_SIGN_IDENTITY` | macOS signing identity for `package.py` (default `-`, ad-hoc). |
 | `IRORI_WINDOWS_CRT_DIR` | Windows: explicit `Microsoft.VC*.CRT` directory for packaging. |
+| `IRORI_UPDATE_EXPLANATION` | For packagers, at build or run time: Irori never looks for its own new versions and shows this text instead (`irori-services::app_update`). |
 | `IRORI_RELEASE_TEST_URL`, `IRORI_RUNTIME_SMOKE` | Opt-in, `#[ignore]`d runtime tests (see [8](#8-tests)). |
 
 Build profiles (root `Cargo.toml`):
