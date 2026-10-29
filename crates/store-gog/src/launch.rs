@@ -438,6 +438,7 @@ impl GogStore {
         Ok(LaunchPlan {
             command,
             track_wineserver: false,
+            watch: None,
         })
     }
 

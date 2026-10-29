@@ -120,6 +120,7 @@ pub fn build_launch_plan(i: &LaunchInputs<'_>) -> Result<LaunchPlan> {
     Ok(LaunchPlan {
         command,
         track_wineserver,
+        watch: None,
     })
 }
 

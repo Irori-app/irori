@@ -168,6 +168,7 @@ impl EpicStore {
         Ok(LaunchPlan {
             command,
             track_wineserver: needs_wine,
+            watch: None,
         })
     }
 }

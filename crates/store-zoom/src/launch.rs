@@ -94,6 +94,7 @@ pub fn build_plan(
     Ok(LaunchPlan {
         command,
         track_wineserver: uses_wine,
+        watch: None,
     })
 }
 

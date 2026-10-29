@@ -540,6 +540,7 @@ impl Store for LaunchersStore {
         Ok(LaunchPlan {
             command,
             track_wineserver: false,
+            watch: None,
         })
     }
 }
