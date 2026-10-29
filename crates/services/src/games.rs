@@ -36,6 +36,8 @@ pub struct RunningGame {
     pub started: Instant,
     /// The user asked to stop it, so a quick non-zero exit is not a crash.
     pub stopping: bool,
+    /// Follows a game another program started (Steam); stopping goes through it.
+    pub watch: Option<Arc<dyn irori_core::GameWatch>>,
 }
 
 /// Whether a session counts as a failed start: the game exited with an error
@@ -85,6 +87,20 @@ impl Backend {
             id.runner.store_name()
         );
         Ok(())
+    }
+
+    /// Ask the client of a store that installs its own games (Steam) to
+    /// install, remove, verify or show `id`. Irori's files are untouched.
+    pub async fn client_action(&self, id: &GameId, action: irori_core::ClientAction) -> Result<()> {
+        anyhow::ensure!(
+            !id.runner.manages_installs(),
+            "Irori installs {} games itself",
+            id.runner.store_name()
+        );
+        let store = self
+            .store(id.runner)
+            .with_context(|| format!("{} is not available", id.runner.store_name()))?;
+        store.client_action(&id.app_name, action).await
     }
 
     fn installed_game(&self, id: &GameId) -> Result<Arc<GameInfo>> {
@@ -238,6 +254,7 @@ impl Backend {
                 pid,
                 started,
                 stopping: false,
+                watch: plan.watch.clone(),
             },
         );
         drop(guard);
@@ -254,16 +271,24 @@ impl Backend {
             self.spawn(async move { presence.playing(client_id, title, store, started).await });
         }
 
-        // A third-party launcher's games are followed by their own processes.
-        let follow_folder = (id.runner == irori_core::Runner::Launchers)
-            .then(|| game.install.as_ref().map(|i| i.install_path.clone()))
-            .flatten()
-            .filter(|p| !p.is_empty());
+        // A third-party launcher's games are followed by their own processes;
+        // a store whose client starts the game says how to follow it.
+        let probe: Option<crate::follow::Probe> = match &plan.watch {
+            Some(watch) => {
+                let watch = watch.clone();
+                Some(Arc::new(move || watch.running()))
+            }
+            None => (id.runner == irori_core::Runner::Launchers)
+                .then(|| game.install.as_ref().map(|i| i.install_path.clone()))
+                .flatten()
+                .filter(|p| !p.is_empty())
+                .map(crate::follow::folder_probe),
+        };
         let b = self.clone();
         let id = id.clone();
         self.spawn(async move {
-            let status = match &follow_folder {
-                Some(folder) => crate::follow::follow(&mut child, folder.clone()).await,
+            let status = match probe {
+                Some(probe) => crate::follow::follow(&mut child, probe).await,
                 None => child.wait().await.ok(),
             };
             if let Some(bound) = bound {
@@ -340,6 +365,11 @@ impl Backend {
         let game = self
             .game(id)
             .with_context(|| format!("{} is not in the library", id.app_name))?;
+        if !id.runner.manages_installs() {
+            return self
+                .client_action(id, irori_core::ClientAction::Install)
+                .await;
+        }
         if let Some(launcher) = &game.third_party_managed_app {
             bail!("{} is installed through {launcher}", game.title);
         }
@@ -366,12 +396,21 @@ impl Backend {
 
     /// Stop a running game and everything in its prefix.
     pub async fn stop(&self, id: &GameId) -> Result<()> {
-        let pid = self.running.lock().get_mut(id).map(|r| {
-            r.stopping = true;
-            r.pid
-        });
+        let (pid, watch) = self
+            .running
+            .lock()
+            .get_mut(id)
+            .map(|r| {
+                r.stopping = true;
+                (Some(r.pid), r.watch.clone())
+            })
+            .unwrap_or_default();
         if let Some(pid) = pid {
             process::kill_group(pid, false);
+        }
+        if let Some(watch) = &watch {
+            let w = watch.clone();
+            let _ = tokio::task::spawn_blocking(move || w.stop(false)).await;
         }
         if let Some(game) = self.game(id)
             && Self::target_platform(&game).needs_wine()
@@ -383,6 +422,12 @@ impl Backend {
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             if self.is_running(id) {
                 process::kill_group(pid, true);
+            }
+        }
+        if let Some(watch) = watch {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            if self.is_running(id) {
+                let _ = tokio::task::spawn_blocking(move || watch.stop(true)).await;
             }
         }
         Ok(())

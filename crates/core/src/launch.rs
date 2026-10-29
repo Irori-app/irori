@@ -3,7 +3,9 @@
 //! tracks the game).
 
 use std::collections::BTreeMap;
+use std::fmt;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::game::LaunchOption;
 use crate::process::CommandSpec;
@@ -78,4 +80,26 @@ pub struct LaunchPlan {
     /// Seconds to wait after the launcher process exits for detached game
     /// processes in the prefix before treating the session as over.
     pub track_wineserver: bool,
+    /// For games another program starts and owns (Steam): the command only
+    /// hands the game over and exits, so the session lasts while this watch
+    /// sees the game, and stopping goes through it.
+    pub watch: Option<Arc<dyn GameWatch>>,
+}
+
+/// Follows a game that another program started. Both methods block (they may
+/// look through the running processes), so callers run them off the async
+/// runtime's workers.
+pub trait GameWatch: Send + Sync {
+    /// Whether the game runs, or is still being prepared to run (a launch-time
+    /// update), right now.
+    fn running(&self) -> bool;
+
+    /// Ask the game to quit, never the program that started it.
+    fn stop(&self, force: bool);
+}
+
+impl fmt::Debug for dyn GameWatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("GameWatch")
+    }
 }

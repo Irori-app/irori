@@ -83,6 +83,10 @@ pub enum LoginFlow {
         /// What the user should copy, in plain words.
         instructions: String,
     },
+    /// Irori draws the store's own sign-in (Steam: a QR code for the mobile
+    /// app, or the password with Steam Guard) and passes its result to
+    /// [`Store::login`].
+    InApp,
     /// The store needs no account.
     None,
 }
@@ -119,6 +123,16 @@ pub struct InstallInfoQuery {
     pub branch: Option<String>,
     pub build: Option<String>,
     pub language: Option<String>,
+}
+
+/// What a store's own client can be asked to do with one of its games.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClientAction {
+    Install,
+    Uninstall,
+    Verify,
+    /// Show the game in the client.
+    Show,
 }
 
 #[async_trait]
@@ -272,6 +286,17 @@ pub trait Store: Send + Sync + 'static {
     /// update prompt at launch (GOG rollback, Epic and ZOOM version pins).
     async fn set_version_pinned(&self, _app_name: &str, _pinned: bool) -> Result<()> {
         Ok(())
+    }
+
+    /// For stores whose own client installs their games
+    /// ([`Runner::manages_installs`] is false): ask that client to do
+    /// `action` for `app_name`. The client shows its own window; the library
+    /// follows once the client's files change.
+    async fn client_action(&self, _app_name: &str, _action: ClientAction) -> Result<()> {
+        bail!(
+            "{} has no client to hand this to",
+            self.runner().store_name()
+        )
     }
 
     /// Whether the installed files are present (e.g. external drive mounted).
