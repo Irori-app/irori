@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "{title} kısayolları kaldırılamadı",
   "library.error.start": "{title} başlatılamadı",
   "library.error.stop": "{title} durdurulamadı",
+  "library.error.uninstall_in_client": "{title} kaldırılamadı",
   "library.error.verify": "{title} doğrulanamadı",
   "library.filter.category_count": "{count} kategori",
   "library.filter.describe.categories": "Kategoriler {names}",

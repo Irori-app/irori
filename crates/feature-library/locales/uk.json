@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Не вдалося видалити ярлики для {title}",
   "library.error.start": "Не вдалося запустити {title}",
   "library.error.stop": "Не вдалося зупинити {title}",
+  "library.error.uninstall_in_client": "Не вдалося видалити {title}",
   "library.error.verify": "Не вдалося перевірити {title}",
   "library.filter.category_count": "Категорій: {count}",
   "library.filter.describe.categories": "Категорії {names}",

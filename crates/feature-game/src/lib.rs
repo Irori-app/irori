@@ -19,6 +19,7 @@ mod hooks;
 mod i18n;
 mod import_installers;
 mod install;
+mod launch_options;
 mod launch_problem;
 mod load;
 mod logs;
@@ -45,6 +46,7 @@ pub use install::{
     InstallFooter, InstallMode, InstallSheet, installable_platforms, open_install_sheet,
     open_modify_sheet,
 };
+pub use launch_options::open_launch_options_dialog;
 pub use launch_problem::{LaunchHint, game_output_start, launch_hints, open_launch_problem_sheet};
 pub use logs::{LineLevel, LogTail, LogViewer, open_log_sheet, parse_tail};
 pub use manage::{

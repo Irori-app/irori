@@ -258,6 +258,7 @@ pub(crate) fn native_plan(exe: &Path, args: Vec<String>, env: &LaunchEnvironment
     LaunchPlan {
         command: cmd.wrapped(&env.wrappers),
         track_wineserver: false,
+        watch: None,
     }
 }
 
@@ -284,6 +285,7 @@ pub(crate) fn wine_plan(
     Ok(LaunchPlan {
         command: cmd.wrapped(&env.wrappers),
         track_wineserver: true,
+        watch: None,
     })
 }
 

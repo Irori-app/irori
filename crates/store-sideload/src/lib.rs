@@ -314,6 +314,7 @@ impl SideloadStore {
         Ok(LaunchPlan {
             command: launch.command,
             track_wineserver: false,
+            watch: None,
         })
     }
 }

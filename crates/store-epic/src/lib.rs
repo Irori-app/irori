@@ -843,6 +843,7 @@ impl EpicStore {
             return Ok(LaunchPlan {
                 command: command.envs(env).wrapped(&request.environment.wrappers),
                 track_wineserver: false,
+                watch: None,
             });
         }
         let mut argv = wine.expect("checked above").exec_prefix();
@@ -858,6 +859,7 @@ impl EpicStore {
                 .envs(env)
                 .wrapped(&request.environment.wrappers),
             track_wineserver: true,
+            watch: None,
         })
     }
 

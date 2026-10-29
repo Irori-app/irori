@@ -127,13 +127,14 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/gog` | `irori-gog-api` | GOG protocol (port of gogdl): auth, content system, depots, Linux installers, saves |
 | `crates/amazon` | `irori-amazon-api` | Amazon Games protocol (port of nile): device sign-in, library, signed manifests |
 | `crates/itch` | `irori-itch-api` | itch.io protocol (its public API): API-key login, owned keys, uploads, download links |
+| `crates/steam` | `irori-steam-api` | Steam Web API: login (QR, password and Steam Guard, tokens), owned and Family games, store art and pages |
 | `crates/gog-galaxy` | `irori-gog-galaxy` | Hosts comet (Galaxy service for games: overlay, achievements) on `127.0.0.1:9977` |
 | `crates/store-epic` | `irori-epic` | Epic `Store` (`Runner::Legendary`) |
 | `crates/store-gog` | `irori-gog` | GOG `Store` |
 | `crates/store-amazon` | `irori-amazon` | Amazon `Store` (`Runner::Nile`) |
 | `crates/store-zoom` | `irori-zoom` | ZOOM Platform `Store`, opt-in through a setting |
 | `crates/store-itch` | `irori-itch` | itch.io `Store` (`Runner::Itch`), opt-in through `iroriItchIo` |
-| `crates/store-steam` | `irori-steam` | Read-only Steam library from local Steam files (`Runner::Steam`) |
+| `crates/store-steam` | `irori-steam` | Steam `Store` (`Runner::Steam`): local library, optional account, game watch, the login API the UI draws |
 | `crates/store-sideload` | `irori-sideload` | Apps the user adds (native, Windows, browser) |
 | `crates/launchers` | `irori-launchers-data` | Reads third-party launchers' local data (Battle.net `product.db`, Ubisoft cache and registry, EA manifests, Rockstar registry) |
 | `crates/store-launchers` | `irori-launchers` | Battle.net, EA app, Ubisoft Connect and Rockstar (`Runner::Launchers`): setup and library, opt-in through `iroriThirdPartyLaunchers` |
@@ -176,7 +177,8 @@ irori-core                        (depends on nothing internal)
   ├─ irori-runtime, irori-depot, irori-extras
   ├─ irori-engines   (core, runtime, depot)
   ├─ irori-scripts   (core, runtime, depot; knows nothing of stores or the UI)
-  ├─ protocol crates: irori-epic-api, irori-gog-api, irori-amazon-api, irori-itch-api
+  ├─ protocol crates: irori-epic-api, irori-gog-api, irori-amazon-api, irori-itch-api,
+  │                   irori-steam-api
   │                   (depot only, not core)
   ├─ store crates:    irori-epic, irori-gog, irori-amazon, irori-zoom, irori-itch,
   │                   irori-steam, irori-sideload, irori-emulation (+ engines),
@@ -226,8 +228,9 @@ and `launch.rs` before changing anything below the UI.
 
 - `LoginFlow::Browser { url, capture, instructions }`. `capture` is a regex whose
   first group is what `login` needs. The sign-in window and the clipboard watcher both
-  use it (see [4.6](#46-store-sign-in)). `LoginFlow::None` is for stores without
-  accounts.
+  use it (see [4.6](#46-store-sign-in)). `LoginFlow::InApp` means Irori draws the
+  store's own login (Steam) and passes its result to `login`. `LoginFlow::None` is for
+  stores without accounts.
 - `OpContext` carries a progress sink, a `CancellationToken`, a step reporter, an
   optional operation log file and the game's effective settings.
   `OpContext::detached()` is the no-op version.
@@ -245,8 +248,14 @@ and `launch.rs` before changing anything below the UI.
   `epic` and `amazon`. Irori-only runners use their store's plain name (`itch`,
   `steam`).
 - `Runner::manages_installs()` is false for Steam and Launchers: its games are listed and launched,
-  never installed, moved, repaired or removed. UI code hides those commands and
-  services refuse them before touching files.
+  never installed, moved, repaired or removed by Irori. UI code hides those commands and
+  services refuse them before touching files. Steam's client takes them instead:
+  `Store::client_action` (`ClientAction::{Install, Uninstall, Verify, Show}`, through
+  `Backend::client_action`) asks it, and `Runner::has_optional_account()` marks Steam's
+  login as optional (its accounts card stays local and adds the account).
+- `LaunchPlan::watch` (`Arc<dyn GameWatch>`) is for games another program starts and
+  owns: the command only hands the game over, so services follow `GameWatch::running`
+  for the session and call `GameWatch::stop` to stop it (never the client).
 - `GameId { runner, app_name: Arc<str> }` has `key() == "runner:app"`, which keys
   every user-data map.
 
@@ -629,6 +638,26 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
   while such a game runs, services look every 3 s for processes running from its
   install folder; the session ends when they are gone, or when the launcher exits
   without starting the game. Nothing polls when no launcher game runs.
+
+### 4.10 Steam
+
+- **Without an account** the library is what Steam installed (`scan.rs`: library
+  folders, manifests, `localconfig.vdf` playtime, `appcache/librarycache` art), watched
+  with `notify` on each `steamapps` folder. With one (`account.rs`), it adds the account's
+  owned and Family games, cached in `library.json`; `refresh` asks Steam at most every
+  15 minutes unless it is a full refresh, and publishes the installed games even when
+  Steam can't be reached.
+- **Login** (`signin.rs` for the UI, `irori-steam-api::auth`): SteamClient-type sessions
+  through `IAuthenticationService` (protobuf over the Web API). The UI emits
+  `login_input(tokens)`; `Store::login` proves the tokens by reading the library, then
+  keeps them in `session.json` (mode 0600). A refused refresh becomes `SessionExpired`.
+  Never log tokens, passwords or codes; the API crate's types redact them in `Debug`.
+- **Launch** (`client.rs`, `watch.rs`): `steam://rungameid`, or `-applaunch` with the
+  game's `launcherArgs`; a `SteamGameWatch` follows the reaper (Linux), the game folder's
+  processes and the manifest's launch flags, re-checking known PIDs before a full scan.
+- **Art** order: Steam's cache, the store's hashed addresses (asked once per app,
+  `IStoreBrowseService/GetItems`), the fixed CDN paths. Store pages (`appdetails`) fill
+  the game page in Irori's language.
 
 ## 5. Rust conventions
 

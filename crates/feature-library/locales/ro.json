@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Nu s-au putut elimina scurtăturile pentru {title}",
   "library.error.start": "Nu s-a putut porni {title}",
   "library.error.stop": "Nu s-a putut opri {title}",
+  "library.error.uninstall_in_client": "Nu s-a putut dezinstala {title}",
   "library.error.verify": "Nu s-a putut verifica {title}",
   "library.filter.category_count": "Categorii: {count}",
   "library.filter.describe.categories": "Categorii {names}",

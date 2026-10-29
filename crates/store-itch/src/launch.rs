@@ -87,6 +87,7 @@ pub(crate) fn build_plan(record: &InstalledRecord, request: &LaunchRequest) -> R
     Ok(LaunchPlan {
         command,
         track_wineserver: uses_wine,
+        watch: None,
     })
 }
 

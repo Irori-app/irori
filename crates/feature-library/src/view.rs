@@ -471,6 +471,7 @@ impl LibraryView {
             browser: game.browser_url.is_some()
                 || game.installed_platform() == Some(InstallPlatform::Browser),
             external: !id.runner.manages_installs(),
+            client: id.runner == Runner::Steam,
             status: m.statuses.read(cx).kind(&id),
             has_update: lib.has_update(&id),
             favourite: lib.is_favourite(&id),
@@ -688,6 +689,21 @@ impl LibraryView {
                 if let Some(path) = game.install_path() {
                     cx.open_with_system(&path);
                 }
+            }
+            GameCommand::Verify if id.runner == Runner::Steam => {
+                let task = irori_ui::run(cx, async move {
+                    b.client_action(&id, irori_core::ClientAction::Verify).await
+                });
+                let failed = t_args("library.error.verify", &[("title", &title)]);
+                report(task, failed, window, cx);
+            }
+            GameCommand::Uninstall if id.runner == Runner::Steam => {
+                let task = irori_ui::run(cx, async move {
+                    b.client_action(&id, irori_core::ClientAction::Uninstall)
+                        .await
+                });
+                let failed = t_args("library.error.uninstall_in_client", &[("title", &title)]);
+                report(task, failed, window, cx);
             }
             GameCommand::Verify => {
                 let task = irori_ui::run(cx, async move { b.repair(&id).await });

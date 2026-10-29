@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Det gick inte att ta bort genvägar för {title}",
   "library.error.start": "Det gick inte att starta {title}",
   "library.error.stop": "Det gick inte att stoppa {title}",
+  "library.error.uninstall_in_client": "Det gick inte att avinstallera {title}",
   "library.error.verify": "Det gick inte att verifiera {title}",
   "library.filter.category_count": "{count} kategorier",
   "library.filter.describe.categories": "Kategorier {names}",

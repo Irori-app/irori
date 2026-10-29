@@ -12,6 +12,7 @@ irori-core.workspace = true
 irori-services.workspace = true
 irori-engines.workspace = true
 irori-launchers.workspace = true
+irori-steam.workspace = true
 irori-ui.workspace = true
 irori-runtime.workspace = true
 irori-extras.workspace = true
@@ -23,6 +24,7 @@ tokio.workspace = true
 which.workspace = true
 futures.workspace = true
 tracing.workspace = true
+qrcode = { version = "0.14.1", default-features = false }
 
 [dev-dependencies]
 # gpui-kit/test-support pulls the GPUI Fast crates, which conflict with gpui-pre in the

@@ -10,11 +10,23 @@ publish.workspace = true
 [dependencies]
 irori-core.workspace = true
 irori-runtime.workspace = true
+irori-steam-api.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
 parking_lot.workspace = true
 tracing.workspace = true
+notify = "8"
+sysinfo.workspace = true
+which.workspace = true
+url.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+hex.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 tempfile = "3"
+irori-depot = { workspace = true, features = ["test-server"] }
+base64.workspace = true

@@ -112,6 +112,12 @@ impl Runner {
         )
     }
 
+    /// Whether logging in is optional: the store lists what this computer
+    /// has without an account and adds the account's games with one (Steam).
+    pub fn has_optional_account(self) -> bool {
+        matches!(self, Runner::Steam)
+    }
+
     /// Whether Irori installs, updates, repairs, moves and removes this
     /// store's games. Steam's games belong to the Steam client: Irori lists
     /// and starts them, nothing more.

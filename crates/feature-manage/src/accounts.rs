@@ -251,6 +251,10 @@ impl AccountsView {
             t_args("manage.accounts.logout_confirm.title", &[("store", store)])
         };
         let description = match account.installed {
+            _ if runner.has_optional_account() => t_args(
+                "manage.accounts.optional_logout_description",
+                &[("store", store)],
+            ),
             0 => t("manage.accounts.logout_confirm.description"),
             1 if several => t("manage.accounts.logout_account_confirm.installed_one"),
             n if several => t_args(
@@ -715,7 +719,105 @@ impl AccountsView {
                 )
                 .into_any_element()
         };
+        let detail = if runner.has_optional_account() && !card_data.hidden {
+            v_flex()
+                .gap_3()
+                .child(detail)
+                .child(self.render_optional_account(card_data, cx))
+                .into_any_element()
+        } else {
+            detail
+        };
         Self::card_frame(runner, state_tag, detail, actions, cx)
+    }
+
+    /// The account part of a store that works without one (Steam): who is
+    /// logged in and how many games the account adds, or why to log in.
+    fn render_optional_account(&self, card_data: &StoreCard, cx: &mut Context<Self>) -> AnyElement {
+        let runner = card_data.runner;
+        let store = runner.store_name();
+        let muted = cx.theme().muted_foreground;
+        let account = card_data.accounts.iter().find(|a| a.signed_in).cloned();
+        let logging_out = account
+            .as_ref()
+            .is_some_and(|a| self.logging_out.contains(&(runner, a.slot.clone())));
+        let (text, button) = match (&card_data.expired, account) {
+            (Some(_), _) => (
+                div()
+                    .text_sm()
+                    .text_color(muted)
+                    .child(t_args("manage.accounts.expired_hint", &[("store", store)]))
+                    .into_any_element(),
+                Button::new("optional-login")
+                    .small()
+                    .primary()
+                    .icon(IconName::LogIn)
+                    .label(t("manage.accounts.login_again"))
+                    .on_click(move |_, window, cx| open_login_dialog(runner, window, cx))
+                    .into_any_element(),
+            ),
+            (None, Some(account)) => {
+                let name = account_name(&account);
+                let games = match account.games {
+                    1 => t("manage.accounts.optional_games_one"),
+                    n => t_args(
+                        "manage.accounts.optional_games_other",
+                        &[("count", &n.to_string())],
+                    ),
+                };
+                (
+                    v_flex()
+                        .min_w_0()
+                        .gap_0p5()
+                        .child(
+                            h_flex()
+                                .gap_2()
+                                .min_w_0()
+                                .child(Icon::new(IconName::CircleUser).small())
+                                .child(div().min_w_0().truncate().font_medium().child(name)),
+                        )
+                        .child(div().text_sm().text_color(muted).child(games))
+                        .into_any_element(),
+                    Button::new("optional-logout")
+                        .small()
+                        .ghost()
+                        .icon(IconName::LogOut)
+                        .label(t("manage.accounts.logout"))
+                        .loading(logging_out)
+                        .disabled(logging_out)
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.confirm_logout(runner, account.clone(), false, window, cx)
+                        }))
+                        .into_any_element(),
+                )
+            }
+            (None, None) => (
+                div()
+                    .text_sm()
+                    .text_color(muted)
+                    .child(t_args(
+                        "manage.accounts.optional_login_hint",
+                        &[("store", store)],
+                    ))
+                    .into_any_element(),
+                Button::new("optional-login")
+                    .small()
+                    .outline()
+                    .icon(IconName::LogIn)
+                    .label(t("manage.accounts.login"))
+                    .on_click(move |_, window, cx| open_login_dialog(runner, window, cx))
+                    .into_any_element(),
+            ),
+        };
+        h_flex()
+            .gap_3()
+            .items_center()
+            .pt_3()
+            .border_t_1()
+            .border_color(cx.theme().border)
+            .child(div().flex_1().min_w_0().child(text))
+            .child(button)
+            .into_any_element()
     }
 }
 

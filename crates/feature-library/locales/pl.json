@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Nie udało się usunąć skrótów do {title}",
   "library.error.start": "Nie udało się uruchomić {title}",
   "library.error.stop": "Nie udało się zatrzymać {title}",
+  "library.error.uninstall_in_client": "Nie udało się odinstalować {title}",
   "library.error.verify": "Nie udało się sprawdzić {title}",
   "library.filter.category_count": "Kategorie: {count}",
   "library.filter.describe.categories": "Kategorie {names}",

@@ -108,17 +108,42 @@ and the package channels.
 | Steam default | `~/.steam/steam` | `~/Library/Application Support/Steam` | ProgramFiles(x86) / `Steam` |
 
 `IRORI_HOME` relocates settings, data and cache under one root and is useful for
-isolated testing. Configured Steam paths take precedence over defaults; on Linux,
-Flatpak Steam (`~/.var/app/com.valvesoftware.Steam/.steam/steam`) comes before
-`~/.steam/steam`.
+isolated testing. A configured Steam path takes precedence when it exists; otherwise,
+on Linux, Irori uses the first of `~/.steam/steam`, `~/.local/share/Steam`,
+`~/.steam/debian-installation`, Flatpak Steam (`~/.var/app/com.valvesoftware.Steam`,
+`.steam/steam`, `.local/share/Steam` or `data/Steam`) and Snap Steam
+(`~/snap/steam/common/.local/share/Steam`) that has a library.
 
-The read-only Steam library scans that Steam folder and every library in its
+The Steam library scans that Steam folder and every library in its
 `steamapps/libraryfolders.vdf` for `appmanifest_*.acf` files, skipping Proton, the
-Steam Linux Runtime and other tools. Playing opens `steam://rungameid/<id>` through
-`xdg-open`, `open` or the Windows URL handler, so Steam applies its own Proton version,
-launch options and overlay. The opener exits at once, so Irori records no session for
-these games; the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` are
-merged into Irori's playtime instead.
+Steam Linux Runtime and other tools, and watches those `steamapps` folders so installs
+and removals made in Steam show at once. Art comes from Steam's own cache
+(`appcache/librarycache/<id>`, where newer apps keep each image in a hashed subfolder),
+else from the store (`IStoreBrowseService/GetItems`), else from the fixed CDN paths that
+only older apps have.
+
+Logging in to Steam is optional (Accounts › Steam). Irori draws Steam's own login: a QR
+code for the Steam Mobile app, or the account name and password followed by Steam Guard.
+The password goes to Steam only; Irori keeps the account's refresh token (about 200
+days) in `<config>/stores/steam/session.json`, readable by the user only, and renews the
+access token itself. With an account, the library adds every game it owns and the games
+its Steam Family shares (`library.json` in Steam's cache folder keeps them for offline
+starts); Install hands those to Steam (`steam://install/<id>`), as Verify files and
+Uninstall do (`steam://validate`, `steam://uninstall`).
+
+Playing opens `steam://rungameid/<id>` through `xdg-open`, `open` or the Windows URL
+handler, so Steam applies its own Proton version, launch options and overlay. A game's
+launch options in Irori (its menu, `launcherArgs`) are passed with
+`steam -applaunch <id> <args>` (`flatpak run com.valvesoftware.Steam` for Flatpak Steam),
+or with `steam://run/<id>//<args>/` when Steam's program isn't found, where Steam asks
+the user to confirm them. The opener exits at once, so the session follows the game
+itself: on Linux Steam's per-game reaper (`reaper SteamLaunch AppId=<id>`), on every
+system the processes running from the game's folder, and the manifest's running,
+updating and validating flags while Steam prepares the launch. Found processes are
+checked again directly every 3 seconds instead of scanning every process. Stop ends
+the reaper and the game's processes, never the Steam client. Playtime is the larger of
+the minutes Steam keeps in `userdata/<user>/config/localconfig.vdf` (the logged-in
+account's own folder when there is one) and the account's own total.
 
 itch.io (turned on in Settings › General › Integrations, or from its account card)
 signs in with an API key from `https://itch.io/user/settings/api-keys`, kept owner-only

@@ -468,6 +468,27 @@ pub async fn output(spec: &CommandSpec) -> Result<String> {
     Ok(run(spec, RunOptions::default()).await?.check()?.stdout)
 }
 
+/// Whether a process's command line or program is in the install folder
+/// `folder` (a Windows path as a launcher stores it, or a Unix path). Games
+/// under Wine show their Windows path, so both spellings match.
+pub fn runs_from(folder: &str, exe: Option<&Path>, cmd: &[String]) -> bool {
+    let normalize = |s: &str| s.replace('\\', "/").to_lowercase();
+    let folder = normalize(folder.trim_end_matches(['\\', '/']));
+    // `C:/Program Files/X` under Wine appears as `c:/program files/x`; a
+    // folder name alone is too short to trust.
+    if folder.len() < 6 {
+        return false;
+    }
+    let tail = folder
+        .split_once(':')
+        .map_or(folder.as_str(), |(_, rest)| rest);
+    let hit = |s: &str| {
+        let s = normalize(s);
+        s.contains(&folder) || (!tail.is_empty() && s.contains(tail))
+    };
+    exe.is_some_and(|e| hit(&e.to_string_lossy())) || cmd.iter().any(|a| hit(a))
+}
+
 /// Start a long-lived process (a game) without piping its output through
 /// memory: stdout/stderr go straight to `log_file` (or are discarded).
 pub fn spawn(spec: &CommandSpec, log_file: Option<&Path>) -> Result<Child> {
@@ -607,6 +628,29 @@ impl Tail {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn matches_wine_and_native_command_lines() {
+        let folder = r"C:\Program Files (x86)\Diablo IV";
+        assert!(runs_from(
+            folder,
+            None,
+            &[r"C:\Program Files (x86)\Diablo IV\Diablo IV.exe".into()]
+        ));
+        assert!(runs_from(
+            folder,
+            Some(Path::new(
+                "/home/u/pfx/drive_c/Program Files (x86)/Diablo IV/Diablo IV.exe"
+            )),
+            &[]
+        ));
+        assert!(!runs_from(
+            folder,
+            None,
+            &[r"C:\Program Files (x86)\Battle.net\Battle.net.exe".into()]
+        ));
+        assert!(!runs_from("C:\\", None, &["C:\\anything".into()]));
+    }
 
     #[cfg(target_os = "macos")]
     #[tokio::test]

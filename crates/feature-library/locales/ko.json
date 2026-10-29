@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "{title} 바로가기를 제거하지 못했습니다",
   "library.error.start": "{title}을(를) 시작하지 못했습니다",
   "library.error.stop": "{title}을(를) 중지하지 못했습니다",
+  "library.error.uninstall_in_client": "{title}을(를) 제거하지 못했습니다",
   "library.error.verify": "{title}을(를) 확인하지 못했습니다",
   "library.filter.category_count": "범주 {count}개",
   "library.filter.describe.categories": "범주 {names}",

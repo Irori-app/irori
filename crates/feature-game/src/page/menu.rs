@@ -5,9 +5,9 @@
 use gpui_kit::assets::IconName;
 use gpui_kit::component::menu::{PopupMenu, PopupMenuItem};
 use gpui_kit::{App, WeakEntity, Window};
-use irori_core::{GameId, GameInfo, InstallPlatform, Runner};
+use irori_core::{ClientAction, GameId, GameInfo, InstallPlatform, Runner};
 use irori_services::LaunchParams;
-use irori_ui::i18n::t;
+use irori_ui::i18n::{t, t_args};
 use irori_ui::{backend, models};
 
 use super::{GamePage, GamePageEvent};
@@ -85,7 +85,19 @@ pub(super) fn build_menu(
     let hidden = models(cx).library.read(cx).is_hidden(id);
     let item = |key: &str, icon: IconName| PopupMenuItem::new(t(key)).icon(icon);
 
-    if !game.is_installed {
+    // Steam's client installs, verifies and removes its games.
+    let client = id.runner == Runner::Steam;
+    let in_client = |key: &str, icon: IconName| {
+        PopupMenuItem::new(t_args(key, &[("store", id.runner.store_name())])).icon(icon)
+    };
+    if !game.is_installed && client {
+        let i = id.clone();
+        menu = menu.item(
+            in_client("game.menu.install_in_client", IconName::Download).on_click(
+                move |_, window, cx| ops::client_action(&i, ClientAction::Install, window, cx),
+            ),
+        );
+    } else if !game.is_installed {
         if !sideload {
             let i = id.clone();
             menu = menu.item(
@@ -209,6 +221,22 @@ pub(super) fn build_menu(
                 .disabled(game.install_path().is_none())
                 .on_click(move |_, window, cx| ops::open_install_folder(&i, window, cx)),
         );
+        if client {
+            let i = id.clone();
+            menu = menu.item(
+                item("game.menu.launch_options", IconName::SquareTerminal).on_click(
+                    move |_, window, cx| crate::open_launch_options_dialog(i.clone(), window, cx),
+                ),
+            );
+            let i = id.clone();
+            menu = menu.item(
+                in_client("game.menu.verify_in_client", IconName::ShieldCheck)
+                    .disabled(!idle)
+                    .on_click(move |_, window, cx| {
+                        ops::client_action(&i, ClientAction::Verify, window, cx)
+                    }),
+            );
+        }
         if id.runner.manages_installs() {
             let i = id.clone();
             menu = menu.item(
@@ -313,9 +341,28 @@ pub(super) fn build_menu(
         )
         .on_click(move |_, _, cx| ops::set_hidden(&i, !hidden, cx)),
     );
+    if client {
+        let i = id.clone();
+        menu = menu.item(
+            in_client("game.menu.show_in_client", IconName::Joystick).on_click(
+                move |_, window, cx| ops::client_action(&i, ClientAction::Show, window, cx),
+            ),
+        );
+    }
     if let Some(url) = store_url.filter(|u| !u.is_empty()) {
         menu = menu
             .item(PopupMenuItem::link(t("game.menu.store_page"), url).icon(IconName::ExternalLink));
+    }
+    if game.is_installed && client {
+        menu = menu.separator();
+        let i = id.clone();
+        menu = menu.item(
+            in_client("game.menu.uninstall_in_client", IconName::Trash)
+                .disabled(!idle)
+                .on_click(move |_, window, cx| {
+                    ops::client_action(&i, ClientAction::Uninstall, window, cx)
+                }),
+        );
     }
     if game.is_installed && id.runner.manages_installs() && id.runner != Runner::Emulation {
         menu = menu.separator();

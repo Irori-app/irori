@@ -130,6 +130,7 @@
   "library.error.remove_shortcut": "Nepodařilo se odebrat zástupce pro {title}",
   "library.error.start": "{title} se nepodařilo spustit",
   "library.error.stop": "{title} se nepodařilo ukončit",
+  "library.error.uninstall_in_client": "{title} se nepodařilo odinstalovat",
   "library.error.verify": "{title} se nepodařilo ověřit",
   "library.filter.category_count": "Kategorie: {count}",
   "library.filter.describe.categories": "Kategorie {names}",

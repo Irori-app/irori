@@ -721,6 +721,7 @@ impl Store for EmulationStore {
                 .args(request.extra_args.clone())
                 .wrapped(&env.wrappers),
             track_wineserver: false,
+            watch: None,
         })
     }
 }
