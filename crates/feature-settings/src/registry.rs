@@ -761,6 +761,15 @@ pub static FIELDS: &[FieldSpec] = &[
     .placeholder(Verbatim("~/Library/Application Support/CrossOver/Bottles"))
     .keywords(&["crossover", "bottle", "bottles", "path", "mac"]),
     app(
+        "iroriCheckForAppUpdates",
+        "settings.field.check_for_app_updates.label",
+        General,
+        "settings.group.updates",
+        Toggle,
+    )
+    .help("settings.field.check_for_app_updates.help")
+    .keywords(&["irori", "version", "update", "release", "new"]),
+    app(
         "checkForUpdatesOnStartup",
         "settings.field.check_for_updates_on_startup.label",
         General,

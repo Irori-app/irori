@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "设置模拟游戏",
   "shell.palette.set_up_emulation_keywords": "模拟器 ROM 主机 复古 BIOS RetroArch",
   "shell.palette.lutris_script": "使用 Lutris 脚本安装",
-  "shell.palette.lutris_script_keywords": "Lutris 脚本 安装程序 lutris.net 社区"
+  "shell.palette.lutris_script_keywords": "Lutris 脚本 安装程序 lutris.net 社区",
+  "shell.app_update.available": "Irori {version} 现已推出",
+  "shell.app_update.available_message": "当前版本为 {current}。",
+  "shell.app_update.available_command": "当前版本为 {current}。要更新，请运行 {command}",
+  "shell.app_update.download": "下载",
+  "shell.app_update.copy_command": "复制命令",
+  "shell.app_update.updated": "Irori 已更新至 {version}",
+  "shell.app_update.release_notes": "发行说明"
 }

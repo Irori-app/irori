@@ -469,6 +469,10 @@ pub struct AppSettings {
         alias = "emberThirdPartyLaunchers"
     )]
     pub third_party_launchers: bool,
+    /// Look for new versions of Irori once a day. Irori-only; about Irori
+    /// itself, where `checkForUpdatesOnStartup` is about games.
+    #[serde(rename = "iroriCheckForAppUpdates")]
+    pub check_for_app_updates: bool,
 }
 
 impl Default for AppSettings {
@@ -485,6 +489,7 @@ impl Default for AppSettings {
             rom_folders: Vec::new(),
             bios_folder: String::new(),
             third_party_launchers: false,
+            check_for_app_updates: true,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,
@@ -708,6 +713,15 @@ mod tests {
             serde_json::from_str(r#"{"emberItchIo": true, "emberEngine": "mgba"}"#).unwrap();
         assert!(app.itch_io);
         assert_eq!(serde_json::to_value(&app).unwrap()["iroriEngine"], "mgba");
+    }
+
+    #[test]
+    fn app_update_check_is_on_unless_turned_off() {
+        let app: AppSettings = serde_json::from_str("{}").unwrap();
+        assert!(app.check_for_app_updates);
+        let app: AppSettings =
+            serde_json::from_str(r#"{"iroriCheckForAppUpdates": false}"#).unwrap();
+        assert!(!app.check_for_app_updates);
     }
 
     #[test]

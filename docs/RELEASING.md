@@ -120,7 +120,11 @@ Users install with `brew install --cask <owner>/tap/irori` and
 winget accepts automated updates only for packages it already lists.
 
 1. Submit the first version by hand: `wingetcreate new <installer URL>`, with the
-   identifier `Irori.Irori`.
+   identifier `Irori.Irori`, and add `InstallerSwitches: Custom: /CHANNEL=winget`
+   to its installer manifest. The setup then writes `Channel=winget` to
+   `install.ini`, so Irori offers `winget upgrade` instead of the release page.
+   The releaser below starts each update from the previous manifest; check that
+   the first automated update still has the switch.
 2. Fork `microsoft/winget-pkgs` to the account that owns the token below.
 3. Secret `WINGET_TOKEN`: a classic token with the `public_repo` scope.
 4. Variable `PUBLISH_WINGET` = `true`.

@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "Emülasyonu kur",
   "shell.palette.set_up_emulation_keywords": "emülatör ROM konsol retro BIOS RetroArch",
   "shell.palette.lutris_script": "Lutris betiğiyle kur",
-  "shell.palette.lutris_script_keywords": "Lutris betik kurulum lutris.net topluluk"
+  "shell.palette.lutris_script_keywords": "Lutris betik kurulum lutris.net topluluk",
+  "shell.app_update.available": "Irori {version} kullanılabilir",
+  "shell.app_update.available_message": "Kullandığınız sürüm: {current}.",
+  "shell.app_update.available_command": "Kullandığınız sürüm: {current}. Güncellemek için {command} komutunu çalıştırın",
+  "shell.app_update.download": "İndir",
+  "shell.app_update.copy_command": "Komutu kopyala",
+  "shell.app_update.updated": "Irori {version} sürümüne güncellendi",
+  "shell.app_update.release_notes": "Sürüm notları"
 }

@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "エミュレーションを設定",
   "shell.palette.set_up_emulation_keywords": "エミュレーター ROM ゲーム機 コンソール レトロ BIOS RetroArch",
   "shell.palette.lutris_script": "Lutris スクリプトでインストール",
-  "shell.palette.lutris_script_keywords": "Lutris スクリプト インストーラー lutris.net コミュニティ"
+  "shell.palette.lutris_script_keywords": "Lutris スクリプト インストーラー lutris.net コミュニティ",
+  "shell.app_update.available": "Irori {version} が利用可能です",
+  "shell.app_update.available_message": "現在のバージョンは {current} です。",
+  "shell.app_update.available_command": "現在のバージョンは {current} です。更新するには {command} を実行してください",
+  "shell.app_update.download": "ダウンロード",
+  "shell.app_update.copy_command": "コマンドをコピー",
+  "shell.app_update.updated": "Irori を {version} に更新しました",
+  "shell.app_update.release_notes": "リリースノート"
 }

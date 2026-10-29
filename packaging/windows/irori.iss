@@ -80,6 +80,11 @@ Root: HKCU; Subkey: "Software\Classes\irori"; ValueType: string; ValueName: "URL
 Root: HKCU; Subkey: "Software\Classes\irori\DefaultIcon"; ValueType: string; ValueData: "{app}\irori.ico"
 Root: HKCU; Subkey: "Software\Classes\irori\shell\open\command"; ValueType: string; ValueData: """{app}\irori.exe"" ""%1"""
 
+; Tells Irori who updates it (crates/services/src/app_update.rs). winget
+; runs this setup with /CHANNEL=winget; run by hand, it says "setup".
+[INI]
+Filename: "{app}\install.ini"; Section: "Install"; Key: "Channel"; String: "{param:channel|setup}"
+
 [Run]
 Filename: "{app}\irori.exe"; Description: "{cm:LaunchProgram,Irori}"; Flags: nowait postinstall skipifsilent
 
@@ -95,3 +100,4 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM irori.exe"; Flags: runhidden
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\irori-sign-in.exe.WebView2"
 Type: filesandordirs; Name: "{app}\irori.exe.WebView2"
+Type: files; Name: "{app}\install.ini"

@@ -165,3 +165,23 @@ fn store_and_platform_specific_rows_follow_their_context(cx: &mut TestAppContext
         assert!(general > 20);
     });
 }
+
+#[gpui_kit::test]
+fn about_says_who_updates_irori(cx: &mut TestAppContext) {
+    let (handle, view) = open(cx, |window, cx| {
+        SettingsView::new("about".into(), window, cx)
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.refresh();
+        let _ = window.draw(cx);
+    })
+    .unwrap();
+    cx.update(|cx| {
+        assert_eq!(view.read(cx).section(), SettingsSection::About);
+        let status = irori_ui::models(cx).app_update.read(cx).status.clone();
+        // Tests run from Cargo's target folder: a build from source never
+        // looks for new versions, so nothing here reaches GitHub.
+        assert_eq!(status.kind, irori_services::InstallKind::Source);
+        assert!(!status.announce && status.available.is_none());
+    });
+}

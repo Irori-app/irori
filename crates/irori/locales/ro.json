@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "Configurează emularea",
   "shell.palette.set_up_emulation_keywords": "emulator ROM consolă retro BIOS RetroArch",
   "shell.palette.lutris_script": "Instalează cu un script Lutris",
-  "shell.palette.lutris_script_keywords": "Lutris script instalare lutris.net comunitate"
+  "shell.palette.lutris_script_keywords": "Lutris script instalare lutris.net comunitate",
+  "shell.app_update.available": "Irori {version} este disponibil",
+  "shell.app_update.available_message": "Ai versiunea {current}.",
+  "shell.app_update.available_command": "Ai versiunea {current}. Pentru actualizare, rulează {command}",
+  "shell.app_update.download": "Descarcă",
+  "shell.app_update.copy_command": "Copiază comanda",
+  "shell.app_update.updated": "Irori a fost actualizat la versiunea {version}",
+  "shell.app_update.release_notes": "Note de lansare"
 }

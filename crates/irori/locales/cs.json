@@ -60,5 +60,12 @@
   "shell.palette.set_up_emulation": "Nastavit emulaci",
   "shell.palette.set_up_emulation_keywords": "emulátor ROM konzole retro BIOS RetroArch",
   "shell.palette.lutris_script": "Instalovat pomocí skriptu Lutris",
-  "shell.palette.lutris_script_keywords": "Lutris skript instalátor lutris.net komunita"
+  "shell.palette.lutris_script_keywords": "Lutris skript instalátor lutris.net komunita",
+  "shell.app_update.available": "Je k dispozici Irori {version}",
+  "shell.app_update.available_message": "Máte verzi {current}.",
+  "shell.app_update.available_command": "Máte verzi {current}. Aktualizujete příkazem {command}",
+  "shell.app_update.download": "Stáhnout",
+  "shell.app_update.copy_command": "Kopírovat příkaz",
+  "shell.app_update.updated": "Irori aktualizováno na verzi {version}",
+  "shell.app_update.release_notes": "Poznámky k vydání"
 }
