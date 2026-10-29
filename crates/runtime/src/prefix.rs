@@ -357,15 +357,16 @@ pub async fn verify_prefix(
     if res.aborted {
         return Err(crate::download::Cancelled.into());
     }
-    if !res.success()
-        || !required_files(wc)
-            .iter()
-            .all(|f| wc.prefix.join(f).exists())
-    {
+    let missing: Vec<&str> = required_files(wc)
+        .iter()
+        .copied()
+        .filter(|f| !wc.prefix.join(f).exists())
+        .collect();
+    if !res.success() || !missing.is_empty() {
         bail!(
             "Unable to create Wineprefix at {}: {}",
             wc.prefix.display(),
-            res.error_summary()
+            prefix_failure(wc, &res, &missing)
         );
     }
     tokio::fs::remove_file(&marker)
@@ -373,6 +374,37 @@ pub async fn verify_prefix(
         .context("Could not finish prefix initialization")?;
     tracing::info!("Created Wineprefix at {}", wc.prefix.display());
     Ok(true)
+}
+
+/// Why prefix creation failed, for the user: Wine's exit code or the files it
+/// didn't create, then its last line of output that isn't a `fixme:` notice.
+/// Wine prints those on every start (`loader_init` asks for bug reports with
+/// the exact version), so the raw last line often says nothing.
+fn prefix_failure(wc: &WineContext, res: &ExecResult, missing: &[&str]) -> String {
+    let wine = if wc.wine.name.is_empty() {
+        "Wine"
+    } else {
+        wc.wine.name.as_str()
+    };
+    let mut reason = match res.code {
+        Some(0) => format!(
+            "{wine} finished, but the prefix is missing {}",
+            missing.join(", ")
+        ),
+        Some(code) => format!("{wine} exited with code {code}"),
+        None => format!("{wine} was stopped before it finished"),
+    };
+    let detail = res
+        .stderr
+        .lines()
+        .rev()
+        .chain(res.stdout.lines().rev())
+        .map(str::trim)
+        .find(|l| !l.is_empty() && !l.contains(":fixme:"));
+    if let Some(detail) = detail {
+        reason.push_str(&format!(" ({detail})"));
+    }
+    reason
 }
 
 /// Record `app_name` in `<prefix>/installed_games`. Returns true when the
@@ -586,6 +618,61 @@ mod tests {
             .unwrap()
         );
         assert!(prefix_complete(&wc));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn prefix_failures_say_what_went_wrong_past_wine_fixme_lines() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("wine");
+        let wc = WineContext::new(
+            WineInstallation {
+                bin: bin.to_string_lossy().into_owned(),
+                wineserver: Some("/usr/bin/true".into()),
+                kind: WineKind::Wine,
+                ..Default::default()
+            },
+            dir.path().join("prefix"),
+            false,
+            PathBuf::new(),
+        );
+        let fixme = "00f0:fixme:winediag:loader_init Please mention your exact version when filing bug reports on winehq.org.";
+        async fn attempt(bin: &Path, wc: &WineContext, script: String) -> String {
+            std::fs::write(bin, script).unwrap();
+            std::fs::set_permissions(bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let e = verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                wc,
+                &OpContext::detached(),
+            )
+            .await
+            .unwrap_err();
+            format!("{e:#}")
+        }
+
+        let msg = attempt(
+            &bin,
+            &wc,
+            format!("#!/bin/sh\necho '{fixme}' >&2\nexit 0\n"),
+        )
+        .await;
+        assert!(msg.contains("finished, but the prefix is missing"), "{msg}");
+        assert!(msg.contains("system.reg"), "{msg}");
+        assert!(!msg.contains("fixme"), "{msg}");
+
+        let msg = attempt(
+            &bin,
+            &wc,
+            format!(
+            "#!/bin/sh\necho 'wine: could not load kernel32.dll, status c0000135' >&2\necho '{fixme}' >&2\nexit 3\n"
+            ),
+        )
+        .await;
+        assert!(msg.contains("exited with code 3"), "{msg}");
+        assert!(msg.contains("could not load kernel32.dll"), "{msg}");
+        assert!(!msg.contains("fixme"), "{msg}");
     }
 
     #[test]
