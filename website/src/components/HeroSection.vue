@@ -36,7 +36,7 @@ const library = SCREENS[0]!
           </Button>
         </div>
         <p class="font-mono text-sm text-smoke">
-          Free and open source · GPL-3.0 · Rust and GPUI
+          Free and open source · MIT · Rust and GPUI
         </p>
       </div>
       <div class="hero-shot min-w-0 lg:-mr-24 xl:-mr-40">

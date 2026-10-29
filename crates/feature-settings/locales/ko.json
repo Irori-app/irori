@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUI 및 GPUI Kit",
   "settings.about.credit_lucide": "Lucide 아이콘",
   "settings.about.credit_themes": "기본 제공 테마",
-  "settings.about.tagline": "Linux용 게임 런처입니다. GPL-3.0-or-later 라이선스가 적용됩니다.",
+  "settings.about.tagline": "Linux용 게임 런처입니다. MIT 라이선스가 적용됩니다.",
   "settings.about.third_party": "타사 소프트웨어",
   "settings.action.clear_caches": "캐시 지우기…",
   "settings.action.import": "가져오기",

@@ -53,7 +53,7 @@ pkgrel=1
 pkgdesc="Every game you own, around one fire"
 arch=(x86_64)
 url="{homepage}"
-license=(GPL-3.0-or-later)
+license=(MIT)
 options=(!strip !debug)
 source=("{source}")
 sha256sums=('{linux_sha}')
@@ -143,7 +143,7 @@ def scoop(version: str, repo: str, windows_sha: str) -> str:
         "version": version,
         "description": "Every game you own, around one fire: Epic Games, GOG, Amazon Games, itch.io and emulators",
         "homepage": HOMEPAGE,
-        "license": "GPL-3.0-or-later",
+        "license": "MIT",
         "architecture": {"64bit": {
             "url": f"{base}/v{version}/Irori-{version}-windows.zip",
             "hash": windows_sha,

@@ -18,7 +18,7 @@ mod windows {
             .set("ProductName", "Irori")
             .set("FileDescription", description)
             .set("CompanyName", "Irori developers")
-            .set("LegalCopyright", "Irori developers. GPL-3.0-or-later.")
+            .set("LegalCopyright", "Irori developers. MIT License.")
             .set("OriginalFilename", file_name)
             .set("InternalName", file_name);
         resource

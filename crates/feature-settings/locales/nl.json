@@ -2,7 +2,7 @@
   "settings.about.credit_gpui": "GPUI en GPUI Kit",
   "settings.about.credit_lucide": "Lucide-pictogrammen",
   "settings.about.credit_themes": "Meegeleverde thema’s",
-  "settings.about.tagline": "Een gamelauncher voor Linux. Gelicentieerd onder GPL-3.0-or-later.",
+  "settings.about.tagline": "Een gamelauncher voor Linux. Gelicentieerd onder de MIT-licentie.",
   "settings.about.third_party": "Software van derden",
   "settings.action.clear_caches": "Caches wissen…",
   "settings.action.import": "Importeren",

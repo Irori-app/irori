@@ -22,8 +22,8 @@ pt_BR, ro, sv, tr, ru, uk, ja, ko, zh_Hans, zh_Hant).
    on buttons). For established gaming-launcher terminology, consult Heroic's
    community translations at
    `/tmp/claude-1000/-home-radud--config-Claude-scratch-workspaces-be9c0f01-1ca9-426c-9323-c4f5fd7497b3-bb73d751-aec5-4f35-9234-f6306f8360c4-scratch-2026-10-22-dd28a5/7cad61c2-7751-448b-add9-7e546ed39814/scratchpad/ref/heroic/public/locales/<code>/translation.json`
-   (directory codes match ours) — reuse their wording where the meaning is the
-   same (GPL-3.0, compatible with Irori's license).
+   (directory codes match ours) for terminology only. They are GPL-3.0 and Irori
+   is MIT, so write your own sentences rather than copying theirs.
 3. Register: `pub static CATALOGS: irori_ui::i18n::Catalogs = &[("en", include_str!("../locales/en.json")), …];`
    and call `irori_ui::i18n::register(CATALOGS)` from the crate's `pub fn init(cx)`
    (create `init` if the crate has none, and say so in your report).
