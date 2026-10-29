@@ -362,7 +362,10 @@ pub async fn verify_prefix(
         .copied()
         .filter(|f| !wc.prefix.join(f).exists())
         .collect();
-    if !res.success() || !missing.is_empty() {
+    // `umu-run createprefix` has Proton start an empty program once the
+    // prefix exists, so it always exits 1; only its files tell the outcome.
+    let exit_failed = !res.success() && !wc.uses_umu;
+    if exit_failed || !missing.is_empty() {
         bail!(
             "Unable to create Wineprefix at {}: {}",
             wc.prefix.display(),
@@ -673,6 +676,42 @@ mod tests {
         assert!(msg.contains("exited with code 3"), "{msg}");
         assert!(msg.contains("could not load kernel32.dll"), "{msg}");
         assert!(!msg.contains("fixme"), "{msg}");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn umu_createprefix_is_judged_by_the_files_it_leaves() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let proton = dir.path().join("proton");
+        std::fs::write(&proton, b"").unwrap();
+        let umu = dir.path().join("umu-run");
+        let mut wc = WineContext::new(
+            discovery::proton_build(dir.path(), "GE-Proton"),
+            dir.path().join("prefix"),
+            true,
+            umu.clone(),
+        );
+        std::fs::write(&umu, b"#!/bin/sh\nmkdir -p \"$WINEPREFIX/drive_c\" \"$WINEPREFIX/dosdevices\"\ntouch \"$WINEPREFIX/system.reg\" \"$WINEPREFIX/user.reg\" \"$WINEPREFIX/userdef.reg\"\necho 'Command exited with status: 1' >&2\nexit 1\n").unwrap();
+        std::fs::set_permissions(&umu, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let verify = |wc: WineContext| async move {
+            verify_prefix(
+                &AppSettings::default(),
+                &GameSettings::default(),
+                &wc,
+                &OpContext::detached(),
+            )
+            .await
+        };
+
+        assert!(verify(wc.clone()).await.unwrap());
+        assert!(prefix_complete(&wc));
+
+        wc.prefix = dir.path().join("empty");
+        std::fs::write(&umu, b"#!/bin/sh\nexit 1\n").unwrap();
+        let e = verify(wc.clone()).await.unwrap_err();
+        assert!(format!("{e:#}").contains("exited with code 1"), "{e:#}");
+        assert!(!prefix_complete(&wc), "failed setup must remain retryable");
     }
 
     #[test]
