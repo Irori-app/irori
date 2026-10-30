@@ -368,10 +368,14 @@ commands without a window.
   `state/downloads.json`. Running items resume as Queued after a restart. Pause and
   cancel go through a `CancellationToken`.
 - **Updates** (`updates.rs`): the update manager's component side. Wine builds, DXVK,
-  VKD3D-Proton, DXVK-NVAPI and emulators are checked once a session and daily, from
-  lists cached for a day. Each has a stable id; a skipped version stays skipped until a
-  newer one is out (`state/updates.json`). Game updates stay with the stores and the
-  download queue, and a store whose check failed keeps its last answer.
+  VKD3D-Proton, DXVK-NVAPI, umu, the anticheat runtimes, emulators and RetroArch cores are
+  checked once a session and daily, from lists cached for a day. Each has a stable id; a
+  skipped version stays skipped until a newer one is out (`state/updates.json`). Game
+  updates stay with the stores and the download queue, and a store whose check failed
+  keeps its last answer. Automatic updates of both kinds start from
+  `run_automatic_updates`, which keeps to `iroriAutoUpdateFrom`/`Until` and, where the
+  system can tell (not macOS), `iroriAutoUpdateUnmetered`. A Wine update in place keeps the
+  replaced build in `<base>/.rollback/`, nested so discovery doesn't list it.
 - **User data:** favourites, hidden games, categories, recents, playtime and art
   overrides live in `state/library.json` behind `RwLock<Arc<UserData>>`, updated copy
   on write. Store playtime merges by keeping the larger total and counts games only,

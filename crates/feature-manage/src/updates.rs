@@ -7,8 +7,9 @@
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
-use gpui_kit::component::button::{Button, ButtonVariants as _};
+use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::notification::Notification;
+use gpui_kit::component::progress::Progress;
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::{ActiveTheme as _, Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
@@ -18,7 +19,7 @@ use gpui_kit::{
 };
 use irori_core::GameId;
 use irori_core::util::unix_now;
-use irori_services::{ComponentKind, ComponentUpdate};
+use irori_services::{AutoUpdateHold, ComponentKind, ComponentUpdate};
 use irori_ui::components::{EmptyState, PageHeader, SectionTitle};
 use irori_ui::i18n::{t, t_args};
 use irori_ui::state::run_infallible;
@@ -35,7 +36,9 @@ fn kind_label(kind: ComponentKind) -> SharedString {
     match kind {
         ComponentKind::Wine => t("manage.updates.kind.wine"),
         ComponentKind::Translation => t("manage.updates.kind.translation"),
+        ComponentKind::Runtime => t("manage.updates.kind.runtime"),
         ComponentKind::Emulator => t("manage.updates.kind.emulator"),
+        ComponentKind::Cores => t("manage.updates.kind.cores"),
     }
 }
 
@@ -45,6 +48,20 @@ fn summary(count: usize) -> SharedString {
         0 => t("manage.updates.up_to_date"),
         1 => t_args("manage.updates.summary_one", &[("count", "1")]),
         n => t_args("manage.updates.summary_other", &[("count", &n.to_string())]),
+    }
+}
+
+/// What automatic updates are waiting for, in a sentence.
+fn hold_text(hold: &AutoUpdateHold) -> SharedString {
+    match hold {
+        AutoUpdateHold::Window(from, until) => t_args(
+            "manage.updates.waiting_window",
+            &[
+                ("from", &format!("{from:02}:00")),
+                ("until", &format!("{until:02}:00")),
+            ],
+        ),
+        AutoUpdateHold::Metered => t("manage.updates.waiting_metered"),
     }
 }
 
@@ -145,6 +162,52 @@ impl UpdatesView {
         .detach();
     }
 
+    /// Ask, then bring back the build the last update of `version` replaced.
+    fn confirm_go_back(&self, version: String, window: &mut Window, cx: &mut Context<Self>) {
+        window.open_alert_dialog(cx, move |alert, _, _| {
+            let version = version.clone();
+            alert
+                .title(t_args(
+                    "manage.updates.go_back_title",
+                    &[("name", &version)],
+                ))
+                .description(t_args(
+                    "manage.updates.go_back_description",
+                    &[("name", &version)],
+                ))
+                .show_cancel(true)
+                .cancel_text(t("manage.updates.cancel"))
+                .ok_text(t("manage.updates.go_back"))
+                .ok_variant(ButtonVariant::Danger)
+                .on_ok(move |_, window, cx| {
+                    let (b, name) = (backend(cx), version.clone());
+                    let task = irori_ui::run(cx, async move { b.roll_back_build(&name).await });
+                    let name = version.clone();
+                    window
+                        .spawn(cx, async move |cx| {
+                            let result = task.await;
+                            let _ = cx.update(|window, cx| match result {
+                                Ok(()) => window.push_notification(
+                                    Notification::success(t_args(
+                                        "manage.updates.went_back",
+                                        &[("name", &name)],
+                                    )),
+                                    cx,
+                                ),
+                                Err(e) => notify_error(
+                                    t_args("manage.updates.go_back_failed", &[("name", &name)]),
+                                    &e,
+                                    window,
+                                    cx,
+                                ),
+                            });
+                        })
+                        .detach();
+                    true
+                })
+        });
+    }
+
     fn skip_component(&self, id: String, skip: bool, cx: &mut Context<Self>) {
         let b = backend(cx);
         run_infallible(cx, async move { b.skip_component_update(&id, skip).await }).detach();
@@ -231,11 +294,21 @@ impl UpdatesView {
         &self,
         update: &ComponentUpdate,
         running: bool,
+        percent: Option<f32>,
         error: Option<String>,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let id = update.id.clone();
         let element = |name: &str| ElementId::Name(format!("{name}-{id}").into());
+        if update.external {
+            let detail = format!(
+                "{} · {} · {}",
+                kind_label(update.kind),
+                t("manage.updates.updated_by_flatpak"),
+                update.latest
+            );
+            return v_flex().child(Self::row(update.name.clone(), detail, None, Vec::new(), cx));
+        }
         let mut actions: Vec<AnyElement> = Vec::new();
         if let Some(url) = update.notes_url.clone() {
             actions.push(
@@ -267,7 +340,13 @@ impl UpdatesView {
                 Button::new(element("updating"))
                     .small()
                     .loading(true)
-                    .label(t("manage.updates.updating"))
+                    .label(match percent {
+                        Some(p) => t_args(
+                            "manage.updates.updating_percent",
+                            &[("percent", &format!("{p:.0}"))],
+                        ),
+                        None => t("manage.updates.updating"),
+                    })
                     .into_any_element(),
             );
         } else if update.skipped {
@@ -315,7 +394,31 @@ impl UpdatesView {
         if update.skipped {
             detail = format!("{detail} · {}", t("manage.updates.skipped"));
         }
-        Self::row(update.name.clone(), detail, error, actions, cx)
+        v_flex()
+            .gap_2()
+            .child(Self::row(update.name.clone(), detail, error, actions, cx))
+            .when_some(percent.filter(|_| running), |this, p| {
+                this.child(Progress::new(element("progress")).value(p))
+            })
+    }
+
+    fn render_previous(&self, version: &str, cx: &mut Context<Self>) -> impl IntoElement {
+        let target = version.to_string();
+        let action = Button::new(ElementId::Name(format!("go-back-{version}").into()))
+            .small()
+            .ghost()
+            .label(t("manage.updates.go_back"))
+            .on_click(cx.listener(move |this, _, window, cx| {
+                this.confirm_go_back(target.clone(), window, cx)
+            }))
+            .into_any_element();
+        Self::row(
+            version.to_string(),
+            t("manage.updates.previous_detail"),
+            None,
+            vec![action],
+            cx,
+        )
     }
 
     fn render_irori(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
@@ -416,15 +519,28 @@ impl Render for UpdatesView {
             .iter()
             .map(|u| {
                 let running = report.running.contains(&u.id);
+                let percent = report.progress.get(&u.id).copied();
                 let error = report.failed.get(&u.id).cloned();
-                self.render_component(u, running, error, cx)
+                self.render_component(u, running, percent, error, cx)
                     .into_any_element()
             })
             .collect();
+        let previous_rows: Vec<AnyElement> = report
+            .previous
+            .iter()
+            .map(|p| self.render_previous(&p.version, cx).into_any_element())
+            .collect();
+        let hold = report
+            .auto_hold
+            .as_ref()
+            .map(|h| Alert::info("auto-hold", hold_text(h)));
         let irori = self.render_irori(cx);
         let muted = cx.theme().muted_foreground;
 
-        let nothing = game_rows.is_empty() && component_rows.is_empty() && irori.is_none();
+        let nothing = game_rows.is_empty()
+            && component_rows.is_empty()
+            && previous_rows.is_empty()
+            && irori.is_none();
         let body: AnyElement = if nothing {
             EmptyState::new(IconName::CircleCheck, t("manage.updates.up_to_date"))
                 .description(t("manage.updates.empty_description"))
@@ -469,6 +585,14 @@ impl Render for UpdatesView {
                             .child(card(cx).children(component_rows)),
                     )
                 })
+                .when(!previous_rows.is_empty(), |this| {
+                    this.child(
+                        v_flex()
+                            .gap_3()
+                            .child(SectionTitle::new(t("manage.updates.section.previous")))
+                            .child(card(cx).children(previous_rows)),
+                    )
+                })
                 .into_any_element()
         };
 
@@ -487,6 +611,7 @@ impl Render for UpdatesView {
                             .px_6()
                             .pb_6()
                             .gap_4()
+                            .children(hold)
                             .children(alerts)
                             .children(component_alert)
                             .child(body),

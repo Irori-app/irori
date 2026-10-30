@@ -473,6 +473,16 @@ pub struct AppSettings {
     /// the daily check finds them. Irori-only.
     #[serde(rename = "iroriAutoUpdateComponents")]
     pub auto_update_components: bool,
+    /// Hour automatic updates may start, `0`..`23`; empty for any. Irori-only.
+    #[serde(rename = "iroriAutoUpdateFrom")]
+    pub auto_update_from: String,
+    /// Hour automatic updates stop starting, `0`..`23`; empty for any.
+    /// Earlier than `auto_update_from` means past midnight. Irori-only.
+    #[serde(rename = "iroriAutoUpdateUntil")]
+    pub auto_update_until: String,
+    /// Hold automatic updates on a metered connection. Irori-only.
+    #[serde(rename = "iroriAutoUpdateUnmetered")]
+    pub auto_update_unmetered: bool,
     /// Look for new versions of Irori once a day. Irori-only; about Irori
     /// itself, where `checkForUpdatesOnStartup` is about games.
     #[serde(rename = "iroriCheckForAppUpdates")]
@@ -494,6 +504,9 @@ impl Default for AppSettings {
             bios_folder: String::new(),
             third_party_launchers: false,
             auto_update_components: false,
+            auto_update_from: String::new(),
+            auto_update_until: String::new(),
+            auto_update_unmetered: false,
             check_for_app_updates: true,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,

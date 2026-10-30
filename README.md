@@ -48,8 +48,10 @@ and kept in a bounded GPU cache.
   the tray menu, desktop/Steam shortcuts and `irori://launch/<runner>/<app>` links
   (Heroic's `heroic://` links work too).
 - Download queue with pause/resume, reordering, speed and ETA, history and "Update all".
-- One Updates page for games, Wine and Proton builds, DXVK, VKD3D-Proton, emulators and
-  Irori itself: check now, update everything, skip a version, or stop updating a game.
+- One Updates page for games, Wine and Proton builds, DXVK, VKD3D-Proton, umu and the
+  anticheat runtimes, emulators, RetroArch cores and Irori itself: check now, update
+  everything, skip a version, stop updating a game, or go back to the Wine build an update
+  replaced. Automatic updates can keep to set hours and stay off metered connections.
 - Per-game settings that inherit your global defaults and show what you overrode.
 - Wine/Proton manager (GE-Proton, Proton-CachyOS, Wine-GE, Kron4ek) and discovery of
   system, Steam, Lutris and Bottles builds; DXVK, VKD3D-Proton, DXVK-NVAPI, gamescope,

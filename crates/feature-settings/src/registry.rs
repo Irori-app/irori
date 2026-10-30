@@ -612,6 +612,34 @@ const SHARPNESS: &[ChoiceOption] = &[
     ),
 ];
 
+const UPDATE_HOURS: &[ChoiceOption] = &[
+    opt(ChoiceValue::Str(""), Key("settings.option.update_hour.any")),
+    opt(ChoiceValue::Str("0"), Verbatim("00:00")),
+    opt(ChoiceValue::Str("1"), Verbatim("01:00")),
+    opt(ChoiceValue::Str("2"), Verbatim("02:00")),
+    opt(ChoiceValue::Str("3"), Verbatim("03:00")),
+    opt(ChoiceValue::Str("4"), Verbatim("04:00")),
+    opt(ChoiceValue::Str("5"), Verbatim("05:00")),
+    opt(ChoiceValue::Str("6"), Verbatim("06:00")),
+    opt(ChoiceValue::Str("7"), Verbatim("07:00")),
+    opt(ChoiceValue::Str("8"), Verbatim("08:00")),
+    opt(ChoiceValue::Str("9"), Verbatim("09:00")),
+    opt(ChoiceValue::Str("10"), Verbatim("10:00")),
+    opt(ChoiceValue::Str("11"), Verbatim("11:00")),
+    opt(ChoiceValue::Str("12"), Verbatim("12:00")),
+    opt(ChoiceValue::Str("13"), Verbatim("13:00")),
+    opt(ChoiceValue::Str("14"), Verbatim("14:00")),
+    opt(ChoiceValue::Str("15"), Verbatim("15:00")),
+    opt(ChoiceValue::Str("16"), Verbatim("16:00")),
+    opt(ChoiceValue::Str("17"), Verbatim("17:00")),
+    opt(ChoiceValue::Str("18"), Verbatim("18:00")),
+    opt(ChoiceValue::Str("19"), Verbatim("19:00")),
+    opt(ChoiceValue::Str("20"), Verbatim("20:00")),
+    opt(ChoiceValue::Str("21"), Verbatim("21:00")),
+    opt(ChoiceValue::Str("22"), Verbatim("22:00")),
+    opt(ChoiceValue::Str("23"), Verbatim("23:00")),
+];
+
 const UPSCALE_METHOD: &[ChoiceOption] = &[
     opt(
         ChoiceValue::Str("fsr"),
@@ -804,6 +832,32 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .help("settings.field.auto_update_components.help")
     .keywords(&["update", "automatic", "wine", "proton", "dxvk", "emulator"]),
+    app(
+        "iroriAutoUpdateFrom",
+        "settings.field.auto_update_from.label",
+        General,
+        "settings.group.updates",
+        Choice(UPDATE_HOURS),
+    )
+    .help("settings.field.auto_update_window.help")
+    .keywords(&["update", "schedule", "night", "window", "time"]),
+    app(
+        "iroriAutoUpdateUntil",
+        "settings.field.auto_update_until.label",
+        General,
+        "settings.group.updates",
+        Choice(UPDATE_HOURS),
+    )
+    .keywords(&["update", "schedule", "night", "window", "time"]),
+    app(
+        "iroriAutoUpdateUnmetered",
+        "settings.field.auto_update_unmetered.label",
+        General,
+        "settings.group.updates",
+        Toggle,
+    )
+    .help("settings.field.auto_update_unmetered.help")
+    .keywords(&["update", "metered", "data limit", "mobile", "hotspot"]),
     app(
         "noTrayIcon",
         "settings.field.no_tray_icon.label",

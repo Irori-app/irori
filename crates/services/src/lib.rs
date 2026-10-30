@@ -20,6 +20,7 @@ mod games;
 mod hooks;
 mod inhibit;
 mod library;
+mod network;
 pub mod scripts;
 pub mod sessions;
 pub mod settings;
@@ -51,7 +52,7 @@ pub use scripts::{ScriptInstall, ScriptProgress, ScriptPrompt, ScriptRun};
 pub use sessions::Session;
 pub use settings::SettingsService;
 pub use status::StatusRegistry;
-pub use updates::{ComponentKind, ComponentReport, ComponentUpdate};
+pub use updates::{AutoUpdateHold, ComponentKind, ComponentReport, ComponentUpdate, PreviousBuild};
 pub use userdata::{UserData, UserDataService};
 
 /// How often connectivity is re-checked.
@@ -263,11 +264,9 @@ impl Backend {
             b.refresh_compat_data().await;
             if b.settings.app().check_for_updates_on_startup {
                 b.refresh_all(false).await;
-                if b.settings.app().auto_update_games {
-                    b.enqueue_all_updates().await;
-                }
             }
             b.check_components_when_due().await;
+            b.run_automatic_updates().await;
         });
 
         // Rebuild the aggregated library when stores or user data change, or
@@ -344,9 +343,7 @@ impl Backend {
             if online && (since_refresh >= interval || reconnected) {
                 since_refresh = Duration::ZERO;
                 self.refresh_all(false).await;
-                if self.settings.app().auto_update_games {
-                    self.enqueue_all_updates().await;
-                }
+                self.run_automatic_updates().await;
             }
         }
     }

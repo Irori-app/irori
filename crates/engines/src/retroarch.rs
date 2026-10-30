@@ -18,6 +18,9 @@ use crate::host::{Host, Os};
 use crate::state::{self, CoreInstall};
 
 const BUILDBOT: &str = "https://buildbot.libretro.com/nightly";
+/// Cores are rebuilt nightly, so a core counts as outdated only when its build
+/// is this many days behind; otherwise there would be an update every day.
+const CORE_UPDATE_DAYS: i64 = 14;
 
 /// The buildbot folder of this host's cores and their file extension.
 fn platform_dir(host: Host) -> Option<(&'static str, &'static str)> {
@@ -82,6 +85,89 @@ pub fn parse_index(text: &str) -> Vec<IndexEntry> {
         .collect()
 }
 
+/// Installed cores whose buildbot build is well ahead of theirs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoreUpdates {
+    pub cores: Vec<String>,
+    /// The oldest installed build among them.
+    pub oldest: String,
+    /// The newest build on offer.
+    pub newest: String,
+}
+
+/// Days of a `YYYY-MM-DD` date, close enough to compare builds weeks apart.
+fn day_number(date: &str) -> Option<i64> {
+    let mut parts = date.split('-').map(|p| p.parse::<i64>().ok());
+    let (year, month, day) = (parts.next()??, parts.next()??, parts.next()??);
+    Some(year * 365 + month * 30 + day)
+}
+
+/// What [`CoreUpdates`] holds for `installed` (core id and build date) against
+/// the buildbot's `index`. A core with no recorded date counts as outdated.
+fn outdated_cores(
+    index: &[IndexEntry],
+    installed: &[(String, String)],
+    ext: &str,
+) -> Option<CoreUpdates> {
+    let mut cores = Vec::new();
+    let (mut oldest, mut newest) = (String::new(), String::new());
+    for (core, date) in installed {
+        let file = format!("{core}_libretro.{ext}.zip");
+        let Some(entry) = index.iter().find(|e| e.file == file) else {
+            continue;
+        };
+        let behind = match (day_number(date), day_number(&entry.date)) {
+            (Some(have), Some(offered)) => offered - have >= CORE_UPDATE_DAYS,
+            (None, Some(_)) => true,
+            _ => false,
+        };
+        if behind {
+            cores.push(core.clone());
+            if oldest.is_empty() || date < &oldest {
+                oldest.clone_from(date);
+            }
+            if entry.date > newest {
+                newest.clone_from(&entry.date);
+            }
+        }
+    }
+    (!cores.is_empty()).then_some(CoreUpdates {
+        cores,
+        oldest,
+        newest,
+    })
+}
+
+/// Look for newer builds of the `installed` cores.
+pub async fn check_core_updates(
+    installed: &[(String, CoreInstall)],
+) -> Result<Option<CoreUpdates>> {
+    let Some((dir, ext)) = platform_dir(Host::current()) else {
+        return Ok(None);
+    };
+    if installed.is_empty() {
+        return Ok(None);
+    }
+    let index = fetch_index(&format!("{BUILDBOT}/{dir}")).await?;
+    let dates: Vec<(String, String)> = installed
+        .iter()
+        .map(|(core, i)| (core.clone(), i.date.clone()))
+        .collect();
+    Ok(outdated_cores(&index, &dates, ext))
+}
+
+async fn fetch_index(base: &str) -> Result<Vec<IndexEntry>> {
+    let text = irori_core::http::client()
+        .get(format!("{base}/.index-extended"))
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .context("Could not reach the libretro buildbot")?
+        .text()
+        .await?;
+    Ok(parse_index(&text))
+}
+
 /// Download `core` (verified against the buildbot's CRC-32) into
 /// [`cores_dir`]. Returns `None` when cancelled.
 pub async fn install_core(core: &str, ctx: &OpContext) -> Result<Option<CoreInstall>> {
@@ -92,15 +178,8 @@ pub async fn install_core(core: &str, ctx: &OpContext) -> Result<Option<CoreInst
     let file = core_file(core).context("no cores for this computer")?;
     let zip_name = format!("{file}.zip");
     let base = format!("{BUILDBOT}/{dir}");
-    let index = irori_core::http::client()
-        .get(format!("{base}/.index-extended"))
-        .send()
-        .await
-        .and_then(|r| r.error_for_status())
-        .context("Could not reach the libretro buildbot")?
-        .text()
-        .await?;
-    let entry = parse_index(&index)
+    let entry = fetch_index(&base)
+        .await?
         .into_iter()
         .find(|e| e.file == zip_name)
         .with_context(|| format!("The libretro buildbot has no {core} core for this computer"))?;
@@ -279,6 +358,25 @@ pub fn write_config(path: &Path, settings: &[(&str, String)]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_cores_well_behind_are_outdated() {
+        let index = parse_index(
+            "2026-10-30 aaaa mgba_libretro.so.zip\n\
+             2026-10-30 bbbb snes9x_libretro.so.zip\n\
+             2026-10-30 cccc gambatte_libretro.so.zip\n",
+        );
+        let installed = [
+            ("mgba".to_string(), "2026-10-25".to_string()),
+            ("snes9x".to_string(), "2026-06-01".to_string()),
+            ("gambatte".to_string(), String::new()),
+            ("gone".to_string(), "2020-01-01".to_string()),
+        ];
+        let updates = outdated_cores(&index, &installed, "so").unwrap();
+        assert_eq!(updates.cores, ["snes9x", "gambatte"]);
+        assert_eq!(updates.newest, "2026-10-30");
+        assert!(outdated_cores(&index, &installed[..1], "so").is_none());
+    }
 
     #[test]
     fn parses_the_buildbot_index() {

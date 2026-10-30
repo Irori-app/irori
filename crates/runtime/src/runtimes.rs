@@ -31,6 +31,12 @@ pub enum RuntimeName {
 }
 
 impl RuntimeName {
+    pub const ALL: [RuntimeName; 3] = [
+        RuntimeName::Umu,
+        RuntimeName::EacRuntime,
+        RuntimeName::BattlEyeRuntime,
+    ];
+
     /// Name in the Lutris runtime list and directory name on disk.
     pub fn id(self) -> &'static str {
         match self {
@@ -141,6 +147,31 @@ pub async fn is_installed(name: RuntimeName) -> bool {
             true
         }
     }
+}
+
+/// A runtime with a newer build published, as `(name, installed, latest)`.
+/// Launches fetch these on their own when needed; this tells the user. A umu
+/// that Irori didn't install (the system's, Heroic's) is left to its owner.
+pub async fn check_updates() -> Result<Vec<(RuntimeName, String, String)>> {
+    if !cfg!(target_os = "linux") {
+        return Ok(Vec::new());
+    }
+    let list = runtime_list(false).await?;
+    let mut out = Vec::new();
+    for name in RuntimeName::ALL {
+        if name == RuntimeName::Umu && umu_path() != locations::default_umu_path() {
+            continue;
+        }
+        let Some(local) = installed_version(&effective_runtime_dir(name)) else {
+            continue;
+        };
+        if let Some(remote) = list.iter().find(|r| r.name == name.id())
+            && remote.created_at != local
+        {
+            out.push((name, local, remote.created_at.clone()));
+        }
+    }
+    Ok(out)
 }
 
 /// Download and unpack a runtime into Irori's runtimes directory.

@@ -139,6 +139,9 @@ pub struct Release {
     pub is_installed: Option<bool>,
     #[serde(rename = "hasUpdate", skip_serializing_if = "Option::is_none")]
     pub has_update: Option<bool>,
+    /// The build this one replaced in place, kept so it can come back.
+    #[serde(rename = "previousDir", skip_serializing_if = "Option::is_none")]
+    pub previous_dir: Option<String>,
 }
 
 impl Release {
@@ -403,6 +406,7 @@ fn merge(cached: Vec<Release>, fresh: Vec<Release>, fetched: &[ReleaseKind]) -> 
         match fresh.iter_mut().find(|n| old.same_as(n)) {
             Some(new) => {
                 new.install_dir = old.install_dir.clone();
+                new.previous_dir = old.previous_dir.clone();
                 new.is_installed = old.is_installed;
                 new.disksize = old.disksize;
                 let changed = new.download != old.download || new.checksum != old.checksum;
@@ -728,9 +732,104 @@ pub async fn install(release: &Release, app: &AppSettings, ctx: &OpContext) -> R
         let _ = tokio::fs::remove_dir_all(&staging).await;
         return Err(e).with_context(|| format!("installing {}", target.display()));
     }
-    let _ = tokio::fs::remove_dir_all(&backup).await;
+    let previous = if overwrite && backup.exists() {
+        keep_previous(&base, &release.version, &backup).await
+    } else {
+        let _ = tokio::fs::remove_dir_all(&backup).await;
+        None
+    };
     let size = dir_size(&target).await;
-    record_installed(release, &target, size).await
+    let mut release = release.clone();
+    release.previous_dir = previous;
+    record_installed(&release, &target, size).await
+}
+
+/// Move the build an update replaced to `<base>/.rollback/<version>`. It is
+/// nested so build discovery doesn't list it. Going without is fine: the
+/// update itself succeeded.
+async fn keep_previous(base: &Path, version: &str, backup: &Path) -> Option<String> {
+    let dir = base.join(".rollback");
+    let kept = dir.join(version);
+    let moved = async {
+        tokio::fs::create_dir_all(&dir).await?;
+        if kept.exists() {
+            tokio::fs::remove_dir_all(&kept).await?;
+        }
+        tokio::fs::rename(backup, &kept).await
+    }
+    .await;
+    match moved {
+        Ok(()) => Some(kept.to_string_lossy().into_owned()),
+        Err(e) => {
+            tracing::warn!("keeping the previous {version}: {e:#}");
+            let _ = tokio::fs::remove_dir_all(backup).await;
+            None
+        }
+    }
+}
+
+/// Builds with an earlier version kept, from the cache (no network).
+pub fn rollbacks() -> Vec<Release> {
+    cached_releases()
+        .into_iter()
+        .filter(|r| {
+            r.installed()
+                && r.previous_dir
+                    .as_deref()
+                    .is_some_and(|d| Path::new(d).is_dir())
+        })
+        .collect()
+}
+
+/// Put `previous` in `target`'s place, then drop the replaced build. A failure
+/// half way puts `target` back.
+async fn swap_in_previous(target: &Path, previous: &Path) -> Result<()> {
+    let replaced = previous.with_extension("replaced");
+    let _ = tokio::fs::remove_dir_all(&replaced).await;
+    tokio::fs::rename(target, &replaced)
+        .await
+        .with_context(|| format!("moving {} aside", target.display()))?;
+    if let Err(e) = tokio::fs::rename(previous, target).await {
+        let _ = tokio::fs::rename(&replaced, target).await;
+        return Err(e).with_context(|| format!("restoring {}", target.display()));
+    }
+    tokio::fs::remove_dir_all(&replaced)
+        .await
+        .with_context(|| format!("deleting {}", replaced.display()))
+}
+
+/// Bring back the build `release` replaced. The update is on offer again,
+/// and can be skipped.
+pub async fn rollback(release: &Release) -> Result<Release> {
+    let target = release
+        .install_dir
+        .as_deref()
+        .filter(|d| !d.is_empty())
+        .map(PathBuf::from)
+        .context("This build is not installed")?;
+    let previous = release
+        .previous_dir
+        .as_deref()
+        .map(PathBuf::from)
+        .filter(|d| d.is_dir())
+        .with_context(|| format!("No earlier {} is kept", release.version))?;
+    irori_core::fs_guard::check_deletable(&target, Some(&locations::home()), &[])?;
+    swap_in_previous(&target, &previous).await?;
+    let mut updated = release.clone();
+    updated.previous_dir = None;
+    updated.has_update = Some(true);
+    updated.disksize = dir_size(&target).await;
+    let _guard = STORE_LOCK.lock().await;
+    let mut store = read_store();
+    if let Some(entry) = store
+        .releases
+        .iter_mut()
+        .find(|r| r.kind == release.kind && r.version == release.version)
+    {
+        *entry = updated.clone();
+    }
+    write_store(&store)?;
+    Ok(updated)
 }
 
 async fn dir_size(path: &Path) -> u64 {
@@ -774,6 +873,14 @@ pub async fn remove(release: &Release) -> Result<()> {
                 .await
                 .with_context(|| format!("deleting {}", dir.display()))?;
         }
+        if let Some(previous) = release.previous_dir.as_deref().map(Path::new)
+            && previous.exists()
+        {
+            irori_core::fs_guard::check_deletable(previous, Some(&home), &[])?;
+            tokio::fs::remove_dir_all(previous)
+                .await
+                .with_context(|| format!("deleting {}", previous.display()))?;
+        }
     }
     let _guard = STORE_LOCK.lock().await;
     let mut store = read_store();
@@ -784,6 +891,7 @@ pub async fn remove(release: &Release) -> Result<()> {
     {
         entry.is_installed = Some(false);
         entry.install_dir = Some(String::new());
+        entry.previous_dir = None;
         entry.disksize = 0;
         entry.has_update = Some(false);
     }
@@ -833,6 +941,46 @@ pub async fn download_default_wine(app: &AppSettings, ctx: &OpContext) -> Result
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn the_previous_build_takes_the_place_of_the_current_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let (target, previous) = (dir.path().join("GE"), dir.path().join(".rollback/GE"));
+        std::fs::create_dir_all(&target).unwrap();
+        std::fs::create_dir_all(&previous).unwrap();
+        std::fs::write(target.join("new"), b"").unwrap();
+        std::fs::write(previous.join("old"), b"").unwrap();
+        swap_in_previous(&target, &previous).await.unwrap();
+        assert!(target.join("old").is_file());
+        assert!(!target.join("new").exists());
+        assert!(!previous.exists());
+        assert!(!previous.with_extension("replaced").exists());
+    }
+
+    #[test]
+    fn a_refreshed_list_keeps_the_previous_build() {
+        let dir = tempfile::tempdir().unwrap();
+        let old = Release {
+            kind: "GE".into(),
+            version: "GE-latest".into(),
+            is_installed: Some(true),
+            install_dir: Some(dir.path().to_string_lossy().into_owned()),
+            previous_dir: Some("/kept".into()),
+            ..Default::default()
+        };
+        let fresh = Release {
+            kind: "GE".into(),
+            version: "GE-latest".into(),
+            ..Default::default()
+        };
+        let kind = ReleaseKind::from_type("GE");
+        let merged = merge(
+            vec![old],
+            vec![fresh],
+            &kind.into_iter().collect::<Vec<_>>(),
+        );
+        assert_eq!(merged[0].previous_dir.as_deref(), Some("/kept"));
+    }
+
     #[test]
     fn newer_builds_are_found_per_source() {
         let release =
