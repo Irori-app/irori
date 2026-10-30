@@ -44,10 +44,13 @@ async fn ask() -> Option<bool> {
     if unsafe { get_hint(&mut hint) } != 0 {
         return None;
     }
-    match hint.ConnectivityCost {
-        NetworkConnectivityCostHintFixed | NetworkConnectivityCostHintVariable => Some(true),
-        NetworkConnectivityCostHintUnrestricted => Some(false),
-        _ => None,
+    let cost = hint.ConnectivityCost;
+    if cost == NetworkConnectivityCostHintFixed || cost == NetworkConnectivityCostHintVariable {
+        Some(true)
+    } else if cost == NetworkConnectivityCostHintUnrestricted {
+        Some(false)
+    } else {
+        None
     }
 }
 
