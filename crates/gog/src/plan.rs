@@ -37,6 +37,8 @@ pub struct BuildFiles {
     /// v1 files.
     pub v1_files: Vec<V1File>,
     pub v1_dirs: Vec<String>,
+    /// v1: the build's `os/timestamp` folder, which holds its `main.bin`.
+    pub v1_folder: String,
 }
 
 /// The depots of `meta` that `sel` needs.
@@ -73,6 +75,7 @@ pub async fn resolve(
         .map(|d| (d.product_id.clone(), d.manifest.clone()))
         .collect();
     let (generation, os, timestamp) = (meta.generation, sel.os.clone(), meta.timestamp.clone());
+    out.v1_folder = format!("{os}/{timestamp}");
     let fetched: Vec<Result<serde_json::Value>> = futures::stream::iter(requests)
         .map(|(product, manifest)| {
             let (client, os, timestamp) = (client.clone(), os.clone(), timestamp.clone());
@@ -158,8 +161,8 @@ fn v2_key(product: &str, compressed_md5: &str) -> String {
     format!("v2/{product}/{compressed_md5}")
 }
 
-fn v1_key(product: &str, offset: u64, size: u64) -> String {
-    format!("v1/{product}/{offset}/{size}")
+fn v1_key(product: &str, folder: &str, offset: u64, size: u64) -> String {
+    format!("v1/{product}/{folder}/{offset}/{size}")
 }
 
 fn md5_digest(hex: &str) -> Option<Digest> {
@@ -332,7 +335,7 @@ pub fn plan(
             let parts = if f.size == 0 {
                 Vec::new()
             } else {
-                let key = v1_key(&f.product, f.offset, f.size);
+                let key = v1_key(&f.product, &new.v1_folder, f.offset, f.size);
                 let chunk = b.chunk(key.clone(), || Chunk {
                     key,
                     download_size: f.size,
@@ -584,8 +587,8 @@ pub async fn resolve_linux_links(
 /// links, fetched once per product and again when they expire.
 pub struct Signer {
     pub client: Client,
-    /// Product id → generation of its depots.
-    links: tokio::sync::Mutex<HashMap<(String, u32), Vec<Endpoint>>>,
+    /// Product id, generation of its depots and folder → addresses.
+    links: tokio::sync::Mutex<HashMap<(String, u32, String), Vec<Endpoint>>>,
     issued: std::sync::Mutex<HashSet<String>>,
 }
 
@@ -603,9 +606,10 @@ impl Signer {
         &self,
         product: &str,
         generation: u32,
+        path: &str,
         fresh: bool,
     ) -> Result<Vec<Endpoint>> {
-        let key = (product.to_string(), generation);
+        let key = (product.to_string(), generation, path.to_string());
         let mut links = self.links.lock().await;
         if !fresh && let Some(e) = links.get(&key) {
             return Ok(e.clone());
@@ -613,10 +617,20 @@ impl Signer {
         let e = if product == REDIST {
             self.client.dependency_link().await?
         } else {
-            self.client.secure_link(product, generation).await?
+            self.client.secure_link(product, generation, path).await?
         };
         links.insert(key, e.clone());
         Ok(e)
+    }
+}
+
+/// The folder a v1 key names (`os/timestamp/offset/size`), as `/os/timestamp/`.
+fn v1_link_path(rest: &str) -> String {
+    let folder = rest.rsplitn(3, '/').nth(2).unwrap_or_default();
+    if folder.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{folder}/")
     }
 }
 
@@ -637,11 +651,11 @@ impl irori_depot::UrlSigner for Signer {
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .insert(key.clone());
-                let (generation, suffix) = match kind {
-                    "v1" => (1, "main.bin".to_string()),
-                    _ => (2, galaxy_path(rest)),
+                let (generation, path, suffix) = match kind {
+                    "v1" => (1, v1_link_path(rest), "main.bin".to_string()),
+                    _ => (2, "/".to_string(), galaxy_path(rest)),
                 };
-                let endpoints = self.endpoints(product, generation, fresh).await?;
+                let endpoints = self.endpoints(product, generation, &path, fresh).await?;
                 let url = endpoints
                     .iter()
                     .find_map(|e| e.url_for(&suffix))
@@ -789,12 +803,13 @@ mod tests {
                 },
             ],
             v1_dirs: vec!["data".into()],
+            v1_folder: "windows/123".into(),
             ..Default::default()
         };
         let p = plan(&files, None, &|_, _| true).unwrap();
         let exe = &p.game[0];
         assert_eq!(exe.parts[0].chunk.range, Some((100, 50)));
-        assert_eq!(exe.parts[0].chunk.key, "v1/10/100/50");
+        assert_eq!(exe.parts[0].chunk.key, "v1/10/windows/123/100/50");
         assert!(exe.executable);
         assert_eq!(p.support[0].path, "10/setup.ini");
         assert_eq!(p.dirs, ["data"]);
@@ -898,12 +913,19 @@ mod tests {
         let signer = Signer::new(client);
         let keys = vec![
             format!("v2/1/z{A}"),
-            "v1/1/100/50".to_string(),
+            "v1/1/windows/123/100/50".to_string(),
             format!("v2/{REDIST}/abcdef"),
         ];
         let urls = irori_depot::UrlSigner::sign(&signer, &keys).await.unwrap();
         assert_eq!(urls[&keys[0]], format!("https://cdn/v2/1/z0/cc/z{A}?sig=s"));
         assert_eq!(urls[&keys[1]], "https://cdn/v1/1/main.bin?sig=s");
+        assert!(
+            server
+                .requests()
+                .iter()
+                .any(|r| r.path.contains("type=depot") && r.path.contains("windows%2F123")),
+            "a v1 link names the build's folder"
+        );
         assert_eq!(urls[&keys[2]], "https://redist/store/ab/cd/abcdef");
         let before = server.requests().len();
         irori_depot::UrlSigner::sign(&signer, &keys[..1])
