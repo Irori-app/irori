@@ -40,6 +40,8 @@ pub struct AppShell {
     recent: Entity<sidebar::RecentGames>,
     /// Games we minimized the window for, to restore when they exit.
     minimized_for: Option<GameId>,
+    /// The game seen playing, whose log was offered when it started.
+    log_shown_for: Option<GameId>,
     /// Refreshes the title bar's elapsed play time while a game runs.
     playing_ticker: Option<Task<()>>,
     /// Appearance preferences last applied to the theme.
@@ -74,6 +76,7 @@ impl AppShell {
                 this.show_notices(&notices, window, cx);
             }),
             cx.observe_in(&m.statuses, window, |this, _, window, cx| {
+                this.show_log_on_launch(window, cx);
                 this.minimize_on_launch(window, cx);
                 this.sync_playing_ticker(cx);
             }),
@@ -132,6 +135,7 @@ impl AppShell {
             narrow_expanded: false,
             recent: cx.new(sidebar::RecentGames::new),
             minimized_for: None,
+            log_shown_for: None,
             playing_ticker: None,
             applied_ui: Some(m.settings.read(cx).app.ui.clone()),
             glass: None,
@@ -182,6 +186,17 @@ impl AppShell {
             }
             window.push_notification(note, cx);
         }
+    }
+
+    fn show_log_on_launch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let enabled = models(cx).settings.read(cx).app.show_log_on_launch;
+        let playing = models(cx).statuses.read(cx).playing().next().cloned();
+        if let Some(id) =
+            crate::playing::log_to_open(enabled, playing.as_ref(), self.log_shown_for.as_ref())
+        {
+            irori_game::open_log_sheet(id, window, cx);
+        }
+        self.log_shown_for = playing;
     }
 
     fn minimize_on_launch(&mut self, window: &mut Window, cx: &mut Context<Self>) {

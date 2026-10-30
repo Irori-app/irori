@@ -6,13 +6,9 @@ use irori_core::GameSettings;
 use irori_core::GamescopeSettings;
 use irori_core::process::split_args;
 
-/// Whether gamescope is configured at all: any of its options asks for it,
-/// including a cursor grab or additional options set on their own.
+/// Whether games run inside gamescope.
 pub fn gamescope_enabled(gs: &GamescopeSettings) -> bool {
-    gs.enable_limiter
-        || gs.enable_upscaling
-        || gs.enable_force_grab_cursor
-        || !gs.additional_options.trim().is_empty()
+    gs.is_enabled()
 }
 
 /// gamescope arguments after the binary, ending with `--`.
@@ -23,7 +19,7 @@ pub fn gamescope_enabled(gs: &GamescopeSettings) -> bool {
 pub fn gamescope_args(gs: &GamescopeSettings, show_mangohud: bool, new_cli: bool) -> Vec<String> {
     let mut args: Vec<String> = Vec::new();
     let set = |s: &str| !s.trim().is_empty();
-    if gs.enable_upscaling {
+    if gs.sets_window() {
         for (flag, value) in [
             ("-w", &gs.game_width),
             ("-h", &gs.game_height),
@@ -35,15 +31,17 @@ pub fn gamescope_args(gs: &GamescopeSettings, show_mangohud: bool, new_cli: bool
                 args.push(value.trim().into());
             }
         }
-        match (gs.upscale_method.as_str(), new_cli) {
-            ("fsr", true) => args.extend(["-F".into(), "fsr".into()]),
-            ("fsr", false) => args.push("-U".into()),
-            ("nis", true) => args.extend(["-F".into(), "nis".into()]),
-            ("nis", false) => args.push("-Y".into()),
-            ("integer", true) => args.extend(["-S".into(), "integer".into()]),
-            ("integer", false) => args.push("-i".into()),
-            ("stretch", true) => args.extend(["-S".into(), "stretch".into()]),
-            _ => {}
+        if gs.enable_upscaling {
+            match (gs.upscale_method.as_str(), new_cli) {
+                ("fsr", true) => args.extend(["-F".into(), "fsr".into()]),
+                ("fsr", false) => args.push("-U".into()),
+                ("nis", true) => args.extend(["-F".into(), "nis".into()]),
+                ("nis", false) => args.push("-Y".into()),
+                ("integer", true) => args.extend(["-S".into(), "integer".into()]),
+                ("integer", false) => args.push("-i".into()),
+                ("stretch", true) => args.extend(["-S".into(), "stretch".into()]),
+                _ => {}
+            }
         }
         match gs.window_type.as_str() {
             "fullscreen" => args.push("-f".into()),
@@ -158,11 +156,35 @@ mod tests {
         assert!(gamescope_enabled(&grab));
     }
 
+    #[test]
+    fn the_switch_decides_when_it_is_set() {
+        let on = GamescopeSettings {
+            enabled: Some(true),
+            window_type: "borderless".into(),
+            game_width: "1920".into(),
+            game_height: "1080".into(),
+            ..Default::default()
+        };
+        assert!(gamescope_enabled(&on));
+        assert_eq!(
+            gamescope_args(&on, false, true),
+            ["-w", "1920", "-h", "1080", "-b", "--"]
+        );
+        let off = GamescopeSettings {
+            enabled: Some(false),
+            enable_upscaling: true,
+            enable_limiter: true,
+            ..Default::default()
+        };
+        assert!(!gamescope_enabled(&off));
+    }
+
     use super::*;
     use irori_core::Wrapper;
 
     fn scope() -> GamescopeSettings {
         GamescopeSettings {
+            enabled: None,
             enable_upscaling: true,
             enable_limiter: true,
             enable_force_grab_cursor: true,

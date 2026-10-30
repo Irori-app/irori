@@ -546,7 +546,9 @@ pub struct Endpoint {
 }
 
 impl Endpoint {
-    /// The URL of `suffix` (appended to the endpoint's path).
+    /// The URL of `suffix` (appended to the endpoint's path). The
+    /// redistributables' endpoints have a plain address as their format,
+    /// with no `{path}` to fill in.
     pub fn url_for(&self, suffix: &str) -> Option<String> {
         if let Some(format) = &self.url_format {
             let mut params = self.parameters.clone();
@@ -562,6 +564,9 @@ impl Endpoint {
                     other => other.to_string(),
                 };
                 url = url.replace(&format!("{{{k}}}"), &value);
+            }
+            if !format.contains("{path}") {
+                url = format!("{}/{suffix}", url.trim_end_matches('/'));
             }
             return Some(url);
         }
@@ -935,6 +940,19 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn plain_endpoints_get_the_file_appended() {
+        let e: Endpoint = serde_json::from_value(json!({
+            "url_format": "https://cdn/content-system/v2/dependencies/store",
+            "parameters": {}
+        }))
+        .unwrap();
+        assert_eq!(
+            e.url_for("2c/5f/2c5f").as_deref(),
+            Some("https://cdn/content-system/v2/dependencies/store/2c/5f/2c5f")
+        );
+    }
 
     #[test]
     fn galaxy_paths_and_endpoints() {

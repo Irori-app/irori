@@ -713,13 +713,25 @@ mod tests {
 
         let mut edited = f.store.app(&id.app_name).unwrap();
         edited.title = "Renamed".into();
+        edited.description = Some("  First line.\n\nSecond line.\n".into());
+        edited.developer = Some(" Studio ".into());
+        edited.release_date = Some("2024-05-30".into());
+        edited.genres = vec![" Visual novel ".into(), " ".into()];
         f.store.edit_app(&id.app_name, edited).await.unwrap();
         assert!(f.store.edit_app("nope", linux_app(&exe)).await.is_err());
 
         let reopened =
             SideloadStore::with_config_dir(EventBus::new(), settings(), f.root.join("config"));
         reopened.init().await.unwrap();
-        assert_eq!(reopened.game(&id.app_name).unwrap().title, "Renamed");
+        let game = reopened.game(&id.app_name).unwrap();
+        assert_eq!(game.title, "Renamed");
+        assert_eq!(
+            game.description.as_deref(),
+            Some("First line.\n\nSecond line.")
+        );
+        assert_eq!(game.developer.as_deref(), Some("Studio"));
+        assert_eq!(game.release_date.as_deref(), Some("2024-05-30"));
+        assert_eq!(game.genres, ["Visual novel"]);
 
         f.store.remove_app(&id.app_name, false).await.unwrap();
         assert!(f.store.games().is_empty());

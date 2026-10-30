@@ -2,6 +2,7 @@
 //! conversion and validation, override planning and list-editor rules.
 
 use anyhow::{Context as _, Result};
+use irori_core::GamescopeSettings;
 use irori_core::settings::{GameSettings, GameSettingsOverrides};
 use irori_ui::i18n::{t, t_args};
 use serde::Serialize;
@@ -18,6 +19,21 @@ pub fn override_key(path: &str) -> &str {
 /// The value at a dotted path.
 pub fn get_path<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
     path.split('.').try_fold(root, |v, seg| v.get(seg))
+}
+
+/// The boolean at a dotted path; false when it isn't one. Gamescope's switch
+/// has no stored value until it is first used, so it is read as Irori reads
+/// it at launch.
+pub fn bool_at(root: &Value, path: &str) -> bool {
+    if path == "gamescope.iroriEnabled" {
+        return root
+            .get("gamescope")
+            .and_then(|v| serde_json::from_value::<GamescopeSettings>(v.clone()).ok())
+            .is_some_and(|g| g.is_enabled());
+    }
+    get_path(root, path)
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 /// Set the value at a dotted path, creating intermediate objects. Returns
@@ -233,6 +249,16 @@ pub fn remove_row(rows: &Value, index: usize) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gamescope_switch_follows_older_settings() {
+        let on: Value = serde_json::json!({"gamescope": {"enableUpscaling": true}});
+        assert!(bool_at(&on, "gamescope.iroriEnabled"));
+        let off: Value =
+            serde_json::json!({"gamescope": {"enableUpscaling": true, "iroriEnabled": false}});
+        assert!(!bool_at(&off, "gamescope.iroriEnabled"));
+        assert!(bool_at(&off, "gamescope.enableUpscaling"));
+    }
     use irori_core::AppSettings;
 
     #[test]

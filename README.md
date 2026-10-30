@@ -53,6 +53,11 @@ and kept in a bounded GPU cache.
   everything, skip a version, stop updating a game, or go back to the Wine build an update
   replaced. Automatic updates can keep to set hours and stay off metered connections.
 - Per-game settings that inherit your global defaults and show what you overrode.
+- Added games keep their own description, developer, release date and genres.
+- Run any game in gamescope with one switch, upscaling optional. Pick the DXVK and
+  VKD3D-Proton versions for Wine builds, and turn on descriptor heap and Proton's DLSS,
+  FSR and XeSS upgrades without looking up variables. The game's log can open by itself
+  when it starts.
 - Wine/Proton manager (GE-Proton, Proton-CachyOS, Wine-GE, Kron4ek) and discovery of
   system, Steam, Lutris and Bottles builds; DXVK, VKD3D-Proton, DXVK-NVAPI, gamescope,
   MangoHud, GameMode, umu and the Steam runtime.
