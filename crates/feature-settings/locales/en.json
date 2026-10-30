@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Theme",
   "settings.field.ui_tile_size.help": "Width of game covers in the library grid.",
   "settings.field.ui_tile_size.label": "Cover size",
-  "settings.field.ui_translucency.help": "Let the desktop show through the title bar and sidebar. Automatic turns it on where the system can blur it: macOS, Windows 11 and KDE Plasma.",
+  "settings.field.ui_translucency.help": "Let the desktop show through the title bar and sidebar. Automatic turns it on where the system can blur it: macOS, Windows 11 and Linux desktops with blur, such as KDE Plasma and GNOME 51.",
   "settings.field.ui_translucency.label": "Translucency",
   "settings.field.use_default": "Use the default",
   "settings.field.use_game_mode.help": "Let Feral GameMode tune the system while playing. GameMode must be installed.",

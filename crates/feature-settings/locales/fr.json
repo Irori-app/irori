@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Thème",
   "settings.field.ui_tile_size.help": "Largeur des jaquettes dans la grille de la bibliothèque.",
   "settings.field.ui_tile_size.label": "Taille des jaquettes",
-  "settings.field.ui_translucency.help": "Laisse transparaître le bureau à travers la barre de titre et la barre latérale. Automatique l'active là où le système sait le flouter : macOS, Windows 11 et KDE Plasma.",
+  "settings.field.ui_translucency.help": "Laisse transparaître le bureau à travers la barre de titre et la barre latérale. Automatique l'active là où le système sait le flouter : macOS, Windows 11 et les bureaux Linux avec flou, comme KDE Plasma et GNOME 51.",
   "settings.field.ui_translucency.label": "Translucidité",
   "settings.field.use_default": "Utiliser la valeur par défaut",
   "settings.field.use_game_mode.help": "Laisse Feral GameMode optimiser le système pendant que vous jouez. GameMode doit être installé.",

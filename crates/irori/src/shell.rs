@@ -240,7 +240,9 @@ impl AppShell {
         } else {
             initial_glass(navigator(cx).read(cx).current(), cx)
         };
-        if self.glass != Some(glass) && glass::apply(glass, window, cx) {
+        if self.glass == Some(glass) {
+            glass::refit(window, cx);
+        } else if glass::apply(glass, window, cx) {
             self.glass = Some(glass);
         }
     }
@@ -584,11 +586,13 @@ impl Render for AppShell {
             div().size_full().child(content),
             PAGE_RISE_PX,
         );
+        let modal_dim = irori_ui::theme::modal_dim(window, cx);
 
         v_flex()
             .id("irori-shell")
             .key_context(SHELL_CONTEXT)
             .track_focus(&self.focus)
+            .relative()
             .size_full()
             // Translucent, the shell leaves the window clear and each region
             // paints its own surface over the backdrop.
@@ -655,6 +659,9 @@ impl Render for AppShell {
                             .child(content),
                     ),
             )
+            .when_some(modal_dim, |this, dim| {
+                this.child(div().absolute().inset_0().bg(dim))
+            })
     }
 }
 

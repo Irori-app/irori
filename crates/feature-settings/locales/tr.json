@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Tema",
   "settings.field.ui_tile_size.help": "Kitaplık ızgarasındaki oyun kapaklarının genişliği.",
   "settings.field.ui_tile_size.label": "Kapak boyutu",
-  "settings.field.ui_translucency.help": "Masaüstünün başlık çubuğu ve kenar çubuğundan görünmesini sağlar. Otomatik, sistemin bulanıklaştırabildiği yerlerde açar: macOS, Windows 11 ve KDE Plasma.",
+  "settings.field.ui_translucency.help": "Masaüstünün başlık çubuğu ve kenar çubuğundan görünmesini sağlar. Otomatik, sistemin bulanıklaştırabildiği yerlerde açar: macOS, Windows 11 ve KDE Plasma ile GNOME 51 gibi bulanıklık sunan Linux masaüstleri.",
   "settings.field.ui_translucency.label": "Yarı saydamlık",
   "settings.field.use_default": "Varsayılanı kullan",
   "settings.field.use_game_mode.help": "Oynarken Feral GameMode'un sistemi ayarlamasına izin ver. GameMode kurulu olmalıdır.",

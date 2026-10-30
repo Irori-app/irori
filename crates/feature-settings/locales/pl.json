@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Motyw",
   "settings.field.ui_tile_size.help": "Szerokość okładek gier w siatce biblioteki.",
   "settings.field.ui_tile_size.label": "Rozmiar okładek",
-  "settings.field.ui_translucency.help": "Pozwala, by pulpit prześwitywał przez pasek tytułu i panel boczny. Tryb automatyczny włącza ją tam, gdzie system potrafi go rozmyć: macOS, Windows 11 i KDE Plasma.",
+  "settings.field.ui_translucency.help": "Pozwala, by pulpit prześwitywał przez pasek tytułu i panel boczny. Tryb automatyczny włącza ją tam, gdzie system potrafi go rozmyć: macOS, Windows 11 i linuksowe środowiska z rozmyciem, takie jak KDE Plasma i GNOME 51.",
   "settings.field.ui_translucency.label": "Przezroczystość",
   "settings.field.use_default": "Użyj domyślnego",
   "settings.field.use_game_mode.help": "Pozwól Feral GameMode dostrajać system podczas gry. GameMode musi być zainstalowany.",

@@ -472,6 +472,9 @@ cx.spawn_in(window, async move |this, cx| {
   `solid_pages()`. Never add alpha yourself.
 - `theme::apply` holds `warning`, `danger`, `info` and `success` to readable contrast,
   because themes pick them by eye. Colours that already read stay as the theme has them.
+- On Linux `cx.theme().overlay` is transparent and the shell paints the dim behind
+  dialogs and sheets (`theme::modal_dim`), because gpui-kit would dim the window's
+  shadow margin too. Read the dim from there, not from the theme.
 - The available backdrops differ per platform; see the table in `docs/PLATFORMS.md`.
 
 **Components** (`components/`): `GameCover`, `ArtImage`, `EmptyState`, `PageHeader`,

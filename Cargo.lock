@@ -5008,12 +5008,17 @@ dependencies = [
  "once_cell",
  "open",
  "parking_lot",
+ "raw-window-handle",
  "serde",
  "serde_json",
  "sha2 0.10.9",
  "sysinfo 0.39.6",
  "tokio",
  "tracing",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "x11rb",
 ]
 
 [[package]]

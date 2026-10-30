@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Design",
   "settings.field.ui_tile_size.help": "Breite der Spielcover im Bibliotheksraster.",
   "settings.field.ui_tile_size.label": "Covergröße",
-  "settings.field.ui_translucency.help": "Lässt den Desktop durch Titelleiste und Seitenleiste scheinen. Automatisch schaltet sie dort ein, wo das System ihn weichzeichnen kann: macOS, Windows 11 und KDE Plasma.",
+  "settings.field.ui_translucency.help": "Lässt den Desktop durch Titelleiste und Seitenleiste scheinen. Automatisch schaltet sie dort ein, wo das System ihn weichzeichnen kann: macOS, Windows 11 und Linux-Desktops mit Unschärfe wie KDE Plasma und GNOME 51.",
   "settings.field.ui_translucency.label": "Transparenz",
   "settings.field.use_default": "Standard verwenden",
   "settings.field.use_game_mode.help": "Feral GameMode das System während des Spielens optimieren lassen. GameMode muss installiert sein.",

@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "테마",
   "settings.field.ui_tile_size.help": "라이브러리 그리드에 표시되는 게임 커버의 너비입니다.",
   "settings.field.ui_tile_size.label": "커버 크기",
-  "settings.field.ui_translucency.help": "제목 표시줄과 사이드바 너머로 바탕 화면이 비치게 합니다. 자동은 시스템이 흐림 효과를 지원하는 macOS, Windows 11, KDE Plasma에서만 켜집니다.",
+  "settings.field.ui_translucency.help": "제목 표시줄과 사이드바 너머로 바탕 화면이 비치게 합니다. 자동은 시스템이 흐림 효과를 지원하는 macOS, Windows 11, KDE Plasma나 GNOME 51 같은 Linux 데스크톱에서만 켜집니다.",
   "settings.field.ui_translucency.label": "반투명",
   "settings.field.use_default": "기본값 사용",
   "settings.field.use_game_mode.help": "플레이하는 동안 Feral GameMode가 시스템을 최적화합니다. GameMode가 설치되어 있어야 합니다.",

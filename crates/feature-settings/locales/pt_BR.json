@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Tema",
   "settings.field.ui_tile_size.help": "Largura das capas dos jogos na grade da biblioteca.",
   "settings.field.ui_tile_size.label": "Tamanho das capas",
-  "settings.field.ui_translucency.help": "Deixa a área de trabalho aparecer através da barra de título e da barra lateral. Automático ativa onde o sistema consegue desfocá-la: macOS, Windows 11 e KDE Plasma.",
+  "settings.field.ui_translucency.help": "Deixa a área de trabalho aparecer através da barra de título e da barra lateral. Automático ativa onde o sistema consegue desfocá-la: macOS, Windows 11 e desktops Linux com desfoque, como KDE Plasma e GNOME 51.",
   "settings.field.ui_translucency.label": "Translucidez",
   "settings.field.use_default": "Usar o padrão",
   "settings.field.use_game_mode.help": "Deixar o Feral GameMode otimizar o sistema enquanto você joga. O GameMode precisa estar instalado.",

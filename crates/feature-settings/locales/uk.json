@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Тема",
   "settings.field.ui_tile_size.help": "Ширина обкладинок ігор у сітці бібліотеки.",
   "settings.field.ui_tile_size.label": "Розмір обкладинок",
-  "settings.field.ui_translucency.help": "Робочий стіл просвічує крізь заголовок вікна й бічну панель. «Автоматично» вмикає її там, де система вміє розмивати тло: macOS, Windows 11 і KDE Plasma.",
+  "settings.field.ui_translucency.help": "Робочий стіл просвічує крізь заголовок вікна й бічну панель. «Автоматично» вмикає її там, де система вміє розмивати тло: macOS, Windows 11 і робочі столи Linux із розмиттям, як-от KDE Plasma і GNOME 51.",
   "settings.field.ui_translucency.label": "Напівпрозорість",
   "settings.field.use_default": "Використовувати типове значення",
   "settings.field.use_game_mode.help": "Дозволити Feral GameMode оптимізувати систему під час гри. Потрібен встановлений GameMode.",

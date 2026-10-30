@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Tema",
   "settings.field.ui_tile_size.help": "Bredden på spelomslag i biblioteksrutnätet.",
   "settings.field.ui_tile_size.label": "Omslagsstorlek",
-  "settings.field.ui_translucency.help": "Låter skrivbordet synas genom namnlisten och sidofältet. Automatiskt slår på det där systemet kan göra det suddigt: macOS, Windows 11 och KDE Plasma.",
+  "settings.field.ui_translucency.help": "Låter skrivbordet synas genom namnlisten och sidofältet. Automatiskt slår på det där systemet kan göra det suddigt: macOS, Windows 11 och Linux-skrivbord med oskärpa, som KDE Plasma och GNOME 51.",
   "settings.field.ui_translucency.label": "Genomskinlighet",
   "settings.field.use_default": "Använd standardvärdet",
   "settings.field.use_game_mode.help": "Låt Feral GameMode optimera systemet medan du spelar. GameMode måste vara installerat.",
