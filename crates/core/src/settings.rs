@@ -70,6 +70,11 @@ pub struct Wrapper {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct GamescopeSettings {
+    /// The on/off switch. `None` in settings saved before it existed:
+    /// gamescope then runs when one of its options asks for it, as it did.
+    /// Irori-only.
+    #[serde(rename = "iroriEnabled")]
+    pub enabled: Option<bool>,
     pub enable_upscaling: bool,
     pub enable_limiter: bool,
     pub enable_force_grab_cursor: bool,
@@ -89,6 +94,7 @@ pub struct GamescopeSettings {
 impl Default for GamescopeSettings {
     fn default() -> Self {
         Self {
+            enabled: None,
             enable_upscaling: false,
             enable_limiter: false,
             enable_force_grab_cursor: false,
@@ -102,6 +108,24 @@ impl Default for GamescopeSettings {
             fps_limiter_no_focus: String::new(),
             additional_options: String::new(),
         }
+    }
+}
+
+impl GamescopeSettings {
+    /// Whether games run inside gamescope.
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.unwrap_or(
+            self.enable_limiter
+                || self.enable_upscaling
+                || self.enable_force_grab_cursor
+                || !self.additional_options.trim().is_empty(),
+        )
+    }
+
+    /// Whether the window type and resolutions apply. Without the switch
+    /// they only ever applied together with upscaling.
+    pub fn sets_window(&self) -> bool {
+        self.enabled == Some(true) || self.enable_upscaling
     }
 }
 
@@ -187,6 +211,29 @@ pub struct GameSettings {
     /// Irori manages. Irori-only.
     #[serde(rename = "iroriEngineOwnSettings", alias = "emberEngineOwnSettings")]
     pub engine_own_settings: bool,
+    /// DXVK release tag for plain Wine builds; empty for the newest.
+    /// Irori-only.
+    #[serde(rename = "iroriDxvkVersion")]
+    pub dxvk_version: String,
+    /// VKD3D-Proton release tag for plain Wine builds; empty for the newest.
+    /// Irori-only.
+    #[serde(rename = "iroriVkd3dVersion")]
+    pub vkd3d_version: String,
+    /// Turn on VKD3D-Proton's descriptor heap. Irori-only.
+    #[serde(rename = "iroriDescriptorHeap")]
+    pub descriptor_heap: bool,
+    /// `PROTON_DLSS_UPGRADE`. Irori-only.
+    #[serde(rename = "iroriDlssUpgrade")]
+    pub dlss_upgrade: bool,
+    /// `PROTON_DLSS_INDICATOR`. Irori-only.
+    #[serde(rename = "iroriDlssIndicator")]
+    pub dlss_indicator: bool,
+    /// `PROTON_FSR4_UPGRADE`. Irori-only.
+    #[serde(rename = "iroriFsr4Upgrade")]
+    pub fsr4_upgrade: bool,
+    /// `PROTON_XESS_UPGRADE`. Irori-only.
+    #[serde(rename = "iroriXessUpgrade")]
+    pub xess_upgrade: bool,
     /// The Lutris install script that installed this game, so it can be
     /// reinstalled or updated later. Per game only. Irori-only.
     #[serde(
@@ -260,6 +307,13 @@ impl Default for GameSettings {
             disable_umu: false,
             verbose_logs: true,
             advertise_avx_for_rosetta: false,
+            dxvk_version: String::new(),
+            vkd3d_version: String::new(),
+            descriptor_heap: false,
+            dlss_upgrade: false,
+            dlss_indicator: false,
+            fsr4_upgrade: false,
+            xess_upgrade: false,
             enable_quick_saves_menu: false,
             retina_mode: false,
             engine: String::new(),
@@ -469,10 +523,27 @@ pub struct AppSettings {
         alias = "emberThirdPartyLaunchers"
     )]
     pub third_party_launchers: bool,
+    /// Install new builds of components (DXVK, Wine, emulators) as soon as
+    /// the daily check finds them. Irori-only.
+    #[serde(rename = "iroriAutoUpdateComponents")]
+    pub auto_update_components: bool,
+    /// Hour automatic updates may start, `0`..`23`; empty for any. Irori-only.
+    #[serde(rename = "iroriAutoUpdateFrom")]
+    pub auto_update_from: String,
+    /// Hour automatic updates stop starting, `0`..`23`; empty for any.
+    /// Earlier than `auto_update_from` means past midnight. Irori-only.
+    #[serde(rename = "iroriAutoUpdateUntil")]
+    pub auto_update_until: String,
+    /// Hold automatic updates on a metered connection. Irori-only.
+    #[serde(rename = "iroriAutoUpdateUnmetered")]
+    pub auto_update_unmetered: bool,
     /// Look for new versions of Irori once a day. Irori-only; about Irori
     /// itself, where `checkForUpdatesOnStartup` is about games.
     #[serde(rename = "iroriCheckForAppUpdates")]
     pub check_for_app_updates: bool,
+    /// Open a game's log when it starts. Irori-only.
+    #[serde(rename = "iroriShowLogOnLaunch")]
+    pub show_log_on_launch: bool,
 }
 
 impl Default for AppSettings {
@@ -489,7 +560,12 @@ impl Default for AppSettings {
             rom_folders: Vec::new(),
             bios_folder: String::new(),
             third_party_launchers: false,
+            auto_update_components: false,
+            auto_update_from: String::new(),
+            auto_update_until: String::new(),
+            auto_update_unmetered: false,
             check_for_app_updates: true,
+            show_log_on_launch: false,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,
             add_start_menu_shortcuts: false,

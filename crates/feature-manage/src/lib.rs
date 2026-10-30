@@ -20,6 +20,7 @@ mod launchers;
 mod login;
 mod onboarding;
 mod stores;
+mod updates;
 mod wine;
 
 pub use accounts::AccountsView;
@@ -34,6 +35,7 @@ pub use onboarding::{
     OnboardingEvent, OnboardingView, mark_onboarding_done, should_show_onboarding,
 };
 pub use stores::StoresView;
+pub use updates::UpdatesView;
 pub use wine::WineManagerView;
 
 pub use i18n::CATALOGS;

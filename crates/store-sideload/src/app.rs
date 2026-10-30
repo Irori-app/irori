@@ -71,6 +71,10 @@ pub struct SideloadApp {
     /// Arguments always passed to the executable (shell-style quoting).
     pub launcher_args: String,
     pub description: Option<String>,
+    pub developer: Option<String>,
+    /// A date or year, year first (`2024`, `2024-05-30`).
+    pub release_date: Option<String>,
+    pub genres: Vec<String>,
 }
 
 impl SideloadApp {
@@ -102,6 +106,11 @@ impl SideloadApp {
         self.cover_art = non_empty(self.cover_art);
         self.background_art = non_empty(self.background_art);
         self.description = non_empty(self.description);
+        self.developer = non_empty(self.developer);
+        self.release_date = non_empty(self.release_date);
+        self.genres = (self.genres.into_iter())
+            .filter_map(|g| non_empty(Some(g)))
+            .collect();
         self.launcher_args = self.launcher_args.trim().to_string();
         match self.platform {
             SideloadPlatform::Browser => {
@@ -162,6 +171,9 @@ impl StoredApp {
             app_name: self.app_name.clone(),
             title: app.title.clone(),
             description: app.description.clone(),
+            developer: app.developer.clone(),
+            release_date: app.release_date.clone(),
+            genres: app.genres.clone(),
             art_square: background.clone().filter(|_| cover.is_none()),
             art_cover: cover,
             art_background: background,

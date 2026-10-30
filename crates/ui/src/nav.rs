@@ -11,6 +11,8 @@ pub enum Route {
     Library,
     Game(GameId),
     Downloads,
+    /// What can be updated: games, components and Irori.
+    Updates,
     /// Settings, opened on a section id (e.g. "general", "wine").
     Settings(SharedString),
     /// Settings of one game, opened on a section id.
@@ -34,6 +36,7 @@ impl Route {
         match self {
             Route::Library | Route::Game(_) | Route::GameSettings(..) => "library",
             Route::Downloads => "downloads",
+            Route::Updates => "updates",
             Route::Settings(_) => "settings",
             Route::WineManager => "wine",
             Route::Emulators => "emulators",

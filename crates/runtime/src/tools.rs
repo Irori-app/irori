@@ -5,9 +5,13 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use std::collections::HashMap;
+
 use anyhow::{Context as _, Result, bail};
 use irori_core::process::{self, CommandSpec, ExecResult, RunOptions};
 use irori_core::{AppSettings, GameSettings, OpContext, WineKind};
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use serde::Deserialize;
 
 use crate::download;
@@ -60,6 +64,15 @@ impl DxTool {
         }
     }
 
+    /// The GitHub repository publishing the tool.
+    fn repo(self) -> &'static str {
+        match self {
+            DxTool::Dxvk => "doitsujin/dxvk",
+            DxTool::Vkd3d => "Heroic-Games-Launcher/vkd3d-proton",
+            DxTool::DxvkNvapi => "jp7677/dxvk-nvapi",
+        }
+    }
+
     /// Release endpoint; old Vulkan drivers (1.1/1.2) get the last builds
     /// that support them.
     fn url(self, vulkan: Option<(u32, u32)>) -> &'static str {
@@ -91,7 +104,45 @@ struct GhAsset {
 #[derive(Deserialize)]
 struct GhRelease {
     #[serde(default)]
+    tag_name: String,
+    #[serde(default)]
+    prerelease: bool,
+    #[serde(default)]
     assets: Vec<GhAsset>,
+}
+
+fn is_archive(name: &str) -> bool {
+    name.ends_with(".tar.gz") || name.ends_with(".tar.xz") || name.ends_with(".tar.zst")
+}
+
+impl GhRelease {
+    fn archive(&self, tool: DxTool) -> Result<&GhAsset> {
+        self.assets
+            .iter()
+            .find(|a| is_archive(&a.name))
+            .with_context(|| format!("the {} release has no archive", tool.label()))
+    }
+}
+
+/// Tags of the finished releases that can be installed, newest first.
+fn installable_tags(releases: &[GhRelease]) -> Vec<String> {
+    releases
+        .iter()
+        .filter(|r| {
+            !r.prerelease && !r.tag_name.is_empty() && r.assets.iter().any(|a| is_archive(&a.name))
+        })
+        .map(|r| r.tag_name.clone())
+        .collect()
+}
+
+/// A tag goes into an address and a file name, and settings can be edited
+/// by hand.
+fn valid_tag(tag: &str) -> bool {
+    !tag.is_empty()
+        && !tag.starts_with('.')
+        && tag
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
 }
 
 fn strip_archive_ext(name: &str) -> &str {
@@ -127,6 +178,69 @@ pub fn tool_source(tool: DxTool) -> Option<(String, PathBuf)> {
     })
 }
 
+/// Tags of `tool`'s releases, newest first, for choosing a version. Each
+/// list is fetched once per run: GitHub limits anonymous requests.
+pub async fn tool_versions(tool: DxTool) -> Result<Vec<String>> {
+    static CACHE: Lazy<Mutex<HashMap<DxTool, Vec<String>>>> = Lazy::new(Default::default);
+    if let Some(tags) = CACHE.lock().get(&tool) {
+        return Ok(tags.clone());
+    }
+    let url = format!(
+        "https://api.github.com/repos/{}/releases?per_page=50",
+        tool.repo()
+    );
+    let releases: Vec<GhRelease> = download::get_json(&url)
+        .await
+        .with_context(|| format!("could not list {} versions", tool.label()))?;
+    let tags = installable_tags(&releases);
+    CACHE.lock().insert(tool, tags.clone());
+    Ok(tags)
+}
+
+/// The release tag `settings` asks for, if any.
+fn chosen_tag(settings: &GameSettings, tool: DxTool) -> Option<&str> {
+    match tool {
+        DxTool::Dxvk => Some(settings.dxvk_version.trim()),
+        DxTool::Vkd3d => Some(settings.vkd3d_version.trim()),
+        DxTool::DxvkNvapi => None,
+    }
+    .filter(|t| !t.is_empty())
+}
+
+/// Download the build of a chosen release once, next to the newest build.
+/// Returns `(version, version_dir)`.
+async fn chosen_source(tool: DxTool, tag: &str, ctx: &OpContext) -> Result<(String, PathBuf)> {
+    anyhow::ensure!(
+        valid_tag(tag),
+        "\"{tag}\" is not a {} version",
+        tool.label()
+    );
+    let root = tool_dir(tool);
+    let record = root.join(format!("tag_{tag}"));
+    if let Ok(version) = tokio::fs::read_to_string(&record).await {
+        let version = version.trim().to_string();
+        let dir = root.join(&version);
+        if !version.is_empty() && dir.is_dir() {
+            return Ok((version, dir));
+        }
+    }
+    let url = format!(
+        "https://api.github.com/repos/{}/releases/tags/{tag}",
+        tool.repo()
+    );
+    let release: GhRelease = download::get_json(&url)
+        .await
+        .with_context(|| format!("could not find {} {tag}", tool.label()))?;
+    let asset = release.archive(tool)?;
+    let version = strip_archive_ext(&asset.name).to_string();
+    let dir = root.join(&version);
+    if !dir.is_dir() {
+        download_build(tool, asset, &version, ctx).await?;
+    }
+    tokio::fs::write(&record, &version).await?;
+    Ok((version, dir))
+}
+
 /// Download the newest build of `tool` unless it is already current
 /// (Heroic's `installOrUpdateTool`). Returns the installed version.
 pub async fn update_tool(tool: DxTool, ctx: &OpContext) -> Result<String> {
@@ -137,21 +251,27 @@ pub async fn update_tool(tool: DxTool, ctx: &OpContext) -> Result<String> {
     let release: GhRelease = download::get_json(tool.url(vulkan))
         .await
         .with_context(|| format!("could not check for {} updates", tool.label()))?;
-    let asset = release
-        .assets
-        .iter()
-        .find(|a| {
-            a.name.ends_with(".tar.gz")
-                || a.name.ends_with(".tar.xz")
-                || a.name.ends_with(".tar.zst")
-        })
-        .with_context(|| format!("the {} release has no archive", tool.label()))?;
+    let asset = release.archive(tool)?;
     let version = strip_archive_ext(&asset.name).to_string();
     let root = tool_dir(tool);
     let dest = root.join(&version);
     if marker(&root, tool).as_deref() == Some(version.as_str()) && dest.is_dir() {
         return Ok(version);
     }
+    download_build(tool, asset, &version, ctx).await?;
+    tokio::fs::write(root.join(format!("latest_{}", tool.id())), &version).await?;
+    Ok(version)
+}
+
+/// Download and unpack one build into the tool's folder.
+async fn download_build(
+    tool: DxTool,
+    asset: &GhAsset,
+    version: &str,
+    ctx: &OpContext,
+) -> Result<()> {
+    let root = tool_dir(tool);
+    let dest = root.join(version);
     tokio::fs::create_dir_all(&root)
         .await
         .with_context(|| format!("creating {}", root.display()))?;
@@ -187,8 +307,7 @@ pub async fn update_tool(tool: DxTool, ctx: &OpContext) -> Result<String> {
     }
     let _ = tokio::fs::remove_dir_all(&dest).await;
     tokio::fs::rename(&staging, &dest).await?;
-    tokio::fs::write(root.join(format!("latest_{}", tool.id())), &version).await?;
-    Ok(version)
+    Ok(())
 }
 
 /// Update DXVK, VKD3D-Proton and DXVK-NVAPI concurrently (startup task).
@@ -200,6 +319,30 @@ pub async fn update_all_tools(ctx: &OpContext) {
             tracing::warn!("{}: {e:#}", tool.label());
         }
     }
+}
+
+/// The downloaded build of `tool` and the newest release's, when they
+/// differ. Nothing for a tool never downloaded: it arrives on first use.
+pub async fn tool_update(tool: DxTool) -> Result<Option<(String, String)>> {
+    let Some((installed, _)) = tool_source(tool) else {
+        return Ok(None);
+    };
+    let vulkan = sysinfo::vulkan_api_version().await;
+    let release: GhRelease = download::get_json(tool.url(vulkan))
+        .await
+        .with_context(|| format!("could not check for {} updates", tool.label()))?;
+    let latest = release
+        .assets
+        .iter()
+        .map(|a| a.name.as_str())
+        .find(|n| {
+            [".tar.gz", ".tar.xz", ".tar.zst"]
+                .iter()
+                .any(|e| n.ends_with(e))
+        })
+        .map(strip_archive_ext)
+        .with_context(|| format!("the {} release has no archive", tool.label()))?;
+    Ok((latest != installed).then(|| (installed, latest.to_string())))
 }
 
 async fn dll_names(dir: &Path) -> Vec<String> {
@@ -337,9 +480,10 @@ pub async fn install_tools(
     let mut extra = Vec::new();
     let mut done: Vec<(DxTool, String)> = Vec::new();
     for &tool in tools {
-        let source = match tool_source(tool) {
-            Some(s) => s,
-            None => {
+        let source = match (chosen_tag(settings, tool), tool_source(tool)) {
+            (Some(tag), _) => chosen_source(tool, tag, ctx).await?,
+            (None, Some(s)) => s,
+            (None, None) => {
                 update_tool(tool, ctx).await?;
                 tool_source(tool).with_context(|| format!("{} is not available", tool.label()))?
             }
@@ -531,6 +675,15 @@ pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
             which::which("winetricks").context("winetricks could not be downloaded")
         }
     }
+}
+
+/// Refresh a downloaded winetricks script older than a week. One that was
+/// never needed stays undownloaded.
+pub async fn refresh_winetricks() -> Result<()> {
+    if cfg!(windows) || !locations::winetricks_path().is_file() {
+        return Ok(());
+    }
+    ensure_winetricks(true).await.map(|_| ())
 }
 
 /// Missing helper programs winetricks relies on.
@@ -729,6 +882,36 @@ mod tests {
         assert!(DxTool::Dxvk.url(Some((1, 2))).ends_with("v1.10.3"));
         assert!(DxTool::Dxvk.url(Some((1, 4))).ends_with("latest"));
         assert!(DxTool::Vkd3d.url(None).ends_with("latest"));
+    }
+
+    #[test]
+    fn lists_installable_releases() {
+        let releases: Vec<GhRelease> = serde_json::from_str(
+            r#"[
+                {"tag_name": "v3.0", "prerelease": true,
+                 "assets": [{"name": "dxvk-3.0.tar.gz", "browser_download_url": "x"}]},
+                {"tag_name": "v2.7",
+                 "assets": [{"name": "dxvk-2.7.tar.gz", "browser_download_url": "x"}]},
+                {"tag_name": "v2.6", "assets": [{"name": "notes.txt", "browser_download_url": "x"}]}
+            ]"#,
+        )
+        .unwrap();
+        assert_eq!(installable_tags(&releases), ["v2.7"]);
+    }
+
+    #[test]
+    fn chosen_versions() {
+        let settings = GameSettings {
+            dxvk_version: " v2.7 ".into(),
+            ..Default::default()
+        };
+        assert_eq!(chosen_tag(&settings, DxTool::Dxvk), Some("v2.7"));
+        assert_eq!(chosen_tag(&settings, DxTool::Vkd3d), None);
+        assert_eq!(chosen_tag(&settings, DxTool::DxvkNvapi), None);
+        assert!(valid_tag("v2.7.1-rc_1"));
+        for bad in ["", "..", "../x", "a/b", "v1?x=y", ".hidden"] {
+            assert!(!valid_tag(bad), "{bad}");
+        }
     }
 
     #[tokio::test]

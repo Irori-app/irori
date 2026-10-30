@@ -20,7 +20,7 @@ use gpui_kit::assets::IconName;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::button::{Button, ButtonGroup, ButtonVariants as _};
 use gpui_kit::component::form::{field, v_form};
-use gpui_kit::component::input::{Input, InputEvent, InputState};
+use gpui_kit::component::input::{Input, InputEvent, InputState, Textarea, TextareaState};
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::switch::Switch;
 use gpui_kit::component::{
@@ -88,6 +88,10 @@ pub struct SideloadDialog {
     user_agent: Entity<InputState>,
     cover: Entity<InputState>,
     background: Entity<InputState>,
+    pub(crate) description: Entity<TextareaState>,
+    developer: Entity<InputState>,
+    release_date: Entity<InputState>,
+    genres: Entity<InputState>,
     platform: SideloadPlatform,
     fullscreen: bool,
     saving: bool,
@@ -180,6 +184,24 @@ impl SideloadDialog {
             t("library.sideload.placeholder.image"),
             existing.background_art.clone().unwrap_or_default(),
         );
+        let developer = input(
+            t("library.sideload.placeholder.optional"),
+            existing.developer.clone().unwrap_or_default(),
+        );
+        let release_date = input(
+            "2024-05-30".into(),
+            existing.release_date.clone().unwrap_or_default(),
+        );
+        let genres = input(
+            t("library.sideload.placeholder.optional"),
+            existing.genres.join(", "),
+        );
+        let description = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .auto_grow(3, 8)
+                .placeholder(t("library.sideload.placeholder.optional"))
+                .default_value(existing.description.clone().unwrap_or_default())
+        });
 
         let mut subscriptions = Vec::new();
         for state in [&title, &executable, &url] {
@@ -211,6 +233,10 @@ impl SideloadDialog {
             user_agent,
             cover,
             background,
+            description,
+            developer,
+            release_date,
+            genres,
             saving: false,
             saved: false,
             provisional: None,
@@ -372,7 +398,7 @@ impl SideloadDialog {
         .detach();
     }
 
-    fn collect(&self, cx: &App) -> SideloadApp {
+    pub(crate) fn collect(&self, cx: &App) -> SideloadApp {
         let path = |input: &Entity<InputState>| optional_text(input, cx).map(PathBuf::from);
         SideloadApp {
             title: text(&self.title, cx),
@@ -385,7 +411,13 @@ impl SideloadDialog {
             background_art: optional_text(&self.background, cx),
             install_folder: path(&self.install_folder),
             launcher_args: text(&self.arguments, cx),
-            description: None,
+            description: Some(self.description.read(cx).value().to_string()),
+            developer: optional_text(&self.developer, cx),
+            release_date: optional_text(&self.release_date, cx),
+            genres: text(&self.genres, cx)
+                .split(',')
+                .map(str::to_string)
+                .collect(),
         }
     }
 
@@ -776,6 +808,28 @@ impl Render for SideloadDialog {
                             ),
                         )
                     })
+                    .child(
+                        field()
+                            .label(t("library.sideload.field.description"))
+                            .description(t("library.sideload.description_hint"))
+                            .child(Textarea::new(&self.description)),
+                    )
+                    .child(
+                        field()
+                            .label(t("library.sideload.field.developer"))
+                            .child(Input::new(&self.developer)),
+                    )
+                    .child(
+                        field()
+                            .label(t("library.sideload.field.release_date"))
+                            .child(Input::new(&self.release_date)),
+                    )
+                    .child(
+                        field()
+                            .label(t("library.sideload.field.genres"))
+                            .description(t("library.sideload.genres_hint"))
+                            .child(Input::new(&self.genres)),
+                    )
                     .child(
                         field()
                             .label(t("library.common.cover_art"))

@@ -654,11 +654,15 @@ impl Ctx {
                 let res = self
                     .stream_once(&url, &part, chunk.download_size, chunk.range, &mut counted)
                     .await;
-                if matches!(&res, Err(Error::Status { status, .. }) if matches!(status.as_u16(), 401 | 403 | 404 | 410))
+                if let Err(Error::Status { status, .. }) = &res
+                    && matches!(status.as_u16(), 401 | 403 | 404 | 410)
                 {
-                    // An expired signature or link: sign again on the next attempt.
+                    // Likely an expired signature or link: sign again on the
+                    // next attempt, and name the answer in case it wasn't.
                     s.forget(&chunk.key);
-                    return Err(Error::Corrupt("the download address expired".into()));
+                    return Err(Error::Corrupt(format!(
+                        "the server answered {status}; the download address may have expired"
+                    )));
                 }
                 res?;
             } else {

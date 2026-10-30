@@ -87,7 +87,7 @@ Irori's other arguments (`crates/irori/src/cli.rs`) are:
 
 - `-l/--launch <runner>/<app>`, `--big-picture`/`--console`, `--minimized`/`--tray`,
   `-V/--version` and `-h/--help`.
-- Links: `irori://launch|game|open/<runner>/<app>`, `irori://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
+- Links: `irori://launch|game|open/<runner>/<app>`, `irori://library|downloads|updates|accounts|stores|stats|wine|emulators|bigpicture`,
   `irori://settings/<section>`, `irori://lutris/<slug>` (the Lutris script installer at
   a lutris.net game; Lutris's own `lutris:<slug>` is accepted as an argument too), and
   Heroic's `heroic://launch/...`. Any web page or program can open a link, so
@@ -367,6 +367,15 @@ commands without a window.
 - **Downloads:** one worker, one download at a time, persisted in
   `state/downloads.json`. Running items resume as Queued after a restart. Pause and
   cancel go through a `CancellationToken`.
+- **Updates** (`updates.rs`): the update manager's component side. Wine builds, DXVK,
+  VKD3D-Proton, DXVK-NVAPI, umu, the anticheat runtimes, emulators and RetroArch cores are
+  checked once a session and daily, from lists cached for a day. Each has a stable id; a
+  skipped version stays skipped until a newer one is out (`state/updates.json`). Game
+  updates stay with the stores and the download queue, and a store whose check failed
+  keeps its last answer. Automatic updates of both kinds start from
+  `run_automatic_updates`, which keeps to `iroriAutoUpdateFrom`/`Until` and, where the
+  system can tell (not macOS), `iroriAutoUpdateUnmetered`. A Wine update in place keeps the
+  replaced build in `<base>/.rollback/`, nested so discovery doesn't list it.
 - **User data:** favourites, hidden games, categories, recents, playtime and art
   overrides live in `state/library.json` behind `RwLock<Arc<UserData>>`, updated copy
   on write. Store playtime merges by keeping the larger total and counts games only,
@@ -443,15 +452,15 @@ cx.spawn_in(window, async move |this, cx| {
 
 **Models** (`models.rs`):
 
-- `LibraryModel`, `StatusModel`, `DownloadsModel`, `AccountsModel`, `SettingsModel`,
-  `NoticeModel` and `SessionModel`, all reached through `models(cx)`.
+- `LibraryModel`, `StatusModel`, `DownloadsModel`, `ComponentsModel`, `AccountsModel`,
+  `SettingsModel`, `NoticeModel` and `SessionModel`, all reached through `models(cx)`.
 - One event pump reads the bus in batches and notifies each affected model once.
 - Views observe only the models they render, and keep the returned `Subscription`s in
   a `_subscriptions: Vec<Subscription>` field.
 
 **Navigation** (`nav.rs`):
 
-- `Route` variants: Library, Game, Downloads, Settings(section), GameSettings,
+- `Route` variants: Library, Game, Downloads, Updates, Settings(section), GameSettings,
   WineManager, Emulators, Accounts, Stores, Stats, BigPicture, Onboarding.
 - Use `navigate(route, cx)`, `go_back`, `go_forward`. The shell decides which pages it
   caches.

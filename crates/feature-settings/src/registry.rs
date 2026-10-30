@@ -16,6 +16,7 @@
 //! The registry drives rendering order, grouping and the settings search.
 
 use gpui_kit::SharedString;
+use irori_runtime::DxTool;
 use irori_ui::i18n::{LANGUAGES as UI_LANGUAGES, t};
 use serde_json::Value;
 
@@ -198,6 +199,8 @@ pub enum CustomKind {
     GogSaves,
     /// Theme picker from the theme registry.
     ThemeName,
+    /// Release picker of a tool installed into Wine prefixes.
+    ToolVersion(DxTool),
     /// Base font size slider (interface zoom).
     FontSize,
     /// Library cover size slider.
@@ -424,6 +427,13 @@ impl FieldSpec {
                     | "autoInstallDxvk"
                     | "autoInstallVkd3d"
                     | "autoInstallDxvkNvapi"
+                    | "iroriDxvkVersion"
+                    | "iroriVkd3dVersion"
+                    | "iroriDescriptorHeap"
+                    | "iroriDlssUpgrade"
+                    | "iroriDlssIndicator"
+                    | "iroriFsr4Upgrade"
+                    | "iroriXessUpgrade"
                     | "downloadProtonToSteam"
                     | "showValveProton"
             )
@@ -612,6 +622,34 @@ const SHARPNESS: &[ChoiceOption] = &[
     ),
 ];
 
+const UPDATE_HOURS: &[ChoiceOption] = &[
+    opt(ChoiceValue::Str(""), Key("settings.option.update_hour.any")),
+    opt(ChoiceValue::Str("0"), Verbatim("00:00")),
+    opt(ChoiceValue::Str("1"), Verbatim("01:00")),
+    opt(ChoiceValue::Str("2"), Verbatim("02:00")),
+    opt(ChoiceValue::Str("3"), Verbatim("03:00")),
+    opt(ChoiceValue::Str("4"), Verbatim("04:00")),
+    opt(ChoiceValue::Str("5"), Verbatim("05:00")),
+    opt(ChoiceValue::Str("6"), Verbatim("06:00")),
+    opt(ChoiceValue::Str("7"), Verbatim("07:00")),
+    opt(ChoiceValue::Str("8"), Verbatim("08:00")),
+    opt(ChoiceValue::Str("9"), Verbatim("09:00")),
+    opt(ChoiceValue::Str("10"), Verbatim("10:00")),
+    opt(ChoiceValue::Str("11"), Verbatim("11:00")),
+    opt(ChoiceValue::Str("12"), Verbatim("12:00")),
+    opt(ChoiceValue::Str("13"), Verbatim("13:00")),
+    opt(ChoiceValue::Str("14"), Verbatim("14:00")),
+    opt(ChoiceValue::Str("15"), Verbatim("15:00")),
+    opt(ChoiceValue::Str("16"), Verbatim("16:00")),
+    opt(ChoiceValue::Str("17"), Verbatim("17:00")),
+    opt(ChoiceValue::Str("18"), Verbatim("18:00")),
+    opt(ChoiceValue::Str("19"), Verbatim("19:00")),
+    opt(ChoiceValue::Str("20"), Verbatim("20:00")),
+    opt(ChoiceValue::Str("21"), Verbatim("21:00")),
+    opt(ChoiceValue::Str("22"), Verbatim("22:00")),
+    opt(ChoiceValue::Str("23"), Verbatim("23:00")),
+];
+
 const UPSCALE_METHOD: &[ChoiceOption] = &[
     opt(
         ChoiceValue::Str("fsr"),
@@ -663,16 +701,36 @@ const NEEDS_FPS_LIMIT: &[Condition] = &[when(
     true,
     "settings.requires.fps_limit",
 )];
-const NEEDS_UPSCALING: &[Condition] = &[when(
-    "gamescope.enableUpscaling",
+const NEEDS_VKD3D: &[Condition] = &[when("autoInstallVkd3d", true, "settings.requires.vkd3d")];
+const NEEDS_GAMESCOPE: &[Condition] = &[when(
+    "gamescope.iroriEnabled",
     true,
-    "settings.requires.gamescope_upscaling",
+    "settings.requires.gamescope",
 )];
-const NEEDS_LIMITER: &[Condition] = &[when(
-    "gamescope.enableLimiter",
-    true,
-    "settings.requires.gamescope_limiter",
-)];
+const NEEDS_UPSCALING: &[Condition] = &[
+    when(
+        "gamescope.iroriEnabled",
+        true,
+        "settings.requires.gamescope",
+    ),
+    when(
+        "gamescope.enableUpscaling",
+        true,
+        "settings.requires.gamescope_upscaling",
+    ),
+];
+const NEEDS_LIMITER: &[Condition] = &[
+    when(
+        "gamescope.iroriEnabled",
+        true,
+        "settings.requires.gamescope",
+    ),
+    when(
+        "gamescope.enableLimiter",
+        true,
+        "settings.requires.gamescope_limiter",
+    ),
+];
 
 const NEEDS_CONTROLLER: &[Condition] = &[when(
     "disableController",
@@ -796,6 +854,41 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.auto_update_games.help")
     .keywords(&["update", "automatic"]),
     app(
+        "iroriAutoUpdateComponents",
+        "settings.field.auto_update_components.label",
+        General,
+        "settings.group.updates",
+        Toggle,
+    )
+    .help("settings.field.auto_update_components.help")
+    .keywords(&["update", "automatic", "wine", "proton", "dxvk", "emulator"]),
+    app(
+        "iroriAutoUpdateFrom",
+        "settings.field.auto_update_from.label",
+        General,
+        "settings.group.updates",
+        Choice(UPDATE_HOURS),
+    )
+    .help("settings.field.auto_update_window.help")
+    .keywords(&["update", "schedule", "night", "window", "time"]),
+    app(
+        "iroriAutoUpdateUntil",
+        "settings.field.auto_update_until.label",
+        General,
+        "settings.group.updates",
+        Choice(UPDATE_HOURS),
+    )
+    .keywords(&["update", "schedule", "night", "window", "time"]),
+    app(
+        "iroriAutoUpdateUnmetered",
+        "settings.field.auto_update_unmetered.label",
+        General,
+        "settings.group.updates",
+        Toggle,
+    )
+    .help("settings.field.auto_update_unmetered.help")
+    .keywords(&["update", "metered", "data limit", "mobile", "hotspot"]),
+    app(
         "noTrayIcon",
         "settings.field.no_tray_icon.label",
         General,
@@ -834,6 +927,15 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.minimize_on_launch.help")
     .keywords(&["minimize", "hide", "launch"])
     .requires(NEEDS_TRAY),
+    app(
+        "iroriShowLogOnLaunch",
+        "settings.field.show_log_on_launch.label",
+        General,
+        "settings.group.tray_and_window",
+        Toggle,
+    )
+    .help("settings.field.show_log_on_launch.help")
+    .keywords(&["log", "console", "output", "launch"]),
     app(
         "darkTrayIcon",
         "settings.field.dark_tray_icon.label",
@@ -1470,6 +1572,81 @@ pub static FIELDS: &[FieldSpec] = &[
     .keywords(&["nvapi", "dlss", "nvidia"])
     .requires(NEEDS_DXVK),
     game(
+        "iroriDxvkVersion",
+        "settings.field.dxvk_version.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Custom(CustomKind::ToolVersion(DxTool::Dxvk)),
+    )
+    .help("settings.field.tool_version.help")
+    .keywords(&["dxvk", "version", "release"])
+    .requires(NEEDS_DXVK),
+    game(
+        "iroriVkd3dVersion",
+        "settings.field.vkd3d_version.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Custom(CustomKind::ToolVersion(DxTool::Vkd3d)),
+    )
+    .help("settings.field.tool_version.help")
+    .keywords(&["vkd3d", "version", "release"])
+    .requires(NEEDS_VKD3D),
+    game(
+        "iroriDescriptorHeap",
+        "settings.field.descriptor_heap.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Toggle,
+    )
+    .tag(Key("settings.tag.experimental"))
+    .help("settings.field.descriptor_heap.help")
+    .keywords(&[
+        "descriptor heap",
+        "vkd3d_config",
+        "proton_vkd3d_heap",
+        "d3d12",
+    ]),
+    game(
+        "iroriDlssUpgrade",
+        "settings.field.dlss_upgrade.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Toggle,
+    )
+    .tag(Verbatim("Proton"))
+    .help("settings.field.proton_feature.help")
+    .keywords(&["dlss", "proton_dlss_upgrade", "nvidia"]),
+    game(
+        "iroriDlssIndicator",
+        "settings.field.dlss_indicator.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Toggle,
+    )
+    .tag(Verbatim("Proton"))
+    .help("settings.field.proton_feature.help")
+    .keywords(&["dlss", "proton_dlss_indicator", "overlay"]),
+    game(
+        "iroriFsr4Upgrade",
+        "settings.field.fsr4_upgrade.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Toggle,
+    )
+    .tag(Verbatim("Proton"))
+    .help("settings.field.proton_feature.help")
+    .keywords(&["fsr", "fsr4", "proton_fsr4_upgrade", "amd"]),
+    game(
+        "iroriXessUpgrade",
+        "settings.field.xess_upgrade.label",
+        Wine,
+        "settings.group.graphics_translation",
+        Toggle,
+    )
+    .tag(Verbatim("Proton"))
+    .help("settings.field.proton_feature.help")
+    .keywords(&["xess", "proton_xess_upgrade", "intel"]),
+    game(
         "preferSystemLibs",
         "settings.field.prefer_system_libs.label",
         Wine,
@@ -1550,6 +1727,15 @@ pub static FIELDS: &[FieldSpec] = &[
     .keywords(&["fps", "limit", "cap"])
     .requires(NEEDS_FPS_LIMIT),
     game(
+        "gamescope.iroriEnabled",
+        "settings.field.gamescope_enabled.label",
+        Performance,
+        "settings.group.gamescope",
+        Toggle,
+    )
+    .help("settings.field.gamescope_enabled.help")
+    .keywords(&["gamescope", "compositor", "presenter", "window"]),
+    game(
         "gamescope.enableUpscaling",
         "settings.field.gamescope_enable_upscaling.label",
         Performance,
@@ -1557,7 +1743,8 @@ pub static FIELDS: &[FieldSpec] = &[
         Toggle,
     )
     .help("settings.field.gamescope_enable_upscaling.help")
-    .keywords(&["gamescope", "upscale", "resolution"]),
+    .keywords(&["gamescope", "upscale", "resolution"])
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.upscaleMethod",
         "settings.field.gamescope_upscale_method.label",
@@ -1575,7 +1762,7 @@ pub static FIELDS: &[FieldSpec] = &[
         Choice(WINDOW_TYPE),
     )
     .keywords(&["gamescope", "fullscreen", "borderless", "windowed"])
-    .requires(NEEDS_UPSCALING),
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.gameWidth",
         "settings.field.gamescope_game_width.label",
@@ -1585,7 +1772,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .placeholder(Verbatim("1280"))
     .keywords(&["gamescope", "resolution", "width"])
-    .requires(NEEDS_UPSCALING),
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.gameHeight",
         "settings.field.gamescope_game_height.label",
@@ -1595,7 +1782,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .placeholder(Verbatim("720"))
     .keywords(&["gamescope", "resolution", "height"])
-    .requires(NEEDS_UPSCALING),
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.upscaleWidth",
         "settings.field.gamescope_upscale_width.label",
@@ -1605,7 +1792,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .placeholder(Verbatim("2560"))
     .keywords(&["gamescope", "resolution", "width"])
-    .requires(NEEDS_UPSCALING),
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.upscaleHeight",
         "settings.field.gamescope_upscale_height.label",
@@ -1615,7 +1802,7 @@ pub static FIELDS: &[FieldSpec] = &[
     )
     .placeholder(Verbatim("1440"))
     .keywords(&["gamescope", "resolution", "height"])
-    .requires(NEEDS_UPSCALING),
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.enableLimiter",
         "settings.field.gamescope_enable_limiter.label",
@@ -1623,7 +1810,8 @@ pub static FIELDS: &[FieldSpec] = &[
         "settings.group.gamescope",
         Toggle,
     )
-    .keywords(&["gamescope", "fps", "limit"]),
+    .keywords(&["gamescope", "fps", "limit"])
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.fpsLimiter",
         "settings.field.gamescope_fps_limiter.label",
@@ -1651,7 +1839,8 @@ pub static FIELDS: &[FieldSpec] = &[
         "settings.group.gamescope",
         Toggle,
     )
-    .keywords(&["gamescope", "cursor", "mouse", "grab"]),
+    .keywords(&["gamescope", "cursor", "mouse", "grab"])
+    .requires(NEEDS_GAMESCOPE),
     game(
         "gamescope.additionalOptions",
         "settings.field.gamescope_additional_options.label",
@@ -1660,7 +1849,8 @@ pub static FIELDS: &[FieldSpec] = &[
         Text(TextKind::Plain),
     )
     .placeholder(Verbatim("--hdr-enabled"))
-    .keywords(&["gamescope", "options", "arguments"]),
+    .keywords(&["gamescope", "options", "arguments"])
+    .requires(NEEDS_GAMESCOPE),
     // ---- Launch ----
     game(
         "launcherArgs",
@@ -1878,8 +2068,10 @@ mod tests {
         let app = serde_json::to_value(AppSettings::default()).unwrap();
         for f in FIELDS {
             for c in f.requires {
+                // Gamescope's switch stays unset until first used (`bool_at`).
                 assert!(
-                    matches!(get_path(&app, c.path), Some(Value::Bool(_))),
+                    c.path == "gamescope.iroriEnabled"
+                        || matches!(get_path(&app, c.path), Some(Value::Bool(_))),
                     "{} requires non-boolean {}",
                     f.path,
                     c.path

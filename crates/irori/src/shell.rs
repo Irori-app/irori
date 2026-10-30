@@ -40,6 +40,8 @@ pub struct AppShell {
     recent: Entity<sidebar::RecentGames>,
     /// Games we minimized the window for, to restore when they exit.
     minimized_for: Option<GameId>,
+    /// The game seen playing, whose log was offered when it started.
+    log_shown_for: Option<GameId>,
     /// Refreshes the title bar's elapsed play time while a game runs.
     playing_ticker: Option<Task<()>>,
     /// Appearance preferences last applied to the theme.
@@ -64,6 +66,8 @@ impl AppShell {
                 cx.notify();
             }),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
+            cx.observe(&m.components, |_, _, cx| cx.notify()),
+            cx.observe(&m.library, |_, _, cx| cx.notify()),
             cx.observe(&m.accounts, |this, _, cx| {
                 this.settle_start(cx);
                 cx.notify();
@@ -72,6 +76,7 @@ impl AppShell {
                 this.show_notices(&notices, window, cx);
             }),
             cx.observe_in(&m.statuses, window, |this, _, window, cx| {
+                this.show_log_on_launch(window, cx);
                 this.minimize_on_launch(window, cx);
                 this.sync_playing_ticker(cx);
             }),
@@ -130,6 +135,7 @@ impl AppShell {
             narrow_expanded: false,
             recent: cx.new(sidebar::RecentGames::new),
             minimized_for: None,
+            log_shown_for: None,
             playing_ticker: None,
             applied_ui: Some(m.settings.read(cx).app.ui.clone()),
             glass: None,
@@ -180,6 +186,17 @@ impl AppShell {
             }
             window.push_notification(note, cx);
         }
+    }
+
+    fn show_log_on_launch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let enabled = models(cx).settings.read(cx).app.show_log_on_launch;
+        let playing = models(cx).statuses.read(cx).playing().next().cloned();
+        if let Some(id) =
+            crate::playing::log_to_open(enabled, playing.as_ref(), self.log_shown_for.as_ref())
+        {
+            irori_game::open_log_sheet(id, window, cx);
+        }
+        self.log_shown_for = playing;
     }
 
     fn minimize_on_launch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -397,6 +414,8 @@ impl AppShell {
     fn render_sidebar(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement {
         let section = navigator(cx).read(cx).current().section();
         let downloads = models(cx).downloads.read(cx).queue.active.len();
+        let updates = models(cx).library.read(cx).updates.len()
+            + models(cx).components.read(cx).report.pending().count();
         let collapsed = self.sidebar_collapsed_now(window);
         let any_account = models(cx).accounts.read(cx).any_logged_in();
         let theme = cx.theme();
@@ -414,17 +433,21 @@ impl AppShell {
                 cx,
             )
         };
-        let download_count = (downloads > 0).then(|| {
-            div()
-                .text_xs()
-                .font_bold()
-                .px_1p5()
-                .rounded_full()
-                .bg(theme.primary)
-                .text_color(theme.primary_foreground)
-                .child(downloads.to_string())
-                .into_any_element()
-        });
+        let count_badge = |count: usize| {
+            (count > 0).then(|| {
+                div()
+                    .text_xs()
+                    .font_bold()
+                    .px_1p5()
+                    .rounded_full()
+                    .bg(theme.primary)
+                    .text_color(theme.primary_foreground)
+                    .child(count.to_string())
+                    .into_any_element()
+            })
+        };
+        let download_count = count_badge(downloads);
+        let update_count = count_badge(updates);
 
         v_flex()
             .id("main-sidebar")
@@ -474,6 +497,15 @@ impl AppShell {
                 "downloads",
                 Route::Downloads,
                 download_count,
+                cx,
+            ))
+            .child(item(
+                "nav-updates",
+                "shell.nav.updates",
+                IconName::RefreshCw,
+                "updates",
+                Route::Updates,
+                update_count,
                 cx,
             ))
             .child(item(

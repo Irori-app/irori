@@ -588,7 +588,7 @@ pub async fn system_wine() -> Option<DiscoveredWine> {
 }
 
 /// Run a short probe command, giving up (and killing it) after `limit`.
-pub(crate) async fn run_with_timeout(
+pub async fn run_with_timeout(
     spec: &CommandSpec,
     limit: Duration,
 ) -> Option<irori_core::process::ExecResult> {

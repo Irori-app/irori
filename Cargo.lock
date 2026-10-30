@@ -4866,6 +4866,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "ashpd",
+ "chrono",
  "discord-rich-presence",
  "fs4",
  "futures",
