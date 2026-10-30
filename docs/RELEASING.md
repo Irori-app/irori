@@ -43,10 +43,9 @@ under *Variables*. Never put their values in the repository.
 
 ### macOS signing and notarization
 
-Needs an Apple Developer Program membership. Tags and manual runs sign and
-notarize; pull requests only sign, because Apple's notarization queue can take
-hours (a new team's first submissions especially) and nothing from a pull request
-ships.
+Needs an Apple Developer Program membership. Only `v*` tags sign and notarize.
+Pull requests, branches and manual runs build unsigned packages, so a pushed branch can
+never reach the signing keys.
 
 | Secret | Value |
 | --- | --- |
