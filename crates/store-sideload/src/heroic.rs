@@ -122,6 +122,7 @@ fn convert(entry: HeroicApp) -> Result<SideloadApp> {
         install_folder: None,
         launcher_args: String::new(),
         description: entry.description,
+        ..Default::default()
     })
 }
 

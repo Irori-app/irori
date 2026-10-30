@@ -15,8 +15,10 @@ use irori_core::{
     Runner, Store, UpdateRequest, UserInfo, async_trait,
 };
 use irori_services::Backend;
+use irori_sideload::{SideloadApp, SideloadPlatform, SideloadStore};
 use irori_ui::models;
 
+use crate::dialogs::sideload::SideloadDialog;
 use crate::filter::InstallFilter;
 use crate::view::LibraryView;
 
@@ -367,4 +369,45 @@ fn picking_games_for_bulk_actions(cx: &mut TestAppContext) {
     cx.simulate_keystrokes(window, "escape");
     draw(cx);
     assert_eq!(state(cx), (Vec::new(), false));
+}
+
+#[gpui_kit::test]
+fn editing_an_app_keeps_and_changes_its_description(cx: &mut TestAppContext) {
+    let backend = start(cx);
+    let settings = backend.settings.clone();
+    let store = SideloadStore::new(backend.bus.clone(), Arc::new(move || settings.app()));
+    cx.update(|cx| crate::install_sideload_store(store.clone(), cx));
+    let id = backend
+        .runtime()
+        .block_on(store.add_app(SideloadApp {
+            title: "Visual novel".into(),
+            platform: SideloadPlatform::Browser,
+            browser_url: Some("https://example.com/".into()),
+            description: Some("A quiet story.".into()),
+            ..Default::default()
+        }))
+        .expect("app added");
+
+    let app_name = id.app_name.to_string();
+    let (window, dialog) = cx
+        .update(|cx| {
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| SideloadDialog::new(Some(app_name), window, cx))
+            })
+        })
+        .expect("window opens");
+    cx.run_until_parked();
+
+    let kept = cx.read(|cx| dialog.read(cx).collect(cx));
+    assert_eq!(kept.description.as_deref(), Some("A quiet story."));
+
+    cx.update_window(window, |_, window, cx| {
+        let description = dialog.read(cx).description.clone();
+        description.update(cx, |state, cx| {
+            state.set_value("A louder story.", window, cx)
+        });
+    })
+    .unwrap();
+    let changed = cx.read(|cx| dialog.read(cx).collect(cx));
+    assert_eq!(changed.description.as_deref(), Some("A louder story."));
 }
