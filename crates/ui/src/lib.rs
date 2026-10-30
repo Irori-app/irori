@@ -23,6 +23,16 @@ pub use models::{Models, models};
 pub use nav::{Route, navigate};
 pub use state::{backend, run};
 
+/// `url` when it is a web address. Links from stores and community data go
+/// through this: the system opens anything else (`file:`, a network share, a
+/// custom scheme) with whatever handles it.
+pub fn web_url(url: &str) -> Option<String> {
+    let url = url.trim();
+    let scheme = url.split_once("://")?.0;
+    (scheme.eq_ignore_ascii_case("https") || scheme.eq_ignore_ascii_case("http"))
+        .then(|| url.to_string())
+}
+
 use gpui_kit::App;
 use irori_services::Backend;
 

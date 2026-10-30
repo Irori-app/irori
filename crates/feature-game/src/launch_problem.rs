@@ -318,13 +318,16 @@ impl LaunchProblem {
                         .child(t("game.launch_problem.known_fix_applied")),
                 )
                 .children(notes)
-                .when_some(fix.wiki_link.clone(), |col, link| {
-                    col.child(
-                        Link::new("launch-problem-wiki")
-                            .href(link)
-                            .child(t("game.launch_problem.open_wiki")),
-                    )
-                })
+                .when_some(
+                    fix.wiki_link.as_deref().and_then(irori_ui::web_url),
+                    |col, link| {
+                        col.child(
+                            Link::new("launch-problem-wiki")
+                                .href(link)
+                                .child(t("game.launch_problem.open_wiki")),
+                        )
+                    },
+                )
                 .into_any_element(),
         )
     }

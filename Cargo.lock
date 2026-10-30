@@ -4765,6 +4765,7 @@ dependencies = [
  "irori-services",
  "irori-ui",
  "nix",
+ "once_cell",
  "open",
  "regex",
  "serde_json",

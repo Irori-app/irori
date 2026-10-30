@@ -32,10 +32,13 @@ fn row(label: SharedString, value: impl IntoElement, cx: &App) -> AnyElement {
 }
 
 fn link(id: &'static str, url: &str, label: impl Into<SharedString>) -> AnyElement {
-    Link::new(id)
-        .href(url.to_string())
-        .child(label.into())
-        .into_any_element()
+    match irori_ui::web_url(url) {
+        Some(url) => Link::new(id)
+            .href(url)
+            .child(label.into())
+            .into_any_element(),
+        None => div().child(label.into()).into_any_element(),
+    }
 }
 
 fn hours(h: Option<f32>) -> String {
@@ -194,9 +197,9 @@ impl GamePage {
             let mut line = h_flex().gap_3().flex_wrap();
             for (ix, s) in info.scores.iter().enumerate() {
                 let text = format!("{} {}", s.source, s.score);
-                line = line.child(match &s.url {
+                line = line.child(match s.url.as_deref().and_then(irori_ui::web_url) {
                     Some(url) => Link::new(("compat-score", ix))
-                        .href(url.clone())
+                        .href(url)
                         .child(text)
                         .into_any_element(),
                     None => div().child(text).into_any_element(),
