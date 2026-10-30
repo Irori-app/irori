@@ -18,15 +18,30 @@ async fn ask() -> Option<bool> {
 
 #[cfg(windows)]
 async fn ask() -> Option<bool> {
-    use windows_sys::Win32::NetworkManagement::IpHelper::GetNetworkConnectivityHint;
     use windows_sys::Win32::Networking::WinSock::{
         NL_NETWORK_CONNECTIVITY_HINT, NetworkConnectivityCostHintFixed,
         NetworkConnectivityCostHintUnrestricted, NetworkConnectivityCostHintVariable,
     };
+    use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+    type GetHint = unsafe extern "system" fn(*mut NL_NETWORK_CONNECTIVITY_HINT) -> u32;
+
+    // Looked up at run time: the call arrived with Windows 10 2004, and an
+    // import of it would stop Irori from starting on older systems.
+    let library: Vec<u16> = "iphlpapi.dll\0".encode_utf16().collect();
+    // SAFETY: `library` is a NUL-terminated wide string that outlives the call.
+    let module = unsafe { LoadLibraryW(library.as_ptr()) };
+    if module.is_null() {
+        return None;
+    }
+    // SAFETY: `module` is a loaded library, which is never freed, and the
+    // name is NUL-terminated.
+    let symbol = unsafe { GetProcAddress(module, c"GetNetworkConnectivityHint".as_ptr().cast()) }?;
+    // SAFETY: the export has this signature, from its Windows SDK declaration.
+    let get_hint: GetHint = unsafe { std::mem::transmute(symbol) };
     // SAFETY: an all-zero hint is a valid value of this plain C struct.
     let mut hint: NL_NETWORK_CONNECTIVITY_HINT = unsafe { std::mem::zeroed() };
     // SAFETY: `hint` is a live, writable struct of the type the call fills in.
-    if unsafe { GetNetworkConnectivityHint(&mut hint) } != 0 {
+    if unsafe { get_hint(&mut hint) } != 0 {
         return None;
     }
     match hint.ConnectivityCost {
