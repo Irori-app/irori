@@ -49,6 +49,11 @@ and kept in a bounded GPU cache.
   (Heroic's `heroic://` links work too).
 - Download queue with pause/resume, reordering, speed and ETA, history and "Update all".
 - Per-game settings that inherit your global defaults and show what you overrode.
+- Added games keep their own description, developer, release date and genres.
+- Run any game in gamescope with one switch, upscaling optional. Pick the DXVK and
+  VKD3D-Proton versions for Wine builds, and turn on descriptor heap and Proton's DLSS,
+  FSR and XeSS upgrades without looking up variables. The game's log can open by itself
+  when it starts.
 - Wine/Proton manager (GE-Proton, Proton-CachyOS, Wine-GE, Kron4ek) and discovery of
   system, Steam, Lutris and Bottles builds; DXVK, VKD3D-Proton, DXVK-NVAPI, gamescope,
   MangoHud, GameMode, umu and the Steam runtime.

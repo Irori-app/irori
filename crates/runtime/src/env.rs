@@ -57,6 +57,19 @@ impl HostEnv {
     }
 }
 
+/// `config` (a comma-separated `VKD3D_CONFIG`) with `flag` added once.
+fn with_vkd3d_flag(config: &str, flag: &str) -> String {
+    let mut flags: Vec<&str> = config
+        .split(',')
+        .map(str::trim)
+        .filter(|f| !f.is_empty())
+        .collect();
+    if !flags.contains(&flag) {
+        flags.push(flag);
+    }
+    flags.join(",")
+}
+
 /// Insert every variable of `top` into `base`, overwriting existing keys.
 pub fn layer(base: &mut EnvMap, top: EnvMap) {
     base.extend(top);
@@ -325,7 +338,9 @@ pub fn wine_env_for(platform: irori_core::HostPlatform, input: &WineEnvInput<'_>
     if !gs.enable_fsync && proton {
         set("PROTON_NO_FSYNC", "1");
     }
-    if gs.enable_wine_wayland {
+    // Gamescope gives its children an X server and no Wayland socket, so
+    // Wine's Wayland driver would leave gamescope's window empty.
+    if gs.enable_wine_wayland && !crate::wrappers::gamescope_enabled(&gs.gamescope) {
         if proton {
             set("PROTON_ENABLE_WAYLAND", "1");
             if gs.enable_hdr {
@@ -343,6 +358,32 @@ pub fn wine_env_for(platform: irori_core::HostPlatform, input: &WineEnvInput<'_>
             set("PROTON_USE_WOW64", "1");
         } else {
             set("WINEARCH", "wow64");
+        }
+    }
+    if gs.descriptor_heap {
+        let user = gs
+            .environment_options
+            .iter()
+            .find(|v| v.key.trim() == "VKD3D_CONFIG")
+            .map(|v| remove_quote_if_necessary(&v.value));
+        set(
+            "VKD3D_CONFIG",
+            &with_vkd3d_flag(user.as_deref().unwrap_or(""), "descriptor_heap"),
+        );
+        if proton {
+            set("PROTON_VKD3D_HEAP", "1");
+        }
+    }
+    if proton {
+        for (on, key) in [
+            (gs.dlss_upgrade, "PROTON_DLSS_UPGRADE"),
+            (gs.dlss_indicator, "PROTON_DLSS_INDICATOR"),
+            (gs.fsr4_upgrade, "PROTON_FSR4_UPGRADE"),
+            (gs.xess_upgrade, "PROTON_XESS_UPGRADE"),
+        ] {
+            if on {
+                set(key, "1");
+            }
         }
     }
     if proton {
@@ -611,6 +652,64 @@ mod tests {
             &HostEnv::default(),
         );
         assert_eq!(env["LD_PRELOAD"], "/my.so");
+    }
+
+    #[test]
+    fn gamescope_keeps_the_game_off_wayland() {
+        let gs = GameSettings {
+            enable_wine_wayland: true,
+            enable_hdr: true,
+            gamescope: irori_core::GamescopeSettings {
+                enabled: Some(true),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let w = proton();
+        let host = HostEnv::from_pairs::<_, &str, &str>([]);
+        let env = wine_env_for(irori_core::HostPlatform::Linux, &input(&gs, &w, &host));
+        assert!(!env.contains_key("PROTON_ENABLE_WAYLAND"));
+        assert!(!env.contains_key("PROTON_ENABLE_HDR"));
+    }
+
+    #[test]
+    fn proton_feature_toggles() {
+        let gs = GameSettings {
+            descriptor_heap: true,
+            dlss_upgrade: true,
+            dlss_indicator: true,
+            fsr4_upgrade: true,
+            xess_upgrade: true,
+            environment_options: vec![user("VKD3D_CONFIG", "\"dxr, force_host_cached\"")],
+            ..Default::default()
+        };
+        let w = proton();
+        let host = HostEnv::from_pairs::<_, &str, &str>([]);
+        let env = wine_env_for(irori_core::HostPlatform::Linux, &input(&gs, &w, &host));
+        assert_eq!(env["VKD3D_CONFIG"], "dxr,force_host_cached,descriptor_heap");
+        for key in [
+            "PROTON_VKD3D_HEAP",
+            "PROTON_DLSS_UPGRADE",
+            "PROTON_DLSS_INDICATOR",
+            "PROTON_FSR4_UPGRADE",
+            "PROTON_XESS_UPGRADE",
+        ] {
+            assert_eq!(env[key], "1", "{key}");
+        }
+
+        let off = GameSettings::default();
+        let env = wine_env_for(irori_core::HostPlatform::Linux, &input(&off, &w, &host));
+        assert!(!env.contains_key("VKD3D_CONFIG"));
+        assert!(!env.contains_key("PROTON_DLSS_UPGRADE"));
+    }
+
+    #[test]
+    fn descriptor_heap_is_added_once() {
+        assert_eq!(with_vkd3d_flag("", "descriptor_heap"), "descriptor_heap");
+        assert_eq!(
+            with_vkd3d_flag("descriptor_heap", "descriptor_heap"),
+            "descriptor_heap"
+        );
     }
 
     #[test]

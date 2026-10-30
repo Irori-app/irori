@@ -561,6 +561,7 @@ impl Render for GameSettingsView {
             .action(
                 Button::new("game-settings-back")
                     .outline()
+                    .icon(IconName::ArrowLeft)
                     .label(t("settings.game.back"))
                     .on_click(move |_, _, cx| irori_ui::navigate(Route::Game(id.clone()), cx)),
             );
@@ -600,25 +601,46 @@ impl Render for GameSettingsView {
             } else {
                 self.form.clone().into_any_element()
             };
-            div()
-                .id("game-settings-content")
+            v_flex()
                 .flex_1()
                 .min_w_0()
                 .min_h_0()
-                .overflow_y_scrollbar()
                 .child(
-                    v_flex()
-                        .w_full()
-                        .max_w(rems(48.))
-                        .p_6()
-                        .pb_12()
-                        .gap_2()
-                        .child(header)
-                        .when(searching, |v| {
-                            v.child(muted(t("settings.common.search_results"), cx))
-                        })
-                        .children(wine_note)
-                        .child(body),
+                    div()
+                        .flex_shrink_0()
+                        .border_b_1()
+                        .border_color(cx.theme().border)
+                        .child(
+                            div()
+                                .w_full()
+                                .max_w(rems(48.))
+                                .px_6()
+                                .pt_6()
+                                .pb_4()
+                                .child(header),
+                        ),
+                )
+                .child(
+                    div()
+                        .id("game-settings-content")
+                        .flex_1()
+                        .min_w_0()
+                        .min_h_0()
+                        .overflow_y_scrollbar()
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .max_w(rems(48.))
+                                .px_6()
+                                .pt_4()
+                                .pb_12()
+                                .gap_2()
+                                .when(searching, |v| {
+                                    v.child(muted(t("settings.common.search_results"), cx))
+                                })
+                                .children(wine_note)
+                                .child(body),
+                        ),
                 )
                 .into_any_element()
         };
