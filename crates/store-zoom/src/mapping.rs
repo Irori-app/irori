@@ -138,8 +138,7 @@ pub fn platform_files(files: &FilesResponse, platform: InstallPlatform) -> &[Zoo
 pub fn disk_name(f: &ZoomFile) -> String {
     let clean = |s: &str| {
         let base = s.rsplit(['/', '\\']).next().unwrap_or("").trim();
-        let base = irori_core::paths::sanitize(base);
-        (!base.is_empty() && base != "." && base != ".." && !base.starts_with('.')).then_some(base)
+        (!base.is_empty() && !base.starts_with('.')).then(|| irori_core::paths::sanitize(base))
     };
     [&f.name, &f.filename]
         .into_iter()

@@ -674,8 +674,8 @@ impl Store for AmazonStore {
             .folder_name
             .clone()
             .filter(|f| !f.trim().is_empty())
-            .unwrap_or_else(|| irori_core::paths::sanitize(app_name));
-        let dir = base.join(&folder);
+            .unwrap_or_else(|| app_name.to_string());
+        let dir = base.join(irori_core::paths::sanitize(&folder));
         // Only a folder this install creates may be deleted on cancel.
         if !dir.exists() {
             self.pending_dirs

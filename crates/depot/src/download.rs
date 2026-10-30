@@ -1144,6 +1144,13 @@ impl Ctx {
             watch.pause(self.throttle(bytes.len()).await?);
             self.stats.add_received(bytes.len() as u64);
             raw.extend_from_slice(&bytes);
+            if chunk.download_size > 0 && raw.len() as u64 > chunk.download_size {
+                return Err(Error::Corrupt(format!(
+                    "{} sent more than the chunk's {} bytes",
+                    redact(url),
+                    chunk.download_size
+                )));
+            }
             watch
                 .feed(bytes.len() as u64, Instant::now())
                 .map_err(|e| Error::Interrupted(format!("{}: {e}", redact(url))))?;

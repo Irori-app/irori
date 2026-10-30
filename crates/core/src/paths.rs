@@ -177,14 +177,21 @@ impl Paths {
     }
 }
 
-/// Replace characters that are unsafe in file names.
+/// Replace characters that are unsafe in file names. The result is always a
+/// plain name: never empty, `.` or `..`, which would lead to another folder.
 pub fn sanitize(name: &str) -> String {
-    name.chars()
+    let clean: String = name
+        .chars()
         .map(|c| match c {
             '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0' => '_',
             c => c,
         })
-        .collect()
+        .collect();
+    if clean.chars().all(|c| matches!(c, '.' | ' ')) {
+        "_".into()
+    } else {
+        clean
+    }
 }
 
 /// Expand a leading `~` to the home directory.
@@ -207,4 +214,19 @@ pub fn heroic_config_dir() -> Option<PathBuf> {
     .into_iter()
     .flatten()
     .find(|p| p.join("config.json").is_file())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitized_names_stay_in_their_folder() {
+        for name in ["", ".", "..", "...", " .. ", "  "] {
+            assert_eq!(sanitize(name), "_", "{name:?}");
+        }
+        assert_eq!(sanitize("../a"), ".._a");
+        assert_eq!(sanitize("Game: The Sequel"), "Game_ The Sequel");
+        assert_eq!(sanitize(".hidden"), ".hidden");
+    }
 }

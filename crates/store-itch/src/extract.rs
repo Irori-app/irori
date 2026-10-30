@@ -119,7 +119,6 @@ fn unzip(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> 
 
 fn untar(reader: impl io::Read, dest: &Path, cancel: &CancellationToken) -> Result<()> {
     let mut tar = tar::Archive::new(reader);
-    tar.set_preserve_permissions(true);
     for entry in tar.entries().context("the archive is damaged")? {
         if cancel.is_cancelled() {
             bail!("cancelled");
@@ -129,6 +128,19 @@ fn untar(reader: impl io::Read, dest: &Path, cancel: &CancellationToken) -> Resu
             .path()
             .map(|p| p.display().to_string())
             .unwrap_or_default();
+        // `unpack_in` refuses entries that would escape `dest`, but not a link
+        // pointing out of it.
+        if entry.header().entry_type().is_symlink() {
+            let rel = entry.path().context("the archive is damaged")?.into_owned();
+            let link = entry
+                .link_name()
+                .context("the archive is damaged")?
+                .context("the archive holds a link without a target")?
+                .into_owned();
+            if !irori_core::archive_guard::check_symlink(dest, &rel, &link)? {
+                continue;
+            }
+        }
         // `unpack_in` refuses entries that would escape `dest`.
         if !entry
             .unpack_in(dest)

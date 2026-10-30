@@ -246,7 +246,6 @@ fn unpack_tar(
     mut on_entry: impl FnMut(),
 ) -> Result<bool> {
     let mut tar = tar::Archive::new(decoded);
-    tar.set_preserve_permissions(true);
     tar.set_preserve_mtime(true);
     tar.set_overwrite(true);
     for entry in tar.entries()? {

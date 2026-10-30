@@ -192,6 +192,7 @@ impl EpicStore {
         if let Some(info) = self.overlay_install() {
             let dir = PathBuf::from(&info.install_path);
             if dir.is_dir() {
+                irori_core::fs_guard::ensure_deletable(&dir, &(self.settings)())?;
                 tokio::fs::remove_dir_all(&dir)
                     .await
                     .with_context(|| format!("Could not delete {}", dir.display()))?;
