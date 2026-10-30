@@ -123,6 +123,12 @@ fn updates_page_lists_games_with_updates(cx: &mut TestAppContext) {
         });
     });
     vcx.run_until_parked();
+    // Windows' test platform doesn't schedule a frame by itself.
+    vcx.update(|window, cx| {
+        window.refresh();
+        let _ = window.draw(cx);
+    });
+    vcx.run_until_parked();
     assert!(vcx.debug_bounds("update-gog:a").is_some());
 }
 

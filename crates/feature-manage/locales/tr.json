@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine veya Proton",
   "manage.updates.previous_detail": "Son güncelleme ile değiştirildi",
   "manage.updates.release_notes": "Sürüm notları",
+  "manage.updates.replaces_build": "Bu derlemenin yerini alır; sonra geri dönebilirsiniz",
   "manage.updates.section.components": "Bileşenler",
   "manage.updates.section.games": "Oyunlar",
   "manage.updates.section.previous": "Önceki derlemeler",

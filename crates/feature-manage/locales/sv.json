@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine eller Proton",
   "manage.updates.previous_detail": "Ersatt av den senaste uppdateringen",
   "manage.updates.release_notes": "Versionsinformation",
+  "manage.updates.replaces_build": "Ersätter det här bygget; du kan gå tillbaka efteråt",
   "manage.updates.section.components": "Komponenter",
   "manage.updates.section.games": "Spel",
   "manage.updates.section.previous": "Tidigare byggen",

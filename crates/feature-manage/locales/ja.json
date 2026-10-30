@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine または Proton",
   "manage.updates.previous_detail": "最後の更新で置き換えられました",
   "manage.updates.release_notes": "リリースノート",
+  "manage.updates.replaces_build": "このビルドを置き換えます。後で元に戻せます",
   "manage.updates.section.components": "コンポーネント",
   "manage.updates.section.games": "ゲーム",
   "manage.updates.section.previous": "以前のビルド",

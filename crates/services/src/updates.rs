@@ -87,6 +87,8 @@ pub struct ComponentUpdate {
     pub skipped: bool,
     /// Flatpak updates this: Irori shows it and leaves it alone.
     pub external: bool,
+    /// The new build replaces the installed one, under the same name.
+    pub in_place: bool,
     /// The release's notes, when the source publishes a page.
     pub notes_url: Option<String>,
     /// What a skip is remembered by: `latest`, unless that changes too often
@@ -320,6 +322,7 @@ impl Backend {
                     latest,
                     skipped: false,
                     external: false,
+                    in_place: false,
                     notes_url: None,
                     target: Target::Tool(tool),
                 }),
@@ -329,12 +332,18 @@ impl Backend {
         }
         match manager::check_updates().await {
             Ok(list) => found.extend(list.into_iter().map(|u| {
+                let in_place = u.installed.version == u.latest.version;
                 ComponentUpdate {
                     id: format!("wine:{}", u.latest.kind),
                     kind: ComponentKind::Wine,
                     name: u.latest.kind.clone(),
                     installed: u.installed.version,
-                    latest: u.latest.version.clone(),
+                    latest: if in_place {
+                        u.latest.date.clone()
+                    } else {
+                        u.latest.version.clone()
+                    },
+                    in_place,
                     skip_key: format!("{}:{}", u.latest.version, u.latest.date),
                     skipped: false,
                     external: false,
@@ -358,6 +367,7 @@ impl Backend {
                             skip_key: latest,
                             skipped: false,
                             external: false,
+                            in_place: false,
                             notes_url: None,
                             target: Target::Runtime(name),
                         }),
@@ -396,6 +406,7 @@ impl Backend {
                     skip_key: version.clone(),
                     skipped: false,
                     external: true,
+                    in_place: false,
                     notes_url: None,
                     target: Target::External,
                 });
@@ -412,6 +423,7 @@ impl Backend {
                     skip_key: update.cores.join(","),
                     skipped: false,
                     external: false,
+                    in_place: false,
                     notes_url: None,
                     target: Target::Cores(update.cores),
                 }),
@@ -440,6 +452,7 @@ impl Backend {
                         skip_key: newest.version.clone(),
                         skipped: false,
                         external: false,
+                        in_place: false,
                         notes_url: None,
                         target: Target::Engine(id, Box::new(newest)),
                     });
@@ -798,6 +811,7 @@ mod tests {
             skip_key: "2".into(),
             skipped,
             external: false,
+            in_place: false,
             notes_url: None,
             target: Target::Tool(DxTool::Dxvk),
         };
@@ -807,6 +821,7 @@ mod tests {
                 update("b", true),
                 ComponentUpdate {
                     external: true,
+                    in_place: false,
                     ..update("c", false)
                 },
             ],

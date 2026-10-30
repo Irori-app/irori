@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine of Proton",
   "manage.updates.previous_detail": "Vervangen door de laatste update",
   "manage.updates.release_notes": "Release-opmerkingen",
+  "manage.updates.replaces_build": "Vervangt deze build; daarna kun je teruggaan",
   "manage.updates.section.components": "Componenten",
   "manage.updates.section.games": "Games",
   "manage.updates.section.previous": "Vorige builds",

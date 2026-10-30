@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine or Proton",
   "manage.updates.previous_detail": "Replaced by the last update",
   "manage.updates.release_notes": "Release notes",
+  "manage.updates.replaces_build": "Replaces this build; you can go back afterwards",
   "manage.updates.section.components": "Components",
   "manage.updates.section.games": "Games",
   "manage.updates.section.previous": "Previous builds",

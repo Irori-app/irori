@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine или Proton",
   "manage.updates.previous_detail": "Заменена последним обновлением",
   "manage.updates.release_notes": "Примечания к выпуску",
+  "manage.updates.replaces_build": "Заменяет эту сборку; потом можно вернуться",
   "manage.updates.section.components": "Компоненты",
   "manage.updates.section.games": "Игры",
   "manage.updates.section.previous": "Предыдущие сборки",

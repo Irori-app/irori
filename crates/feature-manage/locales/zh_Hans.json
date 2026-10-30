@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine 或 Proton",
   "manage.updates.previous_detail": "已被上次更新替换",
   "manage.updates.release_notes": "发行说明",
+  "manage.updates.replaces_build": "替换此版本；之后可以恢复",
   "manage.updates.section.components": "组件",
   "manage.updates.section.games": "游戏",
   "manage.updates.section.previous": "以前的版本",

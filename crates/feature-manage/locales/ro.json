@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine sau Proton",
   "manage.updates.previous_detail": "Înlocuită de ultima actualizare",
   "manage.updates.release_notes": "Note de lansare",
+  "manage.updates.replaces_build": "Înlocuiește această versiune; poți reveni după aceea",
   "manage.updates.section.components": "Componente",
   "manage.updates.section.games": "Jocuri",
   "manage.updates.section.previous": "Versiuni anterioare",

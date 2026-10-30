@@ -391,6 +391,9 @@ impl UpdatesView {
             update.installed,
             update.latest
         );
+        if update.in_place {
+            detail = format!("{detail} · {}", t("manage.updates.replaces_build"));
+        }
         if update.skipped {
             detail = format!("{detail} · {}", t("manage.updates.skipped"));
         }

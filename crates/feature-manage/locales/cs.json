@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine nebo Proton",
   "manage.updates.previous_detail": "Nahrazeno poslední aktualizací",
   "manage.updates.release_notes": "Poznámky k vydání",
+  "manage.updates.replaces_build": "Nahradí toto sestavení; poté se můžete vrátit",
   "manage.updates.section.components": "Komponenty",
   "manage.updates.section.games": "Hry",
   "manage.updates.section.previous": "Předchozí sestavení",

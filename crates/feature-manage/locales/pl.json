@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine lub Proton",
   "manage.updates.previous_detail": "Zastąpiona przez ostatnią aktualizację",
   "manage.updates.release_notes": "Informacje o wydaniu",
+  "manage.updates.replaces_build": "Zastępuje tę kompilację; później możesz ją cofnąć",
   "manage.updates.section.components": "Komponenty",
   "manage.updates.section.games": "Gry",
   "manage.updates.section.previous": "Poprzednie kompilacje",

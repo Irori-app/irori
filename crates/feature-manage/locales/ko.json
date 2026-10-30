@@ -195,6 +195,7 @@
   "manage.updates.kind.wine": "Wine 또는 Proton",
   "manage.updates.previous_detail": "마지막 업데이트로 교체됨",
   "manage.updates.release_notes": "릴리스 노트",
+  "manage.updates.replaces_build": "이 빌드를 교체합니다. 나중에 되돌릴 수 있습니다",
   "manage.updates.section.components": "구성 요소",
   "manage.updates.section.games": "게임",
   "manage.updates.section.previous": "이전 빌드",
