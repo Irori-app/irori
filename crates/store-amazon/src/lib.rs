@@ -409,6 +409,8 @@ impl AmazonStore {
     /// `<config>/nile`, then keep it as `<config>/nile-backup`.
     async fn migrate_nile_dir(&self) {
         let old = self.layout.dir.join("nile");
+        let earlier_backup = self.layout.dir.join("nile-backup");
+        let _ = Self::blocking(move || import::remove_nile_login(&earlier_backup)).await;
         if !old.is_dir() {
             return;
         }
@@ -421,6 +423,7 @@ impl AmazonStore {
                 std::fs::remove_dir_all(&backup)?;
             }
             std::fs::rename(&old, &backup)?;
+            import::remove_nile_login(&backup);
             remove_quietly(&layout.dir.join("account.json"));
             remove_quietly(&cache_dir.join("library.json"));
             Ok(())

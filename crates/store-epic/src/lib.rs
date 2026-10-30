@@ -971,6 +971,11 @@ impl Store for EpicStore {
         for file in [self.layout.session_json(), self.layout.library_json()] {
             remove_quietly(&file);
         }
+        if let Err(e) = tokio::fs::remove_dir_all(self.layout.token_dir()).await
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!("removing Epic ownership tokens: {e}");
+        }
         *self.session.lock().await = None;
         *self.user.write() = None;
         {

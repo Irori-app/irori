@@ -83,6 +83,22 @@ fn credentials(record: &Value, fallback_name: &str) -> Option<Credentials> {
     })
 }
 
+/// Delete nile's login from a folder kept as a backup. Its `.enc` file is no
+/// protection: the key derives from the user id in the file beside it.
+pub(crate) fn remove_nile_login(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for path in entries.flatten().map(|e| e.path()) {
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if (name == "user.json" || name == "current_user.json" || name.ends_with(".enc"))
+            && let Err(e) = std::fs::remove_file(&path)
+        {
+            tracing::warn!("removing {}: {e}", path.display());
+        }
+    }
+}
+
 fn read_login(nile_dir: &Path) -> Result<Option<Credentials>> {
     let user: NileUser =
         irori_core::json_store::read(&nile_dir.join("current_user.json"))?.unwrap_or_default();

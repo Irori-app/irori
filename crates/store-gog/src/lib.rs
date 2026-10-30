@@ -502,6 +502,7 @@ impl Store for GogStore {
         self.delete_presence(true).await;
         self.auth.clear().await?;
         let _ = tokio::fs::remove_file(self.paths.user_file()).await;
+        let _ = tokio::fs::remove_file(self.paths.private_branches_file()).await;
         let cache = self.paths.cache.clone();
         let _ = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(cache)).await;
         {

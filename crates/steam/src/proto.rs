@@ -278,6 +278,26 @@ impl fmt::Debug for GenerateAccessTokenForAppRequest {
     }
 }
 
+/// `EAuthTokenRevokeAction`: the token stops working for good.
+pub(crate) const REVOKE_PERMANENT: i32 = 1;
+
+#[derive(Clone, PartialEq, prost::Message)]
+#[prost(skip_debug)]
+pub(crate) struct RevokeTokenRequest {
+    #[prost(string, tag = "1")]
+    pub token: String,
+    #[prost(int32, tag = "2")]
+    pub revoke_action: i32,
+}
+
+impl fmt::Debug for RevokeTokenRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RevokeTokenRequest")
+            .field("revoke_action", &self.revoke_action)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, PartialEq, prost::Message)]
 #[prost(skip_debug)]
 pub(crate) struct GenerateAccessTokenForAppResponse {

@@ -105,8 +105,26 @@ impl Client {
         Req: prost::Message,
         Resp: prost::Message + Default,
     {
+        self.auth_call_as(verb, method, request, None).await
+    }
+
+    /// [`Self::auth_call`] for a method that acts on a signed-in account.
+    pub(crate) async fn auth_call_as<Req, Resp>(
+        &self,
+        verb: Verb,
+        method: &str,
+        request: &Req,
+        access_token: Option<&str>,
+    ) -> Result<Resp>
+    where
+        Req: prost::Message,
+        Resp: prost::Message + Default,
+    {
         let url = format!("{}/IAuthenticationService/{method}/v1", self.endpoints.api);
-        let params = [("input_protobuf_encoded", form_value(request))];
+        let mut params = vec![("input_protobuf_encoded", form_value(request))];
+        if let Some(token) = access_token {
+            params.push(("access_token", token.to_string()));
+        }
         let builder = match verb {
             Verb::Get => self.http.get(url).query(&params),
             Verb::Post => self.http.post(url).form(&params),

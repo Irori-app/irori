@@ -169,10 +169,7 @@ impl Backend {
             version: VERSION,
             created: util::now_rfc3339(),
             irori_version: env!("CARGO_PKG_VERSION").into(),
-            settings: parts
-                .settings
-                .then(|| serde_json::to_value(&*self.settings.app()))
-                .transpose()?,
+            settings: parts.settings.then(|| self.backup_settings()).transpose()?,
             game_settings,
             library: parts.library.then(|| LibraryBackup {
                 favourites: user.favourites.clone(),
@@ -185,6 +182,15 @@ impl Backend {
                 sessions: sessions::read_all(),
             }),
         })
+    }
+
+    /// The app settings for a backup, which travels: without the API key.
+    fn backup_settings(&self) -> Result<Value> {
+        let mut settings = serde_json::to_value(&*self.settings.app())?;
+        if let Some(map) = settings.as_object_mut() {
+            map.remove("steamGridDbApiKey");
+        }
+        Ok(settings)
     }
 
     /// Write a backup of the chosen parts to `path`.
@@ -217,8 +223,11 @@ impl Backend {
         if parts.settings
             && let Some(value) = &backup.settings
         {
-            let settings: AppSettings = serde_json::from_value(value.clone())
+            let mut settings: AppSettings = serde_json::from_value(value.clone())
                 .context("The settings in this backup could not be read")?;
+            if value.get("steamGridDbApiKey").is_none() {
+                settings.steam_grid_db_api_key = self.settings.app().steam_grid_db_api_key.clone();
+            }
             self.settings.replace_app(settings);
             summary.settings = true;
         }

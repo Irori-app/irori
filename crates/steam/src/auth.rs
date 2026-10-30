@@ -441,6 +441,23 @@ impl Client {
         }
         Ok(resp.access_token)
     }
+
+    /// Ask Steam to end a saved sign-in, so a copy of its refresh token stops
+    /// working. The token goes in the form body, not the address.
+    pub async fn revoke_refresh_token(
+        &self,
+        refresh_token: &str,
+        access_token: &str,
+    ) -> Result<()> {
+        let req = proto::RevokeTokenRequest {
+            token: refresh_token.into(),
+            revoke_action: proto::REVOKE_PERMANENT,
+        };
+        let _: () = self
+            .auth_call_as(Verb::Post, "RevokeToken", &req, Some(access_token))
+            .await?;
+        Ok(())
+    }
 }
 
 /// While polling, "expired", "access denied" and "not found" mean the
@@ -823,6 +840,18 @@ oJ5AuFG/mkhc6SJBeyPKP/c87cxXhRNAlivwKivIUvqY
         assert_eq!(tokens.guard_data, None);
         let e = api.poll(78, &[4, 5]).await.unwrap_err();
         assert_eq!(e.downcast_ref(), Some(&SteamError::LoginExpired));
+    }
+
+    #[tokio::test]
+    async fn revokes_a_sign_in_without_putting_it_in_the_address() {
+        let server = TestServer::start(|req| {
+            assert_eq!(req.path, "/IAuthenticationService/RevokeToken/v1");
+            eresult(1)
+        });
+        client(&server)
+            .revoke_refresh_token("REFRESH", "ACCESS")
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
