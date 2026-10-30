@@ -506,6 +506,66 @@ pub async fn available_releases(kind: ReleaseKind) -> Result<Vec<Release>> {
         .collect())
 }
 
+/// A build from Irori's Wine manager with something newer to install.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WineUpdate {
+    pub installed: Release,
+    pub latest: Release,
+}
+
+/// What can be updated, one entry per source, from `releases` (newest first).
+/// A release republished under its name updates in place; a newer one
+/// installs beside the old build, which games keep using.
+pub fn pending_updates(releases: &[Release]) -> Vec<WineUpdate> {
+    let mut kinds: Vec<&str> = Vec::new();
+    for r in releases {
+        if !kinds.contains(&r.kind.as_str()) {
+            kinds.push(&r.kind);
+        }
+    }
+    kinds
+        .into_iter()
+        .filter_map(|kind| {
+            let mut of_kind = releases.iter().filter(|r| r.kind == kind);
+            let newest = of_kind.next()?;
+            let installed = std::iter::once(newest)
+                .chain(of_kind)
+                .find(|r| r.is_installed == Some(true))?;
+            let latest = if installed.has_update == Some(true) {
+                installed
+            } else if newest.date > installed.date {
+                newest
+            } else {
+                return None;
+            };
+            Some(WineUpdate {
+                installed: installed.clone(),
+                latest: latest.clone(),
+            })
+        })
+        .collect()
+}
+
+/// [`pending_updates`] of the sources that have a build installed. Lists come
+/// from a cache of up to a day.
+pub async fn check_updates() -> Result<Vec<WineUpdate>> {
+    let mut kinds: Vec<ReleaseKind> = Vec::new();
+    for kind in cached_releases()
+        .iter()
+        .filter(|r| r.is_installed == Some(true))
+        .filter_map(Release::release_kind)
+    {
+        if !kinds.contains(&kind) {
+            kinds.push(kind);
+        }
+    }
+    let mut releases = Vec::new();
+    for kind in kinds {
+        releases.extend(available_releases(kind).await?);
+    }
+    Ok(pending_updates(&releases))
+}
+
 /// Every cached release (no network).
 pub fn cached_releases() -> Vec<Release> {
     read_store().releases
@@ -773,6 +833,33 @@ pub async fn download_default_wine(app: &AppSettings, ctx: &OpContext) -> Result
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn newer_builds_are_found_per_source() {
+        let release =
+            |kind: &str, version: &str, date: &str, installed: bool, update: bool| Release {
+                kind: kind.into(),
+                version: version.into(),
+                date: date.into(),
+                is_installed: installed.then_some(true),
+                has_update: update.then_some(true),
+                ..Default::default()
+            };
+        let list = [
+            release("GE", "GE-11", "2026-10-02", false, false),
+            release("GE", "GE-10", "2026-09-01", true, false),
+            release("Kron", "K-2", "2026-10-01", false, false),
+            release("Cachy", "C-latest", "2026-10-01", true, true),
+            release("Cachy", "C-old", "2026-01-01", false, false),
+            release("Wine", "W-9", "2026-05-01", true, false),
+        ];
+        let updates = pending_updates(&list);
+        let versions: Vec<_> = updates
+            .iter()
+            .map(|u| (u.installed.version.as_str(), u.latest.version.as_str()))
+            .collect();
+        assert_eq!(versions, [("GE-10", "GE-11"), ("C-latest", "C-latest")]);
+    }
+
     use super::*;
 
     fn asset(name: &str) -> serde_json::Value {

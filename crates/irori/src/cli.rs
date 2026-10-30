@@ -89,6 +89,7 @@ impl Cli {
             "bigpicture" | "console" => self.big_picture = true,
             "library" => self.route = Some(Route::Library),
             "downloads" => self.route = Some(Route::Downloads),
+            "updates" => self.route = Some(Route::Updates),
             "accounts" => self.route = Some(Route::Accounts),
             "stores" => self.route = Some(Route::Stores),
             "stats" => self.route = Some(Route::Stats),

@@ -796,6 +796,15 @@ pub static FIELDS: &[FieldSpec] = &[
     .help("settings.field.auto_update_games.help")
     .keywords(&["update", "automatic"]),
     app(
+        "iroriAutoUpdateComponents",
+        "settings.field.auto_update_components.label",
+        General,
+        "settings.group.updates",
+        Toggle,
+    )
+    .help("settings.field.auto_update_components.help")
+    .keywords(&["update", "automatic", "wine", "proton", "dxvk", "emulator"]),
+    app(
         "noTrayIcon",
         "settings.field.no_tray_icon.label",
         General,

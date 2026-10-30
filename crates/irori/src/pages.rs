@@ -9,6 +9,7 @@ use irori_ui::Route;
 pub struct Pages {
     current: Option<(Route, AnyView)>,
     downloads: Option<AnyView>,
+    updates: Option<AnyView>,
     wine: Option<AnyView>,
     emulators: Option<AnyView>,
     accounts: Option<AnyView>,
@@ -66,6 +67,10 @@ impl Pages {
             }
             Route::Downloads => cached(&mut self.downloads, || {
                 cx.new(|cx| irori_manage::DownloadsView::new(window, cx))
+                    .into()
+            }),
+            Route::Updates => cached(&mut self.updates, || {
+                cx.new(|cx| irori_manage::UpdatesView::new(window, cx))
                     .into()
             }),
             Route::WineManager => cached(&mut self.wine, || {

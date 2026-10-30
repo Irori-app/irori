@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "Instalovat VKD3D-Proton automaticky",
   "settings.field.auto_sync_saves.help": "Před hraním stáhnout uložené pozice a po ukončení hry je nahrát.",
   "settings.field.auto_sync_saves.label": "Synchronizovat uložené pozice automaticky",
+  "settings.field.auto_update_components.help": "Nainstaluje nová sestavení Wine a Protonu, překladové vrstvy a emulátory, jakmile je denní kontrola najde.",
+  "settings.field.auto_update_components.label": "Aktualizovat komponenty automaticky",
   "settings.field.auto_update_games.help": "Zařadit aktualizace do fronty, jakmile se najdou.",
   "settings.field.auto_update_games.label": "Aktualizovat hry automaticky",
   "settings.field.battleye_runtime.label": "Běhové prostředí BattlEye",

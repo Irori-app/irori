@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "Устанавливать VKD3D-Proton автоматически",
   "settings.field.auto_sync_saves.help": "Скачивать сохранения перед игрой и загружать их после выхода из игры.",
   "settings.field.auto_sync_saves.label": "Синхронизировать сохранения автоматически",
+  "settings.field.auto_update_components.help": "Устанавливает новые сборки Wine и Proton, слои трансляции и эмуляторы, как только их найдёт ежедневная проверка.",
+  "settings.field.auto_update_components.label": "Обновлять компоненты автоматически",
   "settings.field.auto_update_games.help": "Ставить обновления в очередь сразу после обнаружения.",
   "settings.field.auto_update_games.label": "Обновлять игры автоматически",
   "settings.field.battleye_runtime.label": "Среда выполнения BattlEye",

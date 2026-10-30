@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "Installer VKD3D-Proton automatiquement",
   "settings.field.auto_sync_saves.help": "Télécharge les sauvegardes avant de jouer et les envoie après la fermeture du jeu.",
   "settings.field.auto_sync_saves.label": "Synchroniser automatiquement les sauvegardes",
+  "settings.field.auto_update_components.help": "Installe les nouvelles versions de Wine et Proton, les couches de traduction et les émulateurs dès que la vérification quotidienne les trouve.",
+  "settings.field.auto_update_components.label": "Mettre à jour les composants automatiquement",
   "settings.field.auto_update_games.help": "Met les mises à jour en file d’attente dès qu’elles sont détectées.",
   "settings.field.auto_update_games.label": "Mettre à jour les jeux automatiquement",
   "settings.field.battleye_runtime.label": "Runtime BattlEye",

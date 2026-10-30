@@ -469,6 +469,10 @@ pub struct AppSettings {
         alias = "emberThirdPartyLaunchers"
     )]
     pub third_party_launchers: bool,
+    /// Install new builds of components (DXVK, Wine, emulators) as soon as
+    /// the daily check finds them. Irori-only.
+    #[serde(rename = "iroriAutoUpdateComponents")]
+    pub auto_update_components: bool,
     /// Look for new versions of Irori once a day. Irori-only; about Irori
     /// itself, where `checkForUpdatesOnStartup` is about games.
     #[serde(rename = "iroriCheckForAppUpdates")]
@@ -489,6 +493,7 @@ impl Default for AppSettings {
             rom_folders: Vec::new(),
             bios_folder: String::new(),
             third_party_launchers: false,
+            auto_update_components: false,
             check_for_app_updates: true,
             game: GameSettings::default(),
             add_desktop_shortcuts: false,

@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "VKD3D-Proton automatisch installieren",
   "settings.field.auto_sync_saves.help": "Spielstände vor dem Spielen herunterladen und nach dem Beenden des Spiels hochladen.",
   "settings.field.auto_sync_saves.label": "Spielstände automatisch synchronisieren",
+  "settings.field.auto_update_components.help": "Installiert neue Wine- und Proton-Builds, Übersetzungsschichten und Emulatoren, sobald die tägliche Prüfung sie findet.",
+  "settings.field.auto_update_components.label": "Komponenten automatisch aktualisieren",
   "settings.field.auto_update_games.help": "Gefundene Updates sofort in die Warteschlange stellen.",
   "settings.field.auto_update_games.label": "Spiele automatisch aktualisieren",
   "settings.field.battleye_runtime.label": "BattlEye-Runtime",

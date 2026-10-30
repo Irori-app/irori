@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "自動安裝 VKD3D-Proton",
   "settings.field.auto_sync_saves.help": "遊戲開始前下載存檔，遊戲結束後上傳存檔。",
   "settings.field.auto_sync_saves.label": "自動同步存檔",
+  "settings.field.auto_update_components.help": "每日檢查發現後，立即安裝新的 Wine 和 Proton 版本、轉譯層和模擬器。",
+  "settings.field.auto_update_components.label": "自動更新元件",
   "settings.field.auto_update_games.help": "發現更新後立即加入佇列。",
   "settings.field.auto_update_games.label": "自動更新遊戲",
   "settings.field.battleye_runtime.label": "BattlEye 執行環境",

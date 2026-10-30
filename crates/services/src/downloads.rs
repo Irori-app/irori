@@ -430,6 +430,7 @@ impl Backend {
             }
             After::Done => {
                 self.statuses.clear(&id);
+                self.forget_update(&id);
                 self.bus.emit(Event::LibraryChanged(id.runner));
                 let (verb, key) = match item.kind {
                     DownloadKind::Install(_) => ("installed", "shell.notice.installed"),

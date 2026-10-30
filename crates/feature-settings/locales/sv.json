@@ -133,6 +133,8 @@
   "settings.field.auto_install_vkd3d.label": "Installera VKD3D-Proton automatiskt",
   "settings.field.auto_sync_saves.help": "Ladda ned sparfiler innan du spelar och ladda upp dem när spelet har avslutats.",
   "settings.field.auto_sync_saves.label": "Synkronisera sparfiler automatiskt",
+  "settings.field.auto_update_components.help": "Installerar nya Wine- och Proton-byggen, översättningslager och emulatorer så snart den dagliga kontrollen hittar dem.",
+  "settings.field.auto_update_components.label": "Uppdatera komponenter automatiskt",
   "settings.field.auto_update_games.help": "Köa uppdateringar så snart de hittas.",
   "settings.field.auto_update_games.label": "Uppdatera spel automatiskt",
   "settings.field.battleye_runtime.label": "BattlEye-körmiljö",

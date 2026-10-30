@@ -64,6 +64,8 @@ impl AppShell {
                 cx.notify();
             }),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
+            cx.observe(&m.components, |_, _, cx| cx.notify()),
+            cx.observe(&m.library, |_, _, cx| cx.notify()),
             cx.observe(&m.accounts, |this, _, cx| {
                 this.settle_start(cx);
                 cx.notify();
@@ -397,6 +399,8 @@ impl AppShell {
     fn render_sidebar(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement {
         let section = navigator(cx).read(cx).current().section();
         let downloads = models(cx).downloads.read(cx).queue.active.len();
+        let updates = models(cx).library.read(cx).updates.len()
+            + models(cx).components.read(cx).report.pending().count();
         let collapsed = self.sidebar_collapsed_now(window);
         let any_account = models(cx).accounts.read(cx).any_logged_in();
         let theme = cx.theme();
@@ -414,17 +418,21 @@ impl AppShell {
                 cx,
             )
         };
-        let download_count = (downloads > 0).then(|| {
-            div()
-                .text_xs()
-                .font_bold()
-                .px_1p5()
-                .rounded_full()
-                .bg(theme.primary)
-                .text_color(theme.primary_foreground)
-                .child(downloads.to_string())
-                .into_any_element()
-        });
+        let count_badge = |count: usize| {
+            (count > 0).then(|| {
+                div()
+                    .text_xs()
+                    .font_bold()
+                    .px_1p5()
+                    .rounded_full()
+                    .bg(theme.primary)
+                    .text_color(theme.primary_foreground)
+                    .child(count.to_string())
+                    .into_any_element()
+            })
+        };
+        let download_count = count_badge(downloads);
+        let update_count = count_badge(updates);
 
         v_flex()
             .id("main-sidebar")
@@ -474,6 +482,15 @@ impl AppShell {
                 "downloads",
                 Route::Downloads,
                 download_count,
+                cx,
+            ))
+            .child(item(
+                "nav-updates",
+                "shell.nav.updates",
+                IconName::RefreshCw,
+                "updates",
+                Route::Updates,
+                update_count,
                 cx,
             ))
             .child(item(

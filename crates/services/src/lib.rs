@@ -24,6 +24,7 @@ pub mod scripts;
 pub mod sessions;
 pub mod settings;
 pub mod status;
+pub mod updates;
 pub mod userdata;
 
 use std::collections::BTreeMap;
@@ -50,6 +51,7 @@ pub use scripts::{ScriptInstall, ScriptProgress, ScriptPrompt, ScriptRun};
 pub use sessions::Session;
 pub use settings::SettingsService;
 pub use status::StatusRegistry;
+pub use updates::{ComponentKind, ComponentReport, ComponentUpdate};
 pub use userdata::{UserData, UserDataService};
 
 /// How often connectivity is re-checked.
@@ -74,6 +76,10 @@ pub struct Inner {
     files_wake: Notify,
     running: Mutex<BTreeMap<irori_core::GameId, games::RunningGame>>,
     updates: RwLock<Arc<std::collections::HashSet<irori_core::GameId>>>,
+    /// Stores whose last update check failed; their earlier answer stands.
+    update_check_failed: RwLock<Vec<Runner>>,
+    /// New versions of Wine builds, translation layers and emulators.
+    components: updates::ComponentUpdates,
     online: AtomicBool,
     /// The queue was paused by [`Backend::pause_downloads_while_offline`].
     auto_paused: AtomicBool,
@@ -148,6 +154,8 @@ impl Backend {
             files_wake: Notify::new(),
             running: Mutex::new(BTreeMap::new()),
             updates: RwLock::new(Arc::default()),
+            update_check_failed: RwLock::new(Vec::new()),
+            components: updates::ComponentUpdates::load(),
             online: AtomicBool::new(true),
             auto_paused: AtomicBool::new(false),
             presence: discord::Presence::default(),
@@ -255,7 +263,11 @@ impl Backend {
             b.refresh_compat_data().await;
             if b.settings.app().check_for_updates_on_startup {
                 b.refresh_all(false).await;
+                if b.settings.app().auto_update_games {
+                    b.enqueue_all_updates().await;
+                }
             }
+            b.check_components_when_due().await;
         });
 
         // Rebuild the aggregated library when stores or user data change, or
@@ -325,6 +337,7 @@ impl Backend {
             let online = self.check_connectivity().await;
             self.pause_downloads_while_offline(was_online, online);
             self.check_app_update_when_due().await;
+            self.check_components_when_due().await;
             let interval =
                 Duration::from_secs(self.settings.app().check_updates_interval.max(5) as u64 * 60);
             let reconnected = online && !was_online;
@@ -482,6 +495,28 @@ impl Backend {
         self.updates.read().clone()
     }
 
+    /// Stores whose last update check failed.
+    pub fn update_check_failures(&self) -> Vec<Runner> {
+        self.update_check_failed.read().clone()
+    }
+
+    /// Stop offering updates for `id`, as its setting does.
+    pub fn ignore_game_updates(&self, id: &irori_core::GameId) {
+        self.settings
+            .set_game_value(id, "ignoreGameUpdates", Some(serde_json::Value::Bool(true)));
+        self.forget_update(id);
+        self.bus
+            .emit(Event::LibraryUpdated(self.library().revision));
+    }
+
+    /// `id` has no update to offer any more.
+    fn forget_update(&self, id: &irori_core::GameId) {
+        let mut set = (**self.updates.read()).clone();
+        if set.remove(id) {
+            *self.updates.write() = Arc::new(set);
+        }
+    }
+
     /// Ask every store which installed games have updates.
     pub async fn refresh_updates(&self) {
         let jobs = self.stores.values().filter(|s| s.is_logged_in()).map(|s| {
@@ -489,26 +524,35 @@ impl Backend {
             let b = self.clone();
             async move {
                 match s.updatable_games().await {
-                    Ok(apps) => apps
-                        .into_iter()
-                        .map(|a| irori_core::GameId::new(s.runner(), a))
-                        .collect::<Vec<_>>(),
+                    Ok(apps) => (
+                        s.runner(),
+                        Some(
+                            apps.into_iter()
+                                .map(|a| irori_core::GameId::new(s.runner(), a))
+                                .collect::<Vec<_>>(),
+                        ),
+                    ),
                     Err(e) => {
                         tracing::warn!("update check for {}: {e:#}", s.runner().store_name());
                         if SessionExpired::of(&e).is_some() {
                             b.note_login(s.runner(), Some(&e));
                         }
-                        Vec::new()
+                        (s.runner(), None)
                     }
                 }
             }
         });
-        let all: std::collections::HashSet<_> = futures::future::join_all(jobs)
-            .await
-            .into_iter()
-            .flatten()
-            .filter(|id| !self.settings.game(id).ignore_game_updates)
+        let answers = futures::future::join_all(jobs).await;
+        *self.update_check_failed.write() = answers
+            .iter()
+            .filter(|(_, apps)| apps.is_none())
+            .map(|(runner, _)| *runner)
             .collect();
+        let all: std::collections::HashSet<_> =
+            updates::merge_game_updates(&self.updates(), answers)
+                .into_iter()
+                .filter(|id| !self.settings.game(id).ignore_game_updates)
+                .collect();
         let new: Vec<irori_core::GameId> = {
             let old = self.updates.read();
             all.iter()
