@@ -106,6 +106,9 @@ pub enum Event {
     /// What Irori knows about its own new versions changed (a check
     /// started or answered, a version was dismissed).
     AppUpdateChanged,
+    /// The update manager's components changed (a check started or answered,
+    /// an update started or ended, one was skipped).
+    ComponentUpdatesChanged,
     Notice(Notice),
     /// A game process exited after `seconds` of play. `crashed` means it
     /// failed to start: it exited with an error within seconds, unasked.

@@ -51,6 +51,7 @@ impl Palette {
         for (label, icon, route) in [
             ("shell.nav.library", IconName::LibraryBig, Route::Library),
             ("shell.nav.downloads", IconName::Download, Route::Downloads),
+            ("shell.nav.updates", IconName::RefreshCw, Route::Updates),
             ("shell.nav.stores", IconName::Store, Route::Stores),
             ("shell.nav.stats", IconName::ChartColumn, Route::Stats),
             (

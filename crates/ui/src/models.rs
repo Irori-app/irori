@@ -12,7 +12,9 @@ use gpui_kit::{App, AppContext as _, Context, Entity, Global, Task};
 use irori_core::{
     AppSettings, Event, GameId, GameStatus, Notice, Runner, StatusKind, StoreAccount, UserInfo,
 };
-use irori_services::{AppUpdateStatus, DownloadQueueSnapshot, LibrarySnapshot, UserData};
+use irori_services::{
+    AppUpdateStatus, ComponentReport, DownloadQueueSnapshot, LibrarySnapshot, UserData,
+};
 use tokio::sync::broadcast::error::{RecvError, TryRecvError};
 
 use crate::state::backend;
@@ -102,6 +104,11 @@ pub struct DownloadsModel {
     pub queue: DownloadQueueSnapshot,
     /// Single files: offline installers, patches, goodies.
     pub files: Vec<irori_services::FileDownload>,
+}
+
+/// What the update manager knows about components.
+pub struct ComponentsModel {
+    pub report: Arc<ComponentReport>,
 }
 
 /// Accounts of every store and connectivity.
@@ -201,6 +208,7 @@ pub struct Models {
     pub notices: Entity<NoticeModel>,
     pub sessions: Entity<SessionModel>,
     pub app_update: Entity<AppUpdateModel>,
+    pub components: Entity<ComponentsModel>,
 }
 
 impl Global for Models {}
@@ -263,6 +271,9 @@ pub(crate) fn install(cx: &mut App) {
     let app_update = cx.new(|_| AppUpdateModel {
         status: b.app_update(),
     });
+    let components = cx.new(|_| ComponentsModel {
+        report: b.component_updates(),
+    });
     cx.set_global(Models {
         library,
         statuses,
@@ -272,6 +283,7 @@ pub(crate) fn install(cx: &mut App) {
         notices,
         sessions,
         app_update,
+        components,
     });
     spawn_pump(cx);
 }
@@ -318,6 +330,7 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
     let mut accounts = resync;
     let mut settings = resync;
     let mut app_update = resync;
+    let mut components = resync;
     let mut statuses: Vec<Event> = Vec::new();
     let mut changed_game = None;
 
@@ -342,6 +355,7 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
                 app_update = true;
             }
             Event::AppUpdateChanged => app_update = true,
+            Event::ComponentUpdatesChanged => components = true,
             Event::GameSettingsChanged(id) => changed_game = Some(id),
             Event::Connectivity(online) => {
                 m.accounts.update(cx, |a, cx| {
@@ -404,6 +418,13 @@ fn apply(batch: Vec<Event>, resync: bool, cx: &mut App) {
             l.snapshot = snapshot;
             l.user = user;
             l.updates = updates;
+            cx.notify();
+        });
+    }
+    if components {
+        let report = b.component_updates();
+        m.components.update(cx, |c, cx| {
+            c.report = report;
             cx.notify();
         });
     }

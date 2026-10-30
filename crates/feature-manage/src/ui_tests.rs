@@ -20,7 +20,10 @@ use irori_services::{Backend, DownloadItem, DownloadKind, DownloadQueueSnapshot,
 use irori_ui::models;
 
 use crate::onboarding::OnboardingStep;
-use crate::{AccountsView, DownloadsView, OnboardingEvent, OnboardingView, should_show_onboarding};
+use crate::{
+    AccountsView, DownloadsView, OnboardingEvent, OnboardingView, UpdatesView,
+    should_show_onboarding,
+};
 
 fn setup(cx: &mut TestAppContext) {
     setup_with(cx, Vec::new);
@@ -96,6 +99,31 @@ fn queued(runner: Runner, app: &str, state: DownloadState) -> DownloadItem {
         error: None,
         progress: None,
     }
+}
+
+#[gpui_kit::test]
+fn updates_page_lists_games_with_updates(cx: &mut TestAppContext) {
+    setup(cx);
+    let (handle, _view) = cx.update(|cx| {
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| UpdatesView::new(window, cx))
+        })
+        .expect("window opens")
+    });
+    let mut vcx = VisualTestContext::from_window(handle, cx);
+    vcx.run_until_parked();
+    let game = GameId::new(Runner::Gog, "a");
+    assert!(vcx.debug_bounds("update-gog:a").is_none());
+
+    // Drawn in the same step: the backend's own events replace the model's
+    // updates with its real, empty set as soon as the test yields.
+    vcx.update(|window, cx| {
+        let library = models(cx).library.clone();
+        library.update(cx, |l, _| l.updates = Arc::new([game].into()));
+        window.refresh();
+        let _ = window.draw(cx);
+    });
+    assert!(vcx.debug_bounds("update-gog:a").is_some());
 }
 
 #[gpui_kit::test]

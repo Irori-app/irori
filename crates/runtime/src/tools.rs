@@ -321,6 +321,30 @@ pub async fn update_all_tools(ctx: &OpContext) {
     }
 }
 
+/// The downloaded build of `tool` and the newest release's, when they
+/// differ. Nothing for a tool never downloaded: it arrives on first use.
+pub async fn tool_update(tool: DxTool) -> Result<Option<(String, String)>> {
+    let Some((installed, _)) = tool_source(tool) else {
+        return Ok(None);
+    };
+    let vulkan = sysinfo::vulkan_api_version().await;
+    let release: GhRelease = download::get_json(tool.url(vulkan))
+        .await
+        .with_context(|| format!("could not check for {} updates", tool.label()))?;
+    let latest = release
+        .assets
+        .iter()
+        .map(|a| a.name.as_str())
+        .find(|n| {
+            [".tar.gz", ".tar.xz", ".tar.zst"]
+                .iter()
+                .any(|e| n.ends_with(e))
+        })
+        .map(strip_archive_ext)
+        .with_context(|| format!("the {} release has no archive", tool.label()))?;
+    Ok((latest != installed).then(|| (installed, latest.to_string())))
+}
+
 async fn dll_names(dir: &Path) -> Vec<String> {
     let mut out = Vec::new();
     let Ok(mut rd) = tokio::fs::read_dir(dir).await else {
@@ -651,6 +675,15 @@ pub async fn ensure_winetricks(refresh: bool) -> Result<PathBuf> {
             which::which("winetricks").context("winetricks could not be downloaded")
         }
     }
+}
+
+/// Refresh a downloaded winetricks script older than a week. One that was
+/// never needed stays undownloaded.
+pub async fn refresh_winetricks() -> Result<()> {
+    if cfg!(windows) || !locations::winetricks_path().is_file() {
+        return Ok(());
+    }
+    ensure_winetricks(true).await.map(|_| ())
 }
 
 /// Missing helper programs winetricks relies on.

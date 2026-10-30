@@ -798,13 +798,20 @@ impl Client {
 
     /// Signed download endpoints of a product's files (generation 2), or of
     /// its v1 depot (generation 1).
-    pub async fn secure_link(&self, product: &str, generation: u32) -> Result<Vec<Endpoint>> {
+    /// `path` is `/` for generation 2 and the build's `/os/timestamp/` folder
+    /// for generation 1.
+    pub async fn secure_link(
+        &self,
+        product: &str,
+        generation: u32,
+        path: &str,
+    ) -> Result<Vec<Endpoint>> {
         let mut req = self
             .get(&format!(
                 "{}/products/{product}/secure_link",
                 self.endpoints.content_system
             ))
-            .query(&[("_version", "2"), ("path", "/")]);
+            .query(&[("_version", "2"), ("path", path)]);
         req = if generation == 1 {
             req.query(&[("type", "depot")])
         } else {

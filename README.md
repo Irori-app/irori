@@ -48,6 +48,10 @@ and kept in a bounded GPU cache.
   the tray menu, desktop/Steam shortcuts and `irori://launch/<runner>/<app>` links
   (Heroic's `heroic://` links work too).
 - Download queue with pause/resume, reordering, speed and ETA, history and "Update all".
+- One Updates page for games, Wine and Proton builds, DXVK, VKD3D-Proton, umu and the
+  anticheat runtimes, emulators, RetroArch cores and Irori itself: check now, update
+  everything, skip a version, stop updating a game, or go back to the Wine build an update
+  replaced. Automatic updates can keep to set hours and stay off metered connections.
 - Per-game settings that inherit your global defaults and show what you overrode.
 - Added games keep their own description, developer, release date and genres.
 - Run any game in gamescope with one switch, upscaling optional. Pick the DXVK and
