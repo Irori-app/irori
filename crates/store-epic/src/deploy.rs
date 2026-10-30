@@ -252,7 +252,9 @@ impl EpicStore {
             (Mode::Update, Some(old)) => {
                 let mut new = build.manifest.clone();
                 let (old_id, new_id) = (old.meta.build_id(), new.meta.build_id());
-                if let Some(base) = base_urls.first()
+                // From the HTTPS address whatever the plain-HTTP setting says:
+                // a delta replaces the file hashes that verify the download.
+                if let Some(base) = build.info.base_urls.first()
                     && let Some(delta) = self
                         .client()
                         .await?
