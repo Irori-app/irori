@@ -7,6 +7,8 @@
 
 <p align="center"><b>Every game you own, around one fire.</b><br><a href="https://irori.app">irori.app</a></p>
 
+<p align="center"><img alt="Irori's library, shown with demo games" src="website/public/screenshots/library.png" width="800"></p>
+
 An *irori* (囲炉裏) is the sunken hearth of a traditional Japanese house, the place
 everyone gathers. Irori is a fast, native game launcher for Linux, macOS and Windows
 that gathers your **Epic Games**, **GOG**, **Amazon Games**, **ZOOM Platform** and
@@ -88,10 +90,13 @@ and kept in a bounded GPU cache.
 
 ## Performance
 
-Measured on the release build with a 16-game library and the window open: about
-124 MiB resident (≈39 MiB of it heap; the rest is mapped GPU driver and libraries),
-zero CPU while idle, a 49 MB binary. Cover art is decoded once into on-disk
-thumbnails and held in an LRU GPU cache; every long list is virtualized.
+Measured on Irori 0.2.0 on Linux with an empty profile and the window open: about
+88 MiB of memory in one process, zero CPU while idle, a 76 MB binary. Heroic 2.22.4 on
+the same PC used about 478 MiB across seven processes. A large library hasn't been
+measured yet; see [how these numbers were measured](docs/BENCHMARKS.md).
+
+Cover art is decoded once into on-disk thumbnails and held in an LRU GPU cache; every
+long list is virtualized.
 
 ## Building
 
