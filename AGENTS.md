@@ -468,6 +468,8 @@ cx.spawn_in(window, async move |this, cx| {
   them with `theme::apply`.
 - Surfaces take their colours from `glass::chrome(..)`, `glass::page(..)` and
   `solid_pages()`. Never add alpha yourself.
+- `theme::apply` holds `warning`, `danger`, `info` and `success` to readable contrast,
+  because themes pick them by eye. Colours that already read stay as the theme has them.
 - The available backdrops differ per platform; see the table in `docs/PLATFORMS.md`.
 
 **Components** (`components/`): `GameCover`, `ArtImage`, `EmptyState`, `PageHeader`,
