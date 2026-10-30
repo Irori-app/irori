@@ -559,7 +559,7 @@ pub enum LibraryLayout {
 #[serde(rename_all = "snake_case")]
 pub enum Translucency {
     /// On where the system blurs what is behind the window (macOS,
-    /// Windows 11, KDE Plasma on Wayland), off elsewhere.
+    /// Windows 11, Linux compositors that offer blur), off elsewhere.
     #[default]
     Auto,
     Off,

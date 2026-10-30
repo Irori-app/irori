@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "主题",
   "settings.field.ui_tile_size.help": "游戏库网格中游戏封面的宽度。",
   "settings.field.ui_tile_size.label": "封面大小",
-  "settings.field.ui_translucency.help": "让桌面透过标题栏和侧边栏显示出来。“自动”仅在系统支持模糊效果时开启：macOS、Windows 11 和 KDE Plasma。",
+  "settings.field.ui_translucency.help": "让桌面透过标题栏和侧边栏显示出来。“自动”仅在系统支持模糊效果时开启：macOS、Windows 11，以及 KDE Plasma、GNOME 51 等支持模糊效果的 Linux 桌面。",
   "settings.field.ui_translucency.label": "半透明",
   "settings.field.use_default": "使用默认值",
   "settings.field.use_game_mode.help": "游戏时让 Feral GameMode 优化系统。需要安装 GameMode。",

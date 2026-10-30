@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Tema",
   "settings.field.ui_tile_size.help": "Larghezza delle copertine nella griglia della libreria.",
   "settings.field.ui_tile_size.label": "Dimensione delle copertine",
-  "settings.field.ui_translucency.help": "Lascia intravedere il desktop attraverso la barra del titolo e la barra laterale. Automatica la attiva dove il sistema può sfocarlo: macOS, Windows 11 e KDE Plasma.",
+  "settings.field.ui_translucency.help": "Lascia intravedere il desktop attraverso la barra del titolo e la barra laterale. Automatica la attiva dove il sistema può sfocarlo: macOS, Windows 11 e i desktop Linux con sfocatura, come KDE Plasma e GNOME 51.",
   "settings.field.ui_translucency.label": "Traslucenza",
   "settings.field.use_default": "Usa il predefinito",
   "settings.field.use_game_mode.help": "Lascia che Feral GameMode ottimizzi il sistema mentre giochi. GameMode deve essere installato.",

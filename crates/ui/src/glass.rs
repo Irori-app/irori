@@ -1,10 +1,11 @@
 //! Translucent window chrome ("glass").
 //!
 //! With translucency on, the window asks the system to blur whatever is
-//! behind it (macOS vibrancy, Windows 11 Mica, KWin's blur on Wayland) and
+//! behind it (macOS vibrancy, Windows 11 Mica, the compositor on Linux) and
 //! Irori paints its title bar and sidebar partly transparent on top, so the
 //! desktop shows through them. Pages stay solid unless the user picks
-//! [`Translucency::Strong`].
+//! [`Translucency::Strong`]. Where nothing blurs, the same surfaces keep more
+//! body, because sharp detail behind text is hard to read and looks broken.
 //!
 //! It costs Irori nothing to draw: the scene has the same primitives, only
 //! some colours carry alpha. The blur is the compositor's, and the window
@@ -19,15 +20,18 @@ use gpui_kit::{App, Global, Hsla, Styled as _, Window, WindowBackgroundAppearanc
 use irori_core::settings::Translucency;
 use once_cell::sync::Lazy;
 
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+mod linux;
+
 /// How see-through the main window is right now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Glass {
     #[default]
     Opaque,
     /// Title bar and sidebar let the desktop through; pages are solid.
-    Subtle,
+    Subtle { blurred: bool },
     /// Clearer chrome, and pages let a little through as well.
-    Strong,
+    Strong { blurred: bool },
 }
 
 impl Global for Glass {}
@@ -42,19 +46,25 @@ impl Glass {
     fn chrome_alpha(self, dark: bool) -> f32 {
         match (self, dark) {
             (Glass::Opaque, _) => 1.0,
-            (Glass::Subtle, true) => 0.72,
-            (Glass::Subtle, false) => 0.78,
+            (Glass::Subtle { blurred: true }, true) => 0.66,
+            (Glass::Subtle { blurred: true }, false) => 0.74,
             // White text still reads at 4.5:1 over a white window behind.
-            (Glass::Strong, true) => 0.58,
-            (Glass::Strong, false) => 0.62,
+            (Glass::Strong { blurred: true }, true) => 0.58,
+            (Glass::Strong { blurred: true }, false) => 0.62,
+            (Glass::Subtle { blurred: false }, true) => 0.9,
+            (Glass::Subtle { blurred: false }, false) => 0.92,
+            (Glass::Strong { blurred: false }, true) => 0.82,
+            (Glass::Strong { blurred: false }, false) => 0.86,
         }
     }
 
     /// Opacity of the page area beside the sidebar.
     fn page_alpha(self, dark: bool) -> f32 {
         match (self, dark) {
-            (Glass::Strong, true) => 0.84,
-            (Glass::Strong, false) => 0.88,
+            (Glass::Strong { blurred: true }, true) => 0.84,
+            (Glass::Strong { blurred: true }, false) => 0.88,
+            (Glass::Strong { blurred: false }, true) => 0.94,
+            (Glass::Strong { blurred: false }, false) => 0.96,
             _ => 1.0,
         }
     }
@@ -64,9 +74,11 @@ impl Glass {
 #[derive(Debug, Clone, Copy)]
 struct Backdrop {
     appearance: WindowBackgroundAppearance,
-    /// The system blurs it. Without blur, text over an arbitrary wallpaper
-    /// is hard to read, so [`Translucency::Auto`] stays opaque.
+    /// The system blurs it.
     blurs: bool,
+    /// [`Translucency::Auto`] turns it on. Without blur, text over an
+    /// arbitrary wallpaper is hard to read, so it stays opaque.
+    automatic: bool,
 }
 
 /// Detected once: the OS, its version and the desktop do not change while
@@ -80,6 +92,7 @@ fn detect_backdrop() -> Option<Backdrop> {
     Some(Backdrop {
         appearance: WindowBackgroundAppearance::Blurred,
         blurs: true,
+        automatic: true,
     })
 }
 
@@ -98,13 +111,15 @@ fn detect_backdrop() -> Option<Backdrop> {
         Some(Backdrop {
             appearance: WindowBackgroundAppearance::MicaBackdrop,
             blurs: true,
+            automatic: true,
         })
     } else if build >= 17763 {
         // Older builds only have acrylic, which lags while the window is
         // dragged; available when asked for, never by default.
         Some(Backdrop {
             appearance: WindowBackgroundAppearance::Blurred,
-            blurs: false,
+            blurs: true,
+            automatic: false,
         })
     } else {
         None
@@ -113,19 +128,19 @@ fn detect_backdrop() -> Option<Backdrop> {
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn detect_backdrop() -> Option<Backdrop> {
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
     // Steam's gaming mode: Irori is the only thing on screen.
-    if desktop == "gamescope" {
+    if std::env::var("XDG_CURRENT_DESKTOP").is_ok_and(|desktop| desktop == "gamescope") {
         return None;
     }
-    let wayland = std::env::var_os("WAYLAND_DISPLAY").is_some_and(|v| !v.is_empty());
-    let kde = desktop.split(':').any(|d| d.eq_ignore_ascii_case("KDE"));
-    // GPUI asks for KWin's blur on Wayland. Elsewhere the window is plainly
-    // see-through, and compositors with their own blur rules (Hyprland,
-    // niri, picom) can match Irori by its app id.
+    // Where the compositor offers no blur the window is plainly see-through,
+    // unless it has blur rules of its own (SwayFX, picom, Blur my Shell) that
+    // match Irori by its app id.
+    let blur = *linux::BLUR;
+    let blurs = blur != linux::Blur::None;
     Some(Backdrop {
-        appearance: WindowBackgroundAppearance::Blurred,
-        blurs: wayland && kde,
+        appearance: blur.appearance(),
+        blurs,
+        automatic: blurs,
     })
 }
 
@@ -134,11 +149,12 @@ pub fn resolve(pref: Translucency) -> Glass {
     let Some(backdrop) = *BACKDROP else {
         return Glass::Opaque;
     };
+    let blurred = backdrop.blurs;
     match pref {
-        Translucency::Auto if backdrop.blurs => Glass::Subtle,
+        Translucency::Auto if backdrop.automatic => Glass::Subtle { blurred },
         Translucency::Auto | Translucency::Off => Glass::Opaque,
-        Translucency::Subtle => Glass::Subtle,
-        Translucency::Strong => Glass::Strong,
+        Translucency::Subtle => Glass::Subtle { blurred },
+        Translucency::Strong => Glass::Strong { blurred },
     }
 }
 
@@ -260,7 +276,7 @@ fn over(top: Hsla, under: Hsla) -> Hsla {
 /// Under [`Glass::Strong`] the shell paints the one translucent page surface
 /// and pages should leave it showing rather than stack another on top.
 pub fn solid_pages(cx: &App) -> bool {
-    current(cx) != Glass::Strong
+    !matches!(current(cx), Glass::Strong { .. })
 }
 
 /// Give `window` the glass `glass`: its system backdrop, the root surface
@@ -274,6 +290,8 @@ pub fn apply(glass: Glass, window: &mut Window, cx: &mut App) -> bool {
         return false;
     };
     window.set_background_appearance(window_background(glass));
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    linux::request(glass.is_translucent(), window, cx);
     // gpui-kit's root paints the theme background under everything; clear
     // it so the backdrop shows. `None` hands it back to the theme.
     root.update(cx, |root, cx| {
@@ -288,6 +306,16 @@ pub fn apply(glass: Glass, window: &mut Window, cx: &mut App) -> bool {
     window.refresh();
     true
 }
+
+/// Keep a Linux compositor's blur on the visible window after it resized.
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn refit(window: &Window, cx: &mut App) {
+    linux::request(current(cx).is_translucent(), window, cx);
+}
+
+/// The system's backdrop follows the window by itself here.
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub fn refit(_window: &Window, _cx: &mut App) {}
 
 #[cfg(test)]
 mod tests {
@@ -304,28 +332,59 @@ mod tests {
 
     #[test]
     fn explicit_levels_need_only_a_backdrop() {
+        let blurred = BACKDROP.is_some_and(|b| b.blurs);
         let expected = |g| if BACKDROP.is_some() { g } else { Glass::Opaque };
-        assert_eq!(resolve(Translucency::Subtle), expected(Glass::Subtle));
-        assert_eq!(resolve(Translucency::Strong), expected(Glass::Strong));
+        assert_eq!(
+            resolve(Translucency::Subtle),
+            expected(Glass::Subtle { blurred })
+        );
+        assert_eq!(
+            resolve(Translucency::Strong),
+            expected(Glass::Strong { blurred })
+        );
     }
 
     #[test]
-    fn auto_needs_a_blurring_backdrop() {
-        let blurs = BACKDROP.is_some_and(|b| b.blurs);
-        let want = if blurs { Glass::Subtle } else { Glass::Opaque };
+    fn auto_needs_a_backdrop_that_turns_on_by_itself() {
+        let want = match *BACKDROP {
+            Some(b) if b.automatic => Glass::Subtle { blurred: b.blurs },
+            _ => Glass::Opaque,
+        };
         assert_eq!(resolve(Translucency::Auto), want);
     }
 
     #[test]
     fn chrome_is_clearer_than_pages_and_light_keeps_more_body() {
-        for glass in [Glass::Subtle, Glass::Strong] {
-            for dark in [true, false] {
-                assert!(glass.chrome_alpha(dark) < glass.page_alpha(dark));
+        for blurred in [true, false] {
+            let (subtle, strong) = (Glass::Subtle { blurred }, Glass::Strong { blurred });
+            for glass in [subtle, strong] {
+                for dark in [true, false] {
+                    assert!(glass.chrome_alpha(dark) < glass.page_alpha(dark));
+                }
+                assert!(glass.chrome_alpha(false) > glass.chrome_alpha(true));
             }
-            assert!(glass.chrome_alpha(false) > glass.chrome_alpha(true));
+            assert!(strong.chrome_alpha(true) < subtle.chrome_alpha(true));
+            assert_eq!(subtle.page_alpha(true), 1.0);
         }
-        assert!(Glass::Strong.chrome_alpha(true) < Glass::Subtle.chrome_alpha(true));
         assert_eq!(Glass::Opaque.chrome_alpha(true), 1.0);
-        assert_eq!(Glass::Subtle.page_alpha(true), 1.0);
+    }
+
+    #[test]
+    fn surfaces_keep_more_body_without_blur() {
+        for dark in [true, false] {
+            for (clear, plain) in [
+                (
+                    Glass::Subtle { blurred: true },
+                    Glass::Subtle { blurred: false },
+                ),
+                (
+                    Glass::Strong { blurred: true },
+                    Glass::Strong { blurred: false },
+                ),
+            ] {
+                assert!(plain.chrome_alpha(dark) > clear.chrome_alpha(dark));
+                assert!(plain.page_alpha(dark) >= clear.page_alpha(dark));
+            }
+        }
     }
 }

@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "テーマ",
   "settings.field.ui_tile_size.help": "ライブラリのグリッドに表示されるゲームカバーの幅です。",
   "settings.field.ui_tile_size.label": "カバーのサイズ",
-  "settings.field.ui_translucency.help": "タイトルバーとサイドバー越しにデスクトップを透かします。「自動」では、システムがぼかしに対応している環境（macOS、Windows 11、KDE Plasma）でのみ有効になります。",
+  "settings.field.ui_translucency.help": "タイトルバーとサイドバー越しにデスクトップを透かします。「自動」では、システムがぼかしに対応している環境（macOS、Windows 11、KDE Plasma や GNOME 51 などの Linux デスクトップ）でのみ有効になります。",
   "settings.field.ui_translucency.label": "半透明",
   "settings.field.use_default": "既定値を使用",
   "settings.field.use_game_mode.help": "プレイ中にFeral GameModeでシステムを最適化します。GameModeがインストールされている必要があります。",

@@ -240,7 +240,9 @@ impl AppShell {
         } else {
             initial_glass(navigator(cx).read(cx).current(), cx)
         };
-        if self.glass != Some(glass) && glass::apply(glass, window, cx) {
+        if self.glass == Some(glass) {
+            glass::refit(window, cx);
+        } else if glass::apply(glass, window, cx) {
             self.glass = Some(glass);
         }
     }

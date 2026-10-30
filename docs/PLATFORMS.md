@@ -251,9 +251,44 @@ Irori draws exactly what it draws when opaque; only some colours carry alpha.
 | macOS | Native vibrancy (blur only, untinted) | On |
 | Windows 11 22H2+ | Mica | On |
 | Windows 10 / 11 21H2 | Acrylic (lags while dragging) | Off |
-| Linux, KDE Plasma on Wayland | KWin blur | On |
-| Linux, other desktops / X11 | See-through, no blur unless the compositor adds it (match app id `irori`) | Off |
+| Linux, compositor with `ext-background-effect-v1` blur | Compositor blur | On |
+| Linux, KWin before 6.7 on Wayland | KWin blur (`org_kde_kwin_blur`) | On |
+| Linux, KWin on X11 | KWin blur (`_KDE_NET_WM_BLUR_BEHIND_REGION`) | On |
+| Linux, Hyprland without the protocol | Hyprland's own blur | On |
+| Linux, anything else | See-through, no blur | Off |
 | gamescope | None | Off |
+
+On Linux, Irori asks the compositor what it can do instead of going by the
+desktop's name (`irori_ui::glass`, logged at start as `desktop blur: …`). KWin
+6.7 removed `org_kde_kwin_blur`, the only blur protocol GPUI speaks, so Irori
+binds `ext-background-effect-v1` itself on GPUI's Wayland connection. A
+compositor that has the protocol with its blur switched off counts as having no
+blur, and a change takes effect at the next start. The blur region is the visible
+window, without the margin client-side decorations keep for their shadow. KWin
+6.7 measures it from the window geometry rather than the surface, so Irori
+offsets it there; if KWin starts following the protocol, the blur will sit 20
+pixels off and `irori_ui::glass` needs to stop.
+
+| Desktop | True blur from Irori's request |
+| --- | --- |
+| KDE Plasma 6.7+ | Yes, unless the Blur desktop effect is off |
+| KDE Plasma before 6.7, Wayland or X11 | Yes |
+| GNOME 51+ | Yes |
+| GNOME before 51 | No. Blur my Shell can blur applications by window class |
+| Hyprland | Yes |
+| niri 26.04+ | Yes |
+| COSMIC with Frosted Glass | Yes |
+| Sway | No |
+| SwayFX | No request: set `blur enable`, which is off by default |
+| X11 without KWin | No. picom and the like can add their own by window class |
+
+Irori has been run on KDE Plasma 6.7 (Wayland, and X11 windows under its
+Xwayland). The other rows come from each project's own documentation and source.
+
+Where nothing blurs, Automatic stays opaque. Subtle and Strong still work
+because a compositor's own rule may add blur (match the app id or window class
+`irori`), but the surfaces keep more body, as sharp detail behind text is hard
+to read.
 
 The window is opaque in Big Picture and fullscreen, where nothing behind it is
 worth showing, which also spares the compositor the blur. Views take their

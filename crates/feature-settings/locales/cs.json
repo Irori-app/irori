@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Motiv",
   "settings.field.ui_tile_size.help": "Šířka obalů her v mřížce knihovny.",
   "settings.field.ui_tile_size.label": "Velikost obalů",
-  "settings.field.ui_translucency.help": "Nechá plochu prosvítat záhlavím a postranním panelem. Automaticky se zapne tam, kde ji systém umí rozmazat: macOS, Windows 11 a KDE Plasma.",
+  "settings.field.ui_translucency.help": "Nechá plochu prosvítat záhlavím a postranním panelem. Automaticky se zapne tam, kde ji systém umí rozmazat: macOS, Windows 11 a linuxová prostředí s rozmazáním, například KDE Plasma a GNOME 51.",
   "settings.field.ui_translucency.label": "Průsvitnost",
   "settings.field.use_default": "Použít výchozí",
   "settings.field.use_game_mode.help": "Nechat Feral GameMode během hraní ladit systém. GameMode musí být nainstalován.",

@@ -279,7 +279,7 @@
   "settings.field.ui_theme_name.label": "Thema",
   "settings.field.ui_tile_size.help": "Breedte van gamecovers in het bibliotheekraster.",
   "settings.field.ui_tile_size.label": "Covergrootte",
-  "settings.field.ui_translucency.help": "Laat het bureaublad door de titelbalk en zijbalk heen schijnen. Automatisch zet het aan waar het systeem het kan vervagen: macOS, Windows 11 en KDE Plasma.",
+  "settings.field.ui_translucency.help": "Laat het bureaublad door de titelbalk en zijbalk heen schijnen. Automatisch zet het aan waar het systeem het kan vervagen: macOS, Windows 11 en Linux-bureaubladen met vervaging, zoals KDE Plasma en GNOME 51.",
   "settings.field.ui_translucency.label": "Doorschijnendheid",
   "settings.field.use_default": "Standaard gebruiken",
   "settings.field.use_game_mode.help": "Laat Feral GameMode het systeem afstemmen tijdens het spelen. GameMode moet geïnstalleerd zijn.",

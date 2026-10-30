@@ -455,7 +455,13 @@ mod tests {
                 ThemePreference::Light
             };
             cx.update(|cx| apply(&prefs(mode, &name), None, cx));
-            for glass in [Glass::Opaque, Glass::Subtle, Glass::Strong] {
+            for glass in [
+                Glass::Opaque,
+                Glass::Subtle { blurred: true },
+                Glass::Strong { blurred: true },
+                Glass::Subtle { blurred: false },
+                Glass::Strong { blurred: false },
+            ] {
                 cx.update(|cx| cx.set_global(glass));
                 cx.read(|cx| {
                     let theme = cx.theme();
