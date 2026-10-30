@@ -444,19 +444,28 @@ impl GogStore {
 
     /// Start the Galaxy service for a game session (shared by all sessions).
     async fn acquire_galaxy(&self, app_name: &str) {
+        let client_id = self.client_id(app_name).await;
         let mut g = self.galaxy.lock().await;
         g.sessions.insert(app_name.to_string());
-        if g.service.is_some() {
-            return;
+        if g.service.is_none() {
+            g.service = self.start_galaxy(app_name).await;
         }
-        let Some(user) = self.user_data().filter(|u| !u.username.is_empty()) else {
-            return;
-        };
+        match (&g.service, client_id) {
+            (Some(service), Some(client_id)) => service.allow_client(client_id).await,
+            (Some(_), None) => {
+                tracing::warn!("Galaxy service: no client id for {app_name}, it can't sign in");
+            }
+            (None, _) => {}
+        }
+    }
+
+    async fn start_galaxy(&self, app_name: &str) -> Option<irori_gog_galaxy::Service> {
+        let user = self.user_data().filter(|u| !u.username.is_empty())?;
         let creds = match self.auth.credentials().await {
             Ok(c) => c,
             Err(e) => {
                 tracing::warn!("Galaxy service: {e:#}");
-                return;
+                return None;
             }
         };
         let account = irori_gog_galaxy::Account {
@@ -468,9 +477,12 @@ impl GogStore {
         match irori_gog_galaxy::start(account).await {
             Ok(service) => {
                 tracing::info!("Galaxy service started for {app_name}");
-                g.service = Some(service);
+                Some(service)
             }
-            Err(e) => tracing::warn!("starting the Galaxy service: {e:#}"),
+            Err(e) => {
+                tracing::warn!("starting the Galaxy service: {e:#}");
+                None
+            }
         }
     }
 

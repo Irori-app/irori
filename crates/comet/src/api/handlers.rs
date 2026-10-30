@@ -1,0 +1,623 @@
+mod communication_service;
+pub mod context;
+pub mod error;
+mod overlay_client;
+mod overlay_peer;
+mod overlay_service;
+pub mod utils;
+mod webbroker;
+
+use crate::{
+    constants::{AllowedClients, TokenStorage},
+    proto::common_utils::ProtoPayload,
+};
+use error::*;
+use std::sync::Arc;
+
+use crate::api::gog;
+use crate::api::notification_pusher::PusherEvent;
+use crate::api::structs::UserInfo;
+use crate::db;
+use context::HandlerContext;
+use log::{debug, error, info, warn};
+use protobuf::Message;
+use reqwest::Client;
+use sqlx::Acquire;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+    sync::broadcast::{Receiver, Sender},
+    time,
+};
+use tokio_util::sync::CancellationToken;
+
+use super::gog::overlay::OverlayPeerMessage;
+
+/// Which of the service's two doors a message came through.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Connection {
+    /// The TCP port, open to every local program.
+    Game,
+    /// The per-game pipe `Galaxy-{pid}-CommunicationService-Overlay`, the only way
+    /// the Galaxy overlay reaches the service (see docs/wiki/Overlay.md upstream).
+    Overlay,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn entry_point(
+    mut socket: TcpStream,
+    reqwest_client: Client,
+    token_store: TokenStorage,
+    allowed_clients: AllowedClients,
+    user_info: Arc<UserInfo>,
+    mut topic_receiver: Receiver<PusherEvent>,
+    overlay_event_sender: Sender<(u32, OverlayPeerMessage)>,
+    shutdown_token: CancellationToken,
+) {
+    if let Err(err) = socket.readable().await {
+        error!("Failed to wait for socket to be readable {}", err);
+        let _ = socket.shutdown().await;
+        return;
+    }
+    let overlay_event_receiver = overlay_event_sender.subscribe();
+    let context = Arc::new(HandlerContext::new(
+        socket,
+        token_store,
+        allowed_clients,
+        overlay_event_sender,
+    ));
+    debug!("Awaiting messages");
+
+    let shutdown_token_clone = shutdown_token.clone();
+    let context_clone = context.clone();
+    let reqwest_clone = reqwest_client.clone();
+    let user_clone = user_info.clone();
+    let mut topic_receiver_clone = topic_receiver.resubscribe();
+    let mut overlay_event_receiver_clone = overlay_event_receiver.resubscribe();
+    let main_socket = tokio::spawn(async move {
+        loop {
+            tokio::select! {
+                size_read = context_clone.socket_read_u16() => {
+                    match size_read {
+                        Ok(h_size) => {
+                            let payload = utils::parse_payload(h_size, &mut *context_clone.socket_read_mut().await).await;
+                            let Ok(payload) = payload else { continue };
+                            let context = context_clone.clone();
+                            let reqwest_client = reqwest_clone.clone();
+                            let user = user_clone.clone();
+                            tokio::spawn(async move {
+                                match handle_message(&context, user, &reqwest_client, payload, Connection::Game).await {
+                                    Ok(res) => {
+                                        if let Err(err) = context.socket_write_mut().await.write_all(&res).await {
+                                            error!("Failed to write response {err}");
+                                        }
+                                    },
+                                    Err(err) => {
+                                        match err.kind {
+                                            MessageHandlingErrorKind::Ignored => (),
+                                            MessageHandlingErrorKind::NotImplemented => {
+                                                warn!("Request type not implemented")
+                                            },
+                                            MessageHandlingErrorKind::Unauthorized => {
+                                                error!("Unathorized error {:?}", err);
+                                                let _ = context.socket_write_mut().await.shutdown().await;
+                                            }
+                                            _ => {
+                                                error!("There was an error when handling the message {:?}", err);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        },
+                        Err(err) => {
+                            if err.kind() == tokio::io::ErrorKind::UnexpectedEof {
+                                info!("Socket connection closed with {:?}", context_clone.client_id().await);
+                                break;
+                            }
+                            error!("Was unable to read header size buffer {}", err);
+                            break;
+                        }
+                    }
+                }
+
+                _ = time::sleep(time::Duration::from_secs(10)) => {
+                    sync_routine(&context_clone, &reqwest_clone, user_clone.clone()).await
+                },
+
+                Ok((pid, data)) = overlay_event_receiver_clone.recv() => {
+                    if context_clone.get_pid().await != pid {continue}
+
+                    match data {
+                        OverlayPeerMessage::VisibilityChange(visible) => {
+                            if let Ok(res) = overlay_peer::encode_visibility_change(visible).await {
+                                log::debug!("Notifying about visibility change to game");
+                                if let Err(err) = context_clone.socket_write_mut().await.write_all(&res).await {
+                                    error!("Failed to notify game of overlay visibility {err}");
+                                }
+                            }
+                        },
+                        OverlayPeerMessage::GameJoin(join_data) => {
+                            if let Ok(res) = overlay_peer::encode_game_join(join_data).await {
+                                log::debug!("Sending game join invite to game");
+                                if let Err(err) = context_clone.socket_write_mut().await.write_all(&res).await {
+                                    error!("Failed to send game join event to the game {err}");
+                                }
+                            }
+                        },
+                        _ => ()
+                    }
+                }
+
+                topic_message = topic_receiver_clone.recv() => {
+                    match topic_message {
+                        Ok(PusherEvent::Online) => {
+                            context_clone.set_online().await
+                        },
+                        Ok(PusherEvent::Offline) => {
+                            context_clone.set_offline().await
+                        },
+                        Ok(PusherEvent::Topic(message, topic)) => {
+                            if context_clone.is_subscribed(&topic).await {
+                                if let Err(err) = context_clone.socket_write_mut().await.write_all(message.as_slice()).await {
+                                    error!("Failed to forward topic message to socket {}", err);
+                                }
+                                debug!("Forwarded topic message");
+                            }
+                        },
+                        Err(err) => { error!("Failed to read topic_message {}", err); }
+                    }
+                }
+
+                _ = shutdown_token_clone.cancelled() => break
+            }
+        }
+    });
+
+    let shutdown_token_clone = shutdown_token.clone();
+    let context_clone = context.clone();
+    let reqwest_clone = reqwest_client.clone();
+    let user_clone = user_info.clone();
+    let overlay_thread = tokio::spawn(async move {
+        let mut overlay_receiver = overlay_event_receiver;
+
+        let pipe_name = loop {
+            tokio::select! {
+                Ok((_pid, msg)) = overlay_receiver.recv() => {
+                    if let OverlayPeerMessage::InitConnection(socket) = msg {
+                        break socket;
+                    }
+                },
+                _ = shutdown_token_clone.cancelled() => {
+                    return;
+                }
+            }
+        };
+
+        #[cfg(unix)]
+        let overlay_listener = {
+            // A session that was killed rather than shut down never reaches the
+            // cleanup below, so its socket file outlives it and bind() then fails
+            // with EADDRINUSE. Wine hands out the same game pid on every launch,
+            // so the path is identical each time and the overlay would never come
+            // up again until the file is removed by hand.
+            if tokio::fs::metadata(&pipe_name).await.is_ok()
+                && tokio::net::UnixStream::connect(&pipe_name).await.is_err()
+            {
+                warn!("Removing stale overlay socket at {pipe_name}");
+                if let Err(err) = tokio::fs::remove_file(&pipe_name).await {
+                    error!("Failed to remove stale overlay socket {pipe_name}: {err}");
+                }
+            }
+
+            match tokio::net::UnixListener::bind(&pipe_name) {
+                Ok(listener) => listener,
+                Err(err) => {
+                    error!("Failed to bind overlay socket {pipe_name}: {err}");
+                    return;
+                }
+            }
+        };
+
+        #[cfg(windows)]
+        let Ok(mut current_socket) = tokio::net::windows::named_pipe::ServerOptions::new()
+            .first_pipe_instance(true)
+            .create(&pipe_name)
+        else {
+            return;
+        };
+
+        #[cfg(windows)]
+        current_socket.connect().await.ok();
+
+        #[cfg(unix)]
+        let mut current_socket = {
+            debug!("Waiting for overlay connection");
+            tokio::select! {
+                Ok(res) = overlay_listener.accept() => {
+                    let (socket, _addr) = res;
+                    socket
+                }
+                _ = shutdown_token_clone.cancelled() => {
+                    return;
+                }
+            }
+        };
+
+        let game_pid = context_clone.get_pid().await;
+        loop {
+            tokio::select! {
+                size_read = current_socket.read_u16() => {
+                    match size_read {
+                        Ok(h_size) => {
+                            let payload = utils::parse_payload(h_size, &mut current_socket).await;
+                            let Ok(payload) = payload else { continue };
+                            match handle_message(&context_clone, user_clone.clone(), &reqwest_clone, payload, Connection::Overlay).await {
+                                Ok(res) => {
+                                    let _ = current_socket.write_all(&res).await;
+                                },
+                                Err(err) => { if !matches!(err.kind, MessageHandlingErrorKind::Ignored) {  error!("Failed to respond to overlay {err:?}") } },
+                            }
+                        },
+                        Err(err) => {
+                            if err.kind() == tokio::io::ErrorKind::UnexpectedEof {
+                                info!("Socket connection closed with {:?}", context_clone.client_id().await);
+                                break;
+                            }
+                            error!("Failed reading overlay data {err}");
+                        }
+                    }
+                }
+                Ok((pid,msg)) = overlay_receiver.recv() => {
+                    if pid != game_pid { continue }
+                    let data: Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> = match msg {
+                        OverlayPeerMessage::Achievement(achievement) =>
+                            if crate::CONFIG.overlay.notifications.achievements.enabled {
+                                overlay_service::achievement_notification((*achievement).clone()).await
+                            } else {
+                                Err(MessageHandlingError::ignored().into())
+                            },
+                        OverlayPeerMessage::OpenWebPage(page) => overlay_peer::encode_open_web_page(page).await,
+                        OverlayPeerMessage::InvitationDialog(con) => overlay_peer::encode_game_invite(con).await,
+                        OverlayPeerMessage::DisablePopups(data) => overlay_peer::encode_overlay_initialized(data).await,
+                        _ => Err(MessageHandlingError::ignored().into())
+                    };
+                    if let Ok(data) = data
+                        && let Err(err) = current_socket.write_all(&data).await {
+                            error!("Failed to send web page request {err}");
+                        }
+                }
+                topic_message = topic_receiver.recv() => {
+                    match topic_message {
+                        Ok(PusherEvent::Online) => {
+                            context_clone.set_online().await
+                        },
+                        Ok(PusherEvent::Offline) => {
+                            context_clone.set_offline().await
+                        },
+                        Ok(PusherEvent::Topic(message, topic)) => {
+                            if context_clone.is_subscribed(&topic).await {
+                                if let Err(err) = current_socket.write_all(message.as_slice()).await {
+                                    error!("Failed to forward topic message to socket {}", err);
+                                }
+                                debug!("Forwarded topic message");
+                            }
+                        },
+                        Err(err) => { error!("Failed to read topic_message {}", err); }
+                    }
+                }
+                _ = shutdown_token_clone.cancelled() => {
+                    break;
+                }
+            }
+        }
+        #[cfg(unix)]
+        if let Ok(addr) = overlay_listener.local_addr()
+            && let Some(path) = addr.as_pathname()
+        {
+            let _ = tokio::fs::remove_file(path).await;
+        }
+    });
+
+    let _ = main_socket.await;
+    let _ = overlay_thread.await;
+    sync_routine(&context, &reqwest_client, user_info.clone()).await;
+}
+
+pub async fn handle_message(
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+    payload: ProtoPayload,
+    connection: Connection,
+) -> Result<Vec<u8>, MessageHandlingError> {
+    let sort = payload.header.sort();
+    let type_ = payload.header.type_();
+
+    // The overlay's calls hand out the account's own token. It only ever uses
+    // the pipe, so a client asking for them on the open port is not the overlay.
+    if matches!(sort, 3 | 7) && connection != Connection::Overlay {
+        warn!("Refused overlay message {sort} {type_} from the port");
+        return Err(MessageHandlingError::unauthorized());
+    }
+    if sort == 6 && !context.client_identified().await {
+        return Err(MessageHandlingError::ignored());
+    }
+
+    debug!("Parsing message {} {}", sort, type_);
+    debug!("payload.payload = {:?}", payload.payload);
+    let mut result = match sort {
+        1 => communication_service::entry_point(&payload, context, user_info, reqwest_client).await,
+        2 => webbroker::entry_point(&payload, context).await,
+        3 => overlay_service::entry_point(&payload, context).await,
+        6 => overlay_peer::entry_point(&payload, context).await,
+        7 => overlay_client::entry_point(&payload, context, user_info, reqwest_client).await,
+        _ => {
+            warn!("Unhandled sort {}", sort);
+            Err(MessageHandlingError::not_implemented())
+        }
+    }?;
+    result.header.set_sort(sort);
+    debug!(
+        "Responding with {} {}",
+        result.header.sort(),
+        result.header.type_()
+    );
+    // Prepare response
+    if payload.header.has_oseq() {
+        result
+            .header
+            .mut_unknown_fields()
+            .add_varint(100, payload.header.oseq().into());
+    }
+    let header_buffer = result.header.write_to_bytes().unwrap();
+    let header_size: u16 = header_buffer.len().try_into().unwrap();
+    let header_buf = header_size.to_be_bytes();
+
+    let mut message_buffer: Vec<u8> =
+        Vec::with_capacity(2 + header_buffer.len() + result.payload.len());
+    message_buffer.extend(header_buf);
+    message_buffer.extend(header_buffer);
+    message_buffer.extend(result.payload);
+
+    Ok(message_buffer)
+}
+
+#[cfg(test)]
+mod tests;
+
+// Sync new things after a cool down or when about to exit
+async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_info: Arc<UserInfo>) {
+    if let Err(err) = upload_changes(context, reqwest_client, user_info).await {
+        error!("Failed to sync with the local database {err:?}");
+    }
+}
+
+async fn upload_changes(
+    context: &HandlerContext,
+    reqwest_client: &Client,
+    user_info: Arc<UserInfo>,
+) -> Result<(), sqlx::Error> {
+    // Make sure we are online
+    if !context.is_online().await {
+        return Ok(());
+    }
+    let mut token_store = context.token_store().lock().await;
+    let Some(client_id) = &context.client_id().await else {
+        return Ok(());
+    };
+    let Some(client_secret) = &context.client_secret().await else {
+        return Ok(());
+    };
+    let current_token = token_store.get(client_id);
+    if let Some(token) = current_token {
+        let current_time = chrono::Utc::now();
+        if (current_time.timestamp() - token.obtain_time.timestamp()) >= 3500 {
+            debug!("Refreshing credentials for {}", client_id);
+            let result = gog::users::get_token_for(
+                client_id,
+                client_secret,
+                &token.refresh_token,
+                reqwest_client,
+                token.scope.is_some(),
+            )
+            .await;
+            match result {
+                Ok(new_token) => {
+                    token_store.insert(client_id.clone(), new_token);
+                }
+                Err(err) => {
+                    drop(token_store);
+                    if err.is_connect() || err.is_timeout() {
+                        context.set_offline().await;
+                    }
+                    warn!("Failed to refresh the token for {} {:?}", client_id, err);
+                    return Ok(());
+                }
+            }
+        }
+    }
+    drop(token_store);
+    let updated_achievements = context.updated_achievements().await;
+    let updated_stats = context.updated_stats().await;
+    let updated_leaderboards = context.updated_leaderboards().await;
+    // Is there anything to update?
+    if !(updated_achievements || updated_stats || updated_leaderboards) {
+        return Ok(());
+    }
+
+    if updated_achievements {
+        // Sync achievements
+        info!("Uploading new achievements");
+        let changed_achievements = db::gameplay::get_achievements(context, true).await;
+        match changed_achievements {
+            Ok(achs) => {
+                let achs = achs.into_inner();
+                let db = context.db_connection().await;
+                let mut connection = db.acquire().await?;
+                let mut transaction = connection.begin().await?;
+
+                for achievement in achs.achievements {
+                    debug!("Setting achievement {}", achievement.achievement_key());
+                    let result = gog::achievements::set_achievement(
+                        context,
+                        reqwest_client,
+                        &user_info.galaxy_user_id,
+                        achievement.achievement_id(),
+                        achievement.date_unlocked().to_owned(),
+                    )
+                    .await;
+                    match result {
+                        Ok(()) => {
+                            // Update local entry with changed to false
+                            let a_id: i64 = achievement.achievement_id().parse().map_err(
+                                |err: std::num::ParseIntError| sqlx::Error::Decode(err.into()),
+                            )?;
+                            sqlx::query("UPDATE achievement SET changed=0 WHERE id=$1")
+                                .bind(a_id)
+                                .execute(&mut *transaction)
+                                .await?;
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "Failed to set achievement {} {err:?}",
+                                achievement.achievement_key()
+                            );
+                        }
+                    }
+                }
+                transaction.commit().await?;
+                context.set_updated_achievements(false).await;
+                info!("Uploaded achievements");
+            }
+            Err(err) => error!("Failed to read local database {:?}", err),
+        }
+    }
+
+    if updated_stats {
+        // Sync stats
+        info!("Uploading new stats");
+        let changed_statistics = db::gameplay::get_statistics(context, true).await;
+        match changed_statistics {
+            Ok(stats) => {
+                let stats = stats.into_inner();
+                let db = context.db_connection().await;
+                let mut connection = db.acquire().await?;
+                let mut transaction = connection.begin().await?;
+
+                for stat in stats {
+                    debug!("Setting stat {}", stat.stat_id());
+                    let result = gog::stats::update_stat(
+                        context,
+                        reqwest_client,
+                        &user_info.galaxy_user_id,
+                        &stat,
+                    )
+                    .await;
+
+                    match result {
+                        Ok(()) => {
+                            // Update local entry with changed to false
+                            let a_id: i64 = stat.stat_id().parse().map_err(
+                                |err: std::num::ParseIntError| sqlx::Error::Decode(err.into()),
+                            )?;
+                            sqlx::query("UPDATE statistic SET changed=0 WHERE id=$1")
+                                .bind(a_id)
+                                .execute(&mut *transaction)
+                                .await?;
+                        }
+                        Err(err) => {
+                            log::error!("Failed to upload statistic {} {err:?}", stat.stat_key());
+                        }
+                    }
+                }
+                transaction.commit().await?;
+                context.set_updated_stats(false).await;
+                info!("Uploaded stats");
+            }
+            Err(err) => error!("Failed to read local database {:?}", err),
+        }
+    }
+
+    if updated_leaderboards {
+        info!("Syncing leaderboards");
+
+        let changed_leaderboards = db::gameplay::get_leaderboards_score_changed(context).await;
+
+        match changed_leaderboards {
+            Ok(entries) => {
+                let mut connection = context.db_connection().await.acquire().await?;
+                let mut transaction = connection.begin().await?;
+
+                for (id, score, _rank, _entry_total_count, force, details) in entries {
+                    let details = if details.is_empty() {
+                        None
+                    } else {
+                        Some(details)
+                    };
+                    let result = gog::leaderboards::post_leaderboard_score(
+                        context,
+                        reqwest_client,
+                        &user_info.galaxy_user_id,
+                        id,
+                        score,
+                        force,
+                        details,
+                    )
+                    .await;
+
+                    match result {
+                        Ok(res) => {
+                            sqlx::query("UPDATE leaderboard SET changed=0,entry_total_count=$2,rank=$3 WHERE id=$1")
+                            .bind(id)
+                            .bind(res.leaderboard_entry_total_count)
+                            .bind(res.new_rank)
+                            .execute(&mut *transaction)
+                            .await?;
+                        }
+                        Err(err) => {
+                            warn!("More details {}", err);
+                            if let MessageHandlingErrorKind::Network(networ_error) = err.kind
+                                && networ_error.status().is_some_and(|s| s == 409)
+                            {
+                                warn!("Leaderboard conflict for {}", id);
+                                let entries = gog::leaderboards::get_leaderboards_entries(
+                                    context,
+                                    reqwest_client,
+                                    id as u64,
+                                    [("users", &user_info.galaxy_user_id)],
+                                )
+                                .await;
+                                match entries {
+                                    Ok(entries) => {
+                                        if let Some(entry) = entries.items.first() {
+                                            sqlx::query("UPDATE leaderboard SET changed=0, score=$2, rank=$3 WHERE id=$1")
+                                    .bind(id)
+                                    .bind(entry.score)
+                                    .bind(entry.rank)
+                                    .execute(&mut *transaction)
+                                    .await?;
+                                        }
+                                    }
+                                    Err(err) => {
+                                        error!("{}", err);
+                                        sqlx::query("UPDATE leaderboard SET changed=0 WHERE id=$1")
+                                            .bind(id)
+                                            .execute(&mut *transaction)
+                                            .await?;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                transaction.commit().await?;
+                info!("Leaderboards synced");
+                context.set_updated_leaderboards(false).await;
+            }
+            Err(err) => error!("Failed to read local database {:?}", err),
+        }
+    }
+    Ok(())
+}

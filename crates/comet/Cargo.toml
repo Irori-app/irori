@@ -1,0 +1,50 @@
+# Fork of comet by Paweł Lidwin, vendored from
+# https://github.com/imLinguin/comet at 46c91529a07ab4d4ab0397429dc07d4f2f66431a
+# (reviewed; comet 0.4.1). What differs from upstream is listed in README.md.
+[package]
+name = "comet"
+description = "GOG Galaxy communication service"
+version = "0.4.1"
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+publish.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+# Irori's reqwest and an explicit ring-backed TLS config: reqwest 0.13's default
+# TLS backend would add aws-lc-rs, and with two rustls providers in the build
+# `ClientConfig::builder()` panics.
+reqwest.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+webpki-roots = "1"
+tokio = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true, features = ["compat"] }
+tokio-tungstenite = { version = "0.30", features = ["__rustls-tls"] }
+futures-util = "0.3"
+serde.workspace = true
+serde_json.workspace = true
+protobuf = "3.4"
+log = "0.4.19"
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite-bundled"] }
+lazy_static = "1.4.0"
+derive-getters = "0.5"
+chrono = "0.4.33"
+async_zip = { version = "0.0.17", features = ["tokio", "deflate"] }
+base64.workspace = true
+hex.workspace = true
+serde_ini = "0.2.0"
+sha2.workspace = true
+toml = "0.8.19"
+sys-locale = "0.3.2"
+futures.workspace = true
+rand = "0.8.5"
+
+[build-dependencies]
+protobuf-codegen = "3.7"
+protoc-bin-vendored = "3.3"
+
+[dev-dependencies]
+tempfile = "3"

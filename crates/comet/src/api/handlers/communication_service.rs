@@ -1,0 +1,1074 @@
+use crate::api::gog;
+use crate::api::gog::stats::FieldValue;
+use crate::api::handlers::context::HandlerContext;
+use crate::api::structs::{DataSource, IDType, UserInfo};
+use crate::db::gameplay::{set_stat_float, set_stat_int};
+use crate::paths::REDISTS_STORAGE;
+use crate::{constants, db};
+use base64::prelude::*;
+use chrono::{TimeZone, Utc};
+use futures::TryFutureExt;
+use log::{debug, info, warn};
+use protobuf::{Enum, Message};
+use reqwest::{Client, StatusCode};
+use std::sync::Arc;
+use tokio::io::AsyncWriteExt;
+
+use crate::proto::common_utils::ProtoPayload;
+
+use super::error::*;
+use crate::proto::galaxy_protocols_communication_service::EnvironmentType::ENVIRONMENT_PRODUCTION;
+use crate::proto::galaxy_protocols_communication_service::Region::REGION_WORLD_WIDE;
+use crate::proto::galaxy_protocols_communication_service::ValueType::{
+    VALUE_TYPE_AVGRATE, VALUE_TYPE_FLOAT, VALUE_TYPE_INT, VALUE_TYPE_UNDEFINED,
+};
+use crate::proto::galaxy_protocols_communication_service::get_user_achievements_response::UserAchievement;
+use crate::proto::galaxy_protocols_communication_service::*;
+use crate::proto::gog_protocols_pb::Header;
+
+pub async fn entry_point(
+    payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    debug!("Handling in communication service");
+    let header = &payload.header;
+
+    let message_type = header.type_() as i32;
+
+    // Everything else reads the client id and the database signing in sets up.
+    let needs_nothing = [
+        MessageType::LIBRARY_INFO_REQUEST.value(),
+        MessageType::AUTH_INFO_REQUEST.value(),
+        MessageType::START_GAME_SESSION_REQUEST.value(),
+    ];
+    if !needs_nothing.contains(&message_type) && !context.client_identified().await {
+        warn!("Refused message type {message_type} before sign-in");
+        return Err(MessageHandlingError::ignored());
+    }
+
+    if message_type == MessageType::LIBRARY_INFO_REQUEST.value() {
+        library_info_request(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::AUTH_INFO_REQUEST.value() {
+        auth_info_request(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_USER_STATS_REQUEST.value() {
+        get_user_stats(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::UPDATE_USER_STAT_REQUEST.value() {
+        update_user_stat(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::DELETE_USER_STATS_REQUEST.value() {
+        delete_user_stats(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_USER_ACHIEVEMENTS_REQUEST.value() {
+        get_user_achievements(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::UNLOCK_USER_ACHIEVEMENT_REQUEST.value() {
+        unlock_user_achievement(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::CLEAR_USER_ACHIEVEMENT_REQUEST.value() {
+        clear_user_achievement(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::DELETE_USER_ACHIEVEMENTS_REQUEST.value() {
+        delete_user_achievements(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_LEADERBOARDS_REQUEST.value() {
+        get_leaderboards(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_LEADERBOARDS_BY_KEY_REQUEST.value() {
+        get_leaderboards_by_key(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_LEADERBOARD_ENTRIES_GLOBAL_REQUEST.value() {
+        get_leaderboard_entries_global(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_LEADERBOARD_ENTRIES_AROUND_USER_REQUEST.value() {
+        get_leaderboard_entries_around_user(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_LEADERBOARD_ENTRIES_FOR_USERS_REQUEST.value() {
+        get_leaderboard_entries_for_users(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::SET_LEADERBOARD_SCORE_REQUEST.value() {
+        set_leaderboard_score(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::CREATE_LEADERBOARD_REQUEST.value() {
+        create_leaderboard(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::START_GAME_SESSION_REQUEST.value() {
+        start_game_session(payload, context, user_info, reqwest_client).await
+    } else if message_type == MessageType::GET_USER_TIME_PLAYED_REQUEST.value() {
+        get_user_time_played(payload, context, user_info, reqwest_client).await
+    } else {
+        warn!(
+            "Unhandled communication service message type {}",
+            message_type
+        );
+        Err(MessageHandlingError::not_implemented())
+    }
+}
+
+async fn library_info_request(
+    payload: &ProtoPayload,
+    _context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    _reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request_data = LibraryInfoRequest::parse_from_bytes(&payload.payload);
+    let request_data = request_data.map_err(MessageHandlingError::proto)?;
+
+    let compiler_type = request_data.compiler_type();
+    let compiler_version = request_data.compiler_version();
+
+    log::debug!("Compiler {:?} Version: {}", compiler_type, compiler_version);
+    let path = match compiler_type {
+        CompilerType::COMPILER_TYPE_MSVC => {
+            REDISTS_STORAGE.join(format!("peer/msvc-{}", compiler_version))
+        }
+        #[cfg(target_os = "macos")]
+        CompilerType::COMPILER_TYPE_CLANG => REDISTS_STORAGE.join("peer"),
+        _ => REDISTS_STORAGE.join("peer/msvc-18"),
+    };
+    let path_str = path.to_string_lossy().into_owned();
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::LIBRARY_INFO_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    let mut data = LibraryInfoResponse::new();
+    data.set_location(path_str);
+    data.set_update_status(UpdateStatus::UPDATE_COMPLETE);
+
+    let payload = data.write_to_bytes().unwrap();
+    header.set_size(payload.len().try_into().unwrap());
+
+    Ok(ProtoPayload { header, payload })
+}
+
+async fn auth_info_request(
+    payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request_data = AuthInfoRequest::parse_from_bytes(&payload.payload);
+    let request_data = request_data.map_err(MessageHandlingError::proto)?;
+
+    let client_id = request_data.client_id();
+    let client_secret = request_data.client_secret();
+    let openid = request_data.openid();
+    let pid = request_data.game_pid();
+
+    if !context.may_sign_in(client_id).await {
+        warn!("Refused sign-in for client {client_id:?}");
+        return Err(MessageHandlingError::unauthorized());
+    }
+
+    info!("Game PID: {}", pid);
+    let refresh_token = {
+        let token_storage = context.token_store().lock().await;
+
+        token_storage
+            .get(constants::GALAXY_CLIENT_ID)
+            .ok_or_else(MessageHandlingError::unauthorized)?
+            .refresh_token
+            .clone()
+    };
+
+    // Obtain the token (at least attempt to)
+    let new_token = gog::users::get_token_for(
+        client_id,
+        client_secret,
+        refresh_token.as_str(),
+        reqwest_client,
+        openid,
+    )
+    .await;
+
+    context
+        .setup_database(client_id, &user_info.galaxy_user_id)
+        .await
+        .map_err(MessageHandlingError::db)?;
+
+    // Handlers start as soon as this is set, so the database has to be open.
+    if !context.client_identified().await {
+        context.identify_client(client_id, client_secret, pid).await;
+        info!("Client identified as {}", client_id);
+    }
+
+    if let Err(err) = context.load_workarounds(client_id).await {
+        log::warn!("Failed to load workarounds or client {client_id} {err}");
+    }
+
+    {
+        let mut data = OverlayStateChangeNotification::new();
+        data.set_overlay_state(
+            overlay_state_change_notification::OverlayState::OVERLAY_STATE_INITIALIZED,
+        );
+        let data_buf = data.write_to_bytes().unwrap();
+        let mut header = Header::new();
+        header.set_sort(1);
+        header.set_type(
+            MessageType::OVERLAY_STATE_CHANGE_NOTIFICATION
+                .value()
+                .try_into()
+                .unwrap(),
+        );
+        header.set_size(data_buf.len().try_into().unwrap());
+        let header_buf = header.write_to_bytes().unwrap();
+        let header_size: u16 = header_buf.len().try_into().unwrap();
+
+        let mut buffer = vec![];
+        buffer.extend(header_size.to_be_bytes());
+        buffer.extend(header_buf);
+        buffer.extend(data_buf);
+        let _ = context.socket_write_mut().await.write_all(&buffer).await;
+    }
+
+    // Use new refresh_token to prepare response
+    let mut header = Header::new();
+    header.set_type(MessageType::AUTH_INFO_RESPONSE.value().try_into().unwrap());
+
+    let mut content = AuthInfoResponse::new();
+    match new_token {
+        Ok(token) => {
+            let mut token_storage = context.token_store().lock().await;
+            token_storage.insert(String::from(client_id), token.clone());
+            content.set_refresh_token(token.refresh_token);
+            context.set_online().await;
+        }
+        Err(err) => {
+            warn!("There was an error getting the access token {:?}", err);
+            if let Some(status) = err.status() {
+                // user doesn't own the game
+                if StatusCode::FORBIDDEN == status {
+                    return Err(MessageHandlingError::unauthorized());
+                }
+            }
+            // Check if we can continue offline
+            let db_connection = context.db_connection().await;
+            let ach = db::gameplay::has_achievements(&db_connection).await;
+            let stat = db::gameplay::has_statistics(&db_connection).await;
+            if !stat && !ach {
+                warn!("No statistics or achievements locally, can't continue");
+                return Err(MessageHandlingError::unauthorized());
+            }
+        }
+    };
+    content.set_region(REGION_WORLD_WIDE); // TODO: Handle China region
+    content.set_environment_type(ENVIRONMENT_PRODUCTION);
+    let user_id = user_info
+        .galaxy_user_id
+        .parse()
+        .map_err(|_| MessageHandlingError::invalid())?;
+    let user_id = IDType::User(user_id);
+    content.set_user_id(user_id.value());
+    content.set_user_name(user_info.username.clone());
+
+    let content_buffer = content.write_to_bytes().unwrap();
+    header.set_size(content_buffer.len().try_into().unwrap());
+
+    Ok(ProtoPayload {
+        header,
+        payload: content_buffer,
+    })
+}
+
+async fn get_user_stats(
+    _payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let client_id = context
+        .client_id()
+        .await
+        .ok_or_else(MessageHandlingError::ignored)?;
+    let stats_refreshed = context.stats_refreshed().await;
+
+    let new_stats = gog::stats::fetch_stats(
+        context.token_store(),
+        &client_id,
+        &user_info.galaxy_user_id,
+        reqwest_client,
+    );
+    let db_stats = db::gameplay::get_statistics(context, false).map_err(MessageHandlingError::db);
+
+    let stats = if stats_refreshed {
+        db_stats.or_else(|_| new_stats).await
+    } else {
+        new_stats.or_else(|_| db_stats).await
+    }?;
+
+    if let DataSource::Online(stats) = &stats {
+        context.set_stats_refreshed(true).await;
+
+        if let Err(err) = db::gameplay::set_statistics(context.db_connection().await, stats).await {
+            warn!("Failed to set statistics in gameplay database {:?}", err);
+        }
+    }
+    let stats = stats.into_inner();
+
+    context.set_updated_stats(true).await;
+
+    // Prepare response
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::GET_USER_STATS_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    let mut content = GetUserStatsResponse::new();
+
+    for stat in stats {
+        let mut proto_stat = get_user_stats_response::UserStat::new();
+        let value_type = match stat.values() {
+            FieldValue::Int { .. } => VALUE_TYPE_INT,
+            FieldValue::Float { .. } => VALUE_TYPE_FLOAT,
+            FieldValue::Avgrate { .. } => VALUE_TYPE_AVGRATE,
+        };
+        proto_stat.set_stat_id(stat.stat_id().parse().unwrap_or_default());
+        proto_stat.set_key(stat.stat_key().to_owned());
+        proto_stat.set_value_type(value_type);
+        proto_stat.set_increment_only(stat.increment_only().to_owned());
+        if let Some(window) = stat.window() {
+            proto_stat.set_window_size(window.to_owned());
+        }
+
+        match stat.values() {
+            FieldValue::Int {
+                value,
+                default_value,
+                min_value,
+                max_value,
+                max_change,
+            } => {
+                proto_stat.set_int_value(value.to_owned());
+                if let Some(default_value) = default_value {
+                    proto_stat.set_int_default_value(default_value.to_owned());
+                }
+                if let Some(min_value) = min_value {
+                    proto_stat.set_int_min_value(min_value.to_owned());
+                }
+                if let Some(max_value) = max_value {
+                    proto_stat.set_int_max_value(max_value.to_owned());
+                }
+                if let Some(max_change) = max_change {
+                    proto_stat.set_int_max_change(max_change.to_owned());
+                }
+            }
+            FieldValue::Float {
+                value,
+                default_value,
+                min_value,
+                max_value,
+                max_change,
+            }
+            | FieldValue::Avgrate {
+                value,
+                default_value,
+                min_value,
+                max_value,
+                max_change,
+            } => {
+                proto_stat.set_float_value(value.to_owned());
+                if let Some(default_value) = default_value {
+                    proto_stat.set_float_default_value(default_value.to_owned());
+                }
+                if let Some(min_value) = min_value {
+                    proto_stat.set_float_min_value(min_value.to_owned());
+                }
+                if let Some(max_value) = max_value {
+                    proto_stat.set_float_max_value(max_value.to_owned());
+                }
+                if let Some(max_change) = max_change {
+                    proto_stat.set_float_max_change(max_change.to_owned());
+                }
+            }
+        }
+
+        content.user_stats.push(proto_stat);
+    }
+    let content_buffer = content.write_to_bytes().unwrap();
+    header.set_size(content_buffer.len().try_into().unwrap());
+
+    Ok(ProtoPayload {
+        header,
+        payload: content_buffer,
+    })
+}
+
+async fn update_user_stat(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request_data = UpdateUserStatRequest::parse_from_bytes(&proto_payload.payload);
+    let request_data = request_data.map_err(MessageHandlingError::proto)?;
+
+    let stat_id: u64 = request_data.stat_id();
+    let stat_id: i64 = stat_id
+        .try_into()
+        .map_err(|_| MessageHandlingError::invalid())?;
+    let stat_key = db::gameplay::get_stat_key(context, stat_id).await.ok();
+    let value_type = request_data.value_type();
+    match value_type {
+        VALUE_TYPE_FLOAT | VALUE_TYPE_AVGRATE => {
+            let value = request_data.float_value();
+            set_stat_float(context, stat_id, value)
+                .await
+                .map_err(MessageHandlingError::db)?;
+        }
+        VALUE_TYPE_INT => {
+            let value = request_data.int_value();
+            set_stat_int(context, stat_id, value)
+                .await
+                .map_err(MessageHandlingError::db)?;
+        }
+        VALUE_TYPE_UNDEFINED => {
+            warn!("Undefined value type, ignoring");
+        }
+    };
+
+    context.set_updated_stats(true).await;
+
+    if let Some(stat_key) = stat_key {
+        let workarounds = context.get_progress_workarounds(&stat_key).await;
+        for workaround in workarounds {
+            let matching = match value_type {
+                VALUE_TYPE_FLOAT | VALUE_TYPE_AVGRATE => workaround
+                    .threshold
+                    .parse::<f32>()
+                    .is_ok_and(|val| val <= request_data.float_value()),
+                VALUE_TYPE_INT => workaround
+                    .threshold
+                    .parse::<i32>()
+                    .is_ok_and(|val| val <= request_data.int_value()),
+                VALUE_TYPE_UNDEFINED => false,
+            };
+            log::debug!("Checking workaround for {stat_key}, matching: {matching}");
+            if !matching {
+                continue;
+            }
+            // Unlock achievement
+            if let Some(mut achievement) =
+                db::gameplay::get_achievement_by_key(context, workaround.achievement_key)
+                    .await
+                    .ok()
+                && achievement.date_unlocked().is_none()
+            {
+                let dt = Utc::now();
+                let timestamp_string = Some(dt.to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+                achievement.date_unlocked = timestamp_string;
+                let achievement = Arc::new(achievement);
+                super::utils::unlock_achievement(
+                    context,
+                    reqwest_client.clone(),
+                    achievement.clone(),
+                )
+                .await;
+            }
+        }
+    }
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::UPDATE_USER_STAT_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: Vec::new(),
+    })
+}
+
+async fn delete_user_stats(
+    _proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    gog::stats::delete_stats(context, reqwest_client, &user_info.galaxy_user_id).await?;
+
+    db::gameplay::reset_stats(context)
+        .await
+        .map_err(MessageHandlingError::db)?;
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::DELETE_USER_STATS_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: Vec::new(),
+    })
+}
+
+async fn get_user_achievements(
+    _proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let client_id = context
+        .client_id()
+        .await
+        .ok_or_else(MessageHandlingError::ignored)?;
+    let achievements_refreshed = context.achievements_refreshed().await;
+    let online_achievements = gog::achievements::fetch_achievements(
+        context.token_store(),
+        &client_id,
+        &user_info.galaxy_user_id,
+        reqwest_client,
+    );
+
+    let local_achievements =
+        db::gameplay::get_achievements(context, false).map_err(MessageHandlingError::db);
+
+    let ach_res = if achievements_refreshed {
+        local_achievements.or_else(|_| online_achievements).await
+    } else {
+        online_achievements.or_else(|_| local_achievements).await
+    }?;
+
+    if let DataSource::Online(data) = &ach_res {
+        if let Err(err) = db::gameplay::set_achievements(
+            context.db_connection().await,
+            &data.achievements,
+            &data.mode,
+        )
+        .await
+        {
+            warn!("Failed to set achievements in gameplay database {:?}", err);
+        }
+        context.set_achievements_refreshed(true).await;
+        context.set_updated_achievements(true).await;
+    }
+
+    let achievement_data = ach_res.into_inner();
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::GET_USER_ACHIEVEMENTS_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+    let mut content = GetUserAchievementsResponse::new();
+    content.set_achievements_mode(achievement_data.mode);
+    content.set_language(crate::LOCALE.clone());
+
+    for achievement in achievement_data.achievements {
+        let mut proto_achievement = UserAchievement::new();
+        proto_achievement
+            .set_achievement_id(achievement.achievement_id().parse().unwrap_or_default());
+        proto_achievement.set_key(achievement.achievement_key().to_owned());
+        proto_achievement.set_name(achievement.name().to_owned());
+        proto_achievement.set_description(achievement.description().to_owned());
+        proto_achievement.set_visible_while_locked(achievement.visible().to_owned());
+        proto_achievement.set_image_url_locked(achievement.image_url_locked().to_owned());
+        proto_achievement.set_image_url_unlocked(achievement.image_url_unlocked().to_owned());
+        proto_achievement.set_rarity(achievement.rarity().to_owned());
+        proto_achievement
+            .set_rarity_level_description(achievement.rarity_level_description().to_owned());
+        proto_achievement.set_rarity_level_slug(achievement.rarity_level_slug().to_owned());
+
+        if let Some(date) = achievement.date_unlocked()
+            && let Ok(parsed_date) = date.parse::<chrono::DateTime<Utc>>()
+        {
+            let timestamp = parsed_date.timestamp() as u32;
+            proto_achievement.set_unlock_time(timestamp);
+        }
+        content.user_achievements.push(proto_achievement);
+    }
+
+    let content_buffer = content.write_to_bytes().unwrap();
+    header.set_size(content_buffer.len().try_into().unwrap());
+
+    Ok(ProtoPayload {
+        header,
+        payload: content_buffer,
+    })
+}
+
+async fn unlock_user_achievement(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request_data = UnlockUserAchievementRequest::parse_from_bytes(&proto_payload.payload);
+    let request_data = request_data.map_err(MessageHandlingError::proto)?;
+
+    let ach_id: i64 = request_data
+        .achievement_id()
+        .try_into()
+        .map_err(|_| MessageHandlingError::invalid())?;
+    let timestamp = request_data.time();
+    let dt = Utc
+        .timestamp_opt(timestamp.into(), 0)
+        .single()
+        .ok_or_else(MessageHandlingError::invalid)?;
+    let timestamp_string = Some(dt.to_rfc3339().to_string());
+
+    // Check with database first
+    let achievement = db::gameplay::get_achievement(context, ach_id)
+        .await
+        .map_err(MessageHandlingError::db)?;
+
+    if achievement.date_unlocked().is_none() {
+        let mut achievement = achievement;
+        achievement.date_unlocked = timestamp_string;
+        let achievement = Arc::new(achievement);
+        super::utils::unlock_achievement(context, reqwest_client.clone(), achievement).await;
+    }
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::UNLOCK_USER_ACHIEVEMENT_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: Vec::new(),
+    })
+}
+
+async fn clear_user_achievement(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    _reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request_data = ClearUserAchievementRequest::parse_from_bytes(&proto_payload.payload);
+    let request_data = request_data.map_err(MessageHandlingError::proto)?;
+
+    let ach_id: i64 = request_data
+        .achievement_id()
+        .try_into()
+        .map_err(|_| MessageHandlingError::invalid())?;
+
+    db::gameplay::set_achievement(context, ach_id, None)
+        .await
+        .map_err(MessageHandlingError::db)?;
+    context.set_updated_achievements(true).await;
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::CLEAR_USER_ACHIEVEMENT_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: Vec::new(),
+    })
+}
+
+async fn delete_user_achievements(
+    _proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    gog::achievements::delete_achievements(context, reqwest_client, &user_info.galaxy_user_id)
+        .await?;
+
+    db::gameplay::reset_achievements(context)
+        .await
+        .map_err(MessageHandlingError::db)?;
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::DELETE_USER_ACHIEVEMENTS_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: Vec::new(),
+    })
+}
+
+async fn get_leaderboards(
+    _proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    super::utils::handle_leaderboards_query(context, reqwest_client, [] as [(&str, &str); 0]).await
+}
+
+async fn get_leaderboards_by_key(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = GetLeaderboardsByKeyRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let keys = request.key.join(",");
+    super::utils::handle_leaderboards_query(context, reqwest_client, [("keys", keys)]).await
+}
+
+async fn get_leaderboard_entries_global(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = GetLeaderboardEntriesGlobalRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let params = [
+        ("range_start", request.range_start().to_string()),
+        ("range_end", request.range_end().to_string()),
+    ];
+
+    Ok(super::utils::handle_leaderboard_entries_request(
+        context,
+        reqwest_client,
+        request.leaderboard_id(),
+        params,
+    )
+    .await)
+}
+async fn get_leaderboard_entries_around_user(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = GetLeaderboardEntriesAroundUserRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let user_id = IDType::parse(request.user_id());
+
+    let params = [
+        ("count_before", request.count_before().to_string()),
+        ("count_after", request.count_after().to_string()),
+        ("user", user_id.inner().to_string()),
+    ];
+
+    Ok(super::utils::handle_leaderboard_entries_request(
+        context,
+        reqwest_client,
+        request.leaderboard_id(),
+        params,
+    )
+    .await)
+}
+
+async fn get_leaderboard_entries_for_users(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = GetLeaderboardEntriesForUsersRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let user_ids: String = request
+        .user_ids
+        .iter()
+        .map(|id| IDType::parse(*id).inner().to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+
+    let params = [("users", user_ids)];
+
+    Ok(super::utils::handle_leaderboard_entries_request(
+        context,
+        reqwest_client,
+        request.leaderboard_id(),
+        params,
+    )
+    .await)
+}
+
+async fn set_leaderboard_score(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = SetLeaderboardScoreRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let id = request.leaderboard_id().to_string();
+    info!(
+        "Got leaderboard score request for {}, score = {}",
+        id,
+        request.score()
+    );
+    let current_score = match db::gameplay::get_leaderboard_score(context, &id).await {
+        Ok((score, _old_rank, _entry_total_count, _force, _details)) => score,
+        Err(sqlx::Error::RowNotFound) => 0,
+        Err(err) => return Err(MessageHandlingError::db(err)),
+    };
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::SET_LEADERBOARD_SCORE_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+    if !request.force_update() && (request.score() <= current_score) {
+        log::warn!("No improvement {} vs {}", request.score(), current_score);
+        header
+            .mut_special_fields()
+            .mut_unknown_fields()
+            .add_varint(101, 409);
+
+        return Ok(ProtoPayload {
+            header,
+            payload: Vec::new(),
+        });
+    }
+    let details = request.details();
+    let details = BASE64_URL_SAFE_NO_PAD.encode(details);
+    let post_details = if details.is_empty() {
+        None
+    } else {
+        Some(details.clone())
+    };
+    let response = gog::leaderboards::post_leaderboard_score(
+        context,
+        reqwest_client,
+        &user_info.galaxy_user_id,
+        request
+            .leaderboard_id()
+            .try_into()
+            .map_err(|_| MessageHandlingError::invalid())?,
+        request.score(),
+        request.force_update(),
+        post_details,
+    )
+    .await;
+
+    match response {
+        Ok(data) => {
+            db::gameplay::set_leaderboard_score(
+                context,
+                &id,
+                request.score(),
+                request.force_update(),
+                &details,
+            )
+            .await
+            .map_err(MessageHandlingError::db)?;
+            db::gameplay::set_leaderboard_rank(
+                context,
+                &id,
+                data.new_rank,
+                data.leaderboard_entry_total_count,
+            )
+            .await
+            .map_err(MessageHandlingError::db)?;
+
+            let mut proto_data = SetLeaderboardScoreResponse::new();
+            proto_data.set_score(request.score());
+            proto_data.set_old_rank(data.old_rank);
+            proto_data.set_new_rank(data.new_rank);
+            proto_data.set_leaderboard_entry_total_count(data.leaderboard_entry_total_count);
+            let payload = proto_data
+                .write_to_bytes()
+                .map_err(MessageHandlingError::proto)?;
+            header.set_size(payload.len().try_into().unwrap());
+            return Ok(ProtoPayload { header, payload });
+        }
+        Err(err) => {
+            log::error!("Failed to set leaderboard score, {:?}", err);
+
+            db::gameplay::set_leaderboard_score(
+                context,
+                &id,
+                request.score(),
+                request.force_update(),
+                &details,
+            )
+            .await
+            .map_err(MessageHandlingError::db)?;
+            if let MessageHandlingErrorKind::Network(err) = err.kind
+                && (err.status().is_none() || err.status().is_some_and(|s| s.as_u16() != 409))
+            {
+                db::gameplay::set_leaderboad_changed(context, &id, true)
+                    .await
+                    .map_err(MessageHandlingError::db)?;
+                context.set_updated_leaderboards(true).await;
+            }
+        }
+    }
+
+    let (_score, old_rank, entry_total_count, _force, _details) =
+        db::gameplay::get_leaderboard_score(context, &id)
+            .await
+            .map_err(MessageHandlingError::db)?;
+    let new_rank = if old_rank != 0 { old_rank } else { 1 };
+    let entry_total_count = if old_rank != 0 {
+        entry_total_count
+    } else {
+        entry_total_count + 1
+    };
+
+    let mut proto_data = SetLeaderboardScoreResponse::new();
+    proto_data.set_score(request.score());
+    proto_data.set_old_rank(old_rank);
+    proto_data.set_new_rank(new_rank);
+    proto_data.set_leaderboard_entry_total_count(entry_total_count);
+    let payload = proto_data
+        .write_to_bytes()
+        .map_err(MessageHandlingError::proto)?;
+    header.set_size(payload.len().try_into().unwrap());
+    Ok(ProtoPayload { header, payload })
+}
+
+async fn create_leaderboard(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let mut request = CreateLeaderboardRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    let key = request.take_key();
+    let name = request.take_name();
+    let sort_method = match request.sort_method() {
+        SortMethod::SORT_METHOD_ASCENDING => "asc",
+        SortMethod::SORT_METHOD_DESCENDING => "desc",
+        _ => return Err(MessageHandlingError::invalid()),
+    }
+    .to_string();
+    let display_type = match request.display_type() {
+        DisplayType::DISPLAY_TYPE_NUMERIC => "numeric",
+        DisplayType::DISPLAY_TYPE_TIME_SECONDS => "seconds",
+        DisplayType::DISPLAY_TYPE_TIME_MILLISECONDS => "milliseconds",
+        DisplayType::DISPLAY_TYPE_UNDEFINED => return Err(MessageHandlingError::invalid()),
+    }
+    .to_string();
+
+    let leaderboard_id = gog::leaderboards::create_leaderboard(
+        context,
+        reqwest_client,
+        key,
+        name,
+        sort_method,
+        display_type,
+    )
+    .await?;
+
+    let mut response = CreateLeaderboardResponse::new();
+    response.set_leaderboard_id(
+        leaderboard_id
+            .parse()
+            .map_err(|_| MessageHandlingError::invalid())?,
+    );
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::CREATE_LEADERBOARD_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    let payload = response
+        .write_to_bytes()
+        .map_err(MessageHandlingError::proto)?;
+    header.set_size(payload.len().try_into().unwrap());
+
+    Ok(ProtoPayload { header, payload })
+}
+
+async fn start_game_session(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    _user_info: Arc<UserInfo>,
+    _reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = StartGameSessionRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+
+    info!("Requested session start for {}", request.game_pid());
+
+    // Upstream opens the overlay's socket here. Irori neither downloads nor
+    // injects the overlay, so nothing legitimate would connect, and the pid in
+    // this request lets any client that signed in open that socket and ask it
+    // for the account's token.
+    context.set_pid(request.game_pid()).await;
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::START_GAME_SESSION_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+
+    Ok(ProtoPayload {
+        header,
+        payload: vec![],
+    })
+}
+
+async fn get_user_time_played(
+    proto_payload: &ProtoPayload,
+    context: &HandlerContext,
+    user_info: Arc<UserInfo>,
+    reqwest_client: &Client,
+) -> Result<ProtoPayload, MessageHandlingError> {
+    let request = GetUserTimePlayedRequest::parse_from_bytes(&proto_payload.payload)
+        .map_err(MessageHandlingError::proto)?;
+    let client_id = context
+        .client_id()
+        .await
+        .ok_or_else(MessageHandlingError::ignored)?;
+
+    info!("Requested user time for {}", request.user_id());
+
+    if user_info.galaxy_user_id != request.user_id().to_string() {
+        log::warn!("Time was requested for not a current user??");
+    }
+
+    let api_time = gog::sessions::fetch_sessions(
+        context.token_store(),
+        &client_id,
+        &user_info.galaxy_user_id,
+        reqwest_client,
+    )
+    .await;
+
+    let session_time = match api_time {
+        Ok(time) => {
+            let _ = db::gameplay::set_session_time(context, time).await;
+            time
+        }
+        Err(err) => {
+            log::error!("Unable to request sessions sum {err}");
+            db::gameplay::get_session_time(context)
+                .await
+                .map_err(MessageHandlingError::db)?
+        }
+    };
+
+    let mut header = Header::new();
+    header.set_type(
+        MessageType::GET_USER_TIME_PLAYED_RESPONSE
+            .value()
+            .try_into()
+            .unwrap(),
+    );
+    let mut res = GetUserTimePlayedResponse::new();
+    res.set_time_played(session_time);
+
+    let payload = res.write_to_bytes().map_err(MessageHandlingError::proto)?;
+
+    Ok(ProtoPayload { header, payload })
+}

@@ -1,11 +1,15 @@
 //! GOG Galaxy's communication service, provided by comet running inside
 //! Irori. Games built with the Galaxy SDK connect to it on
-//! `127.0.0.1:9977` for achievements, statistics, leaderboards and the
-//! overlay.
+//! `127.0.0.1:9977` for achievements, statistics and leaderboards. Every local
+//! program can reach that port, so it only serves games Irori started, and
+//! never the account's own token.
 
 #![forbid(unsafe_code)]
 
-use std::collections::HashMap;
+#[cfg(target_os = "linux")]
+mod peer;
+
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -42,9 +46,16 @@ impl std::fmt::Debug for Account {
 /// A running service. Dropping it stops the service.
 pub struct Service {
     shutdown: CancellationToken,
+    allowed_clients: constants::AllowedClients,
 }
 
 impl Service {
+    /// Let a game Irori is starting sign in, by its Galaxy client id. It stays
+    /// allowed until the service stops, with the last game.
+    pub async fn allow_client(&self, client_id: String) {
+        self.allowed_clients.lock().await.insert(client_id);
+    }
+
     /// Stop accepting games and close every connection.
     pub fn stop(&self) {
         self.shutdown.cancel();
@@ -63,14 +74,11 @@ pub async fn start(account: Account) -> Result<Service> {
     let listener = TcpListener::bind(("127.0.0.1", PORT))
         .await
         .with_context(|| format!("Port {PORT} is in use; another Galaxy service may be running"))?;
-    let certificate =
-        reqwest::tls::Certificate::from_pem(comet::CERT).context("invalid comet certificate")?;
     let http = reqwest::Client::builder()
         .user_agent(format!(
             "GOGGalaxyCommunicationService/2.0.13.27 (Windows_32bit) installation_source/gog Irori/{}",
             env!("CARGO_PKG_VERSION")
         ))
-        .add_root_certificate(certificate)
         .build()?;
     let user = Arc::new(UserInfo {
         username: account.username.clone(),
@@ -81,6 +89,7 @@ pub async fn start(account: Account) -> Result<Service> {
         constants::GALAXY_CLIENT_ID.to_string(),
         Token::new(account.access_token.clone(), account.refresh_token.clone()),
     );
+    let allowed_clients: constants::AllowedClients = Arc::new(Mutex::new(HashSet::new()));
     let shutdown = CancellationToken::new();
 
     // The Galaxy peer library games load (comet keeps it in its own data folder).
@@ -111,13 +120,16 @@ pub async fn start(account: Account) -> Result<Service> {
     let pusher_stop = shutdown.clone();
     let access_token = account.access_token.clone();
     tokio::spawn(async move {
-        let mut pusher =
-            NotificationPusherClient::new(&access_token, pusher_topics, pusher_stop).await;
-        pusher.handle_loop().await;
+        if let Some(mut pusher) =
+            NotificationPusherClient::new(&access_token, pusher_topics, pusher_stop).await
+        {
+            pusher.handle_loop().await;
+        }
     });
 
     let (overlay, _) = tokio::sync::broadcast::channel::<(u32, OverlayPeerMessage)>(32);
     let stop = shutdown.clone();
+    let allowed = allowed_clients.clone();
     tokio::spawn(async move {
         tracing::info!("Galaxy service listening on port {PORT}");
         loop {
@@ -131,17 +143,25 @@ pub async fn start(account: Account) -> Result<Service> {
                     }
                 },
             };
-            tokio::spawn(api::handlers::entry_point(
-                socket,
-                http.clone(),
-                tokens.clone(),
-                user.clone(),
-                topics.subscribe(),
-                overlay.clone(),
-                stop.clone(),
-            ));
+            let (http, tokens, allowed, user) =
+                (http.clone(), tokens.clone(), allowed.clone(), user.clone());
+            let (topics, overlay, stop) = (topics.subscribe(), overlay.clone(), stop.clone());
+            tokio::spawn(async move {
+                #[cfg(target_os = "linux")]
+                if !peer::same_user(&socket).await {
+                    tracing::warn!("Galaxy service: refused a connection from another user");
+                    return;
+                }
+                api::handlers::entry_point(
+                    socket, http, tokens, allowed, user, topics, overlay, stop,
+                )
+                .await;
+            });
         }
         tracing::info!("Galaxy service stopped");
     });
-    Ok(Service { shutdown })
+    Ok(Service {
+        shutdown,
+        allowed_clients,
+    })
 }
