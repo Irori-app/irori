@@ -244,6 +244,47 @@ pub fn apply(prefs: &UiPrefs, window: Option<&mut Window>, cx: &mut App) {
     };
     Theme::change(mode, window, cx);
     Theme::update(cx, hold_status_colors);
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    lift_modal_dim(cx);
+}
+
+/// The theme's dim behind dialogs and sheets, kept out of its reach.
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+struct ModalDim(Hsla);
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+impl Global for ModalDim {}
+
+/// gpui-kit paints this dim across the whole window surface, and on Linux that
+/// includes the transparent margin client-side decorations keep for their
+/// shadow, which shows as a dark band around the window. Clearing its colour
+/// is the one hook that reaches every dialog and sheet, so [`modal_dim`] hands
+/// the colour to the shell, which paints it inside the visible window.
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn lift_modal_dim(cx: &mut App) {
+    let dim = Theme::global(cx).overlay;
+    if dim.a > 0. {
+        cx.set_global(ModalDim(dim));
+    }
+    Theme::update(cx, |theme| theme.overlay = gpui_kit::transparent_black());
+}
+
+/// The dim the shell should paint over itself right now, if a dialog or sheet
+/// is open and gpui-kit is not already painting it.
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn modal_dim(window: &mut Window, cx: &mut App) -> Option<Hsla> {
+    use gpui_kit::component::WindowExt as _;
+
+    if !window.has_active_dialog(cx) && !window.has_active_sheet(cx) {
+        return None;
+    }
+    cx.try_global::<ModalDim>().map(|dim| dim.0)
+}
+
+/// gpui-kit paints the dim itself here: these windows have no shadow margin.
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub fn modal_dim(_window: &mut Window, _cx: &mut App) -> Option<Hsla> {
+    None
 }
 
 /// What status colours aim for, a little over WCAG's 4.5:1: alerts tint their
@@ -483,6 +524,63 @@ mod tests {
                 });
             }
         }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[gpui_kit::test]
+    fn the_modal_dim_never_reaches_gpui_kit(cx: &mut TestAppContext) {
+        setup(cx);
+        for (name, dark) in cx.read(theme_names) {
+            let mode = if dark {
+                ThemePreference::Dark
+            } else {
+                ThemePreference::Light
+            };
+            cx.update(|cx| apply(&prefs(mode, &name), None, cx));
+            // Anything left here dims the shadow margin around the window.
+            cx.read(|cx| assert_eq!(cx.theme().overlay.a, 0., "{name}"));
+            let dim = cx.read(|cx| cx.global::<ModalDim>().0);
+            assert!(dim.a > 0., "{name} lost its dim");
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[gpui_kit::test]
+    fn the_modal_dim_lasts_as_long_as_a_dialog_or_sheet(cx: &mut TestAppContext) {
+        use gpui_kit::AppContext as _;
+        use gpui_kit::component::WindowExt as _;
+
+        setup(cx);
+        cx.update(|cx| apply(&prefs(ThemePreference::Dark, ""), None, cx));
+        let (handle, _) = cx.update(|cx| {
+            gpui_kit::open_window(gpui_kit::WindowOptions::default(), cx, |_, cx| {
+                cx.new(|_| gpui_kit::Empty)
+            })
+            .expect("open test window")
+        });
+        let dim = |cx: &mut TestAppContext| {
+            cx.update_window(handle, |_, window, cx| modal_dim(window, cx))
+                .expect("window is open")
+        };
+        assert_eq!(dim(cx), None);
+
+        cx.update_window(handle, |_, window, cx| {
+            window.open_dialog(cx, |dialog, _, _| dialog);
+        })
+        .expect("window is open");
+        cx.run_until_parked();
+        assert!(dim(cx).is_some(), "a dialog is open");
+        cx.update_window(handle, |_, window, cx| window.close_dialog(cx))
+            .expect("window is open");
+        cx.run_until_parked();
+        assert_eq!(dim(cx), None);
+
+        cx.update_window(handle, |_, window, cx| {
+            window.open_sheet(cx, |sheet, _, _| sheet);
+        })
+        .expect("window is open");
+        cx.run_until_parked();
+        assert!(dim(cx).is_some(), "a sheet is open");
     }
 
     #[gpui_kit::test]

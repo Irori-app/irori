@@ -290,6 +290,12 @@ because a compositor's own rule may add blur (match the app id or window class
 `irori`), but the surfaces keep more body, as sharp detail behind text is hard
 to read.
 
+gpui-kit paints the dim behind dialogs and sheets across the whole surface, which
+on Linux includes that margin, whatever the translucency level. So Irori keeps the
+theme's `overlay` colour transparent there and the shell paints the dim inside the
+visible window (`irori_ui::theme::modal_dim`). A dialog stacked on another no
+longer dims the one below it on Linux.
+
 The window is opaque in Big Picture and fullscreen, where nothing behind it is
 worth showing, which also spares the compositor the blur. Views take their
 surface colours from `irori_ui::glass` (`chrome`, `page`, `solid_pages`) rather
