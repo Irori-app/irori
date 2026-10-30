@@ -220,9 +220,9 @@ fn find_on_path(name: &str) -> Option<String> {
 }
 
 /// Resolve MangoHud, GameMode and gamescope (Heroic's `prepareLaunch` steps
-/// 7–9). A missing MangoHud or GameMode fails the launch; a missing
-/// gamescope only logs a warning.
-async fn wrapper_parts(settings: &GameSettings, ctx: &OpContext) -> Result<WrapperParts> {
+/// 7–9). A missing program fails the launch: Heroic only logs a missing
+/// gamescope, which leaves the game running without what was asked for.
+async fn wrapper_parts(settings: &GameSettings) -> Result<WrapperParts> {
     if !cfg!(target_os = "linux") {
         return Ok(WrapperParts::default());
     }
@@ -246,22 +246,22 @@ async fn wrapper_parts(settings: &GameSettings, ctx: &OpContext) -> Result<Wrapp
         parts.gamemode = Some(bin);
     }
     if wrappers::gamescope_enabled(&settings.gamescope) && !deck_game_mode {
-        match which::which("gamescope") {
-            Ok(bin) => {
-                let new_cli = gamescope_new_cli(&bin).await;
-                let mut cmd = vec![bin.to_string_lossy().into_owned()];
-                cmd.extend(wrappers::gamescope_args(
-                    &settings.gamescope,
-                    settings.show_mangohud,
-                    new_cli,
-                ));
-                parts.gamescope = cmd;
-            }
-            Err(_) => note(
-                ctx,
-                "Gamescope is enabled, but `gamescope` executable could not be found on $PATH",
-            ),
-        }
+        let bin = which::which("gamescope").map_err(|_| {
+            let hint = if locations::is_flatpak() {
+                ". Make sure to install the gamescope Flatpak extension matching Irori's runtime and restart Irori."
+            } else {
+                ""
+            };
+            anyhow!("Gamescope is enabled, but `gamescope` executable could not be found on $PATH{hint}")
+        })?;
+        let new_cli = gamescope_new_cli(&bin).await;
+        let mut cmd = vec![bin.to_string_lossy().into_owned()];
+        cmd.extend(wrappers::gamescope_args(
+            &settings.gamescope,
+            settings.show_mangohud,
+            new_cli,
+        ));
+        parts.gamescope = cmd;
     }
     Ok(parts)
 }
@@ -299,7 +299,7 @@ pub async fn prepare_launch(
         });
     }
 
-    let mut parts = wrapper_parts(settings, ctx).await?;
+    let mut parts = wrapper_parts(settings).await?;
     let fixes = if cfg!(target_os = "linux") {
         hooks::hooks().known_fixes_env(target.id).await
     } else {
@@ -784,10 +784,25 @@ mod tests {
             use_game_mode: true,
             ..Default::default()
         };
-        let err = wrapper_parts(&gs, &OpContext::detached())
-            .await
-            .unwrap_err();
+        let err = wrapper_parts(&gs).await.unwrap_err();
         assert!(err.to_string().contains("gamemoderun"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn missing_gamescope_fails() {
+        if which::which("gamescope").is_ok() {
+            return;
+        }
+        let gs = GameSettings {
+            gamescope: irori_core::GamescopeSettings {
+                enabled: Some(true),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let err = wrapper_parts(&gs).await.unwrap_err();
+        assert!(err.to_string().contains("gamescope"));
     }
 
     #[test]

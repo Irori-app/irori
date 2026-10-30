@@ -38,8 +38,8 @@ use crate::registry::{
 };
 use crate::saves::SaveSyncPanel;
 use crate::value::{
-    effective_overrides, get_path, override_key, plan_game_write, remove_row, split_assignment,
-    text_to_value, upsert_row, validate_discord_client_id, validate_env_key,
+    bool_at, effective_overrides, get_path, override_key, plan_game_write, remove_row,
+    split_assignment, text_to_value, upsert_row, validate_discord_client_id, validate_env_key,
     validate_launcher_args, value_to_text, with_path,
 };
 use crate::widgets::{
@@ -163,6 +163,9 @@ pub struct SettingsForm {
     /// move, mostly with an unchanged value.
     slider_seen: HashMap<&'static str, f32>,
     wine: Option<WinePicker>,
+    /// Release tags offered by each version picker, once loaded.
+    tool_versions: HashMap<&'static str, Vec<String>>,
+    tool_versions_requested: bool,
     errors: HashMap<&'static str, SharedString>,
     filter: FormFilter,
     busy: HashSet<ActionKind>,
@@ -216,6 +219,8 @@ impl SettingsForm {
             slider_writes: HashMap::new(),
             slider_seen: HashMap::new(),
             wine: None,
+            tool_versions: HashMap::new(),
+            tool_versions_requested: false,
             errors: HashMap::new(),
             filter: FormFilter::Sections(sections),
             busy: HashSet::new(),
@@ -282,6 +287,7 @@ impl SettingsForm {
 
     /// Load the Wine/Proton builds for the version picker (once).
     pub fn load_wine_versions(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.load_tool_versions(window, cx);
         let Some(wine) = &mut self.wine else { return };
         if wine.loading || wine.builds.is_some() {
             return;
@@ -305,6 +311,60 @@ impl SettingsForm {
         })
         .detach();
         cx.notify();
+    }
+
+    /// Load the releases for the DXVK and VKD3D-Proton pickers (once).
+    fn load_tool_versions(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if std::mem::replace(&mut self.tool_versions_requested, true) {
+            return;
+        }
+        for spec in self.fields.clone() {
+            let FieldKind::Custom(CustomKind::ToolVersion(tool)) = spec.kind else {
+                continue;
+            };
+            let path = spec.path;
+            let task = irori_ui::run(cx, irori_runtime::tools::tool_versions(tool));
+            cx.spawn_in(window, async move |this, cx| {
+                let result = task.await;
+                this.update_in(cx, |this, window, cx| {
+                    match result {
+                        Ok(tags) => {
+                            this.tool_versions.insert(path, tags);
+                        }
+                        Err(e) => {
+                            this.errors.insert(path, format!("{e:#}").into());
+                        }
+                    }
+                    let items = this.tool_version_items(path);
+                    let current: SharedString = value_to_text(this.value(path)).into();
+                    if let Some(state) = this.choices.get(path) {
+                        state.update(cx, |s, cx| {
+                            s.set_items(items, window, cx);
+                            s.set_selected_value(&current, window, cx);
+                        });
+                    }
+                    cx.notify();
+                })
+                .ok();
+            })
+            .detach();
+        }
+    }
+
+    /// "Latest", the loaded releases, and the stored version even when it
+    /// isn't among them (offline, or an older release than the list reaches).
+    fn tool_version_items(&self, path: &str) -> Vec<ChoiceItem> {
+        let current = value_to_text(self.value(path));
+        let tags = self.tool_versions.get(path).map_or(&[][..], Vec::as_slice);
+        let mut items = vec![ChoiceItem::new("", t("settings.tool_version.latest"))];
+        if !current.is_empty() && !tags.contains(&current) {
+            items.push(ChoiceItem::new(current.clone(), current));
+        }
+        items.extend(
+            tags.iter()
+                .map(|tag| ChoiceItem::new(tag.clone(), tag.clone())),
+        );
+        items
     }
 
     /// Reset every override of the game target.
@@ -377,7 +437,7 @@ impl SettingsForm {
     }
 
     fn bool_value(&self, path: &str) -> bool {
-        self.value(path).and_then(Value::as_bool).unwrap_or(false)
+        bool_at(&self.snapshot, path)
     }
 
     /// Whether this field differs from the global default (game target).
@@ -584,6 +644,23 @@ impl SettingsForm {
                     },
                 );
             }
+            CustomKind::ToolVersion(_) => {
+                let items = self.tool_version_items(spec.path);
+                let state = cx.new(|cx| {
+                    SelectState::new(items, Some(IndexPath::default()), window, cx).searchable(true)
+                });
+                let path = spec.path;
+                self._subscriptions.push(cx.subscribe_in(
+                    &state,
+                    window,
+                    move |this, _, event: &SelectEvent<Vec<ChoiceItem>>, window, cx| {
+                        if let SelectEvent::Confirm(Some(tag)) = event {
+                            this.write(path, Value::String(tag.to_string()), window, cx);
+                        }
+                    },
+                ));
+                self.choices.insert(spec.path, state);
+            }
             CustomKind::ThemeName => {
                 let items = theme_items(cx);
                 let current = value_to_text(self.value(spec.path));
@@ -713,6 +790,9 @@ impl SettingsForm {
             let items = match registry::find(path).map(|f| f.kind) {
                 Some(FieldKind::Choice(options)) => choice_items(options),
                 Some(FieldKind::Custom(CustomKind::ThemeName)) => theme_items(cx),
+                Some(FieldKind::Custom(CustomKind::ToolVersion(_))) => {
+                    self.tool_version_items(path)
+                }
                 _ => continue,
             };
             state.update(cx, |s, cx| s.set_items(items, window, cx));
@@ -1476,6 +1556,14 @@ impl SettingsForm {
                     .w_64()
                     .into_any_element()
             }
+            CustomKind::ToolVersion(_) => match self.choices.get(path) {
+                Some(state) => Select::new(state)
+                    .id(path)
+                    .accessibility_label(spec.label_text())
+                    .w_64()
+                    .into_any_element(),
+                None => div().into_any_element(),
+            },
             CustomKind::ThemeName => match self.choices.get(path) {
                 Some(state) => Select::new(state)
                     .id("field-themeName")

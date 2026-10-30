@@ -160,9 +160,28 @@ fn stop(id: GameId, failed: SharedString, window: &mut Window, cx: &mut App) {
         .detach();
 }
 
+/// The game whose log to open now: one that just started, when the setting
+/// asks for it. `shown` is the game seen playing the last time.
+pub fn log_to_open(
+    enabled: bool,
+    playing: Option<&GameId>,
+    shown: Option<&GameId>,
+) -> Option<GameId> {
+    playing.filter(|id| enabled && Some(*id) != shown).cloned()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opens_the_log_once_per_start() {
+        let game = GameId::new(irori_core::Runner::Gog, "a");
+        assert_eq!(log_to_open(true, Some(&game), None), Some(game.clone()));
+        assert_eq!(log_to_open(true, Some(&game), Some(&game)), None);
+        assert_eq!(log_to_open(false, Some(&game), None), None);
+        assert_eq!(log_to_open(true, None, Some(&game)), None);
+    }
 
     #[test]
     fn only_real_sessions_are_noted() {

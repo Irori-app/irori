@@ -667,6 +667,16 @@ impl GamePage {
                         .loading(self.pending.contains("stop"))
                         .on_click(cx.listener(|this, _, window, cx| this.run_primary(window, cx))),
                 )
+                .child(
+                    Button::new("running-log")
+                        .large()
+                        .ghost()
+                        .icon(IconName::ScrollText)
+                        .label(t("game.menu.open_log"))
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            crate::open_log_sheet(this.id.clone(), window, cx)
+                        })),
+                )
                 .into_any_element(),
             PrimaryAction::Launching => row
                 .child(
