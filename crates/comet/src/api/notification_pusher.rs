@@ -1,6 +1,7 @@
 use futures_util::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
 use protobuf::{Enum, Message, UnknownValueRef};
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::Sender;
 use tokio::time;
@@ -19,6 +20,20 @@ use crate::proto::{
     },
     gog_protocols_pb::Header,
 };
+
+lazy_static! {
+    static ref TLS_CONFIG: Arc<rustls::ClientConfig> = Arc::new({
+        let roots =
+            rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+        rustls::ClientConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .expect("ring supports the default TLS versions")
+        .with_root_certificates(roots)
+        .with_no_client_auth()
+    });
+}
 
 #[derive(Clone)]
 pub enum PusherEvent {
@@ -39,7 +54,7 @@ impl NotificationPusherClient {
         access_token: &String,
         topic_sender: Sender<PusherEvent>,
         shutdown_token: CancellationToken,
-    ) -> NotificationPusherClient {
+    ) -> Option<NotificationPusherClient> {
         debug!("Notification pusher init");
         let mut retries = 5;
         let ws_stream = loop {
@@ -60,28 +75,31 @@ impl NotificationPusherClient {
                         }
                         retries -= 1;
                     } else {
-                        panic!("Notification pusher init failed, {:?}", err);
+                        error!("Notification pusher init failed, {:?}", err);
+                        break None;
                     }
                 }
             }
         };
 
-        NotificationPusherClient {
-            pusher_connection: ws_stream.expect("Unable to get notification pusher connection"),
+        // None when the service stops while offline, which is not an error.
+        Some(NotificationPusherClient {
+            pusher_connection: ws_stream?,
             access_token: access_token.clone(),
             topic_sender,
             shutdown_token,
-        }
+        })
     }
 
     async fn init_connection(
         access_token: &String,
     ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Error> {
+        let tls_connector = tokio_tungstenite::Connector::Rustls(TLS_CONFIG.clone());
         let (mut ws_stream, _) = connect_async_tls_with_config(
             crate::constants::NOTIFICATIONS_PUSHER_SOCKET,
             None,
             false,
-            None,
+            Some(tls_connector),
         )
         .await?;
         info!("Connected to notifications-pusher");
@@ -188,8 +206,8 @@ impl NotificationPusherClient {
                             continue;
                         }
                     };
-                    let msg_type: i32 = parsed_message.header.type_().try_into().unwrap();
-                    let sort: i32 = parsed_message.header.sort().try_into().unwrap();
+                    let msg_type = parsed_message.header.type_() as i32;
+                    let sort = parsed_message.header.sort() as i32;
 
                     if sort != MessageSort::MESSAGE_SORT.value() {
                         warn!(
@@ -206,7 +224,7 @@ impl NotificationPusherClient {
                             .unknown_fields()
                             .get(101);
                         if let Some(UnknownValueRef::Varint(code)) = status_code {
-                            let code: i32 = code.try_into().unwrap();
+                            let code = code as i32;
                             if let Some(enum_code) = Status::from_i32(code)
                                 && enum_code == Status::OK
                             {
@@ -333,22 +351,46 @@ impl NotificationPusherClient {
     }
 
     pub fn parse_message(msg_data: &Vec<u8>) -> Result<ProtoPayload, protobuf::Error> {
+        let truncated = || std::io::Error::from(std::io::ErrorKind::UnexpectedEof);
         let data = msg_data.as_slice();
 
-        let mut header_size_buf = [0; 2];
-        header_size_buf.copy_from_slice(&data[..2]);
-        let header_size = u16::from_be_bytes(header_size_buf).into();
+        let (header_size, data) = data.split_first_chunk::<2>().ok_or_else(truncated)?;
+        let header_size = u16::from_be_bytes(*header_size).into();
 
-        let mut header_buf: Vec<u8> = vec![0; header_size];
-        header_buf.copy_from_slice(&data[2..header_size + 2]);
+        let (header_buf, payload) = data.split_at_checked(header_size).ok_or_else(truncated)?;
 
-        let header = Header::parse_from_bytes(&header_buf)?;
+        let header = Header::parse_from_bytes(header_buf)?;
 
-        let payload_size = header.size().try_into().unwrap();
-        let mut payload: Vec<u8> = vec![0; payload_size];
+        if payload.len() != header.size() as usize {
+            return Err(truncated().into());
+        }
 
-        payload.copy_from_slice(&data[header_size + 2..]);
+        Ok(ProtoPayload {
+            header,
+            payload: payload.to_vec(),
+        })
+    }
+}
 
-        Ok(ProtoPayload { header, payload })
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn broken_frames_are_errors() {
+        let mut header = Header::new();
+        header.set_sort(MessageSort::MESSAGE_SORT.value().try_into().unwrap());
+        header.set_type(MessageType::AUTH_REQUEST.value().try_into().unwrap());
+        header.set_size(4);
+        let header = header.write_to_bytes().unwrap();
+        let mut frame = (header.len() as u16).to_be_bytes().to_vec();
+        frame.extend(&header);
+
+        for broken in [vec![], vec![0], vec![0, 200, 1], frame.clone()] {
+            assert!(NotificationPusherClient::parse_message(&broken).is_err());
+        }
+        frame.extend([1, 2, 3, 4]);
+        let parsed = NotificationPusherClient::parse_message(&frame).unwrap();
+        assert_eq!(parsed.payload, [1, 2, 3, 4]);
     }
 }

@@ -1,5 +1,5 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "linux")]
 lazy_static! {
@@ -48,10 +48,20 @@ lazy_static! {
         PathBuf::from(env::var("HOME").unwrap()).join("Library/Caches/comet");
 }
 
+/// Tests stay away from the user's saves and settings, even when a check they
+/// exercise is broken.
+fn root(path: &Path) -> PathBuf {
+    if cfg!(test) {
+        env::temp_dir().join("comet-tests")
+    } else {
+        path.to_path_buf()
+    }
+}
+
 lazy_static! {
-    pub static ref GAMEPLAY_STORAGE: PathBuf = DATA_PATH.join("gameplay");
-    pub static ref REDISTS_STORAGE: PathBuf = DATA_PATH.join("redist");
-    pub static ref WORKAROUNDS: PathBuf = DATA_PATH.join("workarounds");
-    pub static ref CONFIG_FILE: PathBuf = CONFIG_PATH.join("config.toml");
+    pub static ref GAMEPLAY_STORAGE: PathBuf = root(&DATA_PATH).join("gameplay");
+    pub static ref REDISTS_STORAGE: PathBuf = root(&DATA_PATH).join("redist");
+    pub static ref WORKAROUNDS: PathBuf = root(&DATA_PATH).join("workarounds");
+    pub static ref CONFIG_FILE: PathBuf = root(&CONFIG_PATH).join("config.toml");
     pub static ref ACHIEVEMENT_ICONS: PathBuf = CACHE_PATH.join("achievements");
 }

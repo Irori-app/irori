@@ -1,6 +1,6 @@
 [package]
 name = "irori-gog-galaxy"
-description = "Hosts comet (GOG Galaxy communication service: overlay, achievements, stats) inside Irori"
+description = "Hosts comet (GOG Galaxy communication service: achievements, stats, leaderboards) inside Irori"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

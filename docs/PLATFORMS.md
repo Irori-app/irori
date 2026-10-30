@@ -181,7 +181,7 @@ saves and launches use that account. For a game several accounts own, the instal
 sheet asks which account installs it (the first one listed by default), and the
 library's account switcher shows one account's games while its store is shown. GOG's Galaxy service listens on one port, so while a game of one
 GOG account runs, a game of another GOG account started alongside it gets no Galaxy
-achievements or overlay.
+achievements. Galaxy's in-game overlay isn't available in Irori.
 
 On Linux a Steam game's menu offers Protontricks once Steam has made its Proton prefix
 (`steamapps/compatdata/<id>/pfx`). Irori runs `protontricks` from `PATH`, or the Flathub

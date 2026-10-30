@@ -22,7 +22,7 @@ pub async fn entry_point(
 ) -> Result<ProtoPayload, MessageHandlingError> {
     let header = &payload.header;
 
-    let message_type: i32 = header.type_().try_into().unwrap();
+    let message_type = header.type_() as i32;
 
     if message_type == MessageType::OVERLAY_FRONTEND_INIT_DATA_REQUEST.value() {
         overlay_data_request(payload, context, user_info, reqwest_client).await
@@ -226,15 +226,14 @@ async fn load_products(
     reqwest_client: &reqwest::Client,
 ) -> serde_json::Value {
     if let Some(arguments) = parsed_request.get("Arguments")
-        && let Some(ids) = arguments.get("ProductIds")
+        && let Some(ids) = arguments.get("ProductIds").and_then(|ids| ids.as_array())
     {
-        let ids = ids.as_array().unwrap();
         let mut products: Vec<serde_json::Value> = Vec::with_capacity(ids.len());
         for id in ids {
             if let Ok(res) = reqwest_client
                 .get(format!(
                     "https://api.gog.com/products/{}",
-                    id.as_str().unwrap()
+                    id.as_str().unwrap_or_default()
                 ))
                 .send()
                 .await

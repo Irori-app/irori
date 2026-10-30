@@ -7,7 +7,10 @@ mod overlay_service;
 pub mod utils;
 mod webbroker;
 
-use crate::{constants::TokenStorage, proto::common_utils::ProtoPayload};
+use crate::{
+    constants::{AllowedClients, TokenStorage},
+    proto::common_utils::ProtoPayload,
+};
 use error::*;
 use std::sync::Arc;
 
@@ -30,10 +33,22 @@ use tokio_util::sync::CancellationToken;
 
 use super::gog::overlay::OverlayPeerMessage;
 
+/// Which of the service's two doors a message came through.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Connection {
+    /// The TCP port, open to every local program.
+    Game,
+    /// The per-game pipe `Galaxy-{pid}-CommunicationService-Overlay`, the only way
+    /// the Galaxy overlay reaches the service (see docs/wiki/Overlay.md upstream).
+    Overlay,
+}
+
+#[allow(clippy::too_many_arguments)]
 pub async fn entry_point(
     mut socket: TcpStream,
     reqwest_client: Client,
     token_store: TokenStorage,
+    allowed_clients: AllowedClients,
     user_info: Arc<UserInfo>,
     mut topic_receiver: Receiver<PusherEvent>,
     overlay_event_sender: Sender<(u32, OverlayPeerMessage)>,
@@ -48,6 +63,7 @@ pub async fn entry_point(
     let context = Arc::new(HandlerContext::new(
         socket,
         token_store,
+        allowed_clients,
         overlay_event_sender,
     ));
     debug!("Awaiting messages");
@@ -70,7 +86,7 @@ pub async fn entry_point(
                             let reqwest_client = reqwest_clone.clone();
                             let user = user_clone.clone();
                             tokio::spawn(async move {
-                                match handle_message(&context, user, &reqwest_client, payload).await {
+                                match handle_message(&context, user, &reqwest_client, payload, Connection::Game).await {
                                     Ok(res) => {
                                         if let Err(err) = context.socket_write_mut().await.write_all(&res).await {
                                             error!("Failed to write response {err}");
@@ -236,7 +252,7 @@ pub async fn entry_point(
                         Ok(h_size) => {
                             let payload = utils::parse_payload(h_size, &mut current_socket).await;
                             let Ok(payload) = payload else { continue };
-                            match handle_message(&context_clone, user_clone.clone(), &reqwest_clone, payload).await {
+                            match handle_message(&context_clone, user_clone.clone(), &reqwest_clone, payload, Connection::Overlay).await {
                                 Ok(res) => {
                                     let _ = current_socket.write_all(&res).await;
                                 },
@@ -313,9 +329,20 @@ pub async fn handle_message(
     user_info: Arc<UserInfo>,
     reqwest_client: &Client,
     payload: ProtoPayload,
+    connection: Connection,
 ) -> Result<Vec<u8>, MessageHandlingError> {
     let sort = payload.header.sort();
     let type_ = payload.header.type_();
+
+    // The overlay's calls hand out the account's own token. It only ever uses
+    // the pipe, so a client asking for them on the open port is not the overlay.
+    if matches!(sort, 3 | 7) && connection != Connection::Overlay {
+        warn!("Refused overlay message {sort} {type_} from the port");
+        return Err(MessageHandlingError::unauthorized());
+    }
+    if sort == 6 && !context.client_identified().await {
+        return Err(MessageHandlingError::ignored());
+    }
 
     debug!("Parsing message {} {}", sort, type_);
     debug!("payload.payload = {:?}", payload.payload);
@@ -356,18 +383,31 @@ pub async fn handle_message(
     Ok(message_buffer)
 }
 
+#[cfg(test)]
+mod tests;
+
 // Sync new things after a cool down or when about to exit
 async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_info: Arc<UserInfo>) {
+    if let Err(err) = upload_changes(context, reqwest_client, user_info).await {
+        error!("Failed to sync with the local database {err:?}");
+    }
+}
+
+async fn upload_changes(
+    context: &HandlerContext,
+    reqwest_client: &Client,
+    user_info: Arc<UserInfo>,
+) -> Result<(), sqlx::Error> {
     // Make sure we are online
     if !context.is_online().await {
-        return;
+        return Ok(());
     }
     let mut token_store = context.token_store().lock().await;
     let Some(client_id) = &context.client_id().await else {
-        return;
+        return Ok(());
     };
     let Some(client_secret) = &context.client_secret().await else {
-        return;
+        return Ok(());
     };
     let current_token = token_store.get(client_id);
     if let Some(token) = current_token {
@@ -392,7 +432,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                         context.set_offline().await;
                     }
                     warn!("Failed to refresh the token for {} {:?}", client_id, err);
-                    return;
+                    return Ok(());
                 }
             }
         }
@@ -403,7 +443,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
     let updated_leaderboards = context.updated_leaderboards().await;
     // Is there anything to update?
     if !(updated_achievements || updated_stats || updated_leaderboards) {
-        return;
+        return Ok(());
     }
 
     if updated_achievements {
@@ -414,11 +454,8 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
             Ok(achs) => {
                 let achs = achs.into_inner();
                 let db = context.db_connection().await;
-                let mut connection = db
-                    .acquire()
-                    .await
-                    .expect("Failed to get database connection");
-                let mut transaction = connection.begin().await.unwrap();
+                let mut connection = db.acquire().await?;
+                let mut transaction = connection.begin().await?;
 
                 for achievement in achs.achievements {
                     debug!("Setting achievement {}", achievement.achievement_key());
@@ -433,12 +470,13 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                     match result {
                         Ok(()) => {
                             // Update local entry with changed to false
-                            let a_id: i64 = achievement.achievement_id().parse().unwrap();
+                            let a_id: i64 = achievement.achievement_id().parse().map_err(
+                                |err: std::num::ParseIntError| sqlx::Error::Decode(err.into()),
+                            )?;
                             sqlx::query("UPDATE achievement SET changed=0 WHERE id=$1")
                                 .bind(a_id)
                                 .execute(&mut *transaction)
-                                .await
-                                .expect("Failed to update changed status");
+                                .await?;
                         }
                         Err(err) => {
                             log::error!(
@@ -448,7 +486,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                         }
                     }
                 }
-                transaction.commit().await.expect("Failed to save changes");
+                transaction.commit().await?;
                 context.set_updated_achievements(false).await;
                 info!("Uploaded achievements");
             }
@@ -464,14 +502,8 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
             Ok(stats) => {
                 let stats = stats.into_inner();
                 let db = context.db_connection().await;
-                let mut connection = db
-                    .acquire()
-                    .await
-                    .expect("Failed to get database connection");
-                let mut transaction = connection
-                    .begin()
-                    .await
-                    .expect("Failed to start transaction");
+                let mut connection = db.acquire().await?;
+                let mut transaction = connection.begin().await?;
 
                 for stat in stats {
                     debug!("Setting stat {}", stat.stat_id());
@@ -486,19 +518,20 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                     match result {
                         Ok(()) => {
                             // Update local entry with changed to false
-                            let a_id: i64 = stat.stat_id().parse().unwrap();
+                            let a_id: i64 = stat.stat_id().parse().map_err(
+                                |err: std::num::ParseIntError| sqlx::Error::Decode(err.into()),
+                            )?;
                             sqlx::query("UPDATE statistic SET changed=0 WHERE id=$1")
                                 .bind(a_id)
                                 .execute(&mut *transaction)
-                                .await
-                                .expect("Failed to update changed status");
+                                .await?;
                         }
                         Err(err) => {
                             log::error!("Failed to upload statistic {} {err:?}", stat.stat_key());
                         }
                     }
                 }
-                transaction.commit().await.expect("Failed to save changes");
+                transaction.commit().await?;
                 context.set_updated_stats(false).await;
                 info!("Uploaded stats");
             }
@@ -513,16 +546,8 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
 
         match changed_leaderboards {
             Ok(entries) => {
-                let mut connection = context
-                    .db_connection()
-                    .await
-                    .acquire()
-                    .await
-                    .expect("Failed to get database connection");
-                let mut transaction = connection
-                    .begin()
-                    .await
-                    .expect("Failed to start transaction");
+                let mut connection = context.db_connection().await.acquire().await?;
+                let mut transaction = connection.begin().await?;
 
                 for (id, score, _rank, _entry_total_count, force, details) in entries {
                     let details = if details.is_empty() {
@@ -548,8 +573,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                             .bind(res.leaderboard_entry_total_count)
                             .bind(res.new_rank)
                             .execute(&mut *transaction)
-                            .await
-                            .expect("Failed to update leaderboard state");
+                            .await?;
                         }
                         Err(err) => {
                             warn!("More details {}", err);
@@ -572,8 +596,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                                     .bind(entry.score)
                                     .bind(entry.rank)
                                     .execute(&mut *transaction)
-                                    .await
-                                    .expect("Failed to set new score locally");
+                                    .await?;
                                         }
                                     }
                                     Err(err) => {
@@ -581,8 +604,7 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                                         sqlx::query("UPDATE leaderboard SET changed=0 WHERE id=$1")
                                             .bind(id)
                                             .execute(&mut *transaction)
-                                            .await
-                                            .expect("Failed to set new score locally");
+                                            .await?;
                                     }
                                 }
                             }
@@ -590,11 +612,12 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                     }
                 }
 
-                transaction.commit().await.expect("Failed to save changes");
+                transaction.commit().await?;
                 info!("Leaderboards synced");
                 context.set_updated_leaderboards(false).await;
             }
             Err(err) => error!("Failed to read local database {:?}", err),
         }
     }
+    Ok(())
 }

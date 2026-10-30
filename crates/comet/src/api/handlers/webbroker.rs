@@ -16,7 +16,7 @@ pub async fn entry_point(
     debug!("webbroker entry point called");
     let header = &payload.header;
 
-    let message_type: i32 = header.type_().try_into().unwrap();
+    let message_type = header.type_() as i32;
 
     if message_type == MessageType::SUBSCRIBE_TOPIC_REQUEST.value() {
         subscribe_topic_request(payload, context).await

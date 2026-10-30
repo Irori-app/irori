@@ -12,7 +12,7 @@ pub async fn entry_point(
 ) -> Result<ProtoPayload, MessageHandlingError> {
     let header = &payload.header;
 
-    let message_type: i32 = header.type_().try_into().unwrap();
+    let message_type = header.type_() as i32;
 
     if message_type == MessageType::SHOW_WEB_PAGE.value() {
         let _ = show_web_page(payload, context).await;

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::api::gog::overlay::OverlayPeerMessage;
-use crate::constants::TokenStorage;
+use crate::constants::{self, AllowedClients, TokenStorage};
 use crate::workarounds::{QuotedSplit, StatAchievementWorkaround};
 use crate::{db, paths};
 use derive_getters::Getters;
@@ -30,6 +30,8 @@ pub struct HandlerContext {
     socket_read: Mutex<OwnedReadHalf>,
     socket_write: Mutex<OwnedWriteHalf>,
     token_store: TokenStorage,
+    #[getter(skip)]
+    allowed_clients: AllowedClients,
     overlay_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
     #[getter(skip)]
     db_connection: Mutex<Option<SqlitePool>>,
@@ -43,6 +45,7 @@ impl HandlerContext {
     pub fn new(
         socket: TcpStream,
         token_store: TokenStorage,
+        allowed_clients: AllowedClients,
         achievement_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
     ) -> Self {
         let (socket_read, socket_write) = socket.into_split();
@@ -63,6 +66,7 @@ impl HandlerContext {
             socket_read: Mutex::new(socket_read),
             socket_write: Mutex::new(socket_write),
             token_store,
+            allowed_clients,
             overlay_sender: achievement_sender,
             db_connection: Mutex::new(None),
             progress_workarounds: Mutex::new(Vec::new()),
@@ -82,6 +86,15 @@ impl HandlerContext {
         self.socket_read.lock().await.read_u16().await
     }
 
+    /// Whether a client may exchange the account's login for a token: only a
+    /// game the host started. Galaxy's own client id is public and its token
+    /// is good for the whole account, so it never qualifies.
+    pub async fn may_sign_in(&self, client_id: &str) -> bool {
+        constants::is_client_id(client_id)
+            && client_id != constants::GALAXY_CLIENT_ID
+            && self.allowed_clients.lock().await.contains(client_id)
+    }
+
     pub async fn identify_client(&self, client_id: &str, client_secret: &str, pid: u32) {
         let mut state = self.state.lock().await;
         state.client_identified = true;
@@ -98,8 +111,11 @@ impl HandlerContext {
         self.state.lock().await.subscribed_topics.insert(topic);
     }
 
+    /// Topics carry the account's chat and presence: nothing is forwarded
+    /// before the client has signed in.
     pub async fn is_subscribed(&self, topic: &String) -> bool {
-        self.state.lock().await.subscribed_topics.contains(topic)
+        let state = self.state.lock().await;
+        state.client_identified && state.subscribed_topics.contains(topic)
     }
 
     pub async fn set_offline(&self) {
@@ -149,10 +165,7 @@ impl HandlerContext {
         if db_con.is_some() {
             return Ok(());
         }
-        let connection = db::gameplay::setup_connection(client_id, user_id).await?;
-        *db_con = Some(connection);
-
-        let pool = db_con.clone().unwrap();
+        let pool = db::gameplay::setup_connection(client_id, user_id).await?;
         let mut connection = pool.acquire().await?;
         sqlx::query(db::gameplay::SETUP_QUERY)
             .execute(&mut *connection)
@@ -164,12 +177,18 @@ impl HandlerContext {
             .execute(&mut *connection)
             .await;
 
+        *db_con = Some(pool);
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub async fn open_test_database(&self, pool: SqlitePool) {
+        *self.db_connection.lock().await = Some(pool);
     }
 
     pub async fn db_connection(&self) -> SqlitePool {
         let connection = self.db_connection.lock().await.clone();
-        connection.unwrap()
+        connection.expect("clients are identified after their database is open")
     }
 
     pub async fn client_id(&self) -> Option<String> {
@@ -209,6 +228,10 @@ impl HandlerContext {
     }
     pub async fn set_stats_refreshed(&self, refreshed: bool) {
         self.state.lock().await.stats_refreshed = refreshed;
+    }
+
+    pub async fn set_pid(&self, pid: u32) {
+        self.state.lock().await.pid = pid;
     }
 
     pub async fn get_pid(&self) -> u32 {

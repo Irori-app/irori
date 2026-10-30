@@ -13,7 +13,7 @@ pub async fn entry_point(
 ) -> Result<ProtoPayload, MessageHandlingError> {
     debug!("overlay <-> service entry point called");
     let header = &payload.header;
-    let message_type: i32 = header.type_().try_into().unwrap();
+    let message_type = header.type_() as i32;
 
     if message_type == MessageType::ACCESS_TOKEN_REQUEST.value() {
         access_token(payload, context).await
@@ -36,9 +36,9 @@ pub async fn achievement_notification(
     res_data.set_key(achievement.achievement_key);
     res_data.set_name(achievement.name);
     res_data.set_description(achievement.description);
-    res_data.set_achievement_id(achievement.achievement_id.parse().unwrap());
+    res_data.set_achievement_id(achievement.achievement_id.parse()?);
     if let Some(date) = achievement.date_unlocked {
-        let parsed_date: chrono::DateTime<Utc> = date.parse().unwrap();
+        let parsed_date: chrono::DateTime<Utc> = date.parse()?;
         let timestamp = parsed_date.timestamp() as u64;
         res_data.set_unlock_time(timestamp);
     }

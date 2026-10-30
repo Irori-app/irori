@@ -111,7 +111,7 @@ packaging/install.sh
 | `crates/store-*` | One store backend each: Epic, GOG, Amazon, ZOOM, itch.io, Steam, sideloaded apps |
 | `crates/depot` | Shared download engine: parallel chunked downloads, resume, verify/repair, delta updates |
 | `crates/epic`, `crates/gog`, `crates/amazon` | Store protocols (Rust ports of legendary, gogdl and nile) |
-| `crates/gog-galaxy` | GOG Galaxy communication service for games (comet, as a library) |
+| `crates/gog-galaxy`, `crates/comet` | GOG Galaxy communication service for games (a small fork of comet, as a library) |
 | `crates/extras` | Shortcuts, wiki/ProtonDB/anticheat info, SteamGridDB, Heroic import |
 | `crates/services` | Backend facade: library, settings, download queue, launching |
 | `crates/ui` | Shared UI layer: models, navigation, art pipeline, theme, components |
@@ -136,7 +136,7 @@ packaging/install.sh
 ## License
 
 MIT, see [LICENSE](LICENSE). Bundled community themes are from GPUI Kit (Apache-2.0),
-and the Galaxy service uses comet (Apache-2.0). The store protocol crates are Rust ports
+and the Galaxy service uses a fork of comet (Apache-2.0, `crates/comet`). The store protocol crates are Rust ports
 of the parts of legendary, gogdl and nile that Irori needs.
 
 ## Contributing

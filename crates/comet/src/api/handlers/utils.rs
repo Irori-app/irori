@@ -24,6 +24,10 @@ use crate::proto::galaxy_protocols_communication_service::{
 use crate::proto::gog_protocols_pb::Header;
 use crate::proto::{common_utils::ProtoPayload, gog_protocols_pb};
 
+/// Far beyond any real message. The size comes from whoever connected, and the
+/// buffer for it is allocated before the first byte of payload arrives.
+const MAX_PAYLOAD: usize = 16 * 1024 * 1024;
+
 pub async fn parse_payload<R: AsyncReadExt + Unpin>(
     h_size: u16,
     socket: &mut R,
@@ -35,7 +39,13 @@ pub async fn parse_payload<R: AsyncReadExt + Unpin>(
 
     let header = gog_protocols_pb::Header::parse_from_bytes(&buffer)?;
 
-    let size: usize = header.size().try_into().unwrap();
+    let size = header.size() as usize;
+    if size > MAX_PAYLOAD {
+        return Err(tokio::io::Error::new(
+            tokio::io::ErrorKind::InvalidData,
+            "message too large",
+        ));
+    }
     buffer.resize(size, 0);
     socket.read_exact(&mut buffer).await?;
     Ok(ProtoPayload {
@@ -84,7 +94,7 @@ where
 
         new_def.set_key(entry.key().clone());
         new_def.set_name(entry.name().clone());
-        new_def.set_leaderboard_id(entry.id().parse().unwrap());
+        new_def.set_leaderboard_id(entry.id().parse().unwrap_or_default());
         new_def.set_display_type(display_type);
         new_def.set_sort_method(sort_method);
 
@@ -141,7 +151,7 @@ where
             data.leaderboard_entries
                 .extend(results.items.iter().map(|item| {
                     let mut new_entry = LeaderboardEntry::new();
-                    let user_id: u64 = item.user_id.parse().unwrap();
+                    let user_id: u64 = item.user_id.parse().unwrap_or_default();
                     let user_id = IDType::User(user_id);
                     new_entry.set_user_id(user_id.value());
                     new_entry.set_score(item.score);
@@ -168,7 +178,7 @@ where
             warn!("Leaderboards request error: {}", err);
             if let MessageHandlingErrorKind::Network(err) = err.kind
                 && err.is_status()
-                && err.status().unwrap() == reqwest::StatusCode::NOT_FOUND
+                && err.status() == Some(reqwest::StatusCode::NOT_FOUND)
             {
                 header
                     .mut_special_fields()
@@ -194,13 +204,17 @@ pub async fn unlock_achievement(
         achievement.name()
     );
 
-    db::gameplay::set_achievement(
-        context,
-        achievement.achievement_id().parse().unwrap(),
-        achievement.date_unlocked.clone(),
-    )
-    .await
-    .expect("Failed to write achievement to database");
+    let Ok(achievement_id) = achievement.achievement_id().parse() else {
+        log::error!("Invalid achievement id {}", achievement.achievement_id());
+        return;
+    };
+    if let Err(err) =
+        db::gameplay::set_achievement(context, achievement_id, achievement.date_unlocked.clone())
+            .await
+    {
+        log::error!("Failed to write achievement to database {err}");
+        return;
+    }
 
     context.set_updated_achievements(true).await;
     let pid = context.get_pid().await;
@@ -224,7 +238,9 @@ pub fn send_custom_events(
         client_id,
         data: achievement,
     };
-    let body = serde_json::to_string(&event).unwrap();
+    let Ok(body) = serde_json::to_string(&event) else {
+        return;
+    };
     for cfg in crate::CONFIG.custom_event.iter().filter(|e| e.enabled) {
         let url = cfg.url.clone();
         let reqwest_client = reqwest_client.clone();

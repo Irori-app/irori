@@ -3,9 +3,9 @@ use crate::api::gog::leaderboards::LeaderboardDefinition;
 use crate::api::gog::stats::{FieldValue, Stat};
 use crate::api::handlers::context::HandlerContext;
 use crate::api::structs::{AchievementData, DataSource};
-use crate::paths;
+use crate::{constants, paths};
 use log::info;
-use sqlx::sqlite::SqliteRow;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteRow};
 use sqlx::{Acquire, Error, Row, SqlitePool};
 
 pub const SETUP_QUERY: &str = r#"
@@ -22,20 +22,23 @@ CREATE TABLE IF NOT EXISTS `database_info` (`key` TEXT PRIMARY KEY NOT NULL,`val
 "#;
 
 pub async fn setup_connection(client_id: &str, user_id: &str) -> Result<SqlitePool, Error> {
+    if !constants::is_client_id(client_id) || !constants::is_client_id(user_id) {
+        return Err(Error::Protocol(format!(
+            "Invalid ids for a gameplay database: {client_id:?}, {user_id:?}"
+        )));
+    }
     let databases_path = paths::GAMEPLAY_STORAGE.join(client_id).join(user_id);
     let database_file = databases_path.join("gameplay.db");
     if !databases_path.exists() {
         let _ = tokio::fs::create_dir_all(&databases_path).await;
     }
 
-    if !database_file.exists() {
-        let _ = tokio::fs::File::create(&database_file).await;
-    }
-
     info!("Setting up database at {:?}", database_file);
-    let url = String::from("sqlite:") + database_file.to_str().unwrap();
+    let options = SqliteConnectOptions::new()
+        .filename(database_file)
+        .create_if_missing(true);
 
-    SqlitePool::connect(&url).await
+    SqlitePool::connect_with(options).await
 }
 
 pub async fn has_statistics(database: &SqlitePool) -> bool {
@@ -54,7 +57,7 @@ pub async fn has_statistics(database: &SqlitePool) -> bool {
                 .try_get("value")
                 .unwrap_or("0")
                 .parse::<u8>()
-                .unwrap();
+                .unwrap_or(0);
             !result.is_empty() && value != 0
         }
         Err(_) => false,
@@ -92,42 +95,44 @@ pub async fn get_statistics(
     .await?;
 
     for int_stat in int_stats {
-        let id: i64 = int_stat.try_get("id").unwrap();
-        let key: String = int_stat.try_get("key").unwrap();
-        let increment_only: u8 = int_stat.try_get("increment_only").unwrap();
+        let id: i64 = int_stat.try_get("id")?;
+        let key: String = int_stat.try_get("key")?;
+        let increment_only: u8 = int_stat.try_get("increment_only")?;
         let values = FieldValue::Int {
-            value: int_stat.try_get("value").unwrap(),
-            default_value: int_stat.try_get("default_value").unwrap(),
-            min_value: int_stat.try_get("min_value").unwrap(),
-            max_value: int_stat.try_get("max_value").unwrap(),
-            max_change: int_stat.try_get("max_change").unwrap(),
+            value: int_stat.try_get("value")?,
+            default_value: int_stat.try_get("default_value")?,
+            min_value: int_stat.try_get("min_value")?,
+            max_value: int_stat.try_get("max_value")?,
+            max_change: int_stat.try_get("max_change")?,
         };
         let new_stat = Stat::new(id.to_string(), key, None, increment_only == 1, values);
         stats.push(new_stat)
     }
 
     for float_stat in float_stats {
-        let id: i64 = float_stat.try_get("id").unwrap();
-        let key: String = float_stat.try_get("key").unwrap();
-        let increment_only: u8 = float_stat.try_get("increment_only").unwrap();
-        let window: Option<f64> = float_stat.try_get("window").unwrap();
-        let value_type: String = float_stat.try_get("type").unwrap();
+        let id: i64 = float_stat.try_get("id")?;
+        let key: String = float_stat.try_get("key")?;
+        let increment_only: u8 = float_stat.try_get("increment_only")?;
+        let window: Option<f64> = float_stat.try_get("window")?;
+        let value_type: String = float_stat.try_get("type")?;
         let values: FieldValue = match value_type.as_str() {
             "FLOAT" => FieldValue::Float {
-                value: float_stat.try_get("value").unwrap(),
-                default_value: float_stat.try_get("default_value").unwrap(),
-                min_value: float_stat.try_get("min_value").unwrap(),
-                max_value: float_stat.try_get("max_value").unwrap(),
-                max_change: float_stat.try_get("max_change").unwrap(),
+                value: float_stat.try_get("value")?,
+                default_value: float_stat.try_get("default_value")?,
+                min_value: float_stat.try_get("min_value")?,
+                max_value: float_stat.try_get("max_value")?,
+                max_change: float_stat.try_get("max_change")?,
             },
             "AVGRATE" => FieldValue::Avgrate {
-                value: float_stat.try_get("value").unwrap(),
-                default_value: float_stat.try_get("default_value").unwrap(),
-                min_value: float_stat.try_get("min_value").unwrap(),
-                max_value: float_stat.try_get("max_value").unwrap(),
-                max_change: float_stat.try_get("max_change").unwrap(),
+                value: float_stat.try_get("value")?,
+                default_value: float_stat.try_get("default_value")?,
+                min_value: float_stat.try_get("min_value")?,
+                max_value: float_stat.try_get("max_value")?,
+                max_change: float_stat.try_get("max_change")?,
             },
-            _ => panic!("Unsupported value type"),
+            other => {
+                return Err(Error::Protocol(format!("Unsupported value type {other}")));
+            }
         };
         let new_stat = Stat::new(id.to_string(), key, window, increment_only == 1, values);
         stats.push(new_stat)
@@ -141,7 +146,10 @@ pub async fn set_statistics(database: SqlitePool, stats: &Vec<Stat>) -> Result<(
     let mut transaction = connection.begin().await?;
 
     for stat in stats {
-        let stat_id = stat.stat_id().parse::<i64>().unwrap();
+        let stat_id = stat
+            .stat_id()
+            .parse::<i64>()
+            .map_err(|err| Error::Decode(err.into()))?;
         let stat_type = match stat.values() {
             FieldValue::Int { .. } => "INT",
             FieldValue::Float { .. } => "FLOAT",
@@ -295,29 +303,29 @@ pub async fn has_achievements(database: &SqlitePool) -> bool {
                 .try_get("value")
                 .unwrap_or("0")
                 .parse::<u8>()
-                .unwrap();
+                .unwrap_or(0);
             !result.is_empty() && value != 0
         }
         Err(_) => false,
     }
 }
 
-fn achievement_from_database_row(row: SqliteRow) -> Achievement {
-    let visible: u8 = row.try_get("visible_while_locked").unwrap();
-    let achievement_id: i64 = row.try_get("id").unwrap();
-    Achievement::new(
+fn achievement_from_database_row(row: SqliteRow) -> Result<Achievement, Error> {
+    let visible: u8 = row.try_get("visible_while_locked")?;
+    let achievement_id: i64 = row.try_get("id")?;
+    Ok(Achievement::new(
         achievement_id.to_string(),
-        row.try_get("key").unwrap(),
-        row.try_get("name").unwrap(),
-        row.try_get("description").unwrap(),
-        row.try_get("image_url_locked").unwrap(),
-        row.try_get("image_url_unlocked").unwrap(),
+        row.try_get("key")?,
+        row.try_get("name")?,
+        row.try_get("description")?,
+        row.try_get("image_url_locked")?,
+        row.try_get("image_url_unlocked")?,
         visible == 1,
-        row.try_get("unlock_time").unwrap(),
-        row.try_get("rarity").unwrap(),
-        row.try_get("rarity_level_description").unwrap(),
-        row.try_get("rarity_level_slug").unwrap(),
-    )
+        row.try_get("unlock_time")?,
+        row.try_get("rarity")?,
+        row.try_get("rarity_level_description")?,
+        row.try_get("rarity_level_slug")?,
+    ))
 }
 
 pub async fn get_achievements(
@@ -345,7 +353,7 @@ pub async fn get_achievements(
     .await?;
 
     for row in db_achievements {
-        let new_achievement = achievement_from_database_row(row);
+        let new_achievement = achievement_from_database_row(row)?;
         achievements.push(new_achievement);
     }
 
@@ -364,7 +372,10 @@ pub async fn set_achievements(
     let mut transaction = connection.begin().await?;
 
     for achievement in achievements {
-        let achievement_id = achievement.achievement_id().parse::<i64>().unwrap();
+        let achievement_id = achievement
+            .achievement_id()
+            .parse::<i64>()
+            .map_err(|err| Error::Decode(err.into()))?;
 
         sqlx::query(
             "INSERT INTO achievement VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, $11)
@@ -428,7 +439,7 @@ pub async fn get_achievement(
     .fetch_one(&mut *connection)
     .await?;
 
-    Ok(achievement_from_database_row(result))
+    achievement_from_database_row(result)
 }
 
 pub async fn get_achievement_by_key(
@@ -448,7 +459,7 @@ pub async fn get_achievement_by_key(
     .fetch_one(&mut *connection)
     .await?;
 
-    Ok(achievement_from_database_row(result))
+    achievement_from_database_row(result)
 }
 
 pub async fn set_achievement(
@@ -516,12 +527,12 @@ pub async fn update_leaderboards(
     Ok(())
 }
 
-fn row_to_leaderboard_def(row: &SqliteRow) -> LeaderboardDefinition {
-    let id: i64 = row.try_get("id").unwrap();
-    let key: String = row.try_get("key").unwrap();
-    let name: String = row.try_get("name").unwrap();
-    let sort_method: String = row.try_get("sort_method").unwrap();
-    let display_type: String = row.try_get("display_type").unwrap();
+fn row_to_leaderboard_def(row: &SqliteRow) -> Result<LeaderboardDefinition, Error> {
+    let id: i64 = row.try_get("id")?;
+    let key: String = row.try_get("key")?;
+    let name: String = row.try_get("name")?;
+    let sort_method: String = row.try_get("sort_method")?;
+    let display_type: String = row.try_get("display_type")?;
 
     let sort_method = match sort_method.as_str() {
         "SORT_METHOD_DESCENDING" => "desc",
@@ -534,7 +545,13 @@ fn row_to_leaderboard_def(row: &SqliteRow) -> LeaderboardDefinition {
         _ => "numeric",
     }
     .to_string();
-    LeaderboardDefinition::new(id.to_string(), key, name, sort_method, display_type)
+    Ok(LeaderboardDefinition::new(
+        id.to_string(),
+        key,
+        name,
+        sort_method,
+        display_type,
+    ))
 }
 
 pub async fn get_leaderboards_defs<I, K, V>(
@@ -551,7 +568,11 @@ where
         .fetch_all(&mut *connection)
         .await?;
 
-    let leaderboards = data.iter().map(row_to_leaderboard_def);
+    let leaderboards = data
+        .iter()
+        .map(row_to_leaderboard_def)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter();
     if let Some((_, value)) = params.into_iter().find(|(k, _v)| k.as_ref() == "keys") {
         let value = value.to_string();
         let ids: Vec<&str> = value.split(',').collect();
@@ -572,12 +593,12 @@ pub async fn get_leaderboards_score_changed(
                 .await?;
 
     for row in rows {
-        let id: i64 = row.try_get("id").unwrap();
-        let score: i32 = row.try_get("score").unwrap();
-        let rank: u32 = row.try_get("rank").unwrap();
-        let entry_total_count: u32 = row.try_get("entry_total_count").unwrap();
-        let force: bool = row.try_get("force_update").unwrap();
-        let details: String = row.try_get("details").unwrap();
+        let id: i64 = row.try_get("id")?;
+        let score: i32 = row.try_get("score")?;
+        let rank: u32 = row.try_get("rank")?;
+        let entry_total_count: u32 = row.try_get("entry_total_count")?;
+        let force: bool = row.try_get("force_update")?;
+        let details: String = row.try_get("details")?;
         leaderboards.push((id, score, rank, entry_total_count, force, details))
     }
 
@@ -594,11 +615,11 @@ pub async fn get_leaderboard_score(
             .bind(leaderboard_id)
             .fetch_one(&mut *connection)
             .await?;
-    let score: i32 = row.try_get("score").unwrap();
-    let rank: u32 = row.try_get("rank").unwrap();
-    let entry_total_count: u32 = row.try_get("entry_total_count").unwrap();
-    let force: bool = row.try_get("force_update").unwrap();
-    let details: String = row.try_get("details").unwrap();
+    let score: i32 = row.try_get("score")?;
+    let rank: u32 = row.try_get("rank")?;
+    let entry_total_count: u32 = row.try_get("entry_total_count")?;
+    let force: bool = row.try_get("force_update")?;
+    let details: String = row.try_get("details")?;
     Ok((score, rank, entry_total_count, force, details))
 }
 

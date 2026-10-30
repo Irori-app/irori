@@ -45,7 +45,8 @@ Wine, Proton or umu, and on macOS through Wine, CrossOver or Game Porting Toolki
   process, renders on the GPU, uses no CPU when idle, keeps memory bounded, and
   virtualizes every long list.
 - License: MIT. Bundled themes are from GPUI Kit (Apache-2.0). The
-  vendored `crates/webview` is Apache-2.0 and keeps its own `LICENSE-APACHE`.
+  vendored `crates/webview` and `crates/comet` are Apache-2.0 and keep their own
+  `LICENSE-APACHE`.
 
 ## 2. Commands
 
@@ -130,7 +131,8 @@ Directory names and package names differ. Use the package name with `-p`.
 | `crates/amazon` | `irori-amazon-api` | Amazon Games protocol (port of nile): device sign-in, library, signed manifests |
 | `crates/itch` | `irori-itch-api` | itch.io protocol (its public API): API-key login, owned keys, uploads, download links |
 | `crates/steam` | `irori-steam-api` | Steam Web API: login (QR, password and Steam Guard, tokens), owned and Family games, store art and pages |
-| `crates/gog-galaxy` | `irori-gog-galaxy` | Hosts comet (Galaxy service for games: overlay, achievements) on `127.0.0.1:9977` |
+| `crates/gog-galaxy` | `irori-gog-galaxy` | Hosts comet (Galaxy service for games: achievements, stats, leaderboards) on `127.0.0.1:9977` for the games Irori started |
+| `crates/comet` | `comet` | Small fork of comet, vendored so Irori can fix it; its README lists every difference from upstream |
 | `crates/store-epic` | `irori-epic` | Epic `Store` (`Runner::Legendary`) |
 | `crates/store-gog` | `irori-gog` | GOG `Store` |
 | `crates/store-amazon` | `irori-amazon` | Amazon `Store` (`Runner::Nile`) |
@@ -1122,6 +1124,9 @@ These are things that have bitten this codebase before:
 - **`Paths::init` only works once per process.** In tests, initialize once (for
   example in a `Once`) and give each test its own subdirectory.
 - **Never enable `gpui-kit/test-support`** (see [8](#8-tests)).
+- **Port 9977 is open to every local program.** comet panics abort all of Irori, and a
+  client may be anything: gate new handlers on sign-in, turn bad input into an error,
+  and never let the account's own token out.
 - **Never add a web engine to Irori's window.** `crates/webview` is vendored but
   excluded and unused. Sign-in runs in its own process.
 - **WebKitGTK must stay optional on Linux.** Linking it into `irori` would stop Irori

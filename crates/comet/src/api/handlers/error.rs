@@ -3,6 +3,7 @@ pub enum MessageHandlingErrorKind {
     NotImplemented,
     Ignored,
     Unauthorized,
+    Invalid,
     IO(tokio::io::Error),
     DB(sqlx::Error),
     Network(reqwest::Error),
@@ -37,6 +38,12 @@ impl MessageHandlingError {
     pub fn unauthorized() -> MessageHandlingError {
         MessageHandlingError {
             kind: MessageHandlingErrorKind::Unauthorized,
+        }
+    }
+
+    pub fn invalid() -> MessageHandlingError {
+        MessageHandlingError {
+            kind: MessageHandlingErrorKind::Invalid,
         }
     }
 

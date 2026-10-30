@@ -2,7 +2,7 @@
 //!
 //! Downloads, updates and repairs use [`irori_gog_api`] and the
 //! [`irori_depot`] engine; cloud saves talk to GOG's cloud storage; the
-//! Galaxy communication service games use for achievements and the overlay
+//! Galaxy communication service games use for achievements and statistics
 //! runs in-process ([`irori_gog_galaxy`]). Authentication, the catalogue
 //! (Galaxy library + GamesDB), update checks, playtime, presence and
 //! achievements talk to GOG's web APIs directly.
