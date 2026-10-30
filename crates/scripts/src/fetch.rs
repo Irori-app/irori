@@ -162,18 +162,18 @@ pub(crate) async fn download(
     cancel: &CancellationToken,
     progress: &ProgressFn,
 ) -> Result<PathBuf> {
+    let rel = format!("{id}/{name}");
+    if !irori_depot::path::normalize(&rel).is_ok_and(|n| n == rel) {
+        anyhow::bail!("“{rel}” is not a safe place for a download");
+    }
     let dest = cache_dir.join(id).join(name);
     if tokio::fs::metadata(&dest).await.is_ok_and(|m| m.is_file()) {
         return Ok(dest);
     }
     let client = client_for(referer)?;
     let size = remote_size(&client, url).await;
-    let rel = format!("{id}/{name}");
-    let normalised = irori_depot::path::normalize(&rel)
-        .ok()
-        .filter(|n| *n == rel);
-    match (size, normalised) {
-        (Some(size), Some(rel)) => {
+    match size {
+        Some(size) => {
             let file_id = id.to_string();
             let report = progress.clone();
             let depot_progress: irori_depot::ProgressFn = Arc::new(move |p| {
@@ -208,7 +208,7 @@ pub(crate) async fn download(
                 return Err(Cancelled.into());
             }
         }
-        _ => stream(&client, id, url, &dest, cancel, progress).await?,
+        None => stream(&client, id, url, &dest, cancel, progress).await?,
     }
     Ok(dest)
 }

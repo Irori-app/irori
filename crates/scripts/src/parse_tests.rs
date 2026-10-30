@@ -373,3 +373,59 @@ fn consent_lists_everything_that_needs_approval() {
     );
     assert_eq!(c.outside_writes[0].step, Some(1));
 }
+
+// ----- Sandbox and consent regressions -----
+
+fn linux_script(files: &str, game: &str, steps: &str) -> String {
+    format!(
+        "name: T\ngame_slug: t\nversion: V\nslug: t-v\nrunner: linux\nscript:\n{files}  game:\n{game}  installer:\n{steps}"
+    )
+}
+
+#[test]
+fn a_file_id_cannot_leave_the_cache() {
+    for id in ["../../../.config/autostart", "/etc/x", "a/b", ".."] {
+        let text = linux_script(
+            &format!("  files:\n  - \"{id}\": {{url: https://example.org/x, filename: x}}\n"),
+            "    exe: x\n",
+            "  - mkdir: $GAMEDIR/a\n",
+        );
+        assert!(Script::parse(&text).is_err(), "{id}");
+    }
+}
+
+#[test]
+fn consent_shows_what_play_starts_and_every_variable() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ctx = ctx(tmp.path());
+    let text = format!(
+        "{}  system:\n    env:\n      LD_PRELOAD: /x.so\n",
+        linux_script(
+            "",
+            "    exe: run.sh\n    args: --fast\n",
+            "  - execute: {command: echo hi, env: {PATH: /evil}}\n",
+        )
+    );
+    let c = consent(&Script::parse(&text).unwrap(), &ctx);
+    let game = c.game.unwrap();
+    assert!(game.program.ends_with("run.sh") || game.program == "run.sh");
+    assert_eq!(game.args, "--fast");
+    assert!(
+        c.env
+            .iter()
+            .any(|e| e.key == "LD_PRELOAD" && e.step.is_none())
+    );
+    assert!(c.env.iter().any(|e| e.key == "PATH" && e.step == Some(1)));
+}
+
+#[test]
+fn running_an_interpreter_needs_the_shell_acknowledgement() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ctx = ctx(tmp.path());
+    let text = linux_script(
+        "",
+        "    exe: run.sh\n",
+        "  - execute: {file: /bin/sh, args: -c 'curl x|sh'}\n",
+    );
+    assert!(consent(&Script::parse(&text).unwrap(), &ctx).needs_shell_ack());
+}

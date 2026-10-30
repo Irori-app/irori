@@ -101,6 +101,52 @@ pub struct AutosetupUse {
     pub id: String,
 }
 
+/// What Play starts once the game is installed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GamePlan {
+    pub program: String,
+    pub args: String,
+}
+
+/// An environment variable the script sets. `step` is `None` for the
+/// `system` section, which also stays in the game's settings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnvUse {
+    pub step: Option<usize>,
+    pub key: String,
+    pub value: String,
+}
+
+/// Programs whose arguments are code: running one is a shell command.
+const INTERPRETERS: &[&str] = &[
+    "sh",
+    "bash",
+    "dash",
+    "zsh",
+    "fish",
+    "ksh",
+    "csh",
+    "tcsh",
+    "busybox",
+    "env",
+    "python",
+    "python2",
+    "python3",
+    "perl",
+    "ruby",
+    "lua",
+    "node",
+    "cmd",
+    "powershell",
+    "pwsh",
+];
+
+fn is_interpreter(program: &str) -> bool {
+    let name = program.rsplit(['/', '\\']).next().unwrap_or(program);
+    let name = name.to_ascii_lowercase();
+    INTERPRETERS.contains(&name.strip_suffix(".exe").unwrap_or(&name))
+}
+
 /// What the consent screen lists.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Consent {
@@ -113,6 +159,8 @@ pub struct Consent {
     pub registry: Vec<RegistryEdit>,
     pub winetricks: Vec<WinetricksUse>,
     pub autosetups: Vec<AutosetupUse>,
+    pub game: Option<GamePlan>,
+    pub env: Vec<EnvUse>,
 }
 
 impl Consent {
@@ -124,8 +172,37 @@ impl Consent {
     /// Fill in download sizes the script does not state by asking each
     /// server (HEAD requests).
     pub async fn probe_sizes(&mut self) {
-        for d in self.downloads.iter_mut().filter(|d| d.size.is_none()) {
+        // Before consent: a script must not reach into the user's network.
+        for d in self
+            .downloads
+            .iter_mut()
+            .filter(|d| d.size.is_none() && is_public_host(&d.host))
+        {
             d.size = crate::fetch::probe_size(&d.url, None).await;
+        }
+    }
+}
+
+fn is_public_host(host: &str) -> bool {
+    let host = host.trim_matches(['[', ']']).to_ascii_lowercase();
+    match host.parse::<std::net::IpAddr>() {
+        Ok(std::net::IpAddr::V4(ip)) => {
+            !(ip.is_private() || ip.is_loopback() || ip.is_link_local() || ip.is_unspecified())
+        }
+        Ok(std::net::IpAddr::V6(ip)) => {
+            let first = ip.segments()[0];
+            !(ip.is_loopback()
+                || ip.is_unspecified()
+                || first & 0xfe00 == 0xfc00
+                || first & 0xffc0 == 0xfe80
+                || ip.to_ipv4_mapped().is_some())
+        }
+        Err(_) => {
+            !host.is_empty()
+                && host != "localhost"
+                && !host.ends_with(".localhost")
+                && !host.ends_with(".local")
+                && host.contains('.')
         }
     }
 }
@@ -328,8 +405,10 @@ pub fn consent(script: &Script, ctx: &Context) -> Consent {
             Command::Extract(e) => write(e.dst.as_deref().unwrap_or("$GAMEDIR")),
             Command::Merge(cp) | Command::Copy(cp) => {
                 write(&cp.dst);
-                if cp.remove_source {
-                    write(&cp.src);
+                if cp.remove_source
+                    && let Some(w) = p.outside(Some(n), "delete", &cp.src)
+                {
+                    c.outside_writes.push(w);
                 }
             }
             Command::Move(m) => write(&m.dst),
@@ -365,25 +444,42 @@ pub fn consent(script: &Script, ctx: &Context) -> Consent {
             _ => {}
         }
         match &step.command {
-            Command::Execute(e) => match &e.program {
-                Program::File(f) => c.programs.push(ProgramRun {
+            Command::Execute(e) => {
+                c.env.extend(env_uses(Some(n), &e.env, &p));
+                match &e.program {
+                    Program::File(f) => {
+                        let program = p.reference(f);
+                        let args = p.text(&e.args, Mode::Strict);
+                        if is_interpreter(&program) {
+                            c.shell_commands.push(ShellCommand {
+                                step: n,
+                                command: format!("{f} {}", e.args),
+                                resolved: format!("{program} {args}"),
+                            });
+                        }
+                        c.programs.push(ProgramRun {
+                            step: n,
+                            kind: ProgramKind::Native,
+                            program,
+                            args,
+                        });
+                    }
+                    Program::Shell(cmd) => c.shell_commands.push(ShellCommand {
+                        step: n,
+                        command: cmd.clone(),
+                        resolved: p.text(cmd, Mode::Shell),
+                    }),
+                }
+            }
+            Command::Task(Task::WineExec(t)) => {
+                c.env.extend(env_uses(Some(n), &t.env, &p));
+                c.programs.push(ProgramRun {
                     step: n,
-                    kind: ProgramKind::Native,
-                    program: p.reference(f),
-                    args: p.text(&e.args, Mode::Strict),
-                }),
-                Program::Shell(cmd) => c.shell_commands.push(ShellCommand {
-                    step: n,
-                    command: cmd.clone(),
-                    resolved: p.text(cmd, Mode::Shell),
-                }),
-            },
-            Command::Task(Task::WineExec(t)) => c.programs.push(ProgramRun {
-                step: n,
-                kind: ProgramKind::Wine,
-                program: p.reference(&t.executable),
-                args: p.text(&t.args, Mode::Strict),
-            }),
+                    kind: ProgramKind::Wine,
+                    program: p.reference(&t.executable),
+                    args: p.text(&t.args, Mode::Strict),
+                });
+            }
             Command::Task(Task::DosExec(t)) => c.programs.push(ProgramRun {
                 step: n,
                 kind: ProgramKind::Dosbox,
@@ -414,5 +510,36 @@ pub fn consent(script: &Script, ctx: &Context) -> Consent {
             _ => {}
         }
     }
+
+    c.env.extend(env_uses(None, &script.system_env, &p));
+    if script.extends.is_none() {
+        let g = &script.game;
+        c.game = [&g.exe, &g.main_file, &g.iso, &g.rom, &g.path]
+            .into_iter()
+            .flatten()
+            .next()
+            .map(|program| GamePlan {
+                program: p.reference(program),
+                args: g
+                    .args
+                    .as_deref()
+                    .map(|a| p.text(a, Mode::Strict))
+                    .unwrap_or_default(),
+            });
+    }
     c
+}
+
+fn env_uses(
+    step: Option<usize>,
+    env: &std::collections::BTreeMap<String, String>,
+    p: &Preview<'_>,
+) -> Vec<EnvUse> {
+    env.iter()
+        .map(|(key, value)| EnvUse {
+            step,
+            key: key.clone(),
+            value: p.text(value, Mode::Strict),
+        })
+        .collect()
 }

