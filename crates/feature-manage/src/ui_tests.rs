@@ -115,20 +115,14 @@ fn updates_page_lists_games_with_updates(cx: &mut TestAppContext) {
     let game = GameId::new(Runner::Gog, "a");
     assert!(vcx.debug_bounds("update-gog:a").is_none());
 
-    vcx.update(|_, cx| {
-        let library = models(cx).library.clone();
-        library.update(cx, |l, cx| {
-            l.updates = Arc::new([game].into());
-            cx.notify();
-        });
-    });
-    vcx.run_until_parked();
-    // Windows' test platform doesn't schedule a frame by itself.
+    // Drawn in the same step: the backend's own events replace the model's
+    // updates with its real, empty set as soon as the test yields.
     vcx.update(|window, cx| {
+        let library = models(cx).library.clone();
+        library.update(cx, |l, _| l.updates = Arc::new([game].into()));
         window.refresh();
         let _ = window.draw(cx);
     });
-    vcx.run_until_parked();
     assert!(vcx.debug_bounds("update-gog:a").is_some());
 }
 
