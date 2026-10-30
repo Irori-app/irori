@@ -89,7 +89,8 @@ Irori's other arguments (`crates/irori/src/cli.rs`) are:
 - Links: `irori://launch|game|open/<runner>/<app>`, `irori://library|downloads|accounts|stores|stats|wine|emulators|bigpicture`,
   `irori://settings/<section>`, `irori://lutris/<slug>` (the Lutris script installer at
   a lutris.net game; Lutris's own `lutris:<slug>` is accepted as an argument too), and
-  Heroic's `heroic://launch/...`.
+  Heroic's `heroic://launch/...`. Any web page or program can open a link, so
+  `irori://launch` asks before it starts a game; `--launch` doesn't.
 - `--sign-in-window` is internal. On macOS and Windows it makes Irori run the store
   sign-in window instead of itself (see [4.6](#46-store-sign-in)).
 
@@ -102,7 +103,7 @@ Environment variables:
 | `IRORI_SIGN_IDENTITY` | macOS signing identity for `package.py` (default `-`, ad-hoc). |
 | `IRORI_WINDOWS_CRT_DIR` | Windows: explicit `Microsoft.VC*.CRT` directory for packaging. |
 | `IRORI_UPDATE_EXPLANATION` | For packagers, at build or run time: Irori never looks for its own new versions and shows this text instead (`irori-services::app_update`). |
-| `IRORI_RELEASE_TEST_URL`, `IRORI_RUNTIME_SMOKE` | Opt-in, `#[ignore]`d runtime tests (see [8](#8-tests)). |
+| `IRORI_RELEASE_TEST_URL`, `IRORI_RUNTIME_SMOKE`, `IRORI_KEYRING_SMOKE` | Opt-in, `#[ignore]`d runtime tests (see [8](#8-tests)). |
 
 Build profiles (root `Cargo.toml`):
 
@@ -119,6 +120,7 @@ Directory names and package names differ. Use the package name with `-p`.
 | Directory | Package | Role |
 | --- | --- | --- |
 | `crates/core` | `irori-core` | Domain types, settings schema, the `Store` trait, events, paths, process/HTTP/JSON utilities |
+| `crates/secrets` | `irori-secrets` | Files holding store logins, encrypted with a key kept in the system keyring |
 | `crates/runtime` | `irori-runtime` | Wine/Proton/CrossOver/GPTK discovery and downloads, prefixes, DXVK/VKD3D, umu, launch environment |
 | `crates/engines` | `irori-engines` | Emulators ("engines"): manifests, discovery, managed versions, RetroArch cores, BIOS index, launch commands |
 | `crates/scripts` | `irori-scripts` | Lutris install scripts: typed parser, validation, variables, consent plan, confined executor with rollback, the `ScriptHost` trait, the lutris.net client, Wine build matching |
@@ -173,13 +175,14 @@ Other top-level paths:
 The crates form a strict hierarchy. Never add a dependency that points upward.
 
 ```text
+irori-secrets                     (depends on nothing internal; usable by protocol crates)
 irori-core                        (depends on nothing internal)
   ├─ irori-runtime, irori-depot, irori-extras
   ├─ irori-engines   (core, runtime, depot)
   ├─ irori-scripts   (core, runtime, depot; knows nothing of stores or the UI)
   ├─ protocol crates: irori-epic-api, irori-gog-api, irori-amazon-api, irori-itch-api,
   │                   irori-steam-api
-  │                   (depot only, not core)
+  │                   (depot and secrets only, not core)
   ├─ store crates:    irori-epic, irori-gog, irori-amazon, irori-zoom, irori-itch,
   │                   irori-steam, irori-sideload, irori-emulation (+ engines),
   │                   irori-launchers (+ runtime, irori-launchers-data)
@@ -270,12 +273,15 @@ and `launch.rs` before changing anything below the UI.
   and `AccountChanged(runner)` after login or logout.
 - `LibraryChanged` is a raw store signal. UI code waits for `LibraryUpdated`, which
   services emit after rebuilding the snapshot.
+- The bus keeps no history, and the UI subscribes after the backend has started. A
+  notice sent during startup must use `EventBus::startup_notice`, or nobody sees it.
 
 **Paths** (`paths.rs`):
 
 - `Paths::get()` is global. `IRORI_HOME` relocates everything; otherwise the OS
   config, data and cache directories plus `irori`.
-- Store credentials and config go under `store_config_dir(runner)`, store caches under
+- Store config goes under `store_config_dir(runner)`, as do credentials (written only
+  through `irori_secrets`, see below), store caches under
   `store_cache_dir(runner)`, and Irori state (`library.json`, `downloads.json`,
   `sessions.jsonl`) under `state_dir()`.
 - Per-game settings are `config/games/<runner>/<app>.json`. Logs go under
@@ -289,6 +295,21 @@ and `launch.rs` before changing anything below the UI.
   sibling and rename it, so a crash never leaves a half-written file.
 - `read` returns `Ok(None)` for a missing file; `read_or_default` logs and falls back
   for a corrupt one.
+
+**Secrets** (`irori-secrets`):
+
+- Logins, tokens, API keys and passwords are read and written only with
+  `irori_secrets::read_json`/`load`/`write_json`, never `json_store`.
+- Files are AES-256-GCM encrypted with one random key kept in the system keyring
+  (Secret Service, Keychain, Credential Manager). The logins themselves don't go in the
+  keyring because Windows limits an entry to about 2.5 KB.
+- Without a keyring they are plain JSON, mode 0600, and logins stay usable. Plain files
+  are encrypted when next read with a keyring available.
+- `main.rs` turns the keyring on with `use_os_keyring`. Nothing else does, so tests and
+  library code use plain files and never reach the user's real keyring.
+- An unlock prompt can take a while: don't read a secret on the UI thread. A file that
+  can't be opened reads as an error, is left in place, and raises the
+  `shell.notice.logins_locked` notice at start.
 
 **Settings** (`settings.rs`):
 
@@ -316,6 +337,15 @@ and `launch.rs` before changing anything below the UI.
 
 **Deleting files:** call `fs_guard::ensure_deletable(dir, app)` before any recursive
 delete of a game or prefix directory.
+
+**Untrusted data** (store APIs, community JSON, archives, links):
+
+- Names that become paths go through `paths::sanitize`, which also refuses `.` and `..`.
+- Archive extractors use `archive_guard` for every entry and every link target.
+- Links opened from store or community data go through `irori_ui::web_url`.
+- Logs are shared by users: mask new secret parameters in `process::is_secret_flag`,
+  `SECRET_PARAM` and `is_secret_var`, and strip addresses from `reqwest` errors with
+  `without_url` wherever an address holds a token or a signature.
 
 ### 4.2 Backend (`irori-services`)
 
@@ -600,10 +630,18 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
     on its own), programs, registry edits, winetricks verbs and store autosetups. The
     executor refuses to run without `Approvals::accepted`.
   - **Shell commands verbatim.** Every `execute` command line is shown exactly as the
-    script wrote it, and needs its own "I understand" acknowledgement
-    (`Approvals::shell_acknowledged`); the executor checks it again.
+    script wrote it and as it will run, and needs its own "I understand" acknowledgement
+    (`Approvals::shell_acknowledged`); the executor checks it again. Running an
+    interpreter (`sh`, `python`, `cmd`…) with `file:` counts as a shell command. Values
+    from the script (variables, menu choices, file names) can't change a command:
+    `Vars::substitute` refuses shell metacharacters in them.
+  - **Play is part of the consent.** The plan lists what the game section starts and
+    every variable the script sets. The game's `exe` must be inside the game folder, the
+    cache or the prefix, or be a file the script obtained.
   - **Writes are confined** to `$GAMEDIR`, `$CACHE`, the prefix and approved paths,
-    with symlinks resolved before every check; archives cannot escape their target.
+    with symlinks resolved before every check; archives cannot escape their target, and
+    links they hold can't point out of it. File ids are plain names (letters, digits,
+    `_`), because they name a folder of the cache.
     Cancel or failure rolls back what the install created in the game folder and
     keeps downloads. An install that only lacks the game's program keeps its files
     (`UnfinishedInstall`) so the user can choose the program.
@@ -650,7 +688,7 @@ Design: `docs/design/engines.md`; Lutris behaviour: `docs/parity/lutris.md`.
 - **Login** (`signin.rs` for the UI, `irori-steam-api::auth`): SteamClient-type sessions
   through `IAuthenticationService` (protobuf over the Web API). The UI emits
   `login_input(tokens)`; `Store::login` proves the tokens by reading the library, then
-  keeps them in `session.json` (mode 0600). A refused refresh becomes `SessionExpired`.
+  keeps them in `session.json` (through `irori_secrets`). A refused refresh becomes `SessionExpired`.
   Never log tokens, passwords or codes; the API crate's types redact them in `Debug`.
 - **Launch** (`client.rs`, `watch.rs`): `steam://rungameid`, or `-applaunch` with the
   game's `launcherArgs`; a `SteamGameWatch` follows the reaper (Linux), the game folder's
@@ -881,6 +919,8 @@ dev-dependency instead.
   Postman mock in `postman/`.
 - The macOS runtime smoke test needs `IRORI_HOME` and `IRORI_RUNTIME_SMOKE=1`, and
   downloads a real runtime.
+- `irori-secrets`' keyring test needs `IRORI_KEYRING_SMOKE=1` and writes a real key, so
+  on Linux run it in `dbus-run-session` with a throwaway `gnome-keyring-daemon`.
 
 Run ignored tests only when you're changing that code.
 
@@ -1089,6 +1129,8 @@ These are things that have bitten this codebase before:
 - **The Windows app is a GUI-subsystem executable** (`windows_subsystem = "windows"`).
   It has no console, so anything a parent must read goes through pipes the parent
   provides, as the sign-in mode does.
+- **`WindowHandle::update` fails inside that window's own update**, and `let _ =` hides
+  it. Dialog callbacks run inside it: reach code that updates the window with `cx.defer`.
 - **The UI thread must never wait on I/O.** Even "quick" file reads go through
   `irori_ui::run` or `backend.spawn_blocking`.
 
