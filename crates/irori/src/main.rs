@@ -28,6 +28,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use futures::StreamExt as _;
 use futures::channel::mpsc;
+use gpui_kit::component::WindowExt as _;
 use gpui_kit::component::{Root, TitleBar};
 use gpui_kit::{
     App, AppContext as _, Bounds, Focusable as _, QuitMode, WindowBounds, WindowDecorations,
@@ -35,6 +36,7 @@ use gpui_kit::{
 };
 use irori_core::{GameId, Paths};
 use irori_services::Backend;
+use irori_ui::i18n::{t, t_args};
 use irori_ui::{Route, models::models, nav};
 use parking_lot::Mutex;
 
@@ -335,8 +337,52 @@ fn handle_cli(cli: &Cli, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
         }
     }
     if let Some(id) = &cli.launch {
-        launch_from_outside(id.clone(), app, cx);
+        if cli.launch_from_link {
+            confirm_link_launch(id.clone(), app, cx);
+        } else {
+            launch_from_outside(id.clone(), app, cx);
+        }
     }
+}
+
+/// A link can come from any web page or program, and playing runs the game's
+/// before-launch script: an installed game starts only when the user agrees.
+fn confirm_link_launch(id: GameId, app: &Arc<Mutex<AppHandles>>, cx: &mut App) {
+    let Some(game) = irori_ui::backend(cx).game(&id).filter(|g| g.is_installed) else {
+        launch_from_outside(id, app, cx);
+        return;
+    };
+    open_main_window(app, cx);
+    let window = app.lock().window;
+    let Some(handle) = window else {
+        return;
+    };
+    let app = app.clone();
+    let heading = t_args("shell.link_launch.title", &[("title", &game.title)]);
+    let _ = handle.update(cx, |_, window, cx| {
+        window.defer(cx, move |window, cx| {
+            // A page opening a link in a loop must not pile up prompts, or
+            // cover a question the user is already answering.
+            if window.has_active_dialog(cx) {
+                return;
+            }
+            window.open_alert_dialog(cx, move |alert, _, _| {
+                let (id, app) = (id.clone(), app.clone());
+                alert
+                    .title(heading.clone())
+                    .description(t("shell.link_launch.body"))
+                    .confirm()
+                    .ok_text(t("shell.link_launch.confirm"))
+                    .on_ok(move |_, _, cx| {
+                        // This runs inside the window's update, which
+                        // `launch_from_outside` needs for itself.
+                        let (id, app) = (id.clone(), app.clone());
+                        cx.defer(move |cx| launch_from_outside(id, &app, cx));
+                        true
+                    })
+            });
+        })
+    });
 }
 
 /// Launch requested by a URL, shortcut or the tray.

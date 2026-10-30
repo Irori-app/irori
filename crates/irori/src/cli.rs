@@ -8,6 +8,9 @@ use irori_ui::Route;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Cli {
     pub launch: Option<GameId>,
+    /// The launch came from a link, which anything on the computer or the
+    /// web can open, not from Irori's own shortcuts.
+    pub launch_from_link: bool,
     /// Open a game's page (`irori://game/...`).
     pub open: Option<GameId>,
     /// Open a screen (`irori://library`, `irori://settings/<section>`…).
@@ -78,7 +81,10 @@ impl Cli {
             _ => None,
         };
         match verb {
-            "launch" => self.launch = game,
+            "launch" => {
+                self.launch = game;
+                self.launch_from_link = true;
+            }
             "game" | "open" => self.open = game,
             "bigpicture" | "console" => self.big_picture = true,
             "library" => self.route = Some(Route::Library),
