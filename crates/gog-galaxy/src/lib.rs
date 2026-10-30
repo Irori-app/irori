@@ -63,14 +63,11 @@ pub async fn start(account: Account) -> Result<Service> {
     let listener = TcpListener::bind(("127.0.0.1", PORT))
         .await
         .with_context(|| format!("Port {PORT} is in use; another Galaxy service may be running"))?;
-    let certificate =
-        reqwest::tls::Certificate::from_pem(comet::CERT).context("invalid comet certificate")?;
     let http = reqwest::Client::builder()
         .user_agent(format!(
             "GOGGalaxyCommunicationService/2.0.13.27 (Windows_32bit) installation_source/gog Irori/{}",
             env!("CARGO_PKG_VERSION")
         ))
-        .add_root_certificate(certificate)
         .build()?;
     let user = Arc::new(UserInfo {
         username: account.username.clone(),

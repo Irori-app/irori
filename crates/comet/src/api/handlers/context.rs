@@ -1,0 +1,237 @@
+use std::collections::HashSet;
+
+use crate::api::gog::overlay::OverlayPeerMessage;
+use crate::constants::TokenStorage;
+use crate::workarounds::{QuotedSplit, StatAchievementWorkaround};
+use crate::{db, paths};
+use derive_getters::Getters;
+use sqlx::SqlitePool;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+use tokio::net::TcpStream;
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+use tokio::sync::{Mutex, MutexGuard, broadcast};
+
+pub struct State {
+    is_online: bool,
+    client_identified: bool,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    subscribed_topics: HashSet<String>,
+    achievements_refreshed: bool,
+    stats_refreshed: bool,
+    updated_achievements: bool,
+    updated_stats: bool,
+    updated_leaderboards: bool,
+    pid: u32,
+}
+
+#[derive(Getters)]
+pub struct HandlerContext {
+    socket_read: Mutex<OwnedReadHalf>,
+    socket_write: Mutex<OwnedWriteHalf>,
+    token_store: TokenStorage,
+    overlay_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
+    #[getter(skip)]
+    db_connection: Mutex<Option<SqlitePool>>,
+    #[getter(skip)]
+    state: Mutex<State>,
+    #[getter(skip)]
+    progress_workarounds: Mutex<Vec<StatAchievementWorkaround>>,
+}
+
+impl HandlerContext {
+    pub fn new(
+        socket: TcpStream,
+        token_store: TokenStorage,
+        achievement_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
+    ) -> Self {
+        let (socket_read, socket_write) = socket.into_split();
+        let state = Mutex::new(State {
+            is_online: false,
+            client_identified: false,
+            client_id: None,
+            client_secret: None,
+            subscribed_topics: HashSet::new(),
+            achievements_refreshed: false,
+            stats_refreshed: false,
+            updated_achievements: false,
+            updated_stats: false,
+            updated_leaderboards: true,
+            pid: 0,
+        });
+        Self {
+            socket_read: Mutex::new(socket_read),
+            socket_write: Mutex::new(socket_write),
+            token_store,
+            overlay_sender: achievement_sender,
+            db_connection: Mutex::new(None),
+            progress_workarounds: Mutex::new(Vec::new()),
+            state,
+        }
+    }
+
+    pub async fn socket_write_mut(&self) -> MutexGuard<'_, OwnedWriteHalf> {
+        self.socket_write.lock().await
+    }
+
+    pub async fn socket_read_mut(&self) -> MutexGuard<'_, OwnedReadHalf> {
+        self.socket_read.lock().await
+    }
+
+    pub async fn socket_read_u16(&self) -> Result<u16, std::io::Error> {
+        self.socket_read.lock().await.read_u16().await
+    }
+
+    pub async fn identify_client(&self, client_id: &str, client_secret: &str, pid: u32) {
+        let mut state = self.state.lock().await;
+        state.client_identified = true;
+        state.client_id = Some(client_id.to_string());
+        state.client_secret = Some(client_secret.to_string());
+        state.pid = pid;
+    }
+
+    pub async fn set_online(&self) {
+        self.state.lock().await.is_online = true
+    }
+
+    pub async fn subscribe_topic(&self, topic: String) {
+        self.state.lock().await.subscribed_topics.insert(topic);
+    }
+
+    pub async fn is_subscribed(&self, topic: &String) -> bool {
+        self.state.lock().await.subscribed_topics.contains(topic)
+    }
+
+    pub async fn set_offline(&self) {
+        self.state.lock().await.is_online = false
+    }
+
+    pub async fn set_updated_achievements(&self, value: bool) {
+        self.state.lock().await.updated_achievements = value
+    }
+    pub async fn set_updated_stats(&self, value: bool) {
+        self.state.lock().await.updated_stats = value
+    }
+    pub async fn set_updated_leaderboards(&self, value: bool) {
+        self.state.lock().await.updated_leaderboards = value
+    }
+
+    pub async fn load_workarounds(&self, client_id: &str) -> Result<(), tokio::io::Error> {
+        let stats_path = paths::WORKAROUNDS.join(format!("{client_id}.progress"));
+        let file = tokio::fs::OpenOptions::new()
+            .read(true)
+            .open(stats_path)
+            .await?;
+        let reader = BufReader::new(file);
+        let mut lines = reader.lines();
+        let mut stat_list: Vec<StatAchievementWorkaround> = Vec::new();
+        while let Ok(Some(line)) = lines.next_line().await {
+            let mut keys = QuotedSplit::new(&line);
+            let achievement_key = keys.next();
+            let stat_key = keys.next();
+            let stat_threshold = keys.next();
+            if let (Some(ack), Some(stk), Some(sthd)) = (achievement_key, stat_key, stat_threshold)
+            {
+                log::debug!("Adding {stk} workaround to the list");
+                stat_list.push(StatAchievementWorkaround {
+                    statistic_key: stk.to_owned(),
+                    achievement_key: ack.to_owned(),
+                    threshold: sthd.to_owned(),
+                });
+            }
+        }
+        *self.progress_workarounds.lock().await = stat_list;
+        Ok(())
+    }
+
+    pub async fn setup_database(&self, client_id: &str, user_id: &str) -> Result<(), sqlx::Error> {
+        let mut db_con = self.db_connection.lock().await;
+        if db_con.is_some() {
+            return Ok(());
+        }
+        let connection = db::gameplay::setup_connection(client_id, user_id).await?;
+        *db_con = Some(connection);
+
+        let pool = db_con.clone().unwrap();
+        let mut connection = pool.acquire().await?;
+        sqlx::query(db::gameplay::SETUP_QUERY)
+            .execute(&mut *connection)
+            .await?;
+
+        // This may already exist, we don't care
+        let _ = sqlx::query("INSERT INTO database_info VALUES ('language', $1) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+            .bind(crate::LOCALE.as_str())
+            .execute(&mut *connection)
+            .await;
+
+        Ok(())
+    }
+
+    pub async fn db_connection(&self) -> SqlitePool {
+        let connection = self.db_connection.lock().await.clone();
+        connection.unwrap()
+    }
+
+    pub async fn client_id(&self) -> Option<String> {
+        self.state.lock().await.client_id.clone()
+    }
+
+    pub async fn client_secret(&self) -> Option<String> {
+        self.state.lock().await.client_secret.clone()
+    }
+
+    pub async fn is_online(&self) -> bool {
+        self.state.lock().await.is_online
+    }
+
+    pub async fn client_identified(&self) -> bool {
+        self.state.lock().await.client_identified
+    }
+
+    pub async fn updated_achievements(&self) -> bool {
+        self.state.lock().await.updated_achievements
+    }
+    pub async fn updated_stats(&self) -> bool {
+        self.state.lock().await.updated_stats
+    }
+    pub async fn updated_leaderboards(&self) -> bool {
+        self.state.lock().await.updated_leaderboards
+    }
+
+    pub async fn achievements_refreshed(&self) -> bool {
+        self.state.lock().await.achievements_refreshed
+    }
+    pub async fn set_achievements_refreshed(&self, refreshed: bool) {
+        self.state.lock().await.achievements_refreshed = refreshed;
+    }
+    pub async fn stats_refreshed(&self) -> bool {
+        self.state.lock().await.stats_refreshed
+    }
+    pub async fn set_stats_refreshed(&self, refreshed: bool) {
+        self.state.lock().await.stats_refreshed = refreshed;
+    }
+
+    pub async fn get_pid(&self) -> u32 {
+        self.state.lock().await.pid
+    }
+
+    pub async fn get_progress_workarounds(
+        &self,
+        stat_key: &String,
+    ) -> Vec<StatAchievementWorkaround> {
+        let workarounds = self.progress_workarounds.lock().await;
+        workarounds
+            .iter()
+            .filter(|workaround| workaround.statistic_key == *stat_key)
+            .cloned()
+            .collect()
+    }
+
+    pub async fn register_overlay_listener(&self, pid: u32, listener: String) {
+        self.state.lock().await.pid = pid;
+
+        self.overlay_sender
+            .send((pid, OverlayPeerMessage::InitConnection(listener)))
+            .ok();
+    }
+}

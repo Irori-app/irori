@@ -1,0 +1,18 @@
+#[macro_use]
+extern crate lazy_static;
+
+pub mod api;
+pub mod config;
+pub mod constants;
+pub mod custom_event;
+pub mod db;
+pub mod paths;
+pub mod proto;
+pub mod workarounds;
+
+lazy_static! {
+    pub static ref CONFIG: config::Configuration = config::load_config().unwrap_or_default();
+    pub static ref LOCALE: String = sys_locale::get_locale()
+        .filter(|x| x.contains("-"))
+        .unwrap_or_else(|| String::from("en-US"));
+}

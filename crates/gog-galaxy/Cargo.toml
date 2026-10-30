@@ -8,8 +8,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-# comet is Apache-2.0 and not published; pinned to a reviewed commit.
-comet = { git = "https://github.com/imLinguin/comet", rev = "19b32597019ea1e64f1916010441960bcaac6e49" }
+# comet is Apache-2.0 and not published; a small fork of a reviewed upstream
+# commit (46c91529a07ab4d4ab0397429dc07d4f2f66431a) lives in crates/comet.
+comet.workspace = true
 anyhow.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
