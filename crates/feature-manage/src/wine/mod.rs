@@ -477,13 +477,16 @@ impl WineManagerView {
                             .text_xs()
                             .text_color(theme.muted_foreground)
                             .child(meta)
-                            .when(!release.release_notes_link.is_empty(), |this| {
-                                this.child(
-                                    Link::new("notes")
-                                        .href(release.release_notes_link.clone())
-                                        .child(t("manage.wine.release_notes")),
-                                )
-                            }),
+                            .when_some(
+                                irori_ui::web_url(&release.release_notes_link),
+                                |this, url| {
+                                    this.child(
+                                        Link::new("notes")
+                                            .href(url)
+                                            .child(t("manage.wine.release_notes")),
+                                    )
+                                },
+                            ),
                     ),
             )
             .when_some(op, |this, live| this.child(render_op(&live, cx)))

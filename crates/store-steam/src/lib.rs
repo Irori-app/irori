@@ -485,6 +485,15 @@ impl Store for SteamStore {
 
     /// Forgets the account and the games it added; installed games stay.
     async fn logout(&self) -> Result<()> {
+        // Best effort: logging out works offline, like Epic's and Amazon's.
+        let session = self.session.read().clone();
+        if let (Some(session), Ok(client)) = (session, self.client())
+            && let Err(e) = client
+                .revoke_refresh_token(&session.refresh_token, &session.access_token)
+                .await
+        {
+            tracing::warn!("ending the Steam sign-in: {e:#}");
+        }
         let files = self.files.clone();
         let art = self.account_library.read().art.clone();
         let cache = LibraryCache {

@@ -91,7 +91,8 @@ impl GogPaths {
 
     /// What is installed of a game's build (see `build::BuildRecord`).
     pub fn build_file(&self, app_name: &str) -> PathBuf {
-        self.builds_dir().join(format!("{app_name}.json"))
+        self.builds_dir()
+            .join(format!("{}.json", irori_core::paths::sanitize(app_name)))
     }
 
     pub fn support_root(&self) -> PathBuf {
@@ -100,12 +101,15 @@ impl GogPaths {
 
     /// Support files (setup scripts) downloaded with a game.
     pub fn support_dir(&self, app_name: &str) -> PathBuf {
-        self.support_root().join(app_name)
+        self.support_root()
+            .join(irori_core::paths::sanitize(app_name))
     }
 
     /// Download journal of an interrupted install or update.
     pub fn resume_file(&self, app_name: &str) -> PathBuf {
-        self.cache.join("resume").join(format!("{app_name}.json"))
+        self.cache
+            .join("resume")
+            .join(format!("{}.json", irori_core::paths::sanitize(app_name)))
     }
 
     /// gogdl's config dir from earlier Irori versions (migrated on startup).

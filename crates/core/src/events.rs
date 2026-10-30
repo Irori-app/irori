@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use parking_lot::Mutex;
 use tokio::sync::broadcast;
 
 use crate::runner::{GameId, Runner};
@@ -121,6 +122,8 @@ pub enum Event {
 #[derive(Clone)]
 pub struct EventBus {
     tx: Arc<broadcast::Sender<Event>>,
+    /// Notices waiting for the UI; `None` once it listens.
+    held: Arc<Mutex<Option<Vec<Notice>>>>,
 }
 
 impl Default for EventBus {
@@ -132,7 +135,10 @@ impl Default for EventBus {
 impl EventBus {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(1024);
-        Self { tx: Arc::new(tx) }
+        Self {
+            tx: Arc::new(tx),
+            held: Arc::new(Mutex::new(Some(Vec::new()))),
+        }
     }
 
     /// Publish an event. Dropped silently when nobody listens.
@@ -144,7 +150,42 @@ impl EventBus {
         self.emit(Event::Notice(notice));
     }
 
+    /// A notice about starting up. The bus keeps no history and the UI
+    /// listens only after the backend has begun, so this one waits for
+    /// [`EventBus::ui_listening`].
+    pub fn startup_notice(&self, notice: Notice) {
+        match self.held.lock().as_mut() {
+            Some(held) => held.push(notice),
+            None => self.notice(notice),
+        }
+    }
+
+    /// The UI has subscribed: deliver the notices held for it.
+    pub fn ui_listening(&self) {
+        let held = self.held.lock().take();
+        for notice in held.into_iter().flatten() {
+            self.notice(notice);
+        }
+    }
+
     pub fn subscribe(&self) -> broadcast::Receiver<Event> {
         self.tx.subscribe()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn startup_notices_wait_for_the_ui() {
+        let bus = EventBus::new();
+        bus.startup_notice(Notice::new(NoticeLevel::Warning, "early"));
+        let mut rx = bus.subscribe();
+        assert!(rx.try_recv().is_err());
+        bus.ui_listening();
+        assert!(matches!(rx.try_recv(), Ok(Event::Notice(n)) if n.title == "early"));
+        bus.startup_notice(Notice::new(NoticeLevel::Warning, "late"));
+        assert!(matches!(rx.try_recv(), Ok(Event::Notice(n)) if n.title == "late"));
     }
 }

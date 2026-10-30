@@ -708,6 +708,7 @@ pub async fn remove(release: &Release) -> Result<()> {
         if dir.components().count() < 3 || dir == home {
             bail!("refusing to delete {}", dir.display());
         }
+        irori_core::fs_guard::check_deletable(&dir, Some(&home), &[])?;
         if dir.exists() {
             tokio::fs::remove_dir_all(&dir)
                 .await

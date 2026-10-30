@@ -286,6 +286,7 @@ impl Global for EventPump {}
 
 fn spawn_pump(cx: &mut App) {
     let mut rx = backend(cx).subscribe();
+    backend(cx).bus.ui_listening();
     let task = cx.spawn(async move |cx| {
         loop {
             let mut batch = Vec::with_capacity(16);

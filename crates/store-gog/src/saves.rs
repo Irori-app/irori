@@ -170,6 +170,29 @@ fn resolve_native_location(location: &str, install: &Path) -> PathBuf {
     normalize(PathBuf::from(text.replace('\\', "/")))
 }
 
+/// Whether a save folder is where saves belong. Locations come from GOG's
+/// data, and syncing uploads and deletes what they hold.
+fn location_allowed(path: &Path, install: &Path, dirs: Option<&PrefixDirs>) -> bool {
+    let mut roots = vec![install.to_path_buf()];
+    match dirs {
+        Some(dirs) => roots.extend([dirs.user_dir.clone(), dirs.drive_c.clone()]),
+        None => {
+            let home = dirs::home_dir().unwrap_or_default();
+            roots.extend(dirs::document_dir());
+            roots.extend(dirs::data_local_dir());
+            roots.extend(dirs::config_dir());
+            roots.extend([
+                home.join("Library/Application Support"),
+                home.join("Saved Games"),
+                home.join("AppData"),
+            ]);
+        }
+    }
+    roots
+        .iter()
+        .any(|r| !r.as_os_str().is_empty() && path.starts_with(r))
+}
+
 /// Encode resolved locations into the single `save_path` string.
 pub fn encode_locations(locs: &[CloudSaveLocation]) -> String {
     match locs {
@@ -306,14 +329,19 @@ impl GogStore {
         let resolved = tokio::task::spawn_blocking(move || {
             let dirs = prefix.as_deref().map(PrefixDirs::of);
             locs.into_iter()
-                .map(|l| CloudSaveLocation {
-                    location: match &dirs {
+                .filter_map(|l| {
+                    let path = match &dirs {
                         Some(dirs) => resolve_location(&l.location, &install, dirs),
                         None => resolve_native_location(&l.location, &install),
+                    };
+                    if !location_allowed(&path, &install, dirs.as_ref()) {
+                        tracing::warn!("ignoring the save folder {}", path.display());
+                        return None;
                     }
-                    .to_string_lossy()
-                    .into_owned(),
-                    name: l.name,
+                    Some(CloudSaveLocation {
+                        location: path.to_string_lossy().into_owned(),
+                        name: l.name,
+                    })
                 })
                 .collect::<Vec<_>>()
         })

@@ -23,7 +23,7 @@ use crate::fsops::{self, Fs, Journal, Sandbox, lexical};
 use crate::host::*;
 use crate::model::*;
 use crate::parse::{check_url, split_words};
-use crate::validate::texts;
+use crate::validate::{check_verbs, texts};
 use crate::vars::{Mode, Vars, references};
 
 /// Run `script`. Nothing runs unless `approvals` accepts its
@@ -81,6 +81,8 @@ pub async fn run(
         fs: Arc::new(Mutex::new(Fs {
             sandbox,
             journal: Journal::new(&ctx.game_dir),
+            home: ctx.home.clone(),
+            protected: ctx.protected.clone(),
         })),
         deletable,
         files: BTreeMap::new(),
@@ -750,8 +752,10 @@ impl Runner<'_> {
             }
             Task::Winetricks(w) => {
                 self.wine_used = true;
+                let verbs = split_words(&self.text(&w.app, loc)?);
+                check_verbs(&verbs, loc)?;
                 let request = WinetricksRequest {
-                    verbs: split_words(&self.text(&w.app, loc)?),
+                    verbs,
                     prefix: self.prefix(w.prefix.as_deref(), loc).await?,
                     arch: self.arch(w.arch.as_deref(), loc)?,
                     silent: w.silent,
@@ -806,6 +810,30 @@ impl Runner<'_> {
             .collect()
     }
 
+    /// What Play starts stays among what the install put in place: `exe:
+    /// /bin/sh` would make a script's arguments a command run on every Play.
+    fn check_game_program(&self, program: &Path) -> Result<()> {
+        let program = lexical(program);
+        let mut roots = vec![lexical(&self.ctx.game_dir), lexical(&self.ctx.cache_dir)];
+        roots.extend(self.ctx.prefix.as_deref().map(lexical));
+        if let Some(raw) = &self.script.game.prefix {
+            roots.push(lexical(&self.path(raw, "Game section")?));
+        }
+        let inside = roots.iter().any(|r| program.starts_with(r))
+            || self.files.values().any(|f| lexical(f) == program);
+        if !inside {
+            return Err(ScriptError::Invalid {
+                location: "Game section".into(),
+                message: format!(
+                    "{} is outside the game folder, so the script was refused",
+                    program.display()
+                ),
+            }
+            .into());
+        }
+        Ok(())
+    }
+
     /// The game section, resolved and checked: every entry point it names
     /// must exist. A missing one is returned beside the entry (left empty
     /// there) instead of failing, so the files are kept for the user to
@@ -819,9 +847,10 @@ impl Runner<'_> {
         let mut resolved: [Option<PathBuf>; 5] = Default::default();
         let mut any = false;
         let mut missing = None;
-        for (slot, raw) in resolved
+        for (i, (slot, raw)) in resolved
             .iter_mut()
             .zip([&g.exe, &g.main_file, &g.iso, &g.rom, &g.path])
+            .enumerate()
         {
             let Some(raw) = raw else { continue };
             any = true;
@@ -848,7 +877,12 @@ impl Runner<'_> {
             })
             .await?;
             match found {
-                Some(p) => *slot = Some(p),
+                Some(p) => {
+                    if i == 0 {
+                        self.check_game_program(&p)?;
+                    }
+                    *slot = Some(p);
+                }
                 None => {
                     missing.get_or_insert(ScriptError::MissingExecutable {
                         expected: Some(path),

@@ -1331,6 +1331,45 @@ impl LutrisDialog {
         let mut body = v_flex()
             .gap_4()
             .child(div().text_sm().child(t("library.lutris.consent.intro")));
+        // First: the list scrolls, and this is what the user most needs to read.
+        if plan.needs_shell_ack() {
+            let lines = plan
+                .shell_commands
+                .iter()
+                .flat_map(|c| {
+                    let mut l = vec![format!(
+                        "# {}",
+                        t_args(
+                            "library.lutris.consent.shell_step",
+                            &[("step", &c.step.to_string())]
+                        )
+                    )];
+                    l.extend(c.command.lines().map(str::to_string));
+                    if c.resolved != c.command {
+                        l.push(format!("# {}", t("library.lutris.consent.shell_resolved")));
+                        l.extend(c.resolved.lines().map(str::to_string));
+                    }
+                    l
+                })
+                .collect();
+            body = body.child(
+                section(t("library.lutris.consent.shell"), cx)
+                    .child(Alert::warning(
+                        "lutris-shell-warning",
+                        t("library.lutris.consent.shell_warning"),
+                    ))
+                    .child(mono_block("lutris-shell", lines, cx))
+                    .child(
+                        Checkbox::new("lutris-shell-ack")
+                            .label(t("library.lutris.consent.shell_ack"))
+                            .checked(self.checks.shell_acknowledged)
+                            .on_click(cx.listener(|this, v: &bool, _, cx| {
+                                this.checks.shell_acknowledged = *v;
+                                cx.notify();
+                            })),
+                    ),
+            );
+        }
         if !plan.downloads.is_empty() {
             let hosts: Vec<String> = {
                 let mut h: Vec<String> = plan.downloads.iter().map(|d| d.host.clone()).collect();
@@ -1385,6 +1424,35 @@ impl LutrisDialog {
                 section(t("library.lutris.consent.writes"), cx)
                     .child(muted(t("library.lutris.consent.writes_hint"), cx))
                     .children(rows),
+            );
+        }
+        if let Some(game) = &plan.game {
+            let line = format!("{} {}", game.program, game.args)
+                .trim_end()
+                .to_string();
+            body = body.child(
+                section(t("library.lutris.consent.game"), cx).child(mono_block(
+                    "lutris-game",
+                    vec![line],
+                    cx,
+                )),
+            );
+        }
+        if !plan.env.is_empty() {
+            let lines: Vec<String> = plan
+                .env
+                .iter()
+                .map(|e| match e.step {
+                    Some(step) => format!("{step}. {}={}", e.key, e.value),
+                    None => format!("{}={}", e.key, e.value),
+                })
+                .collect();
+            body = body.child(
+                section(t("library.lutris.consent.env"), cx).child(mono_block(
+                    "lutris-env",
+                    lines,
+                    cx,
+                )),
             );
         }
         if !plan.programs.is_empty() {
@@ -1446,40 +1514,6 @@ impl LutrisDialog {
                     &[("store", autosetup_store_name(a.store))],
                 ),
             ));
-        }
-        if plan.needs_shell_ack() {
-            let lines = plan
-                .shell_commands
-                .iter()
-                .flat_map(|c| {
-                    let mut l = vec![format!(
-                        "# {}",
-                        t_args(
-                            "library.lutris.consent.shell_step",
-                            &[("step", &c.step.to_string())]
-                        )
-                    )];
-                    l.extend(c.command.lines().map(str::to_string));
-                    l
-                })
-                .collect();
-            body = body.child(
-                section(t("library.lutris.consent.shell"), cx)
-                    .child(Alert::warning(
-                        "lutris-shell-warning",
-                        t("library.lutris.consent.shell_warning"),
-                    ))
-                    .child(mono_block("lutris-shell", lines, cx))
-                    .child(
-                        Checkbox::new("lutris-shell-ack")
-                            .label(t("library.lutris.consent.shell_ack"))
-                            .checked(self.checks.shell_acknowledged)
-                            .on_click(cx.listener(|this, v: &bool, _, cx| {
-                                this.checks.shell_acknowledged = *v;
-                                cx.notify();
-                            })),
-                    ),
-            );
         }
         body = body.children(self.render_wine_line(cx));
         v_flex()

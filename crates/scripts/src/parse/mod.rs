@@ -473,6 +473,14 @@ fn parse_file(item: &Value) -> Result<FileSpec, ScriptError> {
         ));
     };
     let id = raw_id.trim().replace('-', "_");
+    // The id names a folder of the cache, and only such names can be referred
+    // to with `$`.
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(invalid(
+            "Files",
+            format!("“{raw_id}” is not a valid file id"),
+        ));
+    }
     let location = format!("File “{id}”");
     let (url, filename, checksum, referer, size) = match spec {
         Value::Object(o) => {

@@ -2,6 +2,7 @@
 //! secure (signed) download links and the redistributables repository.
 
 use std::collections::HashMap;
+use std::fmt;
 use std::io::Read as _;
 use std::time::Duration;
 
@@ -616,12 +617,20 @@ fn inflate(data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// HTTP client for the content system.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
     pub endpoints: Endpoints,
     /// Galaxy access token for authenticated calls.
     token: Option<String>,
+}
+
+impl fmt::Debug for Client {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Client")
+            .field("endpoints", &self.endpoints)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Client {

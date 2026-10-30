@@ -104,7 +104,6 @@ pub(crate) fn extract_tar(archive: &Path, dest: &Path, cancel: &CancellationToke
     };
     fs::create_dir_all(dest)?;
     let mut tar = tar::Archive::new(reader);
-    tar.set_preserve_permissions(true);
     tar.set_preserve_mtime(true);
     tar.set_overwrite(true);
     let mut wrote = false;
@@ -124,6 +123,18 @@ pub(crate) fn extract_tar(archive: &Path, dest: &Path, cancel: &CancellationToke
             T::Regular | T::Continuous | T::Directory | T::Symlink | T::Link | T::GNUSparse
         ) {
             continue;
+        }
+        // `unpack_in` only guards what is written through a link. Its target
+        // needs checking too: later steps write to paths in this tree.
+        if entry.header().entry_type() == T::Symlink {
+            let link = entry
+                .link_name()?
+                .context("symbolic link without a target")?
+                .into_owned();
+            let rel = safe_relative(&path)?;
+            if !irori_core::archive_guard::check_symlink(dest, &rel, &link)? {
+                continue;
+            }
         }
         // `unpack_in` resolves the parent folder and refuses entries that
         // would land outside `dest` through a link.
@@ -172,6 +183,8 @@ pub(crate) fn extract_zip(archive: &Path, dest: &Path, cancel: &CancellationToke
             continue;
         }
         if let Some(parent) = target.parent() {
+            let rel_parent = rel.parent().unwrap_or(Path::new(""));
+            irori_core::archive_guard::ensure_no_symlinks(&root, rel_parent)?;
             fs::create_dir_all(parent)?;
             ensure_inside(&root, parent)?;
         }
@@ -181,7 +194,9 @@ pub(crate) fn extract_zip(archive: &Path, dest: &Path, cancel: &CancellationToke
         if entry.is_symlink() {
             let mut link = String::new();
             entry.read_to_string(&mut link)?;
-            write_link(&root, &target, &link)?;
+            if irori_core::archive_guard::check_symlink(&root, &rel, Path::new(&link))? {
+                write_link(&root, &target, &link)?;
+            }
             continue;
         }
         let mut out = File::create(&target)?;
@@ -376,5 +391,55 @@ pub(crate) mod tests {
         assert!(wildcard("data?.cab", "data1.cab"));
         assert!(!wildcard("*.zip", "a.rar"));
         assert!(wildcard("a*b*c", "aXXbYYc"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_a_tar_link_leading_out_of_the_tree() {
+        let dir = tempfile::tempdir().unwrap();
+        let archive = dir.path().join("a.tar.gz");
+        let enc = flate2::write::GzEncoder::new(
+            File::create(&archive).unwrap(),
+            flate2::Compression::fast(),
+        );
+        let mut tar = tar::Builder::new(enc);
+        let mut header = tar::Header::new_gnu();
+        header.set_entry_type(tar::EntryType::Symlink);
+        header.set_size(0);
+        header.set_mode(0o777);
+        tar.append_link(&mut header, "a.txt.tmp", "/tmp/outside")
+            .unwrap();
+        tar.into_inner().unwrap().finish().unwrap();
+
+        let dest = dir.path().join("out");
+        let e = extract_tar(&archive, &dest, &CancellationToken::new()).unwrap_err();
+        assert!(format!("{e:#}").contains("unsafe link"), "{e:#}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tar_keeps_no_setuid_bit() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = tempfile::tempdir().unwrap();
+        let archive = dir.path().join("a.tar.gz");
+        let enc = flate2::write::GzEncoder::new(
+            File::create(&archive).unwrap(),
+            flate2::Compression::fast(),
+        );
+        let mut tar = tar::Builder::new(enc);
+        let mut header = tar::Header::new_gnu();
+        header.set_size(1);
+        header.set_mode(0o4755);
+        header.set_cksum();
+        tar.append_data(&mut header, "prog", &b"x"[..]).unwrap();
+        tar.into_inner().unwrap().finish().unwrap();
+
+        let dest = dir.path().join("out");
+        extract_tar(&archive, &dest, &CancellationToken::new()).unwrap();
+        let mode = fs::metadata(dest.join("prog"))
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o7000, 0);
     }
 }

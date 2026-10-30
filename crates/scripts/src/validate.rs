@@ -53,6 +53,25 @@ pub(crate) fn texts(script: &Script) -> Vec<(String, &str, Mode)> {
     out
 }
 
+/// Winetricks runs a `.verb` file as shell code and opens paths, so only
+/// plain component names (`vcrun2019`, `fontsmooth=rgb`) may reach it.
+pub(crate) fn check_verbs(verbs: &[String], location: &str) -> Result<(), ScriptError> {
+    let plain = |v: &String| {
+        !v.is_empty()
+            && !v.starts_with('-')
+            && !v.ends_with(".verb")
+            && v.chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '=' | '.' | '-'))
+    };
+    match verbs.iter().find(|v| !plain(v)) {
+        Some(v) => Err(ScriptError::Invalid {
+            location: location.into(),
+            message: format!("“{v}” is not a Winetricks component"),
+        }),
+        None => Ok(()),
+    }
+}
+
 fn value_texts<'a>(v: &'a Value, f: &mut dyn FnMut(&'a str)) {
     match v {
         Value::String(s) => f(s),

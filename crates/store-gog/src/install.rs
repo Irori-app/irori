@@ -530,15 +530,24 @@ fn exists_below(root: &Path, rel: &str) -> bool {
 /// Create the plan's folders and symbolic links below `dir`.
 fn finish_tree(dir: &Path, plan: &Plan) -> Result<()> {
     for d in &plan.dirs {
+        irori_core::archive_guard::ensure_no_symlinks(dir, Path::new(d))?;
         let p = irori_depot::path::join(dir, d);
         std::fs::create_dir_all(&p).with_context(|| format!("creating {}", p.display()))?;
     }
     for (path, target) in &plan.links {
+        // Targets come from the store's data as they are: none may lead out
+        // of the game, and nothing may be placed through a link.
+        let rel = Path::new(path);
+        let parent = rel.parent().unwrap_or(Path::new(""));
+        irori_core::archive_guard::ensure_no_symlinks(dir, parent)?;
         let p = irori_depot::path::join(dir, path);
         if let Some(parent) = p.parent() {
             std::fs::create_dir_all(parent)?;
         }
         let _ = std::fs::remove_file(&p);
+        if !irori_core::archive_guard::check_symlink(dir, rel, Path::new(target))? {
+            continue;
+        }
         #[cfg(unix)]
         std::os::unix::fs::symlink(target, &p)
             .with_context(|| format!("linking {}", p.display()))?;
@@ -1560,7 +1569,10 @@ impl GogStore {
     async fn remove_build_state(&self, app_name: &str) {
         let _ = tokio::fs::remove_file(self.paths.build_file(app_name)).await;
         let _ = tokio::fs::remove_file(self.paths.resume_file(app_name)).await;
-        let _ = Self::remove_dir(self.paths.support_dir(app_name)).await;
+        let support = self.paths.support_dir(app_name);
+        if support.starts_with(self.paths.support_root()) {
+            let _ = Self::remove_dir(support).await;
+        }
     }
 
     pub(crate) async fn uninstall_game(&self, app_name: &str, args: RemoveArgs) -> Result<()> {

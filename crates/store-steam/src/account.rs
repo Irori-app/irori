@@ -3,7 +3,7 @@
 //! Steam Family shares, with Steam's playtime for each.
 //!
 //! The account's tokens are kept in `session.json` in Steam's config folder
-//! (readable by the user only); the games in `library.json` in its cache,
+//! (through `irori_secrets`); the games in `library.json` in its cache,
 //! so the library shows offline and before the first refresh.
 
 use std::collections::HashMap;
@@ -140,13 +140,11 @@ impl AccountFiles {
     }
 
     pub fn read_session(&self) -> Option<Session> {
-        json_store::read(&self.session).ok().flatten()
+        irori_secrets::load(&self.session)
     }
 
     pub fn write_session(&self, session: &Session) -> Result<()> {
-        json_store::write(&self.session, session)?;
-        restrict_to_user(&self.session);
-        Ok(())
+        irori_secrets::write_json(&self.session, session)
     }
 
     pub fn remove_session(&self) -> Result<()> {
@@ -165,19 +163,6 @@ impl AccountFiles {
     pub fn write_library(&self, cache: &LibraryCache) -> Result<()> {
         json_store::write(&self.library, cache)
     }
-}
-
-/// Only the user may read the file (Unix); its tokens sign in to Steam.
-fn restrict_to_user(path: &Path) {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-        if let Err(e) = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)) {
-            tracing::warn!("restricting {}: {e}", path.display());
-        }
-    }
-    #[cfg(not(unix))]
-    let _ = path;
 }
 
 /// The session with an access token valid for a while yet, renewed with

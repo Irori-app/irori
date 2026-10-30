@@ -546,8 +546,9 @@ pub async fn read_link_target(
             ),
         )
         .send()
-        .await?
-        .error_for_status()?;
+        .await
+        .and_then(reqwest::Response::error_for_status)
+        .map_err(reqwest::Error::without_url)?;
     Ok(String::from_utf8_lossy(&resp.bytes().await?).into_owned())
 }
 

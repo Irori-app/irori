@@ -441,7 +441,9 @@ impl Client {
                 session,
             )
             .send()
-            .await?;
+            .await
+            // The address holds the access token.
+            .map_err(reqwest::Error::without_url)?;
         if !resp.status().is_success() && resp.status() != reqwest::StatusCode::NOT_FOUND {
             bail!("Epic did not end the session ({})", resp.status());
         }
@@ -869,7 +871,13 @@ impl Client {
 
     /// GET a pre-signed link.
     pub async fn fetch_link(&self, url: &str) -> Result<Vec<u8>> {
-        let resp = self.http.get(url).send().await?.error_for_status()?;
+        let resp = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .and_then(reqwest::Response::error_for_status)
+            .map_err(reqwest::Error::without_url)?;
         Ok(resp.bytes().await?.to_vec())
     }
 
@@ -879,8 +887,9 @@ impl Client {
             .put(url)
             .body(body)
             .send()
-            .await?
-            .error_for_status()?;
+            .await
+            .and_then(reqwest::Response::error_for_status)
+            .map_err(reqwest::Error::without_url)?;
         Ok(())
     }
 }

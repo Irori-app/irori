@@ -4,12 +4,16 @@
 //! refused. Blocking except [`unpack_dmg`]; run on the blocking pool.
 
 use std::fs::File;
-use std::io::{self, BufReader};
-use std::path::{Component, Path};
+use std::io::{self, BufReader, Read as _};
+use std::path::Path;
 
 use anyhow::{Context as _, Result, bail};
+use irori_core::archive_guard;
 use irori_core::install::ignore_progress;
 use irori_core::process::CancellationToken;
+
+/// Longest target of a symbolic link: more is not a path.
+const MAX_LINK_TARGET: u64 = 4096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -93,21 +97,27 @@ fn unzip(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> 
         };
         let out = dest.join(&rel);
         if entry.is_dir() {
+            archive_guard::ensure_no_symlinks(dest, &rel)?;
             std::fs::create_dir_all(&out)?;
             continue;
         }
-        if let Some(parent) = out.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+        let parent = rel.parent().unwrap_or(Path::new(""));
+        archive_guard::ensure_no_symlinks(dest, parent)?;
+        std::fs::create_dir_all(dest.join(parent))?;
         if entry.is_symlink() {
             // Bundles (`.app`) inside zips link their frameworks.
             let mut target = String::new();
-            io::Read::read_to_string(&mut entry, &mut target)?;
-            ensure_inside(&rel, Path::new(&target))?;
-            #[cfg(unix)]
-            std::os::unix::fs::symlink(&target, &out)
-                .with_context(|| format!("linking {}", out.display()))?;
+            io::Read::read_to_string(&mut (&mut entry).take(MAX_LINK_TARGET), &mut target)?;
+            if archive_guard::check_symlink(dest, &rel, Path::new(&target))? {
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&target, &out)
+                    .with_context(|| format!("linking {}", out.display()))?;
+            }
             continue;
+        }
+        // `File::create` would write through a link left at `out`.
+        if std::fs::symlink_metadata(&out).is_ok_and(|m| m.file_type().is_symlink()) {
+            std::fs::remove_file(&out)?;
         }
         let mut f = File::create(&out).with_context(|| format!("writing {}", out.display()))?;
         io::copy(&mut entry, &mut f).with_context(|| format!("unpacking {}", out.display()))?;
@@ -118,32 +128,6 @@ fn unzip(archive: &Path, dest: &Path, cancel: &CancellationToken) -> Result<()> 
                 &out,
                 std::fs::Permissions::from_mode((mode & 0o777) | 0o600),
             )?;
-        }
-    }
-    Ok(())
-}
-
-/// Refuse a link at `rel` whose relative `target` leaves the archive root.
-fn ensure_inside(rel: &Path, target: &Path) -> Result<()> {
-    // `has_root` also catches `/x` and `\\x` on Windows, where they aren't
-    // "absolute" without a drive.
-    if target.is_absolute()
-        || target.has_root()
-        || target
-            .components()
-            .any(|c| matches!(c, Component::Prefix(_)))
-    {
-        bail!("the archive links outside itself: {}", rel.display());
-    }
-    let mut depth = rel.components().count() as i64 - 1;
-    for c in target.components() {
-        match c {
-            Component::ParentDir => depth -= 1,
-            Component::Normal(_) => depth += 1,
-            _ => {}
-        }
-        if depth < 0 {
-            bail!("the archive links outside itself: {}", rel.display());
         }
     }
     Ok(())
@@ -313,10 +297,44 @@ mod tests {
         ));
     }
 
+    #[cfg(unix)]
+    fn zip_of_links(path: &Path, links: &[(&str, &str)]) {
+        let mut zip = zip::ZipWriter::new(File::create(path).unwrap());
+        let opts = zip::write::SimpleFileOptions::default();
+        for (name, target) in links {
+            zip.add_symlink(*name, *target, opts).unwrap();
+        }
+        zip.start_file("x/evil", opts).unwrap();
+        io::Write::write_all(&mut zip, b"evil").unwrap();
+        zip.finish().unwrap();
+    }
+
+    #[cfg(unix)]
     #[test]
-    fn links_must_stay_inside() {
-        assert!(ensure_inside(Path::new("A.app/Contents/x"), Path::new("../Frameworks/y")).is_ok());
-        assert!(ensure_inside(Path::new("x"), Path::new("../../etc/passwd")).is_err());
-        assert!(ensure_inside(Path::new("x"), Path::new("/etc/passwd")).is_err());
+    fn bundle_links_stay_and_links_cannot_lead_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let cancel = CancellationToken::new();
+        let archive = dir.path().join("a.zip");
+
+        zip_of_links(&archive, &[("A.app/Frameworks/y", "../z")]);
+        let dest = dir.path().join("fine");
+        unpack(&archive, "a.zip", &dest, &cancel).unwrap();
+        assert!(dest.join("A.app/Frameworks/y").is_symlink());
+
+        for links in [
+            &[("x", "../../outside")][..],
+            &[("x", "/etc")][..],
+            // Each link looks inside on its own; together they climb out.
+            &[("a/b/l", "../.."), ("x", "a/b/l/..")][..],
+        ] {
+            zip_of_links(&archive, links);
+            let dest = dir.path().join("deep/er/out");
+            assert!(
+                unpack(&archive, "a.zip", &dest, &cancel).is_err(),
+                "{links:?}"
+            );
+            assert!(!dir.path().join("deep/er/evil").exists());
+            std::fs::remove_dir_all(dir.path().join("deep")).unwrap();
+        }
     }
 }

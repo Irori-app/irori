@@ -2,8 +2,9 @@ name: Release
 
 # Builds every package Irori ships. A `v*` tag publishes them as a draft GitHub
 # release; pull requests that touch packaging build and test them without
-# publishing. Signing runs only where its secrets exist (docs/RELEASING.md), so
-# forks and pull requests produce unsigned packages.
+# publishing. Signing runs only for `v*` tags and where its secrets exist
+# (docs/RELEASING.md), so branches, forks and pull requests produce unsigned
+# packages: a branch must not be able to reach the signing keys.
 on:
   push:
     tags: ['v*']
@@ -56,14 +57,14 @@ jobs:
             libvulkan-dev libfontconfig-dev libfreetype-dev libxcb1-dev libx11-xcb-dev \
             libudev-dev libssl-dev pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           key: release-v1
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2
         with:
           tool: cargo-deb,cargo-generate-rpm
       - run: cargo build --locked --release -p irori -p irori-sign-in
@@ -181,7 +182,7 @@ jobs:
         with:
           name: cargo-sources
           path: packaging/flatpak
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6
         with:
           manifest-path: packaging/flatpak/app.irori.Irori.yml
           bundle: Irori-${{ needs.version.outputs.version }}-linux.flatpak
@@ -201,14 +202,12 @@ jobs:
         os: [macos-15, macos-15-intel]
     runs-on: ${{ matrix.os }}
     env:
-      SIGNED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
-      # Pull requests sign but don't notarize: nothing from them ships, and Apple's
-      # queue can take hours, which would hold up unrelated changes.
-      NOTARIZED: ${{ github.event_name != 'pull_request' && secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_API_KEY_P8 != '' }}
+      SIGNED: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.MACOS_CERTIFICATE_P12 != '' }}
+      NOTARIZED: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_API_KEY_P8 != '' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           key: release-v1
       - uses: actions/setup-python@v5
@@ -284,11 +283,11 @@ jobs:
     needs: version
     runs-on: windows-2022
     env:
-      SIGNED: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+      SIGNED: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           key: release-v1
       - uses: actions/setup-python@v5
@@ -306,7 +305,7 @@ jobs:
             target/release/irori-sign-in.exe
       - name: Sign the executables
         if: env.SIGNED == 'true'
-        uses: signpath/github-action-submit-signing-request@v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -334,7 +333,7 @@ jobs:
           path: dist/*-setup.exe
       - name: Sign the installer
         if: env.SIGNED == 'true'
-        uses: signpath/github-action-submit-signing-request@v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}

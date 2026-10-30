@@ -49,6 +49,8 @@ pub struct AppShell {
     glass: Option<Glass>,
     /// Notices about Irori's own versions shown this session.
     app_update: crate::app_update::Announced,
+    /// The first route was chosen knowing the library and the accounts.
+    start_settled: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -62,7 +64,10 @@ impl AppShell {
                 cx.notify();
             }),
             cx.observe(&m.downloads, |_, _, cx| cx.notify()),
-            cx.observe(&m.accounts, |_, _, cx| cx.notify()),
+            cx.observe(&m.accounts, |this, _, cx| {
+                this.settle_start(cx);
+                cx.notify();
+            }),
             cx.observe_in(&m.notices, window, |this, notices, window, cx| {
                 this.show_notices(&notices, window, cx);
             }),
@@ -108,6 +113,7 @@ impl AppShell {
         // Notices and sessions that ended while no window was open (started
         // in the tray, or closed to it).
         cx.defer_in(window, |this, window, cx| {
+            this.settle_start(cx);
             let m = models(cx).clone();
             this.show_notices(&m.notices, window, cx);
             this.on_sessions(&m.sessions, window, cx);
@@ -128,7 +134,26 @@ impl AppShell {
             applied_ui: Some(m.settings.read(cx).app.ui.clone()),
             glass: None,
             app_update: Default::default(),
+            start_settled: false,
             _subscriptions: subs,
+        }
+    }
+
+    /// The window opens before the stores have read their state, when
+    /// nothing looks logged in and the library looks empty. Correct the first
+    /// route once they have, but only then: logging in during onboarding
+    /// must not end it.
+    fn settle_start(&mut self, cx: &mut Context<Self>) {
+        let backend = irori_ui::backend(cx);
+        // The models follow the backend a moment later, and this reads them.
+        let caught_up = models(cx).library.read(cx).snapshot.revision == backend.library().revision;
+        if self.start_settled || !backend.stores_ready() || !caught_up {
+            return;
+        }
+        self.start_settled = true;
+        let nav = navigator(cx);
+        if let Some(route) = route_once_loaded(nav.read(cx).current(), wants_onboarding(cx)) {
+            nav.update(cx, |nav, cx| nav.replace(route, cx));
         }
     }
 
@@ -685,10 +710,35 @@ pub fn launch_game(id: GameId, window: &mut Window, cx: &mut App) {
 /// Default route at startup: the welcome flow until the user finished or
 /// skipped it, else the library.
 pub fn initial_route(cx: &App) -> Route {
-    let has_sideload = models(cx).library.read(cx).snapshot.count(Runner::Sideload) > 0;
-    if irori_manage::should_show_onboarding(cx) && !has_sideload {
+    if wants_onboarding(cx) {
         Route::Onboarding
     } else {
         Route::Library
+    }
+}
+
+fn wants_onboarding(cx: &App) -> bool {
+    let has_sideload = models(cx).library.read(cx).snapshot.count(Runner::Sideload) > 0;
+    irori_manage::should_show_onboarding(cx) && !has_sideload
+}
+
+/// Where to go once the stores have loaded, if not where the user is.
+fn route_once_loaded(current: &Route, wants_onboarding: bool) -> Option<Route> {
+    (*current == Route::Onboarding && !wants_onboarding).then_some(Route::Library)
+}
+
+#[cfg(test)]
+mod start_tests {
+    use super::*;
+
+    #[test]
+    fn onboarding_is_left_only_when_it_turns_out_not_to_be_needed() {
+        assert_eq!(
+            route_once_loaded(&Route::Onboarding, false),
+            Some(Route::Library)
+        );
+        assert_eq!(route_once_loaded(&Route::Onboarding, true), None);
+        assert_eq!(route_once_loaded(&Route::Library, false), None);
+        assert_eq!(route_once_loaded(&Route::BigPicture, false), None);
     }
 }

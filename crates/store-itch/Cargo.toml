@@ -11,6 +11,7 @@ publish.workspace = true
 irori-core.workspace = true
 irori-depot.workspace = true
 irori-itch-api.workspace = true
+irori-secrets.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

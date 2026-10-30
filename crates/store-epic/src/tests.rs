@@ -486,7 +486,8 @@ async fn converts_files_left_by_legendary() {
     s.init().await.unwrap();
     assert!(!cfg.join("user.json").exists());
     assert!(!cfg.join("metadata").exists());
-    assert!(cfg.join("legendary-backup/user.json").is_file());
+    assert!(!cfg.join("legendary-backup/user.json").exists());
+    assert!(cfg.join("legendary-backup/installed.json").is_file());
     assert_eq!(s.user().unwrap().display_name, "Player");
     let g = s.game("Sugar").unwrap();
     assert!(g.is_installed);

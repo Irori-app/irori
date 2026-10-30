@@ -86,7 +86,8 @@ pub fn gamesdb_to_game_info(v: &Value) -> Option<MappedRelease> {
     let app_name = v
         .get("external_id")
         .map(id_string)
-        .filter(|s| !s.is_empty())?;
+        // Ids name files and folders; GOG's are numbers.
+        .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric()))?;
     let title = localized(v.get("title"))
         .or_else(|| localized(game.get("title")))
         .unwrap_or_default();

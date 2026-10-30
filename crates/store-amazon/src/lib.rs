@@ -409,6 +409,8 @@ impl AmazonStore {
     /// `<config>/nile`, then keep it as `<config>/nile-backup`.
     async fn migrate_nile_dir(&self) {
         let old = self.layout.dir.join("nile");
+        let earlier_backup = self.layout.dir.join("nile-backup");
+        let _ = Self::blocking(move || import::remove_nile_login(&earlier_backup)).await;
         if !old.is_dir() {
             return;
         }
@@ -421,6 +423,7 @@ impl AmazonStore {
                 std::fs::remove_dir_all(&backup)?;
             }
             std::fs::rename(&old, &backup)?;
+            import::remove_nile_login(&backup);
             remove_quietly(&layout.dir.join("account.json"));
             remove_quietly(&cache_dir.join("library.json"));
             Ok(())
@@ -671,8 +674,8 @@ impl Store for AmazonStore {
             .folder_name
             .clone()
             .filter(|f| !f.trim().is_empty())
-            .unwrap_or_else(|| irori_core::paths::sanitize(app_name));
-        let dir = base.join(&folder);
+            .unwrap_or_else(|| app_name.to_string());
+        let dir = base.join(irori_core::paths::sanitize(&folder));
         // Only a folder this install creates may be deleted on cancel.
         if !dir.exists() {
             self.pending_dirs

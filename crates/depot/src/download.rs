@@ -102,7 +102,7 @@ enum Error {
         url: String,
     },
     #[error("network error: {0}")]
-    Network(#[from] reqwest::Error),
+    Network(reqwest::Error),
     /// The connection stalled or closed early.
     #[error("{0}")]
     Interrupted(String),
@@ -112,6 +112,13 @@ enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+}
+
+impl From<reqwest::Error> for Error {
+    /// Without the address: signed CDN addresses are credentials.
+    fn from(e: reqwest::Error) -> Self {
+        Self::Network(e.without_url())
+    }
 }
 
 /// How a failed request is retried.
@@ -1137,6 +1144,13 @@ impl Ctx {
             watch.pause(self.throttle(bytes.len()).await?);
             self.stats.add_received(bytes.len() as u64);
             raw.extend_from_slice(&bytes);
+            if chunk.download_size > 0 && raw.len() as u64 > chunk.download_size {
+                return Err(Error::Corrupt(format!(
+                    "{} sent more than the chunk's {} bytes",
+                    redact(url),
+                    chunk.download_size
+                )));
+            }
             watch
                 .feed(bytes.len() as u64, Instant::now())
                 .map_err(|e| Error::Interrupted(format!("{}: {e}", redact(url))))?;
@@ -1167,6 +1181,22 @@ impl<'a> Waiting<'a> {
 impl Drop for Waiting<'_> {
     fn drop(&mut self) {
         self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+mod redact_tests {
+    use super::redact;
+
+    #[test]
+    fn keeps_only_the_server() {
+        for url in [
+            "https://cdn.example.org/path/file?sig=secret",
+            "https://cdn.example.org/token=nva=1~hmac=secret/file",
+            "https://cdn.example.org",
+        ] {
+            assert_eq!(redact(url), "https://cdn.example.org");
+        }
     }
 }
 
@@ -1303,9 +1333,12 @@ fn sign_error(e: anyhow::Error) -> Error {
     }
 }
 
-/// Signed CDN addresses carry credentials in the query; keep them out of logs.
+/// Signed CDN addresses carry credentials, in the query or the path (GOG's
+/// `/token=…~hmac=…`); only the server's name goes in logs.
 fn redact(url: &str) -> String {
-    url.split('?').next().unwrap_or(url).to_string()
+    let (scheme, rest) = url.split_once("://").unwrap_or(("https", url));
+    let host = rest.split(['/', '?']).next().unwrap_or(rest);
+    format!("{scheme}://{host}")
 }
 
 async fn file_len(p: &Path) -> Option<u64> {

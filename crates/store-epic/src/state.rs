@@ -2,7 +2,7 @@
 //! `spawn_blocking`.
 //!
 //! In `Paths::store_config_dir(Runner::Legendary)`:
-//! * `session.json`: the signed-in account (owner-only permissions).
+//! * `session.json`: the signed-in account, through `irori_secrets`.
 //! * `library.json`: the account's apps ([`GameRecord`]s).
 //! * `installs.json`: installed apps by app name.
 //! * `builds/<app>.manifest`: manifest of each installed build, the base of
@@ -11,7 +11,6 @@
 //! * `overlay.json`: the EOS overlay install.
 
 use std::collections::{BTreeMap, HashMap};
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -274,15 +273,11 @@ pub(crate) fn write_library(layout: &Layout, list: &[GameRecord]) -> Result<()> 
 }
 
 pub(crate) fn read_session(layout: &Layout) -> Option<Session> {
-    json_store::read::<Session>(&layout.session_json())
-        .map_err(|e| tracing::warn!("{e:#}"))
-        .ok()
-        .flatten()
-        .filter(|s| !s.refresh_token.is_empty())
+    irori_secrets::load::<Session>(&layout.session_json()).filter(|s| !s.refresh_token.is_empty())
 }
 
 pub(crate) fn write_session(layout: &Layout, session: &Session) -> Result<()> {
-    write_private(&layout.session_json(), &serde_json::to_vec_pretty(session)?)
+    irori_secrets::write_json(&layout.session_json(), session)
 }
 
 /// The EOS overlay install.
@@ -299,27 +294,6 @@ pub(crate) fn remove_quietly(path: &Path) {
     {
         tracing::warn!("removing {}: {e}", path.display());
     }
-}
-
-/// Write `bytes` atomically, readable only by the user where the platform
-/// supports it (credentials).
-pub(crate) fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
-    let dir = path.parent().context("invalid credentials path")?;
-    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
-        let mut f = opts
-            .open(&tmp)
-            .with_context(|| format!("writing {}", tmp.display()))?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-    }
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
 }
 
 /// Real Wine prefix directory (the one holding `user.reg`): `prefix/pfx` for

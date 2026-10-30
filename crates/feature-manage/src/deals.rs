@@ -300,7 +300,7 @@ impl DealsSection {
                     .gap_0p5()
                     .child(
                         Link::new("open")
-                            .href(p.store_link.clone())
+                            .when_some(irori_ui::web_url(&p.store_link), |link, url| link.href(url))
                             .child(div().font_medium().truncate().child(p.title.clone())),
                     )
                     .child(div().text_xs().text_color(theme.muted_foreground).child(

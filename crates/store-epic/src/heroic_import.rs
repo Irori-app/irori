@@ -232,6 +232,8 @@ impl crate::EpicStore {
     /// directory, then move them into `legendary-backup/`.
     pub(crate) async fn migrate_legendary_dir(&self) {
         let dir = self.layout.config.clone();
+        // Backups of earlier builds hold the old login in the clear.
+        let _ = tokio::fs::remove_file(dir.join("legendary-backup/user.json")).await;
         if !dir.join("user.json").is_file() && !dir.join("installed.json").is_file() {
             return;
         }
@@ -250,6 +252,7 @@ impl crate::EpicStore {
                     std::fs::rename(&p, &to)?;
                 }
             }
+            state::remove_quietly(&backup.join("user.json"));
             state::remove_quietly(&layout.cache.join("catalog.json"));
             Ok(imported)
         })

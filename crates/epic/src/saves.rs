@@ -105,7 +105,14 @@ pub fn resolve_save_path(loc: &SaveLocation<'_>) -> Result<PathBuf> {
         }
     }
     let mut parts = Vec::new();
+    // Epic's data decides this path, and syncing reads and deletes there.
+    if !template.starts_with('{') {
+        bail!("The save folder {template} doesn't start at a known folder");
+    }
     for part in template.split('/').filter(|p| !p.is_empty()) {
+        if part == ".." {
+            bail!("The save folder {template} leaves its known folder");
+        }
         match vars.get(&part.to_lowercase()) {
             Some(v) => parts.push(v.to_string_lossy().into_owned()),
             None if part.starts_with('{') || part.contains('%') => {

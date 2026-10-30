@@ -1,7 +1,9 @@
 //! Small JSON files written atomically (write to a temp file, then rename), so
 //! a crash never leaves a half-written settings or state file.
 
+use std::io::Write as _;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context as _, Result};
 use serde::Serialize;
@@ -42,13 +44,27 @@ pub fn write_bytes(path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     }
+    static NEXT: AtomicU64 = AtomicU64::new(0);
     let tmp = path.with_extension(format!(
-        "{}.tmp",
-        path.extension().and_then(|e| e.to_str()).unwrap_or("json")
+        "{}.{}.{}.tmp",
+        path.extension().and_then(|e| e.to_str()).unwrap_or("json"),
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
     ));
-    std::fs::write(&tmp, bytes).with_context(|| format!("writing {}", tmp.display()))?;
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
+    // A new file, so a link placed at this name is never followed.
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)
+        .and_then(|mut f| f.write_all(bytes))
+        .with_context(|| format!("writing {}", tmp.display()))
+        .and_then(|()| {
+            std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))
+        });
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    written
 }
 
 #[cfg(test)]
@@ -64,5 +80,18 @@ mod tests {
         assert_eq!(read::<Vec<u32>>(&p).unwrap(), Some(vec![1, 2]));
         std::fs::write(&p, b"{").unwrap();
         assert_eq!(read_or_default::<Vec<u32>>(&p), Vec::<u32>::new());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_at_the_temp_name_is_not_followed() {
+        let dir = tempfile::tempdir().unwrap();
+        let outside = dir.path().join("outside");
+        std::fs::write(&outside, "kept").unwrap();
+        let p = dir.path().join("a.txt");
+        std::os::unix::fs::symlink(&outside, dir.path().join("a.txt.tmp")).unwrap();
+        write_bytes(&p, b"new").unwrap();
+        assert_eq!(std::fs::read(&p).unwrap(), b"new");
+        assert_eq!(std::fs::read(&outside).unwrap(), b"kept");
     }
 }

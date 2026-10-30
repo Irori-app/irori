@@ -376,7 +376,9 @@ async fn converts_state_left_by_nile() {
     .unwrap();
     f.store.init().await.unwrap();
     assert!(!old.exists());
-    assert!(f.root.join("config/nile-backup/user.json").is_file());
+    // The backup keeps nile's state, not its login.
+    assert!(!f.root.join("config/nile-backup/user.json").exists());
+    assert!(f.root.join("config/nile-backup/installed.json").is_file());
     assert_eq!(f.store.user().unwrap().display_name, "Radu");
     // Installed but not yet in the synced library: kept as an orphan entry.
     let game = f.store.game(APP).unwrap();

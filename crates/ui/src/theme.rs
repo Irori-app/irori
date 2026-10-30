@@ -9,8 +9,10 @@
 use std::rc::Rc;
 
 use gpui_kit::component::{Theme, ThemeConfig, ThemeMode, ThemeRegistry};
-use gpui_kit::{App, Global, SharedString, Window, WindowAppearance, px};
+use gpui_kit::{App, Global, Hsla, Rgba, SharedString, Window, WindowAppearance, px};
 use irori_core::settings::{ThemePreference, UiPrefs};
+
+use crate::style::{TEXT_CONTRAST, contrast, legible_towards};
 
 pub const DEFAULT_DARK: &str = "Irori Night";
 pub const DEFAULT_LIGHT: &str = "Irori Day";
@@ -241,6 +243,64 @@ pub fn apply(prefs: &UiPrefs, window: Option<&mut Window>, cx: &mut App) {
         ThemeMode::Light
     };
     Theme::change(mode, window, cx);
+    Theme::update(cx, hold_status_colors);
+}
+
+/// What status colours aim for, a little over WCAG's 4.5:1: alerts tint their
+/// own background with the colour they write in.
+const STATUS_CONTRAST: f32 = 4.8;
+/// How much of its colour an alert mixes into its background.
+const ALERT_TINT: f32 = 0.04;
+
+/// Themes choose warning, danger, info and success by eye, and many light
+/// ones read at 2:1 as text on their own page. Every alert and status line
+/// writes in these colours, so hold them here instead of at each. A colour
+/// that already reads stays exactly as the theme has it.
+fn hold_status_colors(theme: &mut Theme) {
+    let towards = if theme.mode.is_dark() {
+        gpui_kit::white()
+    } else {
+        gpui_kit::black()
+    };
+    let surfaces = [theme.background, theme.popover];
+    let fix = |color: Hsla| {
+        let tinted = surfaces.map(|s| tint(s, color));
+        legible_towards(color, &tinted, STATUS_CONTRAST, towards)
+    };
+    // What sits on the colour when it fills a button or a badge.
+    let on = |foreground: Hsla, fill: Hsla| {
+        let best = if contrast(gpui_kit::white(), fill) > contrast(gpui_kit::black(), fill) {
+            gpui_kit::white()
+        } else {
+            gpui_kit::black()
+        };
+        legible_towards(foreground, &[fill], TEXT_CONTRAST, best)
+    };
+    let t = &mut *theme;
+    (t.warning, t.warning_hover, t.warning_active) =
+        (fix(t.warning), fix(t.warning_hover), fix(t.warning_active));
+    t.warning_foreground = on(t.warning_foreground, t.warning);
+    (t.danger, t.danger_hover, t.danger_active) =
+        (fix(t.danger), fix(t.danger_hover), fix(t.danger_active));
+    t.danger_foreground = on(t.danger_foreground, t.danger);
+    (t.info, t.info_hover, t.info_active) = (fix(t.info), fix(t.info_hover), fix(t.info_active));
+    t.info_foreground = on(t.info_foreground, t.info);
+    (t.success, t.success_hover, t.success_active) =
+        (fix(t.success), fix(t.success_hover), fix(t.success_active));
+    t.success_foreground = on(t.success_foreground, t.success);
+}
+
+/// `color` at [`ALERT_TINT`] over `surface`, in sRGB.
+fn tint(surface: Hsla, color: Hsla) -> Hsla {
+    let (s, c) = (surface.to_rgb(), color.to_rgb());
+    let mix = |a: f32, b: f32| a + (b - a) * ALERT_TINT;
+    Rgba {
+        r: mix(s.r, c.r),
+        g: mix(s.g, c.g),
+        b: mix(s.b, c.b),
+        a: 1.0,
+    }
+    .into()
 }
 
 #[cfg(test)]
@@ -417,6 +477,49 @@ mod tests {
                 });
             }
         }
+    }
+
+    #[gpui_kit::test]
+    fn status_colours_read_as_text_on_every_bundled_theme(cx: &mut TestAppContext) {
+        setup(cx);
+        for json in BUNDLED {
+            for (name, dark) in family_members(json) {
+                cx.update(|cx| {
+                    let theme = if dark {
+                        ThemePreference::Dark
+                    } else {
+                        ThemePreference::Light
+                    };
+                    apply(&prefs(theme, &name), None, cx);
+                    let t = cx.theme();
+                    for (what, color, on_it) in [
+                        ("warning", t.warning, t.warning_foreground),
+                        ("danger", t.danger, t.danger_foreground),
+                        ("info", t.info, t.info_foreground),
+                        ("success", t.success, t.success_foreground),
+                    ] {
+                        for surface in [t.background, t.popover] {
+                            let alert = contrast(color, tint(surface, color));
+                            assert!(alert >= 4.5, "{name} {what}: {alert}");
+                        }
+                        let filled = contrast(on_it, color);
+                        assert!(filled >= 4.5, "{name} {what} filled: {filled}");
+                    }
+                });
+            }
+        }
+    }
+
+    #[gpui_kit::test]
+    fn status_colours_that_read_stay_as_the_theme_has_them(cx: &mut TestAppContext) {
+        setup(cx);
+        cx.update(|cx| {
+            apply(&prefs(ThemePreference::Dark, DEFAULT_DARK), None, cx);
+            assert_eq!(
+                cx.theme().warning,
+                file_color(DEFAULT_DARK, "warning.background")
+            );
+        });
     }
 
     #[test]

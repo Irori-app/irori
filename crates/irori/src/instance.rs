@@ -6,7 +6,7 @@ use std::fs::{File, OpenOptions, TryLockError};
 use std::io::{Read as _, Write as _};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub struct Instance {
     listener: TcpListener,
@@ -98,15 +98,26 @@ fn acquire_in(dir: &Path, args: &[String]) -> Result<Option<Instance>> {
 }
 
 fn receive(mut stream: TcpStream, token: &str) -> Option<Vec<String>> {
-    stream.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
     stream
         .set_write_timeout(Some(Duration::from_secs(2)))
         .ok()?;
+    // One deadline for the whole message: connections are served one at a
+    // time, and a client trickling bytes must not hold up the links behind it.
+    let deadline = Instant::now() + Duration::from_secs(5);
     let mut bytes = Vec::new();
-    std::io::Read::by_ref(&mut stream)
-        .take(64 * 1024)
-        .read_to_end(&mut bytes)
-        .ok()?;
+    let mut buffer = [0; 4096];
+    loop {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return None;
+        }
+        stream.set_read_timeout(Some(left)).ok()?;
+        match std::io::Read::read(&mut stream, &mut buffer).ok()? {
+            0 => break,
+            n if bytes.len() + n > 64 * 1024 => return None,
+            n => bytes.extend_from_slice(&buffer[..n]),
+        }
+    }
     let invocation: Invocation = serde_json::from_slice(&bytes).ok()?;
     if invocation.token != token {
         return None;

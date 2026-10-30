@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result, bail};
 use irori_core::{LaunchOption, LaunchPlan, LaunchRequest, OpContext, Store as _};
 use irori_epic_api::launch::{LaunchInput, launch_params};
+use tokio::io::AsyncWriteExt as _;
 
 use crate::EpicStore;
 use crate::launch::{self, CommandInput};
@@ -116,7 +117,12 @@ impl EpicStore {
                     meta.catalog_item_id()
                 ));
                 tokio::fs::create_dir_all(&dir).await?;
-                tokio::fs::write(&path, token).await?;
+                let _ = tokio::fs::remove_file(&path).await;
+                let mut opts = tokio::fs::OpenOptions::new();
+                opts.write(true).create_new(true);
+                #[cfg(unix)]
+                opts.mode(0o600);
+                opts.open(&path).await?.write_all(&token).await?;
                 Some(path)
             }
             _ => None,

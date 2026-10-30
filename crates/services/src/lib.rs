@@ -82,6 +82,8 @@ pub struct Inner {
     expired_logins: RwLock<BTreeMap<Runner, String>>,
     /// The update check ran at least once this session.
     updates_checked: AtomicBool,
+    /// Every store has read its state from disk.
+    stores_ready: AtomicBool,
     /// New versions of Irori itself.
     app_update: app_update::AppUpdater,
 }
@@ -151,6 +153,7 @@ impl Backend {
             presence: discord::Presence::default(),
             expired_logins: RwLock::new(BTreeMap::new()),
             updates_checked: AtomicBool::new(false),
+            stores_ready: AtomicBool::new(false),
             app_update: app_update::AppUpdater::load(interactive),
             bus,
         }));
@@ -187,6 +190,13 @@ impl Backend {
         self.bus.subscribe()
     }
 
+    /// Whether every store has read its state from disk and the library holds
+    /// what the user really has. An [`Event::LibraryUpdated`] follows it, so
+    /// the UI can wait for that one.
+    pub fn stores_ready(&self) -> bool {
+        self.stores_ready.load(Ordering::Relaxed)
+    }
+
     pub fn store(&self, runner: Runner) -> Option<DynStore> {
         self.stores.get(&runner).cloned()
     }
@@ -212,6 +222,11 @@ impl Backend {
                 }
             });
             futures::future::join_all(inits).await;
+            // Before anything that may wait on the network: the first screen
+            // depends on this.
+            b.rebuild_library();
+            b.stores_ready.store(true, Ordering::Relaxed);
+            b.bus.emit(Event::LibraryUpdated(b.library().revision));
             // Items restored from the persisted queue are waiting again.
             for item in b.downloads().active {
                 b.statuses.set(&item.id, irori_core::StatusKind::Queued);
@@ -221,6 +236,20 @@ impl Backend {
             b.downloads_wake.notify_one();
             if !interactive {
                 return;
+            }
+            if irori_secrets::unreadable_logins() {
+                b.bus.startup_notice(
+                    Notice::new(NoticeLevel::Warning, "Your saved logins couldn’t be opened")
+                        .message(
+                            "Unlock your system keyring and restart Irori, or log in to your \
+                             stores again.",
+                        )
+                        .keys(
+                            "shell.notice.logins_locked",
+                            Some("shell.notice.logins_locked_message"),
+                            &[],
+                        ),
+                );
             }
             b.check_app_update_when_due().await;
             b.refresh_compat_data().await;

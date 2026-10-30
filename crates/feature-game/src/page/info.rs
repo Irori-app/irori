@@ -23,6 +23,9 @@ use irori_ui::i18n::{t, t_args};
 use irori_ui::{backend, models};
 
 use super::{GamePage, InfoTab};
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 use crate::i18n::{platform_label, playtime_label, status_label};
 use crate::load::{Load, format_day, looks_like_html};
 use crate::saves::CloudSupport;
@@ -31,10 +34,67 @@ use crate::{dlc, ops};
 
 /// Rich store text (HTML from GOG, Markdown elsewhere).
 pub(super) fn rich_text(id: impl Into<gpui_kit::ElementId>, text: &str) -> AnyElement {
-    if looks_like_html(text) {
-        TextView::html(id, text.to_string()).into_any_element()
+    let text = web_links_only(text);
+    if looks_like_html(&text) {
+        TextView::html(id, text).into_any_element()
     } else {
-        TextView::markdown(id, text.to_string()).into_any_element()
+        TextView::markdown(id, text).into_any_element()
+    }
+}
+
+/// `text` with every link that isn't a web address emptied. Store text comes
+/// from publishers, and the text view opens links with the system, which
+/// runs whatever handles `file:`, a network share or a custom scheme.
+fn web_links_only(text: &str) -> String {
+    static LINK: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(
+            r#"(?ix)
+            (?P<before>
+                \]\(\s*<?              # [text](address)
+              | href\s*=\s*["']?       # <a href="address">
+              | (?m:^\s*\[[^\]]+\]:\s*) # [reference]: address
+              | <                     # <scheme:address>
+            )
+            (?P<url>[a-z\\/][^\s"'<>)]*)"#,
+        )
+        .expect("valid regex")
+    });
+    LINK.replace_all(text, |c: &regex::Captures| {
+        let url = &c["url"];
+        let before = &c["before"];
+        let bare_tag = before == "<" && !url.contains(':');
+        if bare_tag || irori_ui::web_url(url).is_some() {
+            c[0].to_string()
+        } else {
+            format!("{before}#")
+        }
+    })
+    .into_owned()
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::web_links_only;
+
+    #[test]
+    fn keeps_web_links_and_tags_and_empties_the_rest() {
+        for kept in [
+            "[site](https://example.org/a)",
+            "<a href=\"http://example.org\">x</a>",
+            "<p>text</p><br/>",
+            "[ref]: https://example.org",
+        ] {
+            assert_eq!(web_links_only(kept), kept);
+        }
+        for (bad, secret) in [
+            ("[x](file:///etc/passwd)", "passwd"),
+            ("<a href=\"\\\\host\\share\\x.exe\">x</a>", "share"),
+            ("<a href='smb://host/x'>x</a>", "smb"),
+            ("[ref]: steam://run/1", "steam"),
+            ("<ms-msdt:/id>", "msdt"),
+        ] {
+            assert!(!web_links_only(bad).contains(secret), "{bad}");
+        }
     }
 }
 

@@ -116,11 +116,11 @@ fn read_value(path: &Path) -> Option<Value> {
     json_store::read::<Value>(path).ok().flatten()
 }
 
-fn merge_string_map(src: &Path, dst: &Path) -> Result<()> {
+fn merge_string_map(src: &Path, ours: Option<Value>) -> Option<Value> {
     let Some(Value::Object(theirs)) = read_value(src) else {
-        return Ok(());
+        return None;
     };
-    let mut ours: serde_json::Map<String, Value> = match read_value(dst) {
+    let mut ours: serde_json::Map<String, Value> = match ours {
         Some(Value::Object(m)) => m,
         _ => serde_json::Map::new(),
     };
@@ -130,7 +130,7 @@ fn merge_string_map(src: &Path, dst: &Path) -> Result<()> {
         }
         ours.entry(k).or_insert(v);
     }
-    json_store::write(dst, &Value::Object(ours))
+    Some(Value::Object(ours))
 }
 
 pub(crate) fn import_into(heroic: &Path, dst: &GogPaths) -> Result<()> {
@@ -155,7 +155,8 @@ pub(crate) fn import_into(heroic: &Path, dst: &GogPaths) -> Result<()> {
         .unwrap_or(false);
     if has_session && logged_in && !dst.auth_file().exists() {
         if let Some(a) = &auth {
-            json_store::write(&dst.auth_file(), a).context("saving the imported GOG session")?;
+            irori_secrets::write_json(&dst.auth_file(), a)
+                .context("saving the imported GOG session")?;
         }
         let user = config.as_ref().and_then(|c| c.get("userData"));
         let data = UserData {
@@ -203,14 +204,19 @@ pub(crate) fn import_into(heroic: &Path, dst: &GogPaths) -> Result<()> {
         .collect();
     crate::migrate::convert_linux_installs(dst, &imported)?;
 
-    merge_string_map(
+    let branches = dst.private_branches_file();
+    if let Some(merged) = merge_string_map(
         &store.join("privateBranches.json"),
-        &dst.private_branches_file(),
-    )?;
-    merge_string_map(
-        &store.join("saveTimestamps.json"),
-        &dst.save_timestamps_file(),
-    )?;
+        irori_secrets::load(&branches),
+    ) {
+        irori_secrets::write_json(&branches, &merged)?;
+    }
+    let timestamps = dst.save_timestamps_file();
+    if let Some(merged) =
+        merge_string_map(&store.join("saveTimestamps.json"), read_value(&timestamps))
+    {
+        json_store::write(&timestamps, &merged)?;
+    }
 
     // Queued playtime.
     if let Some(Value::Object(q)) = read_value(

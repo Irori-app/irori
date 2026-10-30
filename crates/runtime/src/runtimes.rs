@@ -76,6 +76,19 @@ pub async fn runtime_list(force: bool) -> Result<Vec<Runtime>> {
     Ok(list)
 }
 
+/// umu and the anticheat runtimes run with every launch that uses them, and
+/// their address comes from a web service: only HTTPS, and only these hosts.
+fn is_trusted_url(url: &str) -> bool {
+    const HOSTS: &[&str] = &[
+        "github.com",
+        "lutris.net",
+        "lutris.nyc3.cdn.digitaloceanspaces.com",
+    ];
+    url.strip_prefix("https://")
+        .and_then(|rest| rest.split(['/', '?']).next())
+        .is_some_and(|host| HOSTS.contains(&host))
+}
+
 /// Irori's directory of a runtime.
 pub fn runtime_dir(name: RuntimeName) -> PathBuf {
     locations::runtimes_dir().join(name.id())
@@ -146,6 +159,12 @@ pub async fn download(name: RuntimeName, ctx: &OpContext) -> Result<()> {
         .as_deref()
         .filter(|u| !u.is_empty())
         .with_context(|| format!("the {} has no download link", name.label()))?;
+    if !is_trusted_url(url) {
+        anyhow::bail!(
+            "the {} comes from an address Irori doesn’t trust",
+            name.label()
+        );
+    }
     tracing::info!("Downloading runtime {} with download link {url}", name.id());
     let file_name = url.rsplit('/').next().unwrap_or("runtime.tar.xz");
     let archive = base.join(file_name);
@@ -251,6 +270,16 @@ pub fn steam_runtime_protonpath(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtimes_come_from_known_https_hosts() {
+        assert!(is_trusted_url(
+            "https://github.com/Open-Wine-Components/umu/x.tar.gz"
+        ));
+        assert!(!is_trusted_url("http://github.com/x"));
+        assert!(!is_trusted_url("https://github.com.evil.org/x"));
+        assert!(!is_trusted_url("https://evil.org/github.com/x"));
+    }
 
     #[test]
     fn runtime_names() {

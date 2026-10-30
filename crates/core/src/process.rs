@@ -14,6 +14,8 @@ use anyhow::{Context as _, Result};
 use nix::sys::signal::{Signal, killpg};
 #[cfg(unix)]
 use nix::unistd::Pid;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc;
@@ -128,10 +130,7 @@ impl fmt::Display for CommandSpec {
     /// secrets are masked.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (k, v) in &self.env {
-            let masked = ["TOKEN", "SECRET", "PASSWORD", "AUTH"]
-                .iter()
-                .any(|s| k.to_ascii_uppercase().contains(s));
-            if masked {
+            if is_secret_var(k) {
                 write!(f, "{k}=*** ")?;
             } else {
                 write!(f, "{k}={} ", shell_quote(v))?;
@@ -151,10 +150,29 @@ impl fmt::Display for CommandSpec {
                 continue;
             }
             mask_next = is_secret_flag(&a);
-            write!(f, " {}", shell_quote(&a))?;
+            write!(
+                f,
+                " {}",
+                shell_quote(&SECRET_PARAM.replace_all(&a, "$1=***"))
+            )?;
         }
         Ok(())
     }
+}
+
+/// Whether the value of an environment variable must not appear in logs.
+pub fn is_secret_var(name: &str) -> bool {
+    let name = name.to_ascii_uppercase();
+    [
+        "TOKEN",
+        "SECRET",
+        "PASSWORD",
+        "AUTH",
+        "KEY",
+        "AMAZON_GAMES_FUEL",
+    ]
+    .iter()
+    .any(|s| name.contains(s))
 }
 
 /// Flags whose value is a credential and must not appear in logs.
@@ -164,6 +182,12 @@ fn is_secret_flag(arg: &str) -> bool {
         "--code" | "--code-verifier" | "--token" | "--auth-code" | "--password" | "--refresh-token"
     )
 }
+
+/// Epic's launch parameters, as arguments or inside a `link2ea://` address:
+/// a live exchange code and the account's identity.
+static SECRET_PARAM: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?i)\b(AUTH_PASSWORD|epicusername|epicuserid)=[^&\s]*").expect("valid regex")
+});
 
 /// Quote a string for display in a POSIX shell command line.
 pub fn shell_quote(s: &str) -> String {
@@ -854,6 +878,32 @@ mod tests {
         let spec = CommandSpec::new("legendary").args(["auth", "--code", "abc", "--token=xyz"]);
         let shown = spec.to_string();
         assert!(!shown.contains("abc") && !shown.contains("xyz"), "{shown}");
+    }
+
+    #[test]
+    fn masks_epic_launch_parameters() {
+        let spec = CommandSpec::new("game.exe").args([
+            "-AUTH_PASSWORD=code1",
+            "-epicusername=Player",
+            "-epicuserid=abc123",
+            "link2ea://launchgame/1?platform=epic&theme=x&AUTH_PASSWORD=code2&epicuserid=abc123",
+        ]);
+        let shown = spec.to_string();
+        for secret in ["code1", "code2", "Player", "abc123"] {
+            assert!(!shown.contains(secret), "{shown}");
+        }
+        assert!(shown.contains("platform=epic"), "{shown}");
+    }
+
+    #[test]
+    fn masks_secret_looking_variables() {
+        let spec = CommandSpec::new("game")
+            .env("MY_API_KEY", "k1")
+            .env("AMAZON_GAMES_FUEL_ENTITLEMENT_ID", "k2")
+            .env("DXVK_HUD", "fps");
+        let shown = spec.to_string();
+        assert!(!shown.contains("k1") && !shown.contains("k2"), "{shown}");
+        assert!(shown.contains("DXVK_HUD=fps"), "{shown}");
     }
 
     #[test]

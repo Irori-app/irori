@@ -735,12 +735,30 @@ fn write_log_header(
             settings.wine_version.name, settings.wine_version.bin, settings.wine_prefix
         ));
     }
-    header.push_str(&format!(
-        "Settings: {}\n\n",
-        serde_json::to_string(settings).unwrap_or_default()
-    ));
+    header.push_str(&format!("Settings: {}\n\n", loggable_settings(settings)));
     std::fs::write(path, header)?;
     Ok(())
+}
+
+/// The settings for a game log, which the user may share: variables that
+/// look like secrets lose their value.
+fn loggable_settings<T: serde::Serialize>(settings: &T) -> String {
+    let mut value = serde_json::to_value(settings).unwrap_or_default();
+    if let Some(vars) = value
+        .get_mut("enviromentOptions")
+        .and_then(|v| v.as_array_mut())
+    {
+        for var in vars {
+            let secret = var
+                .get("key")
+                .and_then(|k| k.as_str())
+                .is_some_and(process::is_secret_var);
+            if secret {
+                var["value"] = "***".into();
+            }
+        }
+    }
+    value.to_string()
 }
 
 fn append_log(path: &Path, text: &str) {

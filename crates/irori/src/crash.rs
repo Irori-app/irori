@@ -104,7 +104,7 @@ pub(crate) fn notice_last_crash(bus: &EventBus) {
         return;
     };
     let shown = path.display().to_string();
-    bus.notice(
+    bus.startup_notice(
         Notice::new(NoticeLevel::Warning, "Irori closed unexpectedly last time")
             .message(format!("A crash report was saved to {shown}"))
             .keys(

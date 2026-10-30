@@ -254,22 +254,35 @@ impl GogStore {
 
     /// Private branch password of a game (empty when none).
     pub async fn private_branch_password(&self, app_name: &str) -> String {
-        let map: HashMap<String, String> = load_json(self.paths.private_branches_file()).await;
-        map.get(app_name).cloned().unwrap_or_default()
+        self.private_branches()
+            .await
+            .remove(app_name)
+            .unwrap_or_default()
     }
 
     /// Store (or clear, with an empty string) the password of a private branch.
     pub async fn set_private_branch_password(&self, app_name: &str, password: &str) -> Result<()> {
         let path = self.paths.private_branches_file();
-        let mut map: HashMap<String, String> = load_json(path.clone()).await;
+        let mut map = self.private_branches().await;
         if password.is_empty() {
             map.remove(app_name);
         } else {
             map.insert(app_name.to_string(), password.to_string());
         }
-        save_json(path, map).await?;
+        tokio::task::spawn_blocking(move || irori_secrets::write_json(&path, &map))
+            .await
+            .context("background write failed")??;
         self.clear_install_info_cache(app_name).await;
         Ok(())
+    }
+
+    async fn private_branches(&self) -> HashMap<String, String> {
+        let path = self.paths.private_branches_file();
+        tokio::task::spawn_blocking(move || irori_secrets::load(&path))
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default()
     }
 
     async fn load_state(&self) {
@@ -489,6 +502,7 @@ impl Store for GogStore {
         self.delete_presence(true).await;
         self.auth.clear().await?;
         let _ = tokio::fs::remove_file(self.paths.user_file()).await;
+        let _ = tokio::fs::remove_file(self.paths.private_branches_file()).await;
         let cache = self.paths.cache.clone();
         let _ = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(cache)).await;
         {

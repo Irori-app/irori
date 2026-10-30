@@ -208,6 +208,9 @@ impl Journal {
 pub(crate) struct Fs {
     pub sandbox: Sandbox,
     pub journal: Journal,
+    pub home: PathBuf,
+    /// Folders no delete may reach, whatever the sandbox allows.
+    pub protected: Vec<PathBuf>,
 }
 
 fn io_err(location: &str, what: &str, path: &Path, e: io::Error) -> anyhow::Error {
@@ -477,6 +480,7 @@ impl Fs {
     pub fn remove_tree(&mut self, path: &Path, location: &str) -> anyhow::Result<()> {
         let path = self.sandbox.check(path, location)?;
         if path.is_dir() {
+            irori_core::fs_guard::check_deletable(&path, Some(&self.home), &self.protected)?;
             fs::remove_dir_all(&path).map_err(|e| io_err(location, "remove", &path, e))?;
         }
         Ok(())
