@@ -106,6 +106,7 @@ async fn probe_size(url: &str) -> Result<u64> {
         .header(reqwest::header::ACCEPT_ENCODING, "identity")
         .send()
         .await
+        .map_err(reqwest::Error::without_url)
         .context("Could not reach itch.io's download server")?;
     let total = match resp.status() {
         reqwest::StatusCode::PARTIAL_CONTENT => resp

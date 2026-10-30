@@ -203,8 +203,8 @@ struct AppHandles {
 fn init_logging(gui: bool) {
     use tracing_subscriber::prelude::*;
     let default = if gui { "info" } else { "warn" };
-    let filter = tracing_subscriber::EnvFilter::try_from_env("IRORI_LOG")
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default));
+    let filter = log_filter(default);
+    restrict_logs_dir();
     let file = gui
         .then(|| {
             let path = Paths::get().launcher_log_file();
@@ -226,6 +226,27 @@ fn init_logging(gui: bool) {
             )
             .init(),
         None => registry.init(),
+    }
+}
+
+fn log_filter(default: &str) -> tracing_subscriber::EnvFilter {
+    tracing_subscriber::EnvFilter::try_from_env("IRORI_LOG")
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default))
+        // comet logs network errors with their address, and the address of a
+        // token refresh holds the GOG refresh token. Logs get shared.
+        .add_directive("comet=off".parse().expect("valid directive"))
+}
+
+/// Logs can hold paths and account names: only the user may enter the folder.
+fn restrict_logs_dir() {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = Paths::get().logs_dir();
+        let _ = std::fs::create_dir_all(&dir);
+        if let Err(e) = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)) {
+            eprintln!("restricting {}: {e}", dir.display());
+        }
     }
 }
 

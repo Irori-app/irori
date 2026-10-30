@@ -367,6 +367,7 @@ impl Client {
             .get(&url)
             .send()
             .await
+            .map_err(reqwest::Error::without_url)
             .context("Could not download the game's file list")?;
         if !resp.status().is_success() {
             bail!(
