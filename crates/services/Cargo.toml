@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 irori-core.workspace = true
+irori-secrets.workspace = true
 irori-depot.workspace = true
 irori-runtime.workspace = true
 irori-engines.workspace = true

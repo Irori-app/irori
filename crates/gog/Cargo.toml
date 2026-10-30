@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 irori-depot.workspace = true
+irori-secrets.workspace = true
 anyhow.workspace = true
 reqwest.workspace = true
 serde.workspace = true

@@ -3,7 +3,6 @@
 //! (`library.json` in the cache) and the installed games (`installed.json`).
 
 use std::collections::BTreeMap;
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -99,34 +98,12 @@ impl InstalledRecord {
     }
 }
 
-/// Write `bytes` atomically with owner-only permissions (credentials).
-pub fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
-    let dir = path.parent().context("invalid credentials path")?;
-    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
-        let mut f = opts
-            .open(&tmp)
-            .with_context(|| format!("writing {}", tmp.display()))?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-    }
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
-}
-
 pub fn load_auth(layout: &Layout) -> Option<Auth> {
-    json_store::read_or_default::<Option<Auth>>(&layout.auth_file())
-        .filter(|a| !a.api_key.is_empty())
+    irori_secrets::load::<Auth>(&layout.auth_file()).filter(|a| !a.api_key.is_empty())
 }
 
 pub fn save_auth(layout: &Layout, auth: &Auth) -> Result<()> {
-    write_private(&layout.auth_file(), &serde_json::to_vec_pretty(auth)?)
-        .context("Could not save the itch.io login")
+    irori_secrets::write_json(&layout.auth_file(), auth).context("Could not save the itch.io login")
 }
 
 pub fn load_installed(layout: &Layout) -> BTreeMap<String, InstalledRecord> {

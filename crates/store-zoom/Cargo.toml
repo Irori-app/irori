@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 fs4.workspace = true
 irori-core.workspace = true
+irori-secrets.workspace = true
 irori-runtime.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true

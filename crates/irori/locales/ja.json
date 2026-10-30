@@ -36,6 +36,8 @@
   "shell.notice.repaired": "{title} を検証して修復しました",
   "shell.notice.downloads_paused": "ダウンロードを一時停止しました",
   "shell.notice.downloads_paused_message": "オフラインです。接続が戻るとダウンロードを再開します。",
+  "shell.notice.logins_locked": "保存されたログイン情報を開けませんでした",
+  "shell.notice.logins_locked_message": "システムのキーリングのロックを解除して Irori を再起動するか、ストアに再度ログインしてください。",
   "shell.notice.already_installed": "{title} はすでにインストールされています",
   "shell.notice.crashed_last_time": "前回 Irori が予期せず終了しました",
   "shell.notice.crashed_last_time_message": "クラッシュレポートを {path} に保存しました。問題を報告するときに添付してください。",

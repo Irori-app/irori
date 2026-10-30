@@ -6,16 +6,13 @@
 //!
 //! | File | Content |
 //! |---|---|
-//! | `<config>/auth.json` (0600) | [`Auth`] |
+//! | `<config>/auth.json` | [`Auth`], through `irori_secrets` |
 //! | `<config>/installed.json` | `{app_name: InstalledRecord}` |
 //! | `<config>/pending.json` | `{app_name: PendingInstall}` (interrupted installs) |
 //! | `<cache>/library.json` | [`LibraryCache`] (raw API entries) |
 //! | `<cache>/files/<id>.json` | [`FilesCache`] |
 
 use std::collections::BTreeMap;
-use std::io::Write as _;
-#[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -192,32 +189,12 @@ pub struct FilesCache {
     pub files: FilesResponse,
 }
 
-/// Write `bytes` atomically with owner-only permissions (credentials).
-pub fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
-    let dir = path.parent().context("invalid credentials path")?;
-    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        opts.mode(0o600);
-        let mut f = opts
-            .open(&tmp)
-            .with_context(|| format!("writing {}", tmp.display()))?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-    }
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
-}
-
 pub fn save_auth(layout: &Layout, auth: &Auth) -> Result<()> {
-    write_private(&layout.auth_file(), &serde_json::to_vec_pretty(auth)?)
+    irori_secrets::write_json(&layout.auth_file(), auth)
 }
 
 pub fn load_auth(layout: &Layout) -> Option<Auth> {
-    json_store::read_or_default::<Option<Auth>>(&layout.auth_file()).filter(|a| !a.token.is_empty())
+    irori_secrets::load::<Auth>(&layout.auth_file()).filter(|a| !a.token.is_empty())
 }
 
 pub fn load_installed(layout: &Layout) -> BTreeMap<String, InstalledRecord> {

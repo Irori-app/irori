@@ -36,6 +36,8 @@
   "shell.notice.repaired": "已驗證並修復 {title}",
   "shell.notice.downloads_paused": "下載已暫停",
   "shell.notice.downloads_paused_message": "你目前處於離線狀態。恢復連線後將繼續下載。",
+  "shell.notice.logins_locked": "無法開啟已儲存的登入資訊",
+  "shell.notice.logins_locked_message": "請解鎖系統金鑰圈並重新啟動 Irori，或重新登入你的商店。",
   "shell.notice.already_installed": "{title} 已安裝",
   "shell.notice.crashed_last_time": "Irori 上次意外關閉",
   "shell.notice.crashed_last_time_message": "當機報告已儲存至 {path}。回報問題時請附上它。",

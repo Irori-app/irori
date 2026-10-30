@@ -58,6 +58,7 @@ fn main() -> Result<()> {
     if args.first().map(String::as_str) == Some(irori_sign_in::SIGN_IN_FLAG) {
         std::process::exit(i32::from(irori_sign_in::main(args.into_iter().skip(1))));
     }
+    irori_secrets::use_os_keyring();
     let cli = Cli::parse(args.clone());
     if cli.help {
         println!("{}\n\n{}", cli::HELP, headless::HELP);

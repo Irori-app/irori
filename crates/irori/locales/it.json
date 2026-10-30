@@ -36,6 +36,8 @@
   "shell.notice.repaired": "{title} verificato e riparato",
   "shell.notice.downloads_paused": "Download in pausa",
   "shell.notice.downloads_paused_message": "Sei offline. I download riprenderanno quando la connessione tornerà disponibile.",
+  "shell.notice.logins_locked": "Impossibile aprire gli accessi salvati",
+  "shell.notice.logins_locked_message": "Sblocca il portachiavi di sistema e riavvia Irori, oppure accedi di nuovo ai tuoi store.",
   "shell.notice.already_installed": "{title} è già installato",
   "shell.notice.crashed_last_time": "Irori si è chiuso inaspettatamente l’ultima volta",
   "shell.notice.crashed_last_time_message": "È stato salvato un rapporto sull’arresto anomalo in {path}. Allegalo quando segnali il problema.",

@@ -13,6 +13,7 @@ publish = false
 
 [workspace.dependencies]
 irori-core = { path = "crates/core" }
+irori-secrets = { path = "crates/secrets" }
 irori-runtime = { path = "crates/runtime" }
 irori-engines = { path = "crates/engines" }
 irori-epic = { path = "crates/store-epic" }
@@ -71,6 +72,10 @@ sha3 = "0.10"
 aes = "0.8"
 cbc = "0.1"
 aes-gcm = "0.10"
+keyring-core = "1"
+zbus-secret-service-keyring-store = { version = "1", features = ["rt-tokio-crypto-rust"] }
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
+windows-native-keyring-store = "1"
 rsa = { version = "0.9", default-features = false, features = ["std", "pem", "sha2"] }
 prost = { version = "0.14", default-features = false, features = ["std", "derive"] }
 lzma-rs = "0.3"

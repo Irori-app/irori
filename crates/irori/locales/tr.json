@@ -36,6 +36,8 @@
   "shell.notice.repaired": "{title} doğrulandı ve onarıldı",
   "shell.notice.downloads_paused": "İndirmeler duraklatıldı",
   "shell.notice.downloads_paused_message": "Çevrimdışısın. Bağlantı geri geldiğinde indirmeler devam eder.",
+  "shell.notice.logins_locked": "Kayıtlı oturum açma bilgileriniz açılamadı",
+  "shell.notice.logins_locked_message": "Sistem anahtarlığının kilidini açıp Irori’yi yeniden başlatın veya mağazalarınızda yeniden oturum açın.",
   "shell.notice.already_installed": "{title} zaten yüklü",
   "shell.notice.crashed_last_time": "Irori geçen sefer beklenmedik şekilde kapandı",
   "shell.notice.crashed_last_time_message": "Bir çökme raporu {path} konumuna kaydedildi. Sorunu bildirirken ekleyin.",

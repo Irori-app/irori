@@ -36,6 +36,8 @@
   "shell.notice.repaired": "{title} verificado y reparado",
   "shell.notice.downloads_paused": "Descargas en pausa",
   "shell.notice.downloads_paused_message": "Estás sin conexión. Las descargas se reanudarán cuando vuelva la conexión.",
+  "shell.notice.logins_locked": "No se han podido abrir tus inicios de sesión guardados",
+  "shell.notice.logins_locked_message": "Desbloquea el llavero del sistema y reinicia Irori, o vuelve a iniciar sesión en tus tiendas.",
   "shell.notice.already_installed": "{title} ya está instalado",
   "shell.notice.crashed_last_time": "Irori se cerró inesperadamente la última vez",
   "shell.notice.crashed_last_time_message": "Se guardó un informe del fallo en {path}. Adjúntalo cuando informes del problema.",

@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 irori-core.workspace = true
+irori-secrets.workspace = true
 irori-services.workspace = true
 irori-ui.workspace = true
 irori-runtime.workspace = true

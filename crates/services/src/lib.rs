@@ -222,6 +222,20 @@ impl Backend {
             if !interactive {
                 return;
             }
+            if irori_secrets::unreadable_logins() {
+                b.bus.startup_notice(
+                    Notice::new(NoticeLevel::Warning, "Your saved logins couldn’t be opened")
+                        .message(
+                            "Unlock your system keyring and restart Irori, or log in to your \
+                             stores again.",
+                        )
+                        .keys(
+                            "shell.notice.logins_locked",
+                            Some("shell.notice.logins_locked_message"),
+                            &[],
+                        ),
+                );
+            }
             b.check_app_update_when_due().await;
             b.refresh_compat_data().await;
             if b.settings.app().check_for_updates_on_startup {

@@ -36,6 +36,8 @@
   "shell.notice.repaired": "{title} überprüft und repariert",
   "shell.notice.downloads_paused": "Downloads pausiert",
   "shell.notice.downloads_paused_message": "Du bist offline. Downloads werden fortgesetzt, sobald die Verbindung wieder da ist.",
+  "shell.notice.logins_locked": "Deine gespeicherten Anmeldungen konnten nicht geöffnet werden",
+  "shell.notice.logins_locked_message": "Entsperre den Schlüsselbund des Systems und starte Irori neu oder melde dich erneut bei deinen Stores an.",
   "shell.notice.already_installed": "{title} ist bereits installiert",
   "shell.notice.crashed_last_time": "Irori wurde beim letzten Mal unerwartet beendet",
   "shell.notice.crashed_last_time_message": "Ein Absturzbericht wurde unter {path} gespeichert. Hänge ihn an, wenn du das Problem meldest.",

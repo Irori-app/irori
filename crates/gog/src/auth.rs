@@ -1,7 +1,7 @@
 //! GOG Galaxy OAuth: the sign-in page, code exchange, token refresh and
 //! game-scoped tokens (cloud saves use each game's own client).
 //!
-//! Tokens live in one file mapping client ids to credentials. Concurrent
+//! Tokens live in one `irori_secrets` file mapping client ids to credentials. Concurrent
 //! callers share one refresh (single flight).
 
 use std::fmt;
@@ -129,21 +129,20 @@ impl TokenStore {
     }
 
     async fn read_map(&self) -> Result<Map<String, Value>> {
-        match tokio::fs::read(&self.file).await {
-            Ok(bytes) => match serde_json::from_slice::<Value>(&bytes) {
-                Ok(Value::Object(map)) => Ok(map),
-                Ok(_) => Ok(Map::new()),
-                Err(e) => Err(e).context("The GOG credentials file is corrupted"),
-            },
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Map::new()),
-            Err(e) => Err(e).context("Could not read the GOG credentials"),
-        }
+        let path = self.file.clone();
+        let value = tokio::task::spawn_blocking(move || irori_secrets::read_json::<Value>(&path))
+            .await
+            .context("reading GOG credentials")?
+            .context("Could not read the GOG credentials")?;
+        Ok(match value {
+            Some(Value::Object(map)) => map,
+            _ => Map::new(),
+        })
     }
 
     async fn write_map(&self, map: Map<String, Value>) -> Result<()> {
         let path = self.file.clone();
-        let bytes = serde_json::to_vec_pretty(&Value::Object(map))?;
-        tokio::task::spawn_blocking(move || write_private(&path, &bytes))
+        tokio::task::spawn_blocking(move || irori_secrets::write_json(&path, &Value::Object(map)))
             .await
             .context("saving GOG credentials")?
     }
@@ -288,28 +287,6 @@ impl std::fmt::Display for SignInRejected {
 }
 
 impl std::error::Error for SignInRejected {}
-
-/// Write `bytes` atomically, readable only by the user where the platform
-/// supports it.
-fn write_private(path: &std::path::Path, bytes: &[u8]) -> Result<()> {
-    use std::io::Write as _;
-    let dir = path.parent().context("invalid credentials path")?;
-    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
-        let mut f = opts
-            .open(&tmp)
-            .with_context(|| format!("writing {}", tmp.display()))?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-    }
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {

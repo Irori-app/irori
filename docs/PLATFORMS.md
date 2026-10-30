@@ -98,6 +98,22 @@ disk images, the Windows installer and zip), tests that they install and start, 
 drafts a GitHub release for a `v*` tag; [RELEASING.md](RELEASING.md) covers signing
 and the package channels.
 
+## Saved logins
+
+Store logins are JSON files under `<config>/stores/<store>/`, encrypted with AES-256-GCM.
+The key is one random value in the system keyring: Secret Service on Linux (GNOME Keyring,
+KWallet), Keychain on macOS, Credential Manager on Windows. Irori stores tokens, never
+store passwords.
+
+Without a keyring (no Secret Service running, a session without D-Bus), logins stay usable
+as plain files only the user can read, and are encrypted the next time they are read with
+a keyring available. If the keyring is locked or its key is gone, Irori leaves the files
+alone, says so, and the stores look logged out until it is unlocked or the user logs in
+again. Sandboxed packages need access to `org.freedesktop.secrets` to use the keyring.
+
+On macOS an ad-hoc signed build asks for Keychain access after each update, because the
+signature changes. A build signed with a Developer ID asks once.
+
 ## Paths and desktop behavior
 
 | Data | Linux | macOS | Windows |
@@ -125,8 +141,8 @@ only older apps have.
 Logging in to Steam is optional (Accounts › Steam). Irori draws Steam's own login: a QR
 code for the Steam Mobile app, or the account name and password followed by Steam Guard.
 The password goes to Steam only; Irori keeps the account's refresh token (about 200
-days) in `<config>/stores/steam/session.json`, readable by the user only, and renews the
-access token itself. With an account, the library adds every game it owns and the games
+days) in `<config>/stores/steam/session.json`, stored like every login (below), and renews
+the access token itself. With an account, the library adds every game it owns and the games
 its Steam Family shares (`library.json` in Steam's cache folder keeps them for offline
 starts); Install hands those to Steam (`steam://install/<id>`), as Verify files and
 Uninstall do (`steam://validate`, `steam://uninstall`).

@@ -11,6 +11,7 @@ publish.workspace = true
 irori-core.workspace = true
 irori-runtime.workspace = true
 irori-steam-api.workspace = true
+irori-secrets.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

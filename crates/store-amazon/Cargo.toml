@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 irori-core.workspace = true
 irori-amazon-api.workspace = true
+irori-secrets.workspace = true
 irori-depot.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true

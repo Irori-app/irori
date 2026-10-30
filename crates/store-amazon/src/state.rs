@@ -1,14 +1,13 @@
 //! Irori's Amazon state files, all inside
 //! `Paths::store_config_dir(Runner::Nile)`:
 //!
-//! * `credentials.json`: device tokens (owner-only permissions).
+//! * `credentials.json`: device tokens, through `irori_secrets`.
 //! * `entitlements.json`: owned games as last synced.
 //! * `installed.json`: installed games by product id.
 //! * `manifests/<product id>.proto`: manifest of each installed build, the
 //!   base of update diffs and uninstalls.
 
 use std::collections::BTreeMap;
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -59,15 +58,12 @@ impl Layout {
     }
 
     pub fn read_credentials(&self) -> Option<Credentials> {
-        json_store::read::<Credentials>(&self.credentials())
-            .map_err(|e| tracing::warn!("{e:#}"))
-            .ok()
-            .flatten()
+        irori_secrets::load::<Credentials>(&self.credentials())
             .filter(|c| !c.refresh_token.is_empty())
     }
 
     pub fn write_credentials(&self, creds: &Credentials) -> Result<()> {
-        write_private(&self.credentials(), &serde_json::to_vec_pretty(creds)?)
+        irori_secrets::write_json(&self.credentials(), creds)
     }
 
     pub fn read_entitlements(&self) -> Vec<Entitlement> {
@@ -115,27 +111,6 @@ pub fn remove_quietly(path: &Path) {
     {
         tracing::warn!("removing {}: {e}", path.display());
     }
-}
-
-/// Write `bytes` atomically, readable only by the user where the platform
-/// supports it (credentials).
-pub fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
-    let dir = path.parent().context("invalid credentials path")?;
-    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true).truncate(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
-        let mut f = opts
-            .open(&tmp)
-            .with_context(|| format!("writing {}", tmp.display()))?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-    }
-    std::fs::rename(&tmp, path).with_context(|| format!("replacing {}", path.display()))?;
-    Ok(())
 }
 
 #[cfg(test)]
