@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const figures = [
-  { value: '124', unit: 'MiB', label: 'resident memory, about 39 MiB of it heap' },
+  { value: '88', unit: 'MiB', label: 'of memory with an empty library' },
   { value: '0', unit: '%', label: 'CPU while it sits idle' },
-  { value: '49', unit: 'MB', label: 'for the whole program, one process' },
+  { value: '76', unit: 'MB', label: 'for the whole program, one process' },
   { value: '19', unit: 'languages', label: 'switchable without a restart' },
 ]
 </script>
